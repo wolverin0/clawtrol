@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html class="overflow-hidden">
+  <head>
+    <title>ClawDeck - Task Tracking for Indie Hackers & Developers</title>
+    <meta name="description" content="A minimal, distraction-free task tracker built for indie hackers, solopreneurs, and developers. Track projects, ship faster, stay focused.">
+
+    <%# Open Graph / Facebook %>
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://clawdeck.so/">
+    <meta property="og:title" content="ClawDeck - Task Tracking for Indie Hackers & Developers">
+    <meta property="og:description" content="A minimal, distraction-free task tracker built for indie hackers, solopreneurs, and developers. Track projects, ship faster, stay focused.">
+    <meta property="og:image" content="<%= image_url('og-image.png') %>">
+
+    <%# Twitter %>
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://clawdeck.so/">
+    <meta property="twitter:title" content="ClawDeck - Task Tracking for Indie Hackers & Developers">
+    <meta property="twitter:description" content="A minimal, distraction-free task tracker built for indie hackers, solopreneurs, and developers. Track projects, ship faster, stay focused.">
+    <meta property="twitter:image" content="<%= image_url('og-image.png') %>">
+    <meta name="twitter:creator" content="@andresmax">
+
+    <%# Canonical URL %>
+    <link rel="canonical" href="https://clawdeck.so/">
+
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ClawDeck">
+    <meta name="application-name" content="ClawDeck">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%# Theme colors for Safari and other browsers %>
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1c1917" media="(prefers-color-scheme: dark)">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%# Schema.org structured data %>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "ClawDeck",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "A minimal, distraction-free task tracker built for indie hackers, solopreneurs, and developers. Track projects, ship faster, stay focused.",
+      "url": "https://clawdeck.so/",
+      "author": {
+        "@type": "Person",
+        "name": "Andres Max",
+        "url": "https://twitter.com/andresmax"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "5",
+        "ratingCount": "1"
+      }
+    }
+    </script>
+    <%# Fonts %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+    <%= yield :head %>
+    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
+    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+    <%# Favicons %>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+    <%= render "application/plausible_analytics" %>
+  </head>
+  <body class="overflow-hidden overscroll-none">
+    <main class="container mx-auto">
+      <%= yield %>
+    </main>
+    <footer class="fixed bottom-10 left-0 right-0 text-center text-xs text-stone-300 dark:text-white/40 tracking-tight">&copy; 2025 clawdeck.so by <a href="https://twitter.com/andresmax" target="_blank" class="text-stone-400 hover:text-red-500 dark:text-white/50 dark:hover:text-stone-100 transition-colors">@andresmax</a></footer>
+  </body>
+</html>

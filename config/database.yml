@@ -1,0 +1,79 @@
+# PostgreSQL. Versions 9.3 and up are supported.
+#
+#   Install the pg driver:
+#   gem install pg
+#
+#   Ensure the PostgreSQL gem is defined in your Gemfile
+#   gem "pg"
+#
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  # For details on connection pooling, see Rails configuration guide
+  # https://guides.rubyonrails.org/configuring.html#database-pooling
+  # Use DB_POOL for production (includes Puma threads + Solid Queue workers + Solid Cable)
+  pool: <%= ENV.fetch("DB_POOL") { ENV.fetch("RAILS_MAX_THREADS") { 5 } } %>
+
+development:
+  <<: *default
+  database: clawdeck_development
+  # The specified database role being used to connect to PostgreSQL.
+  # To create additional roles in PostgreSQL see `$ createuser --help`.
+  # When left blank, PostgreSQL will use the default role. This is
+  # the same name as the operating system user running Rails.
+  #username: clawdeck
+
+  # The password associated with the PostgreSQL role (username).
+  #password:
+
+  # Connect on a TCP socket. Omitted by default since the client uses a
+  # domain socket that doesn't need configuration. Windows does not have
+  # domain sockets, so uncomment these lines.
+  #host: localhost
+
+  # The TCP port the server listens on. Defaults to 5432.
+  # If your server runs on a different port number, change accordingly.
+  #port: 5432
+
+# Warning: The database defined as "test" will be erased and
+# re-generated from your development database when you run "rake".
+# Do not set this db to the same as development or production.
+test:
+  <<: *default
+  database: clawdeck_test
+
+# Production database configuration
+# You can use environment variables for sensitive data:
+# DATABASE_URL: postgresql://username:password@hostname:port/database
+production:
+  primary:
+    <<: *default
+    database: clawdeck_production
+    username: <%= ENV['DATABASE_USERNAME'] || 'clawdeck' %>
+    password: <%= ENV['DATABASE_PASSWORD'] %>
+    host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
+    port: <%= ENV['DATABASE_PORT'] || 5432 %>
+  cache:
+    <<: *default
+    database: clawdeck_cache_production
+    username: <%= ENV['DATABASE_USERNAME'] || 'clawdeck' %>
+    password: <%= ENV['DATABASE_PASSWORD'] %>
+    host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
+    port: <%= ENV['DATABASE_PORT'] || 5432 %>
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *default
+    database: clawdeck_queue_production
+    username: <%= ENV['DATABASE_USERNAME'] || 'clawdeck' %>
+    password: <%= ENV['DATABASE_PASSWORD'] %>
+    host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
+    port: <%= ENV['DATABASE_PORT'] || 5432 %>
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *default
+    database: clawdeck_cable_production
+    username: <%= ENV['DATABASE_USERNAME'] || 'clawdeck' %>
+    password: <%= ENV['DATABASE_PASSWORD'] %>
+    host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
+    port: <%= ENV['DATABASE_PORT'] || 5432 %>
+    migrations_paths: db/cable_migrate

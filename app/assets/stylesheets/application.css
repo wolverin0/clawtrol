@@ -1,0 +1,84 @@
+/*
+ * This is a manifest file that'll be compiled into application.css.
+ *
+ * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
+ * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
+ * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
+ * depending on specificity.
+ *
+ * Consider organizing styles into separate files for maintainability.
+ */
+
+/* SortableJS drag styles */
+.sortable-ghost {
+  opacity: 0.4;
+}
+
+.sortable-drag {
+  opacity: 1;
+}
+
+/* Trash drop area styles */
+.trash-drop-area.hover {
+  background-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.trash-drop-area.hover .trash-icon {
+  transform: scale(1.2);
+  color: rgb(239, 68, 68) !important;
+}
+
+/* Task fade out animation */
+.task-deleting,
+.task-fading {
+  opacity: 0 !important;
+  transition: opacity 200ms ease-out !important;
+}
+
+/* Sidebar project/inbox drop target styles */
+.sidebar-project.drop-target,
+.sidebar-inbox.drop-target {
+  transition: all 150ms ease-out;
+}
+
+.sidebar-project.drop-target.current-project,
+.sidebar-inbox.drop-target.current-project {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Mobile-specific drag improvements */
+@media (max-width: 768px) {
+  .sortable-ghost {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+  
+  .sortable-drag {
+    opacity: 0.9;
+  }
+}
+
+/* Remove default browser focus outline */
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+}
+
+/* Alternative: Use outline-offset to hide blue border completely */
+input,
+textarea,
+select {
+  outline: none;
+}
+
+/* Prevent scrolling on homepage - mobile overscroll fix */
+html.overflow-hidden,
+body.overflow-hidden {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}

@@ -1,0 +1,69 @@
+<%# Remove task from current location (if it exists in DOM) %>
+<%= turbo_stream.remove "task_#{@task.id}" %>
+
+<%# Add task to the correct list based on completion status %>
+<% if @task.completed? %>
+  <%# Add to completed list (at the top) %>
+  <% completed_list_id = "completed-tasks-#{@task.task_list_id}" %>
+  <%= turbo_stream.prepend completed_list_id do %>
+    <%= render partial: "tasks/task", locals: { task: @task, project: @project } %>
+  <% end %>
+<% else %>
+  <%# Add to incomplete list, before the plus-trash-box %>
+  <% incomplete_list_id = "task-list-#{@task.task_list_id}-tasks" %>
+  <% plus_trash_box_id = "plus-trash-box-#{@task.task_list_id}" %>
+  <%= turbo_stream.before plus_trash_box_id do %>
+    <%= render partial: "tasks/task", locals: { task: @task, project: @project } %>
+  <% end %>
+<% end %>
+
+<%# Update completed count, navbar count, progress bar, and section visibility %>
+<% task_list_completed = @task.task_list.tasks.completed.count %>
+<% task_list_uncompleted = @task.task_list.tasks.where(completed: false).count %>
+<% task_list_total = task_list_completed + task_list_uncompleted %>
+<% progress_percent = task_list_total > 0 ? (task_list_completed.to_f / task_list_total * 100).round : 0 %>
+<%= turbo_stream.append "tasks" do %>
+  <script>
+    (() => {
+      const taskListId = <%= @task.task_list_id %>;
+      const completedTasks = <%= task_list_completed %>;
+      const uncompletedTasks = <%= task_list_uncompleted %>;
+      const progressPercent = <%= progress_percent %>;
+
+      // Update completed count
+      const countElement = document.querySelector('[data-completed-tasks-target="count"]');
+      if (countElement) {
+        countElement.textContent = completedTasks;
+      }
+
+      // Update navbar task count
+      const navbarCount = document.getElementById('navbar-task-count');
+      if (navbarCount) {
+        navbarCount.textContent = `${uncompletedTasks} ${uncompletedTasks === 1 ? 'task' : 'tasks'}`;
+      }
+
+      // Update navbar progress bar
+      const progressBar = document.getElementById('navbar-progress-bar');
+      if (progressBar) {
+        progressBar.style.width = `${progressPercent}%`;
+      }
+
+      // Show/hide completed section based on whether there are completed tasks
+      const completedSection = document.getElementById(`completed-section-${taskListId}`);
+      if (completedSection) {
+        if (completedTasks > 0) {
+          completedSection.classList.remove('hidden');
+        } else {
+          completedSection.classList.add('hidden');
+        }
+      }
+
+      // Dispatch event for any other listeners
+      window.dispatchEvent(new CustomEvent('task:toggled'));
+    })();
+  </script>
+<% end %>
+
+<%# Update sidebar badges %>
+<%= render "application/sidebar_badges" %>
+

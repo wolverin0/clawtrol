@@ -1,0 +1,9 @@
+one:
+  email_address: one@example.com
+  verification_code: nil
+  code_expires_at: nil
+
+two:
+  email_address: two@example.com
+  verification_code: nil
+  code_expires_at: nil

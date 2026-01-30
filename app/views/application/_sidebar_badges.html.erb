@@ -1,0 +1,44 @@
+<%# Renders badge for inbox - called via Turbo Stream %>
+<% inbox_count = current_user.inbox.tasks.where(completed: false).count %>
+<turbo-stream action="replace" target="sidebar-inbox-badge">
+  <template>
+    <span id="sidebar-inbox-badge">
+      <% if inbox_count > 0 %>
+        <span class="absolute -top-1 -right-1 flex items-center justify-center min-w-3.5 h-3.5 px-0.5 text-[8px] font-bold text-white bg-purple-500 rounded-full pointer-events-none">
+          <%= inbox_count > 99 ? "99+" : inbox_count %>
+        </span>
+      <% end %>
+    </span>
+  </template>
+</turbo-stream>
+
+<%# Renders badge for today - called via Turbo Stream %>
+<% today_count = current_user.tasks.where(due_date: ..Date.current, completed: false).count %>
+<turbo-stream action="replace" target="sidebar-today-badge">
+  <template>
+    <span id="sidebar-today-badge">
+      <% if today_count > 0 %>
+        <span class="absolute -top-1 -right-1 flex items-center justify-center min-w-3.5 h-3.5 px-0.5 text-[8px] font-bold text-white bg-orange-500 rounded-full pointer-events-none">
+          <%= today_count > 99 ? "99+" : today_count %>
+        </span>
+      <% end %>
+    </span>
+  </template>
+</turbo-stream>
+
+<%# Renders badge for each project - called via Turbo Stream %>
+<% high_priority_counts = Task.unscoped.where(user: current_user, completed: false, priority: :high).group(:project_id).count %>
+<% current_user.projects.visible.each do |project| %>
+  <% count = high_priority_counts[project.id] || 0 %>
+  <turbo-stream action="replace" target="sidebar-badge-<%= project.id %>">
+    <template>
+      <span id="sidebar-badge-<%= project.id %>">
+        <% if count > 0 %>
+          <span class="sidebar-badge absolute -top-1 -right-1 flex items-center justify-center min-w-3.5 h-3.5 px-0.5 text-[8px] font-bold text-white bg-red-500 rounded-full pointer-events-none">
+            <%= count %>
+          </span>
+        <% end %>
+      </span>
+    </template>
+  </turbo-stream>
+<% end %>

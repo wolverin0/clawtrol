@@ -1,0 +1,12 @@
+# API Tokens fixtures
+one:
+  token: test_token_one_abc123def456
+  name: Test Token One
+  user: one
+  last_used_at: nil
+
+two:
+  token: test_token_two_xyz789ghi012
+  name: Test Token Two
+  user: two
+  last_used_at: nil

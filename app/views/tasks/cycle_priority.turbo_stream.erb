@@ -1,0 +1,7 @@
+<%# Replace the task with updated priority %>
+<%= turbo_stream.replace "task_#{@task.id}" do %>
+  <%= render partial: "tasks/task", locals: { task: @task, project: @project } %>
+<% end %>
+
+<%# Update sidebar badges %>
+<%= render "application/sidebar_badges" %>

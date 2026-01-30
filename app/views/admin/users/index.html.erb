@@ -1,0 +1,58 @@
+<% content_for :title, "Users - Admin - clawdeck" %>
+<% content_for :nav_center, "Users - Admin" %>
+
+<section id="admin-users" class="space-y-6">
+  <!-- Header with back link -->
+  <div class="flex items-center gap-3">
+    <%= link_to admin_root_path, class: "text-stone-600 dark:text-purple-100 hover:text-stone-900 dark:hover:text-stone-100 transition-colors" do %>
+      ← Back to Dashboard
+    <% end %>
+  </div>
+
+  <!-- Users table -->
+  <div class="bg-stone-100 dark:bg-white/10 rounded-md overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-stone-200 dark:bg-white/20">
+          <tr>
+            <th class="px-5 py-3 text-left text-xs font-semibold tracking-tight text-stone-900 dark:text-stone-100">Email</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold tracking-tight text-stone-900 dark:text-stone-100">Created</th>
+            <th class="px-5 py-3 text-left text-xs font-semibold tracking-tight text-stone-900 dark:text-stone-100">Last Login</th>
+            <th class="px-5 py-3 text-center text-xs font-semibold tracking-tight text-stone-900 dark:text-stone-100">Projects</th>
+            <th class="px-5 py-3 text-center text-xs font-semibold tracking-tight text-stone-900 dark:text-stone-100">Tasks</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-200 dark:divide-white/10">
+          <% @users.each do |user_data| %>
+            <tr class="hover:bg-stone-200 dark:hover:bg-white/20 transition-colors">
+              <td class="px-5 py-4 text-sm text-stone-900 dark:text-stone-100">
+                <%= user_data[:email] %>
+              </td>
+              <td class="px-5 py-4 text-sm text-stone-600 dark:text-purple-100">
+                <%= user_data[:created_at].strftime("%b %d, %Y") %>
+              </td>
+              <td class="px-5 py-4 text-sm text-stone-600 dark:text-purple-100">
+                <% if user_data[:last_login] %>
+                  <%= time_ago_in_words(user_data[:last_login]) %> ago
+                <% else %>
+                  <span class="text-stone-400 dark:text-white/40">Never</span>
+                <% end %>
+              </td>
+              <td class="px-5 py-4 text-sm text-center text-stone-900 dark:text-stone-100 font-semibold">
+                <%= user_data[:projects_count] %>
+              </td>
+              <td class="px-5 py-4 text-sm text-center text-stone-900 dark:text-stone-100 font-semibold">
+                <%= user_data[:tasks_count] %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Summary footer -->
+  <div class="text-sm text-stone-600 dark:text-purple-100 text-center">
+    Total: <%= pluralize(@users.count, 'user') %>
+  </div>
+</section>

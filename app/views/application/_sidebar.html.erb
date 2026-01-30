@@ -1,0 +1,159 @@
+<%# Sidebar - only shown for authenticated users %>
+<% if authenticated? %>
+  <aside
+    data-sidebar-target="sidebar"
+    class="fixed top-2 left-2 bottom-2 z-40 w-12 flex flex-col items-center py-3"
+    aria-label="Sidebar navigation">
+
+    <%# Scrollable project icons area %>
+    <div class="flex-1 flex flex-col items-center gap-2 overflow-y-auto overflow-x-visible w-full pt-2">
+      <%# Inbox icon - always first %>
+      <% inbox_task_count = current_user.inbox.tasks.where(completed: false).count %>
+      <div class="relative flex-shrink-0 w-8 h-8 overflow-visible"
+           data-controller="tooltip"
+           data-tooltip-text-value="Inbox"
+           data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+        <%= link_to inbox_path,
+            class: "sidebar-inbox block w-8 h-8 rounded-lg overflow-hidden ring-offset-1 ring-offset-stone-50 dark:ring-offset-stone-900 #{request.path == inbox_path ? 'ring-2 ring-lime-500' : 'hover:ring-2 hover:ring-stone-300 dark:hover:ring-stone-600'} transition-all bg-stone-200 dark:bg-stone-800 flex items-center justify-center" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-stone-500 dark:text-stone-400">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-17.5 0a2.25 2.25 0 0 0-2.25 2.25v1.5a2.25 2.25 0 0 0 2.25 2.25h15a2.25 2.25 0 0 0 2.25-2.25v-1.5a2.25 2.25 0 0 0-2.25-2.25m-17.5 0V6.75A2.25 2.25 0 0 1 4.5 4.5h15a2.25 2.25 0 0 1 2.25 2.25v6.75" />
+          </svg>
+        <% end %>
+        <span id="sidebar-inbox-badge">
+          <% if inbox_task_count > 0 %>
+            <span class="absolute -top-1 -right-1 flex items-center justify-center min-w-3.5 h-3.5 px-0.5 text-[8px] font-bold text-white bg-purple-500 rounded-full pointer-events-none">
+              <%= inbox_task_count > 99 ? "99+" : inbox_task_count %>
+            </span>
+          <% end %>
+        </span>
+      </div>
+
+      <%# Today icon - after inbox %>
+      <% today_task_count = current_user.tasks.where(due_date: ..Date.current, completed: false).count %>
+      <div class="relative flex-shrink-0 w-8 h-8 overflow-visible"
+           data-controller="tooltip"
+           data-tooltip-text-value="Today"
+           data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+        <%= link_to today_path,
+            class: "sidebar-today block w-8 h-8 rounded-lg overflow-hidden ring-offset-1 ring-offset-stone-50 dark:ring-offset-stone-900 #{request.path == today_path ? 'ring-2 ring-lime-500' : 'hover:ring-2 hover:ring-stone-300 dark:hover:ring-stone-600'} transition-all bg-stone-200 dark:bg-stone-800 flex items-center justify-center" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-stone-500 dark:text-stone-400">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />
+          </svg>
+        <% end %>
+        <span id="sidebar-today-badge">
+          <% if today_task_count > 0 %>
+            <span class="absolute -top-1 -right-1 flex items-center justify-center min-w-3.5 h-3.5 px-0.5 text-[8px] font-bold text-white bg-orange-500 rounded-full pointer-events-none">
+              <%= today_task_count > 99 ? "99+" : today_task_count %>
+            </span>
+          <% end %>
+        </span>
+      </div>
+
+      <div id="sidebar-projects"
+           class="flex flex-col items-center gap-2 w-full overflow-visible"
+           data-controller="projects-sortable"
+           data-projects-sortable-url-value="<%= reorder_projects_path %>"
+           data-projects-sortable-sync-value="projects-list">
+        <% sidebar_projects = current_user.projects.visible.includes(image_attachment: :blob).limit(10) %>
+        <% high_priority_counts = Task.unscoped.where(user: current_user, completed: false, priority: :high).group(:project_id).count %>
+        <% sidebar_projects.each do |project| %>
+          <% high_priority_count = high_priority_counts[project.id] || 0 %>
+          <div class="relative flex-shrink-0 w-8 h-8 overflow-visible"
+               data-controller="tooltip"
+               data-tooltip-text-value="<%= project.title %>"
+               data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+            <%= link_to project_path(project),
+                data: { project_id: project.id },
+                class: "sidebar-project block w-8 h-8 rounded-lg overflow-hidden ring-offset-1 ring-offset-stone-50 dark:ring-offset-stone-900 #{request.path == project_path(project) ? 'ring-2 ring-lime-500' : 'hover:ring-2 hover:ring-stone-300 dark:hover:ring-stone-600'} transition-all cursor-grab active:cursor-grabbing" do %>
+              <% if project.image.attached? %>
+                <%= image_tag project.image, class: "w-full h-full object-cover pointer-events-none", alt: project.title %>
+              <% else %>
+                <%= image_tag "defaultavatar.png", class: "w-full h-full object-cover pointer-events-none", alt: project.title %>
+              <% end %>
+            <% end %>
+            <span id="sidebar-badge-<%= project.id %>">
+              <% if high_priority_count > 0 %>
+                <span class="sidebar-badge absolute -top-1 -right-1 flex items-center justify-center min-w-3.5 h-3.5 px-0.5 text-[8px] font-bold text-white bg-red-500 rounded-full pointer-events-none">
+                  <%= high_priority_count %>
+                </span>
+              <% end %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+      <%# New project link %>
+      <div class="relative flex-shrink-0 w-8 h-8 overflow-visible"
+           data-controller="tooltip"
+           data-tooltip-text-value="New project"
+           data-action="mouseenter->tooltip#show mouseleave->tooltip#hide">
+        <%= link_to new_project_path,
+            class: "w-8 h-8 rounded-lg flex-shrink-0 bg-stone-200 dark:bg-stone-800 flex items-center justify-center hover:ring-2 hover:ring-stone-300 dark:hover:ring-stone-600 transition-all text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200" do %>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+        <% end %>
+      </div>
+    </div>
+
+    <%# User avatar dropdown at bottom - outside scrollable area %>
+    <div class="relative mt-2" data-controller="dropdown">
+      <button
+        type="button"
+        data-dropdown-target="button"
+        data-action="click->dropdown#toggle"
+        class="w-8 h-8 rounded-lg overflow-hidden bg-stone-200 dark:bg-stone-800 flex items-center justify-center hover:ring-2 hover:ring-stone-300 dark:hover:ring-stone-600 transition-all cursor-pointer"
+        aria-expanded="false"
+        aria-haspopup="true">
+        <% if current_user.avatar.attached? %>
+          <%= image_tag current_user.avatar, class: "w-full h-full object-cover", alt: "Your avatar" %>
+        <% else %>
+          <svg class="w-4 h-4 text-stone-500 dark:text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        <% end %>
+      </button>
+      <div
+        data-dropdown-target="menu"
+        class="hidden absolute left-full bottom-0 ml-2 w-44 bg-stone-50 dark:bg-stone-900 rounded-lg shadow-lg border border-stone-200 dark:border-stone-800 overflow-hidden z-[100]">
+        <%# User info %>
+        <div class="px-3 py-2.5 bg-stone-100 dark:bg-stone-800">
+          <p class="text-xs font-medium text-stone-600 dark:text-stone-300 truncate">
+            <%= current_user.email_address.split('@').first %>
+          </p>
+          <p class="text-xs text-stone-400 dark:text-stone-500 truncate">
+            <%= current_user.email_address %>
+          </p>
+        </div>
+        <%# Menu items %>
+        <div class="py-1">
+          <%= link_to profile_path,
+              class: "flex items-center gap-2 px-3 py-2 text-xs text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors" do %>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Settings
+          <% end %>
+          <%= link_to "https://discord.gg/3pB29Gzwdu",
+              target: "_blank",
+              rel: "noopener noreferrer",
+              class: "flex items-center gap-2 px-3 py-2 text-xs text-stone-500 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors" do %>
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M20.317 4.37a19.791 19.791 0 00-4.885-1.515.074.074 0 00-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 00-5.487 0 12.64 12.64 0 00-.617-1.25.077.077 0 00-.079-.037A19.736 19.736 0 003.677 4.37a.07.07 0 00-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 00.031.057 19.9 19.9 0 005.993 3.03.078.078 0 00.084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 00-.041-.106 13.107 13.107 0 01-1.872-.892.077.077 0 01-.008-.128 10.2 10.2 0 00.372-.292.074.074 0 01.077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 01.078.01c.12.098.246.198.373.292a.077.077 0 01-.006.127 12.299 12.299 0 01-1.873.892.077.077 0 00-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 00.084.028 19.839 19.839 0 006.002-3.03.077.077 0 00.032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 00-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+            </svg>
+            Discord
+          <% end %>
+          <%= link_to session_path,
+              method: :delete,
+              data: { turbo_method: :delete },
+              class: "flex items-center gap-2 px-3 py-2 text-xs text-red-500 dark:text-red-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors" do %>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Log out
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </aside>
+<% end %>
