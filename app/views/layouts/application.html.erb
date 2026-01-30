@@ -9,13 +9,11 @@
     <meta name="application-name" content="ClawDeck">
     <meta name="mobile-web-app-capable" content="yes">
     <%# Theme colors for Safari and other browsers %>
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#050810">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-    <%# Fonts %>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+    <%# Fonts - Clash Display + Satoshi %>
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@700,600,500&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
     <%= yield :head %>
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
     <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
@@ -30,20 +28,20 @@
     <%= javascript_importmap_tags %>
     <%= render "application/plausible_analytics" %>
   </head>
-  <body class="h-screen overflow-hidden bg-neutral-950" data-controller="turbo-progress">
+  <body class="h-screen overflow-hidden bg-bg-base font-body" data-controller="turbo-progress">
     <% if @board_page %>
       <%# Board page - full screen, no wrapper %>
-      <div class="h-screen flex flex-col bg-neutral-950">
-        <main class="h-full text-neutral-300 font-normal text-sm">
+      <div class="h-screen flex flex-col bg-bg-base">
+        <main class="h-full text-content-secondary font-normal text-sm">
           <%= yield %>
         </main>
       </div>
     <% else %>
       <%# Other pages - centered content with navbar %>
-      <div class="h-screen flex flex-col bg-neutral-950">
+      <div class="h-screen flex flex-col bg-bg-base">
         <%= render "application/navbar" %>
         <div class="flex-1 overflow-y-auto px-4 pb-8 overscroll-contain [-webkit-overflow-scrolling:touch]">
-          <main class="container max-w-lg mx-auto text-neutral-300 font-normal text-sm">
+          <main class="container max-w-lg mx-auto text-content-secondary font-normal text-sm">
             <%= yield %>
           </main>
         </div>

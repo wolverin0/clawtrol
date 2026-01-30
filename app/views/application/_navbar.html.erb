@@ -1,9 +1,9 @@
 <%# Navbar for non-board pages (settings, profile, etc.) %>
-<nav class="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-neutral-900 border-b border-neutral-800">
+<nav class="flex-shrink-0 flex items-center justify-between px-6 py-4 bg-bg-base border-b border-border">
   <%# Left: Back to board %>
   <div class="flex items-center gap-3">
     <% if authenticated? %>
-      <%= link_to board_path, class: "flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors" do %>
+      <%= link_to board_path, class: "flex items-center gap-2 text-sm text-content-secondary hover:text-content transition-colors" do %>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
           <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
         </svg>
@@ -19,15 +19,15 @@
   <%# Center: Page title / Flash messages %>
   <div class="flex items-center gap-3">
     <% if content_for?(:breadcrumb) %>
-      <span class="text-sm font-medium text-white"><%= yield :breadcrumb %></span>
+      <span class="text-sm font-medium text-content font-display"><%= yield :breadcrumb %></span>
     <% end %>
     <% if notice.present? %>
-      <div data-controller="flash" class="py-1 px-2.5 bg-green-900/30 text-green-400 text-xs font-medium rounded-md">
+      <div data-controller="flash" class="py-1 px-2.5 bg-status-success/20 text-status-success text-xs font-medium rounded-md">
         <%= notice %>
       </div>
     <% end %>
     <% if alert.present? %>
-      <div data-controller="flash" class="py-1 px-2.5 bg-red-900/30 text-red-400 text-xs font-medium rounded-md">
+      <div data-controller="flash" class="py-1 px-2.5 bg-status-error/20 text-status-error text-xs font-medium rounded-md">
         <%= alert %>
       </div>
     <% end %>
@@ -36,9 +36,9 @@
   <%# Right: Sign in or user info %>
   <div class="flex items-center gap-2">
     <% if authenticated? %>
-      <span class="text-xs text-neutral-500 hidden sm:inline"><%= current_user.email_address %></span>
+      <span class="text-xs text-content-muted hidden sm:inline"><%= current_user.email_address %></span>
     <% else %>
-      <%= link_to "Sign in", new_session_path, class: "px-3 py-1.5 text-xs font-medium text-neutral-400 hover:text-white transition-colors" %>
+      <%= link_to "Sign in", new_session_path, class: "px-3 py-1.5 text-xs font-medium text-content-secondary hover:text-content transition-colors" %>
     <% end %>
   </div>
 </nav>

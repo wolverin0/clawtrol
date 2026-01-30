@@ -17,14 +17,14 @@
 <!-- Modal -->
 <div data-delete-confirm-target="modal"
      class="hidden opacity-0 scale-95 fixed inset-0 flex items-center justify-center z-[100] pointer-events-none transition-all duration-200 ease-out">
-  <div class="pointer-events-auto bg-neutral-900 rounded-lg shadow-xl max-w-sm w-full mx-4 p-6 border border-neutral-800">
+  <div class="pointer-events-auto bg-bg-surface rounded-lg shadow-xl max-w-sm w-full mx-4 p-6 border border-border">
     <!-- Title -->
-    <h3 class="text-lg font-medium text-white mb-2 tracking-tight">
+    <h3 class="text-lg font-medium text-content mb-2 tracking-tight font-display">
       Delete "<span data-delete-confirm-target="itemName"></span>"?
     </h3>
 
     <!-- Description -->
-    <p class="text-sm text-neutral-400 mb-6" data-delete-confirm-target="description">
+    <p class="text-sm text-content-secondary mb-6" data-delete-confirm-target="description">
       This action cannot be undone.
     </p>
 
@@ -37,7 +37,7 @@
     <div class="flex gap-3 justify-end">
       <button type="button"
               data-action="click->delete-confirm#close"
-              class="px-4 py-2 text-sm rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors">
+              class="px-4 py-2 text-sm rounded-md bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors">
         Cancel
       </button>
       <button type="button"

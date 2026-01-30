@@ -9,7 +9,7 @@
 <%# Update the column count %>
 <% column_count = current_user.tasks.where(status: @task.status).count %>
 <%= turbo_stream.replace "column-#{@task.status}-count" do %>
-  <span id="column-<%= @task.status %>-count" class="ml-auto text-xs text-neutral-400 bg-neutral-800 px-1.5 py-0.5 rounded"><%= column_count %></span>
+  <span id="column-<%= @task.status %>-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded"><%= column_count %></span>
 <% end %>
 
 <%# Update the header count if it's inbox or in_progress %>

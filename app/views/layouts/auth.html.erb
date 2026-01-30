@@ -9,13 +9,11 @@
     <meta name="application-name" content="ClawDeck">
     <meta name="mobile-web-app-capable" content="yes">
     <%# Theme colors for Safari and other browsers %>
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#050810">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-    <%# Fonts %>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+    <%# Fonts - Clash Display + Satoshi %>
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@700,600,500&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
     <%= yield :head %>
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
     <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
@@ -30,9 +28,9 @@
     <%= javascript_importmap_tags %>
     <%= render "application/plausible_analytics" %>
   </head>
-  <body class="h-screen overflow-hidden bg-neutral-950 p-2" data-controller="turbo-progress">
+  <body class="h-screen overflow-hidden bg-bg-base p-2 font-body" data-controller="turbo-progress">
     <%# Main content panel - full viewport with rounded corners, no sidebar %>
-    <div class="h-[calc(100vh-1rem)] flex flex-col shadow-sm bg-neutral-900 rounded-3xl overflow-hidden">
+    <div class="h-[calc(100vh-1rem)] flex flex-col shadow-sm bg-bg-surface rounded-3xl overflow-hidden">
       <%# Simple navbar for auth pages %>
       <nav class="relative flex-shrink-0 z-50 flex items-center justify-between px-6 py-4">
         <%# Logo on the left %>
@@ -42,7 +40,7 @@
           <% end %>
           <%# Loading spinner %>
           <div data-turbo-progress-target="spinner" class="opacity-0 p-2 transition-opacity pointer-events-none">
-            <svg class="animate-spin w-4 h-4 text-neutral-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <svg class="animate-spin w-4 h-4 text-content-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
@@ -53,12 +51,12 @@
           <% if notice.present? || alert.present? %>
             <div class="flex flex-col items-center gap-1.5 pointer-events-none">
               <% if notice.present? %>
-                <div data-controller="flash" class="py-1.5 px-3 bg-green-900/30 text-green-400 text-xs font-medium rounded-md transition-opacity duration-500 shadow-sm whitespace-nowrap" role="alert">
+                <div data-controller="flash" class="py-1.5 px-3 bg-status-success/20 text-status-success text-xs font-medium rounded-md transition-opacity duration-500 shadow-sm whitespace-nowrap" role="alert">
                   <%= notice %>
                 </div>
               <% end %>
               <% if alert.present? %>
-                <div data-controller="flash" class="py-1.5 px-3 bg-red-900/30 text-red-400 text-xs font-medium rounded-md transition-opacity duration-500 shadow-sm whitespace-nowrap" role="alert">
+                <div data-controller="flash" class="py-1.5 px-3 bg-status-error/20 text-status-error text-xs font-medium rounded-md transition-opacity duration-500 shadow-sm whitespace-nowrap" role="alert">
                   <%= alert %>
                 </div>
               <% end %>
@@ -71,7 +69,7 @@
       </nav>
 
       <div class="flex-1 overflow-y-auto px-4 mb-4 overscroll-contain [-webkit-overflow-scrolling:touch]">
-        <main class="container max-w-lg mx-auto pb-8 text-neutral-300 font-normal text-sm">
+        <main class="container max-w-lg mx-auto pb-8 text-content-secondary font-normal text-sm">
           <%= yield %>
         </main>
       </div>
