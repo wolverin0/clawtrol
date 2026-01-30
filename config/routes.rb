@@ -21,10 +21,10 @@ Rails.application.routes.draw do
     resources :users, only: [ :index ]
   end
 
-  resource :session do
-    get :verify
-    post :verify
-  end
+  resource :session, only: [:new, :create, :destroy]
+  resource :registration, only: [:new, :create]
+  get "/auth/:provider/callback", to: "omniauth_callbacks#github", as: :omniauth_callback
+  get "/auth/failure", to: "omniauth_callbacks#failure"
   resources :passwords, param: :token
   resource :profile, only: [ :show, :update ] do
     post :regenerate_api_token

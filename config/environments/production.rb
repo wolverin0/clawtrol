@@ -53,9 +53,9 @@ Rails.application.configure do
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  # Configure Action Mailer to use Resend
+  # Configure Action Mailer
   config.action_mailer.raise_delivery_errors = true
-  config.action_mailer.delivery_method = :resend
+  config.action_mailer.delivery_method = :smtp
 
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "clawdeck.io" }

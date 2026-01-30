@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  has_secure_password validations: false
+
   has_many :sessions, dependent: :destroy
   has_many :projects, dependent: :destroy
   has_many :tasks, dependent: :destroy
@@ -9,6 +11,8 @@ class User < ApplicationRecord
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
   validate :acceptable_avatar, if: :avatar_changed?
+  validates :password, length: { minimum: 8 }, if: :password_required?
+  validates :password, confirmation: true, if: :password_required?
 
   after_commit :send_admin_notification, on: :create
   after_create :create_inbox
@@ -18,24 +22,45 @@ class User < ApplicationRecord
                            uniqueness: { case_sensitive: false },
                            format: { with: URI::MailTo::EMAIL_REGEXP, message: "must be a valid email address" }
 
-  # Generate a 6-digit verification code that expires in 15 minutes
-  def generate_verification_code
-    self.verification_code = rand(100000..999999).to_s
-    self.code_expires_at = 15.minutes.from_now
-    save!
+  # Check if GitHub OAuth is configured
+  def self.github_oauth_enabled?
+    ENV["GITHUB_CLIENT_ID"].present? && ENV["GITHUB_CLIENT_SECRET"].present?
   end
 
-  # Verify the code is correct and not expired
-  def verify_code(code)
-    return false if verification_code.blank? || code_expires_at.blank?
-    return false if Time.current > code_expires_at
+  # Find or create a user from GitHub OAuth data
+  def self.find_or_create_from_github(auth)
+    email = auth.info.email
+    user = find_by(email_address: email)
 
-    verification_code == code
+    if user
+      # Link existing user to GitHub if not already linked
+      if user.provider.nil?
+        user.update(provider: "github", uid: auth.uid)
+      end
+      user
+    else
+      # Create new user from GitHub
+      create(
+        email_address: email,
+        provider: "github",
+        uid: auth.uid
+      )
+    end
   end
 
-  # Clear verification code after successful login
-  def clear_verification_code
-    update(verification_code: nil, code_expires_at: nil)
+  # Check if user signed up via OAuth
+  def oauth_user?
+    provider.present?
+  end
+
+  # Check if user has a password set
+  def password_user?
+    password_digest.present?
+  end
+
+  # Check if user needs to set a password (OAuth user without password)
+  def needs_password?
+    oauth_user? && !password_user?
   end
 
   # Get or create the user's inbox project
@@ -44,6 +69,11 @@ class User < ApplicationRecord
   end
 
   private
+
+  def password_required?
+    # Password is required for new non-OAuth users or when password is being set
+    !oauth_user? && (new_record? || password.present?)
+  end
 
   def create_inbox
     projects.create!(title: "Inbox", inbox: true)

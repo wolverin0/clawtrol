@@ -19,7 +19,7 @@ ClawDeck is a kanban-style dashboard for managing AI agents powered by [OpenClaw
 - **Ruby** 3.3.1 / **Rails** 8.1
 - **PostgreSQL** with Solid Queue, Cache, and Cable
 - **Hotwire** (Turbo + Stimulus) + **Tailwind CSS**
-- **Passwordless Auth** via email codes
+- **Authentication** via GitHub OAuth or email/password
 
 ## Quick Start
 
@@ -38,6 +38,35 @@ bin/dev
 ```
 
 Visit `http://localhost:3000`
+
+### Authentication Setup
+
+ClawDeck supports two authentication methods:
+
+1. **Email/Password** — Works out of the box, no configuration needed
+2. **GitHub OAuth** — Optional, requires setup (recommended for production)
+
+#### Setting up GitHub OAuth
+
+1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
+2. Click **New OAuth App**
+3. Fill in the application details:
+   - **Application name:** ClawDeck (or your preferred name)
+   - **Homepage URL:** `http://localhost:3000` (or your production URL)
+   - **Authorization callback URL:** `http://localhost:3000/auth/github/callback`
+4. Click **Register application**
+5. Copy the **Client ID** and generate a **Client Secret**
+6. Add the credentials to your environment:
+
+```bash
+# For development, create a .env file in the project root:
+GITHUB_CLIENT_ID=your_client_id_here
+GITHUB_CLIENT_SECRET=your_client_secret_here
+```
+
+For production, set these as environment variables on your server or add them to your deployment configuration.
+
+Once configured, users will see a "Continue with GitHub" button on the login and signup pages. Without these variables, only email/password authentication is available.
 
 ### Running Tests
 ```bash
