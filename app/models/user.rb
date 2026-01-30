@@ -14,7 +14,6 @@ class User < ApplicationRecord
   validates :password, length: { minimum: 8 }, if: :password_required?
   validates :password, confirmation: true, if: :password_required?
 
-  after_commit :send_admin_notification, on: :create
   after_create :create_inbox
   after_create :create_welcome_project
 
@@ -77,10 +76,6 @@ class User < ApplicationRecord
 
   def create_inbox
     projects.create!(title: "Inbox", inbox: true)
-  end
-
-  def send_admin_notification
-    AdminMailer.new_user_signup(self).deliver_later
   end
 
   def create_welcome_project

@@ -139,11 +139,9 @@ Key concerns: `Authentication` module in app/controllers/concerns/authentication
 
 ### Email Configuration
 - Development: Uses letter_opener gem (emails open in browser)
-- Production: Resend API (requires RESEND_API_KEY environment variable)
+- Production: SMTP (configure in production.rb)
 - Mailers:
-  - `VerificationCodeMailer` - Sends 6-digit verification codes
   - `PasswordsMailer` - Password reset emails
-  - `AdminMailer` - Admin notifications
 
 ### Database Configuration
 Development uses local PostgreSQL. Production uses multi-database setup:
