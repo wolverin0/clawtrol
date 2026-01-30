@@ -1,114 +1,44 @@
-<nav class="relative flex-shrink-0 z-50 flex items-center justify-between px-6 py-4">
-  <%# Logo or hamburger menu on the left %>
-  <div class="flex items-center flex-shrink-0">
+<%# Navbar for non-board pages (settings, profile, etc.) %>
+<nav class="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-white/10">
+  <%# Left: Back to board %>
+  <div class="flex items-center gap-3">
     <% if authenticated? %>
-      <%# Sidebar toggle button %>
-      <button
-        type="button"
-        data-sidebar-target="toggleButton"
-        data-action="click->sidebar#toggle"
-        class="-mt-0.5 cursor-pointer flex items-center justify-center w-8 h-8 text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300 transition-colors rounded-md hover:bg-white/50 dark:hover:bg-white/10"
-        aria-label="Toggle sidebar"
-        aria-expanded="false"
-        aria-controls="sidebar">
-        <svg class="size-4" viewBox="0 0 71 71" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <path d="M58.359 0H12.5C5.6016 0.011719 0.012 5.6016 0 12.5V58.359C0.011719 65.2574 5.6016 70.847 12.5 70.859H58.359C65.2574 70.8473 70.847 65.2574 70.859 58.359V12.5C70.8473 5.6016 65.2574 0.012 58.359 0ZM5 58.359V12.5C5.01172 8.3633 8.3633 5.0117 12.5 5H22.1719L22.168 65.859H12.5C8.36329 65.8473 5.0117 62.4957 5 58.359ZM65.859 58.359C65.8473 62.4957 62.4957 65.8473 58.359 65.859H27.168V5H58.359C62.4957 5.01172 65.8473 8.3633 65.859 12.5V58.359Z"/>
+      <%= link_to board_path, class: "flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+          <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
         </svg>
-      </button>
-      <%# Breadcrumb %>
-      <nav class="flex items-center text-sm text-stone-400 dark:text-stone-500" aria-label="Breadcrumb">
-        <% if content_for?(:breadcrumb_standalone) %>
-          <span><%= yield :breadcrumb_standalone %></span>
-        <% else %>
-          <%= link_to "Projects", projects_path, class: "hover:text-stone-600 dark:hover:text-stone-300 transition-colors" %>
-          <% if @breadcrumb_project %>
-            <span class="mx-1">/</span>
-            <%= link_to project_path(@breadcrumb_project), class: "flex items-center gap-1.5 text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors" do %>
-              <%= @breadcrumb_project.title %>
-            <% end %>
-            <% if content_for?(:breadcrumb_suffix) %>
-              <span class="mx-1">/</span>
-              <span class="text-stone-600 dark:text-stone-300"><%= yield :breadcrumb_suffix %></span>
-            <% end %>
-          <% elsif content_for?(:breadcrumb) %>
-            <span class="mx-1">/</span>
-            <span class="text-stone-600 dark:text-stone-300"><%= yield :breadcrumb %></span>
-          <% end %>
-        <% end %>
-      </nav>
+        Back to Board
+      <% end %>
     <% else %>
-      <%# Logo for unauthenticated users %>
       <%= link_to root_path, class: "flex items-center" do %>
         <%= image_tag "clawdecklogo.svg", alt: "ClawDeck Logo", class: "h-6 w-auto" %>
       <% end %>
     <% end %>
-    <%# Loading spinner %>
-    <div data-turbo-progress-target="spinner" class="opacity-0 p-2 transition-opacity pointer-events-none">
-      <svg class="animate-spin w-4 h-4 text-stone-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-    </div>
   </div>
-  <!-- Center: Flash messages -->
-  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-    <% if notice.present? || alert.present? %>
-      <div class="flex flex-col items-center gap-1.5 pointer-events-none">
-          <% if notice.present? %>
-            <div data-controller="flash" class="py-1.5 px-3 bg-lime-50 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400 text-xs font-medium rounded-md transition-opacity duration-500 shadow-sm whitespace-nowrap" role="alert">
-              <%= notice %>
-            </div>
-          <% end %>
-          <% if alert.present? %>
-            <div data-controller="flash" class="py-1.5 px-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-medium rounded-md transition-opacity duration-500 shadow-sm whitespace-nowrap" role="alert">
-              <%= alert %>
-            </div>
-          <% end %>
+
+  <%# Center: Page title / Flash messages %>
+  <div class="flex items-center gap-3">
+    <% if content_for?(:breadcrumb) %>
+      <span class="text-sm font-medium text-stone-700 dark:text-white"><%= yield :breadcrumb %></span>
+    <% end %>
+    <% if notice.present? %>
+      <div data-controller="flash" class="py-1 px-2.5 bg-lime-50 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400 text-xs font-medium rounded-md">
+        <%= notice %>
+      </div>
+    <% end %>
+    <% if alert.present? %>
+      <div data-controller="flash" class="py-1 px-2.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-medium rounded-md">
+        <%= alert %>
       </div>
     <% end %>
   </div>
-  <%# Right side: Action icons and sign in link %>
-  <div class="flex items-center gap-1 flex-shrink-0">
-    <% if @inbox_page %>
-      <% tasks = @task_list&.tasks || [] %>
-      <% total_count = tasks.count %>
-      <% completed_count = tasks.select { |t| t.completed? }.count %>
-      <% uncompleted_count = total_count - completed_count %>
-      <% progress_percent = total_count > 0 ? (completed_count.to_f / total_count * 100).round : 0 %>
-      <span id="navbar-task-count" class="hidden sm:inline text-xs text-stone-400 dark:text-stone-500"><%= uncompleted_count %> <%= "task".pluralize(uncompleted_count) %></span>
-      <div class="hidden sm:block w-16 h-1 bg-stone-200 dark:bg-white/10 rounded-full overflow-hidden mx-2">
-        <div id="navbar-progress-bar" class="h-full bg-lime-500 rounded-full transition-all duration-300" style="width: <%= progress_percent %>%"></div>
-      </div>
-      <div class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-stone-200 dark:bg-stone-800 flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-stone-500 dark:text-stone-400">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-17.5 0a2.25 2.25 0 0 0-2.25 2.25v1.5a2.25 2.25 0 0 0 2.25 2.25h15a2.25 2.25 0 0 0 2.25-2.25v-1.5a2.25 2.25 0 0 0-2.25-2.25m-17.5 0V6.75A2.25 2.25 0 0 1 4.5 4.5h15a2.25 2.25 0 0 1 2.25 2.25v6.75" />
-        </svg>
-      </div>
-    <% elsif @breadcrumb_project && !content_for?(:breadcrumb_suffix) %>
-      <% tasks = @breadcrumb_project.task_list&.tasks || [] %>
-      <% total_count = tasks.count %>
-      <% completed_count = tasks.select { |t| t.completed? }.count %>
-      <% uncompleted_count = total_count - completed_count %>
-      <% progress_percent = total_count > 0 ? (completed_count.to_f / total_count * 100).round : 0 %>
-      <span id="navbar-task-count" class="hidden sm:inline text-xs text-stone-400 dark:text-stone-500"><%= uncompleted_count %> <%= "task".pluralize(uncompleted_count) %></span>
-      <div class="hidden sm:block w-16 h-1 bg-stone-200 dark:bg-white/10 rounded-full overflow-hidden mx-2">
-        <div id="navbar-progress-bar" class="h-full bg-lime-500 rounded-full transition-all duration-300" style="width: <%= progress_percent %>%"></div>
-      </div>
-      <div class="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
-        <%= image_tag @breadcrumb_project.image_url, class: "w-full h-full object-cover", alt: @breadcrumb_project.title %>
-      </div>
-      <%= link_to edit_project_path(@breadcrumb_project),
-          class: "flex items-center justify-center w-8 h-8 text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 bg-stone-200/50 dark:bg-stone-800/50 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors rounded-lg",
-          title: "Project settings" do %>
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      <% end %>
-    <% end %>
-    <%= yield :nav_right %>
-    <% unless authenticated? %>
-      <%= link_to "Sign in", new_session_path, class: "px-3 py-1.5 text-xs text-stone-600 dark:text-purple-100 hover:text-stone-900 dark:hover:text-stone-100 transition-colors rounded-md hover:bg-white/50 dark:hover:bg-white/10" %>
+
+  <%# Right: Sign in or user info %>
+  <div class="flex items-center gap-2">
+    <% if authenticated? %>
+      <span class="text-xs text-stone-500 dark:text-stone-400 hidden sm:inline"><%= current_user.email_address %></span>
+    <% else %>
+      <%= link_to "Sign in", new_session_path, class: "px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors" %>
     <% end %>
   </div>
 </nav>

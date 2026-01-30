@@ -4,7 +4,7 @@ module Admin
     require_admin
 
     def index
-      @users = User.includes(:sessions, :projects, :tasks)
+      @users = User.includes(:sessions, :tasks)
                    .order(created_at: :desc)
                    .map do |user|
         {
@@ -12,7 +12,6 @@ module Admin
           email: user.email_address,
           created_at: user.created_at,
           last_login: user.sessions.maximum(:updated_at),
-          projects_count: user.projects.count,
           tasks_count: user.tasks.count
         }
       end

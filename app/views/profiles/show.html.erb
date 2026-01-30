@@ -93,10 +93,10 @@
         <label class="block text-xs font-medium text-stone-500 dark:text-white/70 mb-2">Clawdbot Setup Prompt</label>
         <p class="text-xs text-stone-400 dark:text-white/50 mb-2">Send this to your Clawdbot to set up the ClawDeck integration:</p>
         <div data-controller="clipboard">
-          <pre 
+          <pre
             data-clipboard-target="source"
             class="bg-stone-200 dark:bg-black/30 px-3 py-2 rounded text-xs font-mono text-stone-700 dark:text-stone-300 overflow-x-auto whitespace-pre-wrap break-all"
->I use ClawDeck (clawdeck.so) for task and project management. Set yourself up to work with it.
+>I use ClawDeck (clawdeck.so) for task management. Set yourself up to work with it.
 
 Add this to your TOOLS.md:
 
@@ -105,21 +105,19 @@ Add this to your TOOLS.md:
 - Token: `<%= @api_token.token %>`
 - Auth: `Authorization: Bearer <token>`
 - Endpoints:
-  - `/inbox/tasks` - GET (list), POST (create task in inbox)
-  - `/projects` - GET (list projects)
-  - `/projects/:id/tasks` - GET (list), POST (create task in project)
+  - `/tasks` - GET (list all), POST (create task)
   - `/tasks/:id` - GET, PATCH, DELETE
   - `/tasks/:id/complete` - PATCH (toggle complete)
+  - `/tasks/:id/comments` - GET, POST
+
+**Task statuses:** inbox, up_next, in_progress, in_review, done
 
 **Quick Capture patterns:**
-- "add to inbox: <task>" → inbox
-- "add to <project>: <task>" → that project
-- "task: <task>" or "remind me to <task>" → inbox
+- "task: <task>" or "remind me to <task>" → create in inbox
 - Keywords: "tomorrow", "friday", "next week" → set due_date
 - Keywords: "urgent", "!", "high priority" → priority: high
-
-After setup, fetch my projects and save the IDs so you know where to put tasks.</pre>
-          <button 
+- Keywords: "blocked" → blocked: true</pre>
+          <button
             type="button"
             data-action="click->clipboard#copy"
             class="mt-2 px-3 py-1.5 bg-stone-200 dark:bg-white/10 hover:bg-stone-300 dark:hover:bg-white/20 text-stone-600 dark:text-white/70 text-xs font-medium rounded transition-colors"

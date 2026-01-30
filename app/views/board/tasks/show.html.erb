@@ -1,0 +1,128 @@
+<%= turbo_frame_tag "task_detail_panel" do %>
+  <div class="flex flex-col h-full">
+    <%# Header %>
+    <div class="flex items-center justify-between px-4 py-3 border-b border-stone-200 dark:border-white/10">
+      <h2 class="text-sm font-semibold text-stone-800 dark:text-white">Task Details</h2>
+      <button type="button" data-action="click->board#closeSlidePanel" class="text-stone-400 hover:text-stone-600 dark:text-white/50 dark:hover:text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+          <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+        </svg>
+      </button>
+    </div>
+
+    <%# Content %>
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+      <%# Task Title & Status %>
+      <div>
+        <div class="flex items-start gap-2">
+          <h3 class="text-lg font-semibold text-stone-800 dark:text-white flex-1"><%= @task.name %></h3>
+          <% if @task.blocked? %>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400">
+              Blocked
+            </span>
+          <% end %>
+        </div>
+
+        <%# Status Badge %>
+        <%
+          status_colors = {
+            "inbox" => "bg-stone-100 dark:bg-white/10 text-stone-600 dark:text-white/70",
+            "up_next" => "bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400",
+            "in_progress" => "bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400",
+            "in_review" => "bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400",
+            "done" => "bg-lime-100 dark:bg-lime-500/20 text-lime-700 dark:text-lime-400"
+          }
+          status_labels = {
+            "inbox" => "Inbox",
+            "up_next" => "Up Next",
+            "in_progress" => "In Progress",
+            "in_review" => "In Review",
+            "done" => "Done"
+          }
+        %>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium mt-2 <%= status_colors[@task.status] %>">
+          <%= status_labels[@task.status] %>
+        </span>
+      </div>
+
+      <%# Tags %>
+      <% if @task.tags.present? && @task.tags.any? %>
+        <div>
+          <label class="block text-xs font-medium text-stone-500 dark:text-white/50 mb-1">Tags</label>
+          <div class="flex flex-wrap gap-1">
+            <% @task.tags.each do |tag| %>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-stone-100 dark:bg-white/10 text-stone-600 dark:text-white/70">
+                <%= tag %>
+              </span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <%# Description %>
+      <% if @task.description.present? %>
+        <div>
+          <label class="block text-xs font-medium text-stone-500 dark:text-white/50 mb-1">Description</label>
+          <p class="text-sm text-stone-600 dark:text-white/80 whitespace-pre-wrap"><%= @task.description %></p>
+        </div>
+      <% end %>
+
+      <%# Priority %>
+      <div>
+        <label class="block text-xs font-medium text-stone-500 dark:text-white/50 mb-1">Priority</label>
+        <span class="text-sm text-stone-600 dark:text-white/80 capitalize"><%= @task.priority %></span>
+      </div>
+
+      <%# Due Date %>
+      <% if @task.due_date.present? %>
+        <div>
+          <label class="block text-xs font-medium text-stone-500 dark:text-white/50 mb-1">Due Date</label>
+          <span class="text-sm text-stone-600 dark:text-white/80"><%= @task.due_date.strftime("%B %d, %Y") %></span>
+        </div>
+      <% end %>
+
+      <%# Comments Section %>
+      <div class="pt-4 border-t border-stone-200 dark:border-white/10">
+        <h4 class="text-sm font-medium text-stone-700 dark:text-white/90 mb-3">
+          Comments
+          <% if @task.comments_count > 0 %>
+            <span class="text-stone-400 dark:text-white/50">(<%= @task.comments_count %>)</span>
+          <% end %>
+        </h4>
+
+        <div class="space-y-3">
+          <% @task.comments.each do |comment| %>
+            <div class="flex gap-3">
+              <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium <%= comment.author_type == 'agent' ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400' : 'bg-stone-100 dark:bg-white/10 text-stone-600 dark:text-white/70' %>">
+                <%= comment.author_name.first.upcase %>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-medium text-stone-700 dark:text-white/90"><%= comment.author_name %></span>
+                  <span class="text-[10px] text-stone-400 dark:text-white/40"><%= time_ago_in_words(comment.created_at) %> ago</span>
+                </div>
+                <p class="text-sm text-stone-600 dark:text-white/80 mt-0.5"><%= comment.body %></p>
+              </div>
+            </div>
+          <% end %>
+
+          <% if @task.comments.empty? %>
+            <p class="text-sm text-stone-400 dark:text-white/40 italic">No comments yet</p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <%# Footer Actions %>
+    <div class="flex items-center gap-2 px-4 py-3 border-t border-stone-200 dark:border-white/10">
+      <%= link_to edit_board_task_path(@task),
+          data: { turbo_frame: "task_detail_panel" },
+          class: "flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-md bg-stone-100 dark:bg-white/10 text-stone-700 dark:text-white/90 hover:bg-stone-200 dark:hover:bg-white/20 transition-colors" do %>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+        </svg>
+        Edit
+      <% end %>
+    </div>
+  </div>
+<% end %>

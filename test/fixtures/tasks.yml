@@ -1,13 +1,15 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  name: MyString
-  project: one
-  task_list: one
+  name: Test Task One
   user: one
+  status: inbox
+  priority: none
+  completed: false
 
 two:
-  name: MyString
-  project: two
-  task_list: two
+  name: Test Task Two
   user: two
+  status: in_progress
+  priority: high
+  completed: false

@@ -35,18 +35,6 @@
   transition: opacity 200ms ease-out !important;
 }
 
-/* Sidebar project/inbox drop target styles */
-.sidebar-project.drop-target,
-.sidebar-inbox.drop-target {
-  transition: all 150ms ease-out;
-}
-
-.sidebar-project.drop-target.current-project,
-.sidebar-inbox.drop-target.current-project {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
 /* Mobile-specific drag improvements */
 @media (max-width: 768px) {
   .sortable-ghost {

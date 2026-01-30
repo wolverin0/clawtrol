@@ -1,12 +1,14 @@
 class Task < ApplicationRecord
-  belongs_to :project
   belongs_to :user
-  belongs_to :task_list
   has_many :activities, class_name: "TaskActivity", dependent: :destroy
+  has_many :comments, dependent: :destroy
 
   enum :priority, { none: 0, low: 1, medium: 2, high: 3 }, default: :none, prefix: true
+  enum :status, { inbox: 0, up_next: 1, in_progress: 2, in_review: 3, done: 4 }, default: :inbox
+
   validates :name, presence: true
   validates :priority, inclusion: { in: priorities.keys }
+  validates :status, inclusion: { in: statuses.keys }
 
   # Activity tracking
   attr_accessor :activity_source
@@ -26,7 +28,11 @@ class Task < ApplicationRecord
   private
 
   def set_position
-    self.position ||= (task_list.tasks.maximum(:position) || 0) + 1
+    return if position.present?
+
+    # Prepend: shift all existing tasks down and insert at position 1
+    user.tasks.where(status: status).update_all("position = position + 1")
+    self.position = 1
   end
 
   def save_original_position
