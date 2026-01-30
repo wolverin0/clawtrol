@@ -1,0 +1,65 @@
+<%= turbo_frame_tag "task_detail_panel" do %>
+  <div class="flex flex-col h-full">
+    <%# Header %>
+    <div class="flex items-center justify-between px-4 py-3 border-b border-stone-200 dark:border-white/10">
+      <h2 class="text-sm font-semibold text-stone-800 dark:text-white">Edit Task</h2>
+      <button type="button" data-action="click->board#closeSlidePanel" class="text-stone-400 hover:text-stone-600 dark:text-white/50 dark:hover:text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+          <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+        </svg>
+      </button>
+    </div>
+
+    <%# Form %>
+    <%= form_with model: @task, url: board_task_path(@task), method: :patch, class: "flex-1 overflow-y-auto p-4 space-y-4" do |form| %>
+      <% if @task.errors.any? %>
+        <div class="p-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs rounded-md">
+          <ul class="list-disc list-inside">
+            <% @task.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div>
+        <%= form.label :name, "Task name", class: "block text-xs font-medium text-stone-500 dark:text-white/50 mb-1" %>
+        <%= form.text_field :name, required: true, class: "w-full px-3 py-2 text-sm bg-stone-50 dark:bg-white/5 border border-stone-200 dark:border-white/10 rounded-md text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-white/30" %>
+      </div>
+
+      <div>
+        <%= form.label :description, "Description", class: "block text-xs font-medium text-stone-500 dark:text-white/50 mb-1" %>
+        <%= form.text_area :description, rows: 4, placeholder: "Add more details...", class: "w-full px-3 py-2 text-sm bg-stone-50 dark:bg-white/5 border border-stone-200 dark:border-white/10 rounded-md text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-white/30 resize-none" %>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <%= form.label :priority, "Priority", class: "block text-xs font-medium text-stone-500 dark:text-white/50 mb-1" %>
+          <%= form.select :priority, Task.priorities.keys.map { |p| [p.capitalize, p] }, {}, class: "w-full px-3 py-2 text-sm bg-stone-50 dark:bg-white/5 border border-stone-200 dark:border-white/10 rounded-md text-stone-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-white/30" %>
+        </div>
+
+        <div>
+          <%= form.label :status, "Status", class: "block text-xs font-medium text-stone-500 dark:text-white/50 mb-1" %>
+          <%= form.select :status, Task.statuses.keys.map { |s| [s.titleize, s] }, {}, class: "w-full px-3 py-2 text-sm bg-stone-50 dark:bg-white/5 border border-stone-200 dark:border-white/10 rounded-md text-stone-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-white/30" %>
+        </div>
+      </div>
+
+      <div>
+        <%= form.label :due_date, "Due date", class: "block text-xs font-medium text-stone-500 dark:text-white/50 mb-1" %>
+        <%= form.date_field :due_date, class: "w-full px-3 py-2 text-sm bg-stone-50 dark:bg-white/5 border border-stone-200 dark:border-white/10 rounded-md text-stone-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-stone-400 dark:focus:ring-white/30" %>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <%= form.check_box :blocked, class: "rounded border-stone-300 dark:border-white/30 text-red-500 focus:ring-red-500" %>
+        <%= form.label :blocked, "Mark as blocked", class: "text-sm text-stone-600 dark:text-white/80" %>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-4">
+        <%= link_to board_task_path(@task), data: { turbo_frame: "task_detail_panel" }, class: "px-3 py-2 text-xs font-medium text-stone-600 dark:text-white/70 hover:text-stone-900 dark:hover:text-white" do %>
+          Cancel
+        <% end %>
+        <%= form.submit "Save Changes", class: "px-4 py-2 text-xs font-medium rounded-md bg-stone-800 dark:bg-white text-white dark:text-stone-900 hover:bg-stone-700 dark:hover:bg-stone-200 transition-colors cursor-pointer" %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

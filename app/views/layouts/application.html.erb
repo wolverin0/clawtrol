@@ -30,33 +30,25 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
     <%= render "application/plausible_analytics" %>
-    <%# Set sidebar state immediately to prevent flash %>
-    <script>
-      document.documentElement.classList.add("sidebar-ready");
-      if (localStorage.getItem("sidebar_open") === "true") {
-        document.documentElement.classList.add("sidebar-open");
-      }
-    </script>
   </head>
-  <body class="h-screen overflow-hidden bg-stone-100 dark:bg-stone-950 p-2" data-controller="turbo-progress sidebar">
-    <%# Sidebar (for authenticated users) %>
-    <%= render "application/sidebar" %>
-
-    <%# Main content panel - full viewport with rounded corners %>
-    <div data-sidebar-target="content" class="h-[calc(100vh-1rem)] flex flex-col shadow-sm bg-stone-50 dark:bg-stone-900 rounded-3xl overflow-hidden transition-all duration-300 ease-in-out">
-      <%# Global Navbar - fixed at top %>
-      <%= render "application/navbar" %>
-
-      <div class="flex-1 overflow-y-auto px-4 <%= @inbox_page ? 'mb-0' : 'mb-4' %> overscroll-contain [-webkit-overflow-scrolling:touch]">
-        <main class="<%= @inbox_page || @breadcrumb_project ? 'w-full' : 'container max-w-lg mx-auto' %> <%= @inbox_page ? 'pb-4' : 'pb-8' %> text-stone-600 dark:text-purple-100 font-normal text-sm">
-          <% if content_for?(:skip_container) %>
-            <%= yield %>
-          <% else %>
-            <%= yield %>
-          <% end %>
+  <body class="h-screen overflow-hidden bg-stone-100 dark:bg-stone-950" data-controller="turbo-progress">
+    <% if @board_page %>
+      <%# Board page - full screen, no wrapper %>
+      <div class="h-screen flex flex-col bg-white dark:bg-stone-900">
+        <main class="h-full text-stone-600 dark:text-stone-300 font-normal text-sm">
+          <%= yield %>
         </main>
       </div>
-
-    </div>
+    <% else %>
+      <%# Other pages - centered content with navbar %>
+      <div class="h-screen flex flex-col bg-stone-50 dark:bg-stone-900">
+        <%= render "application/navbar" %>
+        <div class="flex-1 overflow-y-auto px-4 pb-8 overscroll-contain [-webkit-overflow-scrolling:touch]">
+          <main class="container max-w-lg mx-auto text-stone-600 dark:text-stone-300 font-normal text-sm">
+            <%= yield %>
+          </main>
+        </div>
+      </div>
+    <% end %>
   </body>
 </html>

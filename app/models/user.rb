@@ -2,10 +2,8 @@ class User < ApplicationRecord
   has_secure_password validations: false
 
   has_many :sessions, dependent: :destroy
-  has_many :projects, dependent: :destroy
   has_many :tasks, dependent: :destroy
   has_many :api_tokens, dependent: :destroy
-  has_one :inbox_project, -> { where(inbox: true) }, class_name: "Project"
   has_one_attached :avatar
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
@@ -14,8 +12,7 @@ class User < ApplicationRecord
   validates :password, length: { minimum: 8 }, if: :password_required?
   validates :password, confirmation: true, if: :password_required?
 
-  after_create :create_inbox
-  after_create :create_welcome_project
+  after_create :create_welcome_tasks
 
   validates :email_address, presence: true,
                            uniqueness: { case_sensitive: false },
@@ -62,11 +59,6 @@ class User < ApplicationRecord
     oauth_user? && !password_user?
   end
 
-  # Get or create the user's inbox project
-  def inbox
-    inbox_project || create_inbox
-  end
-
   private
 
   def password_required?
@@ -74,44 +66,15 @@ class User < ApplicationRecord
     !oauth_user? && (new_record? || password.present?)
   end
 
-  def create_inbox
-    projects.create!(title: "Inbox", inbox: true)
-  end
-
-  def create_welcome_project
-    project = projects.create!(
-      title: "Welcome to clawdeck",
-      description: "This is your welcome project, a great place to start"
-    )
-
-    # Attach the clawdeck icon image
-    image_path = Rails.root.join("app", "assets", "images", "clawdeckicon.png")
-    if File.exist?(image_path)
-      project.image.attach(
-        io: File.open(image_path),
-        filename: "clawdeckicon.png",
-        content_type: "image/png"
-      )
-    end
-
-    # Create tasks in the project's single task list
-    task_list = project.default_task_list
+  def create_welcome_tasks
     [
-      { name: "Sign up to clawdeck", priority: :high },
-      { name: "Create your first task", priority: :medium },
-      { name: "Drag tasks around to reorder", priority: :low },
-      { name: "Filter tasks by priority", priority: :low },
-      { name: "Upload a project image", priority: :none },
-      { name: "Join the discord community", priority: :high },
-      { name: "Create your first project", priority: :none },
-      { name: "Go outside and have some fun", priority: :none }
+      { name: "Welcome to ClawDeck!", status: :inbox, priority: :high },
+      { name: "Create your first task", status: :inbox, priority: :medium },
+      { name: "Drag tasks between columns", status: :up_next, priority: :low },
+      { name: "Use tags to organize tasks", status: :up_next, priority: :low, tags: ["tutorial"] },
+      { name: "Join the Discord community", status: :inbox, priority: :high }
     ].each do |task_attrs|
-      task_list.tasks.create!(
-        name: task_attrs[:name],
-        priority: task_attrs[:priority],
-        project_id: project.id,
-        user_id: id
-      )
+      tasks.create!(task_attrs)
     end
   end
 

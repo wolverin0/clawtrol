@@ -4,20 +4,19 @@ class Api::V1::TasksControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
     @api_token = api_tokens(:one)
-    @project = projects(:one)
     @task = tasks(:one)
     @auth_header = { "Authorization" => "Bearer #{@api_token.token}" }
   end
 
   # Authentication tests
   test "returns unauthorized without token" do
-    get api_v1_project_tasks_url(@project)
+    get api_v1_tasks_url
     assert_response :unauthorized
   end
 
   # Index tests
-  test "index returns project tasks" do
-    get api_v1_project_tasks_url(@project), headers: @auth_header
+  test "index returns user tasks" do
+    get api_v1_tasks_url, headers: @auth_header
     assert_response :success
 
     tasks = response.parsed_body
@@ -25,10 +24,9 @@ class Api::V1::TasksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index filters by completed status" do
-    # Mark task as completed
     @task.update!(completed: true)
 
-    get api_v1_project_tasks_url(@project, completed: true), headers: @auth_header
+    get api_v1_tasks_url(completed: true), headers: @auth_header
     assert_response :success
 
     tasks = response.parsed_body
@@ -38,15 +36,25 @@ class Api::V1::TasksControllerTest < ActionDispatch::IntegrationTest
   test "index filters by priority" do
     @task.update!(priority: :high)
 
-    get api_v1_project_tasks_url(@project, priority: "high"), headers: @auth_header
+    get api_v1_tasks_url(priority: "high"), headers: @auth_header
     assert_response :success
 
     tasks = response.parsed_body
     assert tasks.all? { |t| t["priority"] == "high" }
   end
 
+  test "index filters by status" do
+    @task.update!(status: :in_progress)
+
+    get api_v1_tasks_url(status: "in_progress"), headers: @auth_header
+    assert_response :success
+
+    tasks = response.parsed_body
+    assert tasks.all? { |t| t["status"] == "in_progress" }
+  end
+
   test "index returns task attributes" do
-    get api_v1_project_tasks_url(@project), headers: @auth_header
+    get api_v1_tasks_url, headers: @auth_header
     assert_response :success
 
     task = response.parsed_body.first
@@ -54,16 +62,16 @@ class Api::V1::TasksControllerTest < ActionDispatch::IntegrationTest
     assert task["name"].present?
     assert task.key?("priority")
     assert task.key?("completed")
-    assert task.key?("project_id")
+    assert task.key?("status")
     assert task["created_at"].present?
     assert task["updated_at"].present?
   end
 
   # Create tests
-  test "create creates new task in project" do
+  test "create creates new task" do
     assert_difference "Task.count", 1 do
-      post api_v1_project_tasks_url(@project),
-           params: { task: { name: "New Task", priority: "high" } },
+      post api_v1_tasks_url,
+           params: { task: { name: "New Task", priority: "high", status: "inbox" } },
            headers: @auth_header
     end
 
@@ -72,11 +80,11 @@ class Api::V1::TasksControllerTest < ActionDispatch::IntegrationTest
     task = response.parsed_body
     assert_equal "New Task", task["name"]
     assert_equal "high", task["priority"]
-    assert_equal @project.id, task["project_id"]
+    assert_equal "inbox", task["status"]
   end
 
   test "create returns errors for invalid task" do
-    post api_v1_project_tasks_url(@project),
+    post api_v1_tasks_url,
          params: { task: { name: "" } },
          headers: @auth_header
     assert_response :unprocessable_entity

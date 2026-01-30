@@ -18,7 +18,6 @@
             <th class="px-5 py-3 text-left text-xs font-semibold tracking-tight text-stone-900 dark:text-stone-100">Email</th>
             <th class="px-5 py-3 text-left text-xs font-semibold tracking-tight text-stone-900 dark:text-stone-100">Created</th>
             <th class="px-5 py-3 text-left text-xs font-semibold tracking-tight text-stone-900 dark:text-stone-100">Last Login</th>
-            <th class="px-5 py-3 text-center text-xs font-semibold tracking-tight text-stone-900 dark:text-stone-100">Projects</th>
             <th class="px-5 py-3 text-center text-xs font-semibold tracking-tight text-stone-900 dark:text-stone-100">Tasks</th>
           </tr>
         </thead>
@@ -37,9 +36,6 @@
                 <% else %>
                   <span class="text-stone-400 dark:text-white/40">Never</span>
                 <% end %>
-              </td>
-              <td class="px-5 py-4 text-sm text-center text-stone-900 dark:text-stone-100 font-semibold">
-                <%= user_data[:projects_count] %>
               </td>
               <td class="px-5 py-4 text-sm text-center text-stone-900 dark:text-stone-100 font-semibold">
                 <%= user_data[:tasks_count] %>

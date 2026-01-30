@@ -2,16 +2,11 @@ Rails.application.routes.draw do
   # API routes
   namespace :api do
     namespace :v1 do
-      resource :inbox, only: [], controller: "inbox" do
-        resources :tasks, only: [ :index, :create ], controller: "inbox"
-      end
-      resources :projects, only: [ :index, :show, :create ] do
-        resources :tasks, only: [ :index, :create ]
-      end
-      resources :tasks, only: [ :show, :update, :destroy ] do
+      resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         member do
           patch :complete
         end
+        resources :comments, only: [ :index, :create ]
       end
     end
   end
@@ -29,41 +24,11 @@ Rails.application.routes.draw do
   resource :profile, only: [ :show, :update ] do
     post :regenerate_api_token
   end
-  resource :inbox, only: [ :show ], controller: "inbox" do
-    resources :tasks, only: [ :create, :edit, :update, :destroy ], controller: "inbox/tasks" do
-      member do
-        patch :toggle_completed
-        patch :cycle_priority
-        patch :send_to
-      end
-      collection do
-        post :reorder
-      end
-    end
-  end
 
-  resource :today, only: [ :show ], controller: "today" do
-    resources :tasks, only: [ :create ], controller: "today/tasks"
-  end
-
-  resources :projects do
-    collection do
-      post :reorder
-    end
-    resource :task_list, only: [ :update ] do
-      delete :delete_all_tasks
-      delete :delete_completed_tasks
-    end
-    resources :tasks, only: [ :create, :edit, :update, :destroy ] do
-      member do
-        patch :toggle_completed
-        patch :cycle_priority
-        patch :send_to
-      end
-      collection do
-        post :reorder
-      end
-    end
+  # Kanban Board (main authenticated view)
+  resource :board, only: [ :show ], controller: "board" do
+    patch :update_task_status
+    resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "board/tasks"
   end
   get "pages/home"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
