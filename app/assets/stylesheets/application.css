@@ -18,23 +18,6 @@
   opacity: 1;
 }
 
-/* Trash drop area styles */
-.trash-drop-area.hover {
-  background-color: rgba(239, 68, 68, 0.3) !important;
-}
-
-.trash-drop-area.hover .trash-icon {
-  transform: scale(1.2);
-  color: rgb(239, 68, 68) !important;
-}
-
-/* Task fade out animation */
-.task-deleting,
-.task-fading {
-  opacity: 0 !important;
-  transition: opacity 200ms ease-out !important;
-}
-
 /* Mobile-specific drag improvements */
 @media (max-width: 768px) {
   .sortable-ghost {

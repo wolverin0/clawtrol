@@ -1,0 +1,43 @@
+<% if @task.saved_change_to_status? %>
+  <%# Status changed - move card to new column %>
+  <% old_status = @task.status_before_last_save %>
+  <% new_status = @task.status %>
+
+  <%# Remove from old column %>
+  <%= turbo_stream.remove "task_#{@task.id}" %>
+
+  <%# Add to new column %>
+  <%= turbo_stream.prepend "column-#{new_status}" do %>
+    <%= render "board/task_card", task: @task %>
+  <% end %>
+
+  <%# Update old column count %>
+  <% old_count = current_user.tasks.where(status: old_status).count %>
+  <%= turbo_stream.replace "column-#{old_status}-count" do %>
+    <span id="column-<%= old_status %>-count" class="ml-auto text-xs text-stone-400 dark:text-white/50"><%= old_count %></span>
+  <% end %>
+
+  <%# Update new column count %>
+  <% new_count = current_user.tasks.where(status: new_status).count %>
+  <%= turbo_stream.replace "column-#{new_status}-count" do %>
+    <span id="column-<%= new_status %>-count" class="ml-auto text-xs text-stone-400 dark:text-white/50"><%= new_count %></span>
+  <% end %>
+
+  <%# Update header counts if applicable %>
+  <% if %w[inbox in_progress].include?(old_status) %>
+    <%= turbo_stream.update "header-#{old_status}-count", old_count.to_s %>
+  <% end %>
+  <% if %w[inbox in_progress].include?(new_status) %>
+    <%= turbo_stream.update "header-#{new_status}-count", new_count.to_s %>
+  <% end %>
+<% else %>
+  <%# Status didn't change - just update the card in place %>
+  <%= turbo_stream.replace "task_#{@task.id}" do %>
+    <%= render "board/task_card", task: @task %>
+  <% end %>
+<% end %>
+
+<%# Update the activity section in the panel %>
+<%= turbo_stream.replace "task-activities-#{@task.id}" do %>
+  <%= render "shared/task_activities", task: @task %>
+<% end %>

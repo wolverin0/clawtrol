@@ -55,6 +55,6 @@ class Board::TasksController < ApplicationController
   end
 
   def task_params
-    params.require(:task).permit(:name, :description, :priority, :status, :blocked, :due_date, tags: [])
+    params.require(:task).permit(:name, :description, :priority, :status, :blocked, :due_date, :completed, tags: [])
   end
 end

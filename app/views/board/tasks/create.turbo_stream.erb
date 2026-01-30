@@ -7,7 +7,7 @@
 <%= turbo_stream.update "new_task_modal", "" %>
 
 <%# Update the column count %>
-<% column_count = current_user.tasks.where(status: @task.status, completed: false).count %>
+<% column_count = current_user.tasks.where(status: @task.status).count %>
 <%= turbo_stream.replace "column-#{@task.status}-count" do %>
   <span id="column-<%= @task.status %>-count" class="ml-auto text-xs text-stone-400 dark:text-white/50"><%= column_count %></span>
 <% end %>

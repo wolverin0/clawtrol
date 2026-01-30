@@ -21,26 +21,17 @@
   <% end %>
 
   <%# Kanban Columns %>
-  <div class="flex-1 overflow-x-auto overflow-y-hidden bg-stone-100 dark:bg-stone-900">
-    <div class="flex gap-4 p-4 h-full min-w-max">
+  <div class="flex-1 overflow-hidden bg-stone-100 dark:bg-stone-900">
+    <div class="flex gap-4 p-4 h-full">
       <% Task.statuses.keys.each do |status| %>
         <%= render "board/column", status: status, tasks: @columns[status.to_sym] %>
       <% end %>
     </div>
   </div>
-</div>
 
-<%# Task Detail Slide-out Panel %>
-<div data-board-target="slidePanel"
-     class="fixed inset-y-0 right-0 w-full max-w-md bg-white dark:bg-stone-800 shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out z-50 flex flex-col">
-  <div data-board-target="slidePanelContent" class="flex-1 overflow-y-auto">
-    <%# Content loaded via Turbo Frame %>
-  </div>
-</div>
-<div data-board-target="slideOverlay"
-     data-action="click->board#closeSlidePanel"
-     class="fixed inset-0 bg-black/20 dark:bg-black/40 opacity-0 pointer-events-none transition-opacity duration-300 z-40">
-</div>
+  <%# Task Panel Container - loaded via Turbo Frame %>
+  <%= turbo_frame_tag "task_panel" %>
 
-<%# New Task Modal %>
-<%= turbo_frame_tag "new_task_modal" %>
+  <%# New Task Modal %>
+  <%= turbo_frame_tag "new_task_modal" %>
+</div>

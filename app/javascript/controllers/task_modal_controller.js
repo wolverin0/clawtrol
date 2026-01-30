@@ -2,8 +2,8 @@ import { Controller } from "@hotwired/stimulus"
 
 // Connects to data-controller="task-modal"
 export default class extends Controller {
-  static targets = ["modal", "backdrop", "form", "nameField", "descriptionField", "submitButton", "completedField", "completeButton", "priorityField", "priorityButton", "priorityGroup", "dueDateField", "dueDateDisplay"]
-  static values = { taskId: Number, completed: Boolean }
+  static targets = ["modal", "backdrop", "form", "nameField", "descriptionField", "submitButton", "priorityField", "priorityButton", "priorityGroup", "dueDateField", "dueDateDisplay"]
+  static values = { taskId: Number }
 
   connect() {
     this.boundHandleKeydown = this.handleKeydown.bind(this)
@@ -15,11 +15,6 @@ export default class extends Controller {
       this.open()
       this.resizeDescription()
       this.updatePriorityUI()
-      // Initialize completed state from hidden field
-      if (this.hasCompletedFieldTarget) {
-        const val = this.completedFieldTarget.value
-        this.completedValue = (val === 'true' || val === '1')
-      }
     }, 10)
   }
 
@@ -75,10 +70,10 @@ export default class extends Controller {
         this.pendingTurboStream = null
       }
 
-      // Remove the panel from the Turbo Frame
-      const turboFrame = this.element.closest('turbo-frame')
-      if (turboFrame) {
-        turboFrame.innerHTML = ''
+      // Clear the turbo frame to remove the panel
+      const taskPanelFrame = document.getElementById('task_panel')
+      if (taskPanelFrame) {
+        taskPanelFrame.innerHTML = ''
       }
     }, 300) // Match the duration-300 transition
 
@@ -109,10 +104,10 @@ export default class extends Controller {
         const parser = new DOMParser()
         const doc = parser.parseFromString(html, 'text/html')
         const streams = doc.querySelectorAll('turbo-stream')
-        
+
         let activityStreams = ''
         let otherStreams = ''
-        
+
         streams.forEach(stream => {
           const target = stream.getAttribute('target') || ''
           // Apply activity updates immediately
@@ -122,12 +117,12 @@ export default class extends Controller {
             otherStreams += stream.outerHTML
           }
         })
-        
+
         // Apply activity updates now
         if (activityStreams) {
           Turbo.renderStreamMessage(activityStreams)
         }
-        
+
         // Store other updates for when modal closes
         if (otherStreams) {
           this.pendingTurboStream = otherStreams
@@ -176,10 +171,10 @@ export default class extends Controller {
   }
 
   selectPriority(event) {
-    const value = parseInt(event.currentTarget.dataset.priorityValue)
-    if (Number.isNaN(value)) return
+    const value = event.currentTarget.dataset.priorityValue
+    if (!value) return
     if (this.hasPriorityFieldTarget) {
-      this.priorityFieldTarget.value = String(value)
+      this.priorityFieldTarget.value = value
     }
     this.updatePriorityUI()
     // Auto-save when priority changes
@@ -188,45 +183,16 @@ export default class extends Controller {
 
   updatePriorityUI() {
     if (!this.hasPriorityButtonTarget) return
-    const current = this.hasPriorityFieldTarget ? parseInt(this.priorityFieldTarget.value || '0') : 0
+    const current = this.hasPriorityFieldTarget ? this.priorityFieldTarget.value : 'none'
     this.priorityButtonTargets.forEach((btn) => {
-      const val = parseInt(btn.dataset.priorityValue)
+      const val = btn.dataset.priorityValue
       const isSelected = (val === current)
       btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false')
     })
-  }
-
-  toggleCompleted() {
-    this.completedValue = !this.completedValue
-    if (this.hasCompletedFieldTarget) {
-      this.completedFieldTarget.value = this.completedValue ? 'true' : 'false'
-    }
-    this.updateCompletedUI()
-    // Auto-save when completed changes
-    this.save()
-  }
-
-  updateCompletedUI() {
-    if (!this.hasCompleteButtonTarget) return
-    const btn = this.completeButtonTarget
-    const checkmark = btn.querySelector('svg')
-
-    if (this.completedValue) {
-      btn.classList.remove('border-stone-300', 'dark:border-white/30')
-      btn.classList.add('border-lime-500', 'bg-lime-500')
-      if (checkmark) checkmark.classList.remove('text-transparent')
-      if (checkmark) checkmark.classList.add('text-white')
-    } else {
-      btn.classList.remove('border-lime-500', 'bg-lime-500')
-      btn.classList.add('border-stone-300', 'dark:border-white/30')
-      if (checkmark) checkmark.classList.remove('text-white')
-      if (checkmark) checkmark.classList.add('text-transparent')
-    }
   }
 
   onDueDateChange() {
     // Due date changed via datepicker - save the form
     this.save()
   }
-
 }

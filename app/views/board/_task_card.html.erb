@@ -1,17 +1,15 @@
 <li id="task_<%= task.id %>"
-    class="group bg-white dark:bg-stone-800 p-3 rounded-md shadow-sm cursor-grab active:cursor-grabbing transition-all hover:shadow-md <%= 'border-l-4 border-red-500' if task.blocked? %>"
+    class="group bg-white dark:bg-stone-800 rounded-md shadow-sm cursor-pointer transition-all hover:shadow-md <%= 'border-l-4 border-red-500' if task.blocked? %>"
     data-task-id="<%= task.id %>"
     data-task-status="<%= task.status %>"
     data-task-position="<%= task.position %>">
+  <%= link_to board_task_path(task), data: { turbo_frame: "task_panel" }, class: "block p-3" do %>
 
-  <%# Task Name - clickable to open detail %>
+  <%# Task Name %>
   <div class="flex items-start gap-2">
-    <button type="button"
-            class="flex-1 text-left text-sm font-medium text-stone-800 dark:text-white leading-tight hover:text-stone-600 dark:hover:text-white/80 cursor-pointer"
-            data-action="click->board#openTaskDetail"
-            data-task-url="<%= board_task_path(task) %>">
+    <span class="flex-1 text-sm font-medium text-stone-800 dark:text-white leading-tight">
       <%= task.name %>
-    </button>
+    </span>
     <% if task.blocked? %>
       <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-red-500" title="Blocked"></span>
     <% end %>
@@ -69,5 +67,5 @@
       </div>
     <% end %>
   </div>
-
+  <% end %>
 </li>

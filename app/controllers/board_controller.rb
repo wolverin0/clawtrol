@@ -1,7 +1,7 @@
 class BoardController < ApplicationController
   def show
     @board_page = true
-    @tasks = current_user.tasks.where(completed: false).includes(:comments)
+    @tasks = current_user.tasks.includes(:comments)
 
     # Filter by tag if specified
     if params[:tag].present?

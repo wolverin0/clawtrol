@@ -17,6 +17,7 @@ class Task < ApplicationRecord
 
   # Position management - acts_as_list functionality without the gem
   before_create :set_position
+  before_save :sync_completed_with_status
   before_update :save_original_position, if: :will_save_change_to_completed?
   before_update :track_completion_time, if: :will_save_change_to_completed?
 
@@ -33,6 +34,10 @@ class Task < ApplicationRecord
     # Prepend: shift all existing tasks down and insert at position 1
     user.tasks.where(status: status).update_all("position = position + 1")
     self.position = 1
+  end
+
+  def sync_completed_with_status
+    self.completed = (status == "done")
   end
 
   def save_original_position
