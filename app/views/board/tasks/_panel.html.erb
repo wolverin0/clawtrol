@@ -19,7 +19,7 @@
   <!-- Slide-in Panel -->
   <div data-task-modal-target="modal"
        class="hidden fixed inset-y-0 right-0 z-[70] w-full max-w-md md:max-w-lg transition-transform duration-300 ease-out translate-x-full p-4">
-    <div class="h-full bg-bg-elevated border border-border shadow-2xl shadow-black/50 ring-1 ring-white/5 flex flex-col rounded-xl overflow-hidden">
+    <div class="h-full bg-bg-surface border border-border shadow-2xl flex flex-col rounded-xl overflow-hidden">
 
       <!-- Header: Column name and Close button -->
       <div class="px-5 py-4 border-b border-border flex-shrink-0">
@@ -58,7 +58,7 @@
             <%= form.text_area :description,
                 placeholder: "Add notes...",
                 rows: 1,
-                class: "w-full text-sm leading-snug tracking-tight bg-bg-surface border border-border focus:border-accent/50 focus:outline-none focus:ring-0 text-content-secondary placeholder-content-muted resize-none rounded-lg px-3 py-3 overflow-y-auto max-h-48",
+                class: "w-full text-sm leading-snug tracking-tight bg-bg-elevated border-none focus:outline-none focus:ring-0 text-content-secondary placeholder-content-muted resize-none rounded-lg px-3 py-3 overflow-y-auto max-h-48",
                 data: { task_modal_target: "descriptionField", action: "input->task-modal#scheduleAutoSave" } %>
           </div>
 
@@ -96,71 +96,6 @@
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-accent" style="position: relative; z-index: 1;"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" /></svg>
                     </div>
                   </button>
-                </div>
-              </div>
-
-              <!-- Due Date -->
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-content-muted">Due Date</span>
-                <div data-controller="datepicker" data-datepicker-date-value="<%= task.due_date %>" class="relative">
-                  <%# Hidden input for form submission %>
-                  <%= form.hidden_field :due_date,
-                      data: { datepicker_target: "input", task_modal_target: "dueDateField", action: "change->task-modal#onDueDateChange" } %>
-
-                  <%# Trigger button %>
-                  <button type="button"
-                          data-datepicker-target="trigger"
-                          data-action="click->datepicker#toggle"
-                          class="flex items-center gap-2 px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors cursor-pointer">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-content-muted">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                    </svg>
-                    <span data-datepicker-target="display" data-task-modal-target="dueDateDisplay" class="text-sm text-content-secondary"><%= task.due_date.present? ? task.due_date.strftime("%b %-d, %Y") : "None" %></span>
-                  </button>
-
-                  <%# Dropdown calendar %>
-                  <div data-datepicker-target="dropdown"
-                       class="hidden absolute right-0 top-full mt-2 z-[80] bg-bg-surface border border-border rounded-md shadow-lg p-3 w-64">
-
-                    <%# Month navigation %>
-                    <div class="flex items-center justify-between mb-3">
-                      <button type="button" data-action="click->datepicker#prevMonth" class="p-1.5 rounded-md hover:bg-bg-elevated text-content-muted transition-colors cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                        </svg>
-                      </button>
-                      <span data-datepicker-target="monthYear" class="text-sm font-medium text-content"></span>
-                      <button type="button" data-action="click->datepicker#nextMonth" class="p-1.5 rounded-md hover:bg-bg-elevated text-content-muted transition-colors cursor-pointer">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    <%# Day headers %>
-                    <div class="grid grid-cols-7 mb-1">
-                      <% %w[Mo Tu We Th Fr Sa Su].each do |day| %>
-                        <div class="h-8 w-8 flex items-center justify-center text-[10px] font-medium text-content-muted"><%= day %></div>
-                      <% end %>
-                    </div>
-
-                    <%# Calendar grid %>
-                    <div data-datepicker-target="grid" class="grid grid-cols-7">
-                    </div>
-
-                    <%# Action buttons %>
-                    <div class="flex gap-2 mt-3 pt-3 border-t border-border">
-                      <button type="button" data-action="click->datepicker#clear" class="flex-1 px-2 py-1.5 text-xs font-medium text-content-muted hover:text-content transition-colors cursor-pointer">
-                        Clear
-                      </button>
-                      <button type="button" data-action="click->datepicker#selectToday" class="flex-1 px-2 py-1.5 text-xs font-medium text-content-secondary bg-bg-elevated rounded-sm hover:bg-bg-hover transition-colors cursor-pointer">
-                        Today
-                      </button>
-                      <button type="button" data-action="click->datepicker#apply" class="flex-1 px-2 py-1.5 text-xs font-semibold text-content bg-accent rounded-sm hover:bg-accent-hover transition-colors cursor-pointer">
-                        Apply
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
 

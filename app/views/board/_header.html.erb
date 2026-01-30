@@ -4,8 +4,8 @@
   <div class="flex items-center gap-4">
     <%# Agent identity %>
     <div class="flex items-center gap-2">
-      <span class="text-xl">🦊</span>
-      <span class="text-sm font-semibold text-content font-display">Maxie</span>
+      <span class="text-xl"><%= current_user.agent_emoji %></span>
+      <span class="text-sm font-semibold text-content font-display"><%= current_user.agent_name %></span>
       <span class="flex items-center gap-1 text-xs text-content-muted">
         <span class="w-2 h-2 rounded-full bg-content-muted"></span>
         idle

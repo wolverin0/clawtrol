@@ -30,6 +30,6 @@ class ProfilesController < ApplicationController
   private
 
   def profile_params
-    params.expect(user: [ :email_address, :avatar ])
+    params.expect(user: [ :email_address, :avatar, :agent_name, :agent_emoji ])
   end
 end
