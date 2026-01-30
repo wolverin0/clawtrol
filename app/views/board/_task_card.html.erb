@@ -1,5 +1,5 @@
 <li id="task_<%= task.id %>"
-    class="group bg-neutral-800 rounded-md cursor-pointer transition-all hover:bg-neutral-700 <%= 'border-l-4 border-l-amber-500' if task.blocked? %>"
+    class="group bg-bg-elevated rounded-md cursor-pointer transition-all hover:bg-bg-hover <%= 'border-l-4 border-l-status-warning' if task.blocked? %>"
     data-task-id="<%= task.id %>"
     data-task-status="<%= task.status %>"
     data-task-position="<%= task.position %>">
@@ -7,11 +7,11 @@
 
   <%# Task Name %>
   <div class="flex items-start gap-2">
-    <span class="flex-1 text-sm font-medium text-white leading-tight">
+    <span class="flex-1 text-sm font-medium text-content leading-tight">
       <%= task.name %>
     </span>
     <% if task.blocked? %>
-      <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-amber-500" title="Blocked"></span>
+      <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-status-warning" title="Blocked"></span>
     <% end %>
   </div>
 
@@ -19,7 +19,7 @@
   <% if task.tags.present? && task.tags.any? %>
     <div class="flex flex-wrap gap-1 mt-2">
       <% task.tags.each do |tag| %>
-        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-neutral-700 text-neutral-300">
+        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-bg-surface text-content-secondary">
           <%= tag %>
         </span>
       <% end %>
@@ -37,10 +37,10 @@
         else 0
       end %>
       <% flame_color = case task.priority
-        when "high" then "text-red-500"
+        when "high" then "text-accent"
         when "medium" then "text-orange-500"
         when "low" then "text-yellow-500"
-        else "text-neutral-700"
+        else "text-content-muted/50"
       end %>
       <% if flame_count == 0 %>
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 <%= flame_color %>">
@@ -59,7 +59,7 @@
 
     <%# Comments Count %>
     <% if task.comments_count > 0 %>
-      <div class="flex items-center gap-1 text-neutral-500">
+      <div class="flex items-center gap-1 text-content-muted">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
         </svg>

@@ -7,17 +7,17 @@
       </div>
       <!-- Activity content -->
       <div class="flex-1 min-w-0">
-        <p class="text-sm text-neutral-300"><%= activity.description %></p>
-        <p class="text-xs text-neutral-500 mt-0.5">
+        <p class="text-sm text-content-secondary"><%= activity.description %></p>
+        <p class="text-xs text-content-muted mt-0.5">
           <%= time_ago_in_words(activity.created_at) %> ago
           <% if activity.source == "api" %>
-            <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-900/30 text-orange-400">API</span>
+            <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-status-warning/20 text-status-warning">API</span>
           <% end %>
         </p>
       </div>
     </div>
   <% end %>
   <% if task.activities.empty? %>
-    <p class="text-sm text-neutral-500 italic">No activity yet</p>
+    <p class="text-sm text-content-muted italic">No activity yet</p>
   <% end %>
 </div>

@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 // Connects to data-controller="dropdown"
 export default class extends Controller {
-  static targets = ["button", "menu", "container"]
+  static targets = ["button", "menu", "container", "trigger", "input", "display"]
 
   connect() {
     this.handleClickOutside = this.handleClickOutside.bind(this)
@@ -17,9 +17,9 @@ export default class extends Controller {
   toggle(event) {
     event.preventDefault()
     event.stopPropagation()
-    
+
     const isOpen = !this.menuTarget.classList.contains("hidden")
-    
+
     if (isOpen) {
       this.close()
     } else {
@@ -29,7 +29,8 @@ export default class extends Controller {
 
   open() {
     this.menuTarget.classList.remove("hidden")
-    this.buttonTarget.setAttribute("aria-expanded", "true")
+    const triggerEl = this.hasTriggerTarget ? this.triggerTarget : this.buttonTarget
+    triggerEl.setAttribute("aria-expanded", "true")
     // Ensure action container remains visible while open (override hover-only visibility)
     if (this.hasContainerTarget) {
       this.containerTarget.classList.remove("opacity-0")
@@ -44,13 +45,13 @@ export default class extends Controller {
   openAtCursor(event) {
     event.preventDefault()
     event.stopPropagation()
-    
+
     // Close any other open dropdowns first
     const isOpen = !this.menuTarget.classList.contains("hidden")
     if (isOpen) {
       return
     }
-    
+
     // Show menu first (but keep it positioned off-screen temporarily to measure)
     const menu = this.menuTarget
     menu.classList.remove("hidden")
@@ -58,26 +59,26 @@ export default class extends Controller {
     menu.style.position = "fixed"
     menu.style.left = "0"
     menu.style.top = "0"
-    
+
     // Now we can measure it
     const rect = menu.getBoundingClientRect()
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
-    
+
     // Calculate position - try to position near cursor but keep menu in viewport
     let left = event.clientX
     let top = event.clientY
-    
+
     // Adjust if menu would go off right edge
     if (left + rect.width > viewportWidth) {
       left = viewportWidth - rect.width - 8
     }
-    
+
     // Adjust if menu would go off bottom edge
     if (top + rect.height > viewportHeight) {
       top = viewportHeight - rect.height - 8
     }
-    
+
     // Ensure menu doesn't go off left or top edges
     if (left < 8) {
       left = 8
@@ -85,16 +86,17 @@ export default class extends Controller {
     if (top < 8) {
       top = 8
     }
-    
+
     // Apply final positioning and make visible
     menu.style.left = `${left}px`
     menu.style.top = `${top}px`
     menu.style.right = "auto"
     menu.style.marginTop = "0"
     menu.style.visibility = "visible"
-    
+
     // Complete the open process
-    this.buttonTarget.setAttribute("aria-expanded", "true")
+    const triggerEl = this.hasTriggerTarget ? this.triggerTarget : this.buttonTarget
+    triggerEl.setAttribute("aria-expanded", "true")
     if (this.hasContainerTarget) {
       this.containerTarget.classList.remove("opacity-0")
       this.containerTarget.classList.add("opacity-100")
@@ -106,7 +108,8 @@ export default class extends Controller {
 
   close() {
     this.menuTarget.classList.add("hidden")
-    this.buttonTarget.setAttribute("aria-expanded", "false")
+    const triggerEl = this.hasTriggerTarget ? this.triggerTarget : this.buttonTarget
+    triggerEl.setAttribute("aria-expanded", "false")
     // Reset positioning styles for next open (button click will use original positioning)
     const menu = this.menuTarget
     menu.style.position = ""
@@ -123,6 +126,23 @@ export default class extends Controller {
     }
     document.removeEventListener("click", this.handleClickOutside)
     document.removeEventListener("keydown", this.handleKeydown)
+  }
+
+  select(event) {
+    const value = event.currentTarget.dataset.value
+    const label = event.currentTarget.dataset.label
+
+    // Update hidden input
+    if (this.hasInputTarget && value !== undefined) {
+      this.inputTarget.value = value
+    }
+
+    // Update display text
+    if (this.hasDisplayTarget && label) {
+      this.displayTarget.textContent = label
+    }
+
+    this.close()
   }
 
   closeOnOutside(event) {
@@ -143,4 +163,3 @@ export default class extends Controller {
     }
   }
 }
-

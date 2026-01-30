@@ -1,19 +1,21 @@
 <%= turbo_frame_tag "new_task_modal" do %>
-  <div class="fixed inset-0 z-50 flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
+  <div class="fixed inset-0 z-50 flex items-center justify-center" data-controller="modal new-task-modal" data-action="keydown.esc->modal#close">
     <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
-    <div class="relative bg-neutral-900 border border-neutral-800 rounded-lg shadow-xl w-full max-w-md mx-4">
-      <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
-        <h2 class="text-sm font-semibold text-white">New Task</h2>
-        <%= link_to board_path, class: "text-neutral-500 hover:text-white transition-colors" do %>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+    <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+
+      <!-- Header -->
+      <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+        <span class="text-sm font-semibold text-content font-display">New Task</span>
+        <%= link_to board_path, class: "p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors", data: { turbo_frame: "_top" } do %>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
           </svg>
         <% end %>
       </div>
 
-      <%= form_with model: @task, url: board_tasks_path, class: "p-4 space-y-4" do |form| %>
+      <%= form_with model: @task, url: board_tasks_path, class: "px-5 py-6 space-y-6" do |form| %>
         <% if @task.errors.any? %>
-          <div class="p-3 bg-red-900/30 text-red-400 text-xs rounded-md">
+          <div class="p-3 bg-status-error/20 text-status-error text-xs rounded-md">
             <ul class="list-disc list-inside">
               <% @task.errors.full_messages.each do |message| %>
                 <li><%= message %></li>
@@ -22,36 +24,125 @@
           </div>
         <% end %>
 
+        <%= form.hidden_field :priority, value: @task.priority || "none", data: { new_task_modal_target: "priorityField" } %>
+
+        <!-- Title -->
         <div>
-          <%= form.label :name, "Task name", class: "block text-xs font-medium text-neutral-500 mb-1" %>
-          <%= form.text_field :name, required: true, autofocus: true, placeholder: "What needs to be done?", class: "w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 rounded-md text-white placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500" %>
+          <%= form.text_field :name,
+              required: true,
+              autofocus: true,
+              placeholder: "Task title",
+              class: "w-full text-xl font-semibold tracking-tight bg-transparent border-none focus:outline-none focus:ring-0 text-content placeholder-content-muted p-0 font-display" %>
         </div>
 
+        <!-- Notes -->
         <div>
-          <%= form.label :description, "Description", class: "block text-xs font-medium text-neutral-500 mb-1" %>
-          <%= form.text_area :description, rows: 3, placeholder: "Add more details...", class: "w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 rounded-md text-white placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 resize-none" %>
+          <%= form.text_area :description,
+              placeholder: "Add notes...",
+              rows: 3,
+              class: "w-full text-sm leading-snug tracking-tight bg-bg-elevated border-none focus:outline-none focus:ring-0 text-content-secondary placeholder-content-muted resize-none rounded-lg px-3 py-3" %>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <%= form.label :priority, "Priority", class: "block text-xs font-medium text-neutral-500 mb-1" %>
-            <%= form.select :priority, Task.priorities.keys.map { |p| [p.capitalize, p] }, {}, class: "w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500" %>
+        <!-- Details -->
+        <div class="border-t border-border pt-4">
+          <h3 class="text-sm font-semibold text-content mb-4 font-display">Details</h3>
+
+          <div class="space-y-4">
+<%= form.hidden_field :status, value: "inbox" %>
+
+            <!-- Priority -->
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-content-muted">Priority</span>
+              <div class="flex gap-1.5" data-new-task-modal-target="priorityGroup">
+                <button type="button" aria-pressed="<%= (@task.priority || 'none') == 'none' %>" data-action="click->new-task-modal#selectPriority" data-priority-value="none" data-new-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-content-muted">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" />
+                  </svg>
+                </button>
+                <button type="button" aria-pressed="<%= @task.priority == 'low' %>" data-action="click->new-task-modal#selectPriority" data-priority-value="low" data-new-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-yellow-500">
+                    <path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+                <button type="button" aria-pressed="<%= @task.priority == 'medium' %>" data-action="click->new-task-modal#selectPriority" data-priority-value="medium" data-new-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+                  <div class="flex -space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-orange-500" style="position: relative; z-index: 2;"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-orange-500" style="position: relative; z-index: 1;"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" /></svg>
+                  </div>
+                </button>
+                <button type="button" aria-pressed="<%= @task.priority == 'high' %>" data-action="click->new-task-modal#selectPriority" data-priority-value="high" data-new-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+                  <div class="flex -space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-accent" style="position: relative; z-index: 3;"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-accent" style="position: relative; z-index: 2;"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-accent" style="position: relative; z-index: 1;"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" /></svg>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Due Date -->
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-content-muted">Due Date</span>
+              <div data-controller="datepicker" data-datepicker-date-value="" class="relative">
+                <%= form.hidden_field :due_date, data: { datepicker_target: "input" } %>
+
+                <button type="button"
+                        data-datepicker-target="trigger"
+                        data-action="click->datepicker#toggle"
+                        class="flex items-center gap-2 px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-content-muted">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                  </svg>
+                  <span data-datepicker-target="display" class="text-sm text-content-secondary">None</span>
+                </button>
+
+                <div data-datepicker-target="dropdown"
+                     class="hidden absolute right-0 top-full mt-2 z-[80] bg-bg-surface border border-border rounded-md shadow-lg p-3 w-64">
+                  <div class="flex items-center justify-between mb-3">
+                    <button type="button" data-action="click->datepicker#prevMonth" class="p-1.5 rounded-md hover:bg-bg-elevated text-content-muted transition-colors cursor-pointer">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                      </svg>
+                    </button>
+                    <span data-datepicker-target="monthYear" class="text-sm font-medium text-content"></span>
+                    <button type="button" data-action="click->datepicker#nextMonth" class="p-1.5 rounded-md hover:bg-bg-elevated text-content-muted transition-colors cursor-pointer">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div class="grid grid-cols-7 mb-1">
+                    <% %w[Mo Tu We Th Fr Sa Su].each do |day| %>
+                      <div class="h-8 w-8 flex items-center justify-center text-[10px] font-medium text-content-muted"><%= day %></div>
+                    <% end %>
+                  </div>
+
+                  <div data-datepicker-target="grid" class="grid grid-cols-7"></div>
+
+                  <div class="flex gap-2 mt-3 pt-3 border-t border-border">
+                    <button type="button" data-action="click->datepicker#clear" class="flex-1 px-2 py-1.5 text-xs font-medium text-content-muted hover:text-content transition-colors cursor-pointer">
+                      Clear
+                    </button>
+                    <button type="button" data-action="click->datepicker#selectToday" class="flex-1 px-2 py-1.5 text-xs font-medium text-content-secondary bg-bg-elevated rounded-sm hover:bg-bg-hover transition-colors cursor-pointer">
+                      Today
+                    </button>
+                    <button type="button" data-action="click->datepicker#apply" class="flex-1 px-2 py-1.5 text-xs font-semibold text-content bg-accent rounded-sm hover:bg-accent-hover transition-colors cursor-pointer">
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
-
-          <div>
-            <%= form.label :status, "Status", class: "block text-xs font-medium text-neutral-500 mb-1" %>
-            <%= form.select :status, Task.statuses.keys.map { |s| [s.titleize, s] }, {}, class: "w-full px-3 py-2 text-sm bg-neutral-800 border border-neutral-700 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500" %>
-          </div>
         </div>
 
-        <div class="flex items-center gap-3">
-          <%= form.check_box :blocked, class: "rounded border-neutral-600 bg-neutral-800 text-orange-500 focus:ring-orange-500 focus:ring-offset-neutral-900" %>
-          <%= form.label :blocked, "Mark as blocked", class: "text-sm text-neutral-300" %>
-        </div>
-
-        <div class="flex items-center justify-end gap-2 pt-2">
-          <%= link_to "Cancel", board_path, class: "px-3 py-2 text-xs font-medium text-neutral-400 hover:text-white transition-colors" %>
-          <%= form.submit "Create Task", class: "px-4 py-2 text-xs font-medium rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors cursor-pointer" %>
+        <!-- Footer -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
+          <%= link_to "Cancel", board_path, class: "px-4 py-2 text-sm font-medium text-content-secondary hover:text-content transition-colors", data: { turbo_frame: "_top" } %>
+          <%= form.submit "Create Task", class: "px-4 py-2 text-sm font-semibold rounded-md bg-accent text-content hover:bg-accent-hover transition-colors cursor-pointer" %>
         </div>
       <% end %>
     </div>

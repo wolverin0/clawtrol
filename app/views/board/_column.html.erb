@@ -7,20 +7,20 @@
     "done" => "Done"
   }
   column_colors = {
-    "inbox" => "bg-neutral-500",
-    "up_next" => "bg-blue-500",
-    "in_progress" => "bg-amber-500",
+    "inbox" => "bg-content-muted",
+    "up_next" => "bg-status-info",
+    "in_progress" => "bg-status-warning",
     "in_review" => "bg-purple-500",
-    "done" => "bg-green-500"
+    "done" => "bg-status-success"
   }
 %>
 
-<div class="flex-1 min-w-0 flex flex-col bg-neutral-900 rounded-lg border border-white/5">
+<div class="flex-1 min-w-0 flex flex-col bg-bg-surface rounded-lg border border-border">
   <%# Column Header %>
   <div class="flex items-center gap-2 px-3 py-3">
     <div class="w-2 h-2 rounded-full <%= column_colors[status] %>"></div>
-    <h2 class="text-sm font-semibold text-white"><%= column_labels[status] %></h2>
-    <span id="column-<%= status %>-count" class="ml-auto text-xs text-neutral-400 bg-neutral-800 px-1.5 py-0.5 rounded"><%= tasks.count %></span>
+    <h2 class="text-sm font-semibold text-content font-display"><%= column_labels[status] %></h2>
+    <span id="column-<%= status %>-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded"><%= tasks.count %></span>
   </div>
 
   <%# Tasks List %>

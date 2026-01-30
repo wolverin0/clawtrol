@@ -1,20 +1,20 @@
 <% content_for :title, "Forgot password" %>
 <div class="max-w-md mx-auto">
   <div class="text-left max-w-sm mb-6">
-    <h1 class="text-2xl tracking-tight mb-4 text-white">Forgot your password?</h1>
-    <p class="text-md text-neutral-400 -mt-2 mb-4">Enter your email and we'll send you reset instructions.</p>
+    <h1 class="text-2xl tracking-tight mb-4 text-content font-display">Forgot your password?</h1>
+    <p class="text-md text-content-secondary -mt-2 mb-4">Enter your email and we'll send you reset instructions.</p>
   </div>
 
   <%= form_with url: passwords_path, class: "space-y-2 font-normal mb-6", html: { autocomplete: "off" } do |form| %>
     <div class="isolate rounded-md">
-      <div class="relative bg-neutral-800 rounded-md px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-neutral-700 focus-within:z-10 focus-within:ring-1 focus-within:ring-orange-500">
-        <%= form.label :email_address, "Email", class: "block text-xs font-medium text-neutral-500" %>
-        <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "email", placeholder: "name@domain.com", value: params[:email_address], class: "block w-full border-0 p-0 text-white placeholder:text-neutral-500 focus:ring-0 text-sm leading-6 bg-transparent" %>
+      <div class="relative bg-bg-elevated rounded-md px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-border focus-within:z-10 focus-within:ring-1 focus-within:ring-accent">
+        <%= form.label :email_address, "Email", class: "block text-xs font-medium text-content-muted" %>
+        <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "email", placeholder: "name@domain.com", value: params[:email_address], class: "block w-full border-0 p-0 text-content placeholder:text-content-muted focus:ring-0 text-sm leading-6 bg-transparent" %>
       </div>
     </div>
     <div class="pt-3 font-medium flex items-center justify-between">
-      <%= form.submit "Email reset instructions", class: "cursor-pointer inline-flex items-center space-x-2 p-3 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors duration-200 text-xs font-semibold" %>
-      <%= link_to "Back to sign in", new_session_path, class: "text-xs text-neutral-400 hover:text-white transition-colors" %>
+      <%= form.submit "Email reset instructions", class: "cursor-pointer inline-flex items-center space-x-2 p-3 bg-accent text-content rounded-md hover:bg-accent-hover transition-colors duration-200 text-xs font-semibold" %>
+      <%= link_to "Back to sign in", new_session_path, class: "text-xs text-content-secondary hover:text-content transition-colors" %>
     </div>
   <% end %>
 </div>
