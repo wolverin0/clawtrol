@@ -1,22 +1,22 @@
 <%# Board Header - replaces sidebar %>
-<header class="relative flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-white/10">
+<header class="relative flex-shrink-0 flex items-center justify-between px-4 py-3 bg-neutral-950">
   <%# Left section: Agent info %>
   <div class="flex items-center gap-4">
     <%# Agent identity %>
     <div class="flex items-center gap-2">
       <span class="text-xl">🦊</span>
-      <span class="text-sm font-semibold text-stone-800 dark:text-white">Maxie</span>
-      <span class="flex items-center gap-1 text-xs text-stone-500 dark:text-white/50">
-        <span class="w-2 h-2 rounded-full bg-stone-400"></span>
+      <span class="text-sm font-semibold text-white">Maxie</span>
+      <span class="flex items-center gap-1 text-xs text-neutral-500">
+        <span class="w-2 h-2 rounded-full bg-neutral-600"></span>
         idle
       </span>
     </div>
   </div>
 
   <%# Center section: Task counts (absolutely centered in viewport) %>
-  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden sm:flex items-center gap-2 text-xs text-stone-500 dark:text-white/50">
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden sm:flex items-center gap-2 text-xs text-neutral-500">
     <span><span id="header-inbox-count"><%= @columns[:inbox]&.count || 0 %></span> inbox</span>
-    <span class="text-stone-300 dark:text-white/20">|</span>
+    <span class="text-neutral-700">|</span>
     <span><span id="header-in_progress-count"><%= @columns[:in_progress]&.count || 0 %></span> in progress</span>
   </div>
 
@@ -24,22 +24,22 @@
   <div class="flex items-center gap-2">
     <%# Flash messages (compact) %>
     <% if notice.present? %>
-      <div data-controller="flash" class="py-1 px-2.5 bg-lime-50 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400 text-xs font-medium rounded-md">
+      <div data-controller="flash" class="py-1 px-2.5 bg-green-900/30 text-green-400 text-xs font-medium rounded-md">
         <%= notice %>
       </div>
     <% end %>
     <% if alert.present? %>
-      <div data-controller="flash" class="py-1 px-2.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-medium rounded-md">
+      <div data-controller="flash" class="py-1 px-2.5 bg-red-900/30 text-red-400 text-xs font-medium rounded-md">
         <%= alert %>
       </div>
     <% end %>
 
     <%# Auto/Pause toggle %>
-    <div class="flex items-center rounded-md bg-stone-100 dark:bg-white/10 p-0.5">
-      <button type="button" class="px-3 py-1.5 text-xs font-medium rounded bg-white dark:bg-stone-700 text-stone-800 dark:text-white shadow-sm">
+    <div class="flex items-center rounded-md bg-neutral-800 p-0.5">
+      <button type="button" class="px-3 py-1.5 text-xs font-medium rounded bg-neutral-700 text-white shadow-sm">
         Auto
       </button>
-      <button type="button" class="px-3 py-1.5 text-xs font-medium rounded text-stone-500 dark:text-white/50 hover:text-stone-700 dark:hover:text-white/70">
+      <button type="button" class="px-3 py-1.5 text-xs font-medium rounded text-neutral-500 hover:text-neutral-300">
         Pause
       </button>
     </div>
@@ -47,7 +47,7 @@
     <%# Add Task Button %>
     <button type="button"
             data-action="click->board#openNewTaskModal"
-            class="cursor-pointer inline-flex items-center gap-0.5 px-3 py-1.5 text-xs font-medium rounded-md bg-stone-800 dark:bg-white text-white dark:text-stone-900 hover:bg-stone-700 dark:hover:bg-stone-200 transition-colors">
+            class="cursor-pointer inline-flex items-center gap-0.5 px-3 py-1.5 text-xs font-medium rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
         <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
       </svg>
@@ -63,11 +63,11 @@
         class="flex items-center cursor-pointer"
         aria-expanded="false"
         aria-haspopup="true">
-        <div class="w-7 h-7 rounded-md overflow-hidden bg-stone-200 dark:bg-stone-700 flex items-center justify-center">
+        <div class="w-7 h-7 rounded-md overflow-hidden bg-neutral-800 flex items-center justify-center">
           <% if current_user.avatar.attached? %>
             <%= image_tag current_user.avatar, class: "w-full h-full object-cover", alt: "Your avatar" %>
           <% else %>
-            <svg class="w-4 h-4 text-stone-500 dark:text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           <% end %>
@@ -77,20 +77,20 @@
       <%# Dropdown menu %>
       <div
         data-dropdown-target="menu"
-        class="hidden absolute right-0 top-full mt-1 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 overflow-hidden z-50">
+        class="hidden absolute right-0 top-full mt-1 w-48 bg-neutral-900 rounded-lg shadow-lg border border-neutral-800 overflow-hidden z-50">
         <%# User info %>
-        <div class="px-3 py-2.5 bg-stone-50 dark:bg-stone-900 border-b border-stone-200 dark:border-stone-700">
-          <p class="text-xs font-medium text-stone-700 dark:text-stone-200 truncate">
+        <div class="px-3 py-2.5 bg-neutral-800 border-b border-neutral-700">
+          <p class="text-xs font-medium text-white truncate">
             <%= current_user.email_address.split('@').first %>
           </p>
-          <p class="text-xs text-stone-400 dark:text-stone-500 truncate">
+          <p class="text-xs text-neutral-500 truncate">
             <%= current_user.email_address %>
           </p>
         </div>
         <%# Menu items %>
         <div class="py-1">
           <%= link_to profile_path,
-              class: "flex items-center gap-2 px-3 py-2 text-xs text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors" do %>
+              class: "flex items-center gap-2 px-3 py-2 text-xs text-neutral-300 hover:bg-neutral-800 transition-colors" do %>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -100,17 +100,17 @@
           <%= link_to "https://github.com/clawdeckio/clawdeck",
               target: "_blank",
               rel: "noopener noreferrer",
-              class: "flex items-center gap-2 px-3 py-2 text-xs text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors" do %>
+              class: "flex items-center gap-2 px-3 py-2 text-xs text-neutral-300 hover:bg-neutral-800 transition-colors" do %>
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
               <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
             </svg>
             GitHub
           <% end %>
-          <div class="border-t border-stone-200 dark:border-stone-700 my-1"></div>
+          <div class="border-t border-neutral-800 my-1"></div>
           <%= link_to session_path,
               method: :delete,
               data: { turbo_method: :delete },
-              class: "flex items-center gap-2 px-3 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors" do %>
+              class: "flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-neutral-800 transition-colors" do %>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>

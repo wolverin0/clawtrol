@@ -14,13 +14,13 @@
   <%# Update old column count %>
   <% old_count = current_user.tasks.where(status: old_status).count %>
   <%= turbo_stream.replace "column-#{old_status}-count" do %>
-    <span id="column-<%= old_status %>-count" class="ml-auto text-xs text-stone-400 dark:text-white/50"><%= old_count %></span>
+    <span id="column-<%= old_status %>-count" class="ml-auto text-xs text-neutral-400 bg-neutral-800 px-1.5 py-0.5 rounded"><%= old_count %></span>
   <% end %>
 
   <%# Update new column count %>
   <% new_count = current_user.tasks.where(status: new_status).count %>
   <%= turbo_stream.replace "column-#{new_status}-count" do %>
-    <span id="column-<%= new_status %>-count" class="ml-auto text-xs text-stone-400 dark:text-white/50"><%= new_count %></span>
+    <span id="column-<%= new_status %>-count" class="ml-auto text-xs text-neutral-400 bg-neutral-800 px-1.5 py-0.5 rounded"><%= new_count %></span>
   <% end %>
 
   <%# Update header counts if applicable %>

@@ -74,9 +74,11 @@ module Api
       end
 
       # PATCH /api/v1/tasks/:id/complete
+      # Toggles task between done and inbox status
       def complete
         @task.activity_source = "api"
-        @task.update!(completed: !@task.completed)
+        new_status = @task.status == "done" ? "inbox" : "done"
+        @task.update!(status: new_status)
         render json: task_json(@task)
       end
 

@@ -9,8 +9,7 @@
     <meta name="application-name" content="ClawDeck">
     <meta name="mobile-web-app-capable" content="yes">
     <%# Theme colors for Safari and other browsers %>
-    <meta name="theme-color" content="#f5f5f4" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#0c0a09" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#0a0a0a">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%# Fonts %>
@@ -31,20 +30,20 @@
     <%= javascript_importmap_tags %>
     <%= render "application/plausible_analytics" %>
   </head>
-  <body class="h-screen overflow-hidden bg-stone-100 dark:bg-stone-950" data-controller="turbo-progress">
+  <body class="h-screen overflow-hidden bg-neutral-950" data-controller="turbo-progress">
     <% if @board_page %>
       <%# Board page - full screen, no wrapper %>
-      <div class="h-screen flex flex-col bg-white dark:bg-stone-900">
-        <main class="h-full text-stone-600 dark:text-stone-300 font-normal text-sm">
+      <div class="h-screen flex flex-col bg-neutral-950">
+        <main class="h-full text-neutral-300 font-normal text-sm">
           <%= yield %>
         </main>
       </div>
     <% else %>
       <%# Other pages - centered content with navbar %>
-      <div class="h-screen flex flex-col bg-stone-50 dark:bg-stone-900">
+      <div class="h-screen flex flex-col bg-neutral-950">
         <%= render "application/navbar" %>
         <div class="flex-1 overflow-y-auto px-4 pb-8 overscroll-contain [-webkit-overflow-scrolling:touch]">
-          <main class="container max-w-lg mx-auto text-stone-600 dark:text-stone-300 font-normal text-sm">
+          <main class="container max-w-lg mx-auto text-neutral-300 font-normal text-sm">
             <%= yield %>
           </main>
         </div>

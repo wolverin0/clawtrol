@@ -18,8 +18,7 @@ class Task < ApplicationRecord
   # Position management - acts_as_list functionality without the gem
   before_create :set_position
   before_save :sync_completed_with_status
-  before_update :save_original_position, if: :will_save_change_to_completed?
-  before_update :track_completion_time, if: :will_save_change_to_completed?
+  before_update :track_completion_time, if: :will_save_change_to_status?
 
   # Order incomplete tasks by position, completed tasks by completion time (most recent first)
   scope :incomplete, -> { where(completed: false).reorder(position: :asc) }
@@ -40,20 +39,10 @@ class Task < ApplicationRecord
     self.completed = (status == "done")
   end
 
-  def save_original_position
-    # Save position before completing, clear when uncompleting
-    if completed_changed? && completed?
-      self.original_position = position_was
-    elsif completed_changed? && !completed?
-      # When uncompleting, we'll use original_position to restore, then clear it
-      # This is handled in the controller
-    end
-  end
-
   def track_completion_time
-    if completed_changed? && completed?
+    if status == "done"
       self.completed_at = Time.current
-    elsif completed_changed? && !completed?
+    else
       self.completed_at = nil
     end
   end
@@ -65,9 +54,10 @@ class Task < ApplicationRecord
   def record_update_activities
     source = activity_source || "web"
 
-    # Track completion changes
-    if saved_change_to_completed?
-      TaskActivity.record_completion(self, completed: completed, source: source)
+    # Track status/column changes
+    if saved_change_to_status?
+      old_status, new_status = saved_change_to_status
+      TaskActivity.record_status_change(self, old_status: old_status, new_status: new_status, source: source)
     end
 
     # Track field changes

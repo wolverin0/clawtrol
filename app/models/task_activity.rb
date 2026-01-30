@@ -4,7 +4,7 @@ class TaskActivity < ApplicationRecord
 
   validates :action, presence: true
 
-  ACTIONS = %w[created updated completed uncompleted].freeze
+  ACTIONS = %w[created updated moved].freeze
   TRACKED_FIELDS = %w[name description priority due_date].freeze
 
   scope :recent, -> { order(created_at: :desc) }
@@ -18,11 +18,14 @@ class TaskActivity < ApplicationRecord
     )
   end
 
-  def self.record_completion(task, completed:, source: "web")
+  def self.record_status_change(task, old_status:, new_status:, source: "web")
     create!(
       task: task,
       user: Current.user,
-      action: completed ? "completed" : "uncompleted",
+      action: "moved",
+      field_name: "status",
+      old_value: old_status,
+      new_value: new_status,
       source: source
     )
   end
@@ -48,10 +51,8 @@ class TaskActivity < ApplicationRecord
     case action
     when "created"
       source == "api" ? "Created via API" : "Created"
-    when "completed"
-      "Marked complete"
-    when "uncompleted"
-      "Marked incomplete"
+    when "moved"
+      describe_move
     when "updated"
       describe_update
     else
@@ -61,6 +62,12 @@ class TaskActivity < ApplicationRecord
 
   private
 
+  def describe_move
+    from_label = format_status(old_value)
+    to_label = format_status(new_value)
+    "Moved from #{from_label} to #{to_label}"
+  end
+
   def describe_update
     field_label = field_name.humanize
     if old_value.blank?
@@ -69,6 +76,17 @@ class TaskActivity < ApplicationRecord
       "Removed #{field_label.downcase}"
     else
       "Changed #{field_label.downcase} from #{old_value} to #{new_value}"
+    end
+  end
+
+  def format_status(status)
+    case status
+    when "inbox" then "Inbox"
+    when "up_next" then "Up Next"
+    when "in_progress" then "In Progress"
+    when "in_review" then "In Review"
+    when "done" then "Done"
+    else status.to_s.titleize
     end
   end
 

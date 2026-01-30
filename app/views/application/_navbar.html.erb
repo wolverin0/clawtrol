@@ -1,9 +1,9 @@
 <%# Navbar for non-board pages (settings, profile, etc.) %>
-<nav class="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white dark:bg-stone-800 border-b border-stone-200 dark:border-white/10">
+<nav class="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-neutral-900 border-b border-neutral-800">
   <%# Left: Back to board %>
   <div class="flex items-center gap-3">
     <% if authenticated? %>
-      <%= link_to board_path, class: "flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors" do %>
+      <%= link_to board_path, class: "flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors" do %>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
           <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
         </svg>
@@ -19,15 +19,15 @@
   <%# Center: Page title / Flash messages %>
   <div class="flex items-center gap-3">
     <% if content_for?(:breadcrumb) %>
-      <span class="text-sm font-medium text-stone-700 dark:text-white"><%= yield :breadcrumb %></span>
+      <span class="text-sm font-medium text-white"><%= yield :breadcrumb %></span>
     <% end %>
     <% if notice.present? %>
-      <div data-controller="flash" class="py-1 px-2.5 bg-lime-50 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400 text-xs font-medium rounded-md">
+      <div data-controller="flash" class="py-1 px-2.5 bg-green-900/30 text-green-400 text-xs font-medium rounded-md">
         <%= notice %>
       </div>
     <% end %>
     <% if alert.present? %>
-      <div data-controller="flash" class="py-1 px-2.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-medium rounded-md">
+      <div data-controller="flash" class="py-1 px-2.5 bg-red-900/30 text-red-400 text-xs font-medium rounded-md">
         <%= alert %>
       </div>
     <% end %>
@@ -36,9 +36,9 @@
   <%# Right: Sign in or user info %>
   <div class="flex items-center gap-2">
     <% if authenticated? %>
-      <span class="text-xs text-stone-500 dark:text-stone-400 hidden sm:inline"><%= current_user.email_address %></span>
+      <span class="text-xs text-neutral-500 hidden sm:inline"><%= current_user.email_address %></span>
     <% else %>
-      <%= link_to "Sign in", new_session_path, class: "px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors" %>
+      <%= link_to "Sign in", new_session_path, class: "px-3 py-1.5 text-xs font-medium text-neutral-400 hover:text-white transition-colors" %>
     <% end %>
   </div>
 </nav>
