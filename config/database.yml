@@ -43,37 +43,7 @@ test:
   database: clawdeck_test
 
 # Production database configuration
-# You can use environment variables for sensitive data:
-# DATABASE_URL: postgresql://username:password@hostname:port/database
+# Uses DATABASE_URL from environment (Render, Railway, etc.)
 production:
-  primary:
-    <<: *default
-    database: clawdeck_production
-    username: <%= ENV['DATABASE_USERNAME'] || 'clawdeck' %>
-    password: <%= ENV['DATABASE_PASSWORD'] %>
-    host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
-    port: <%= ENV['DATABASE_PORT'] || 5432 %>
-  cache:
-    <<: *default
-    database: clawdeck_cache_production
-    username: <%= ENV['DATABASE_USERNAME'] || 'clawdeck' %>
-    password: <%= ENV['DATABASE_PASSWORD'] %>
-    host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
-    port: <%= ENV['DATABASE_PORT'] || 5432 %>
-    migrations_paths: db/cache_migrate
-  queue:
-    <<: *default
-    database: clawdeck_queue_production
-    username: <%= ENV['DATABASE_USERNAME'] || 'clawdeck' %>
-    password: <%= ENV['DATABASE_PASSWORD'] %>
-    host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
-    port: <%= ENV['DATABASE_PORT'] || 5432 %>
-    migrations_paths: db/queue_migrate
-  cable:
-    <<: *default
-    database: clawdeck_cable_production
-    username: <%= ENV['DATABASE_USERNAME'] || 'clawdeck' %>
-    password: <%= ENV['DATABASE_PASSWORD'] %>
-    host: <%= ENV['DATABASE_HOST'] || 'localhost' %>
-    port: <%= ENV['DATABASE_PORT'] || 5432 %>
-    migrations_paths: db/cable_migrate
+  <<: *default
+  url: <%= ENV['DATABASE_URL'] %>
