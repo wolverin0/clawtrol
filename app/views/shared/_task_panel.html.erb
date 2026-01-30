@@ -1,0 +1,240 @@
+<%# Shared task edit slide-in panel
+   Local variables:
+   - task: the task to edit
+   - form_url: URL to submit form to (for inbox tasks)
+   - form_model: model array for form_with (for project tasks, e.g. [project, task])
+   - breadcrumb: text to show before the task ID (e.g. "Inbox" or project.title)
+   - project: the project (nil for inbox tasks)
+%>
+<% is_inbox = local_assigns[:form_url].present? %>
+<!-- Task Edit Slide-in Panel -->
+<div data-controller="task-modal"
+     data-task-modal-task-id-value="<%= task.id %>">
+  <!-- Backdrop -->
+  <div data-task-modal-target="backdrop"
+       data-action="click->task-modal#close"
+    class="hidden opacity-0 fixed inset-0 bg-stone-900/30 dark:bg-black/50 transition-opacity duration-300 ease-out z-[60]">
+  </div>
+  <!-- Slide-in Panel -->
+  <div data-task-modal-target="modal"
+       class="hidden fixed inset-y-0 right-0 z-[70] w-full max-w-md md:max-w-lg transition-transform duration-300 ease-out translate-x-full p-4">
+    <div class="h-full bg-white dark:bg-stone-800 shadow-2xl flex flex-col rounded-xl overflow-hidden">
+
+      <!-- Header: Project image and Close button -->
+      <div class="px-5 py-4 border-b border-stone-100 dark:border-white/10 flex-shrink-0">
+        <div class="flex items-center justify-between">
+          <!-- Project Image or Inbox Icon -->
+          <div class="w-7 h-7 rounded-md overflow-hidden flex-shrink-0 bg-stone-100 dark:bg-white/10 flex items-center justify-center">
+            <% if !is_inbox && project&.image&.attached? %>
+              <%= image_tag project.image_url, class: "w-full h-full object-cover", alt: "#{project.title} thumbnail" %>
+            <% else %>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-stone-400 dark:text-white/40">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-17.5 0a2.25 2.25 0 0 0-2.25 2.25v1.5a2.25 2.25 0 0 0 2.25 2.25h15a2.25 2.25 0 0 0 2.25-2.25v-1.5a2.25 2.25 0 0 0-2.25-2.25m-17.5 0V6.75A2.25 2.25 0 0 1 4.5 4.5h15a2.25 2.25 0 0 1 2.25 2.25v6.75" />
+              </svg>
+            <% end %>
+          </div>
+
+          <!-- Close button -->
+          <button type="button"
+                  data-action="click->task-modal#close"
+                  class="cursor-pointer p-2 rounded-lg text-stone-400 dark:text-white/40 hover:text-stone-600 dark:hover:text-white/70 hover:bg-stone-100 dark:hover:bg-white/10 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="px-5 py-6 overflow-y-auto flex-1 min-h-0">
+        <% form_options = { data: { task_modal_target: "form" }, class: "space-y-6" } %>
+        <% if is_inbox %>
+          <% form_options = form_options.merge(url: form_url, method: :patch) %>
+        <% else %>
+          <% form_options = form_options.merge(model: form_model) %>
+        <% end %>
+        <%= form_with(**form_options) do |form| %>
+          <% if is_inbox %>
+            <%= form.hidden_field :completed, name: "task[completed]", value: task.completed, data: { task_modal_target: "completedField" } %>
+            <%= form.hidden_field :priority, name: "task[priority]", value: task.priority_before_type_cast, data: { task_modal_target: "priorityField" } %>
+          <% else %>
+            <%= form.hidden_field :completed, value: task.completed, data: { task_modal_target: "completedField" } %>
+            <%= form.hidden_field :priority, value: task.priority_before_type_cast, data: { task_modal_target: "priorityField" } %>
+          <% end %>
+
+          <!-- Title with checkbox -->
+          <div class="flex items-start gap-3">
+            <!-- Checkbox -->
+            <button type="button"
+                    data-action="click->task-modal#toggleCompleted"
+                    data-task-modal-target="completeButton"
+                    class="cursor-pointer flex-shrink-0 w-6 h-6 mt-0.5 rounded border-1 flex items-center justify-center transition-colors <%= task.completed? ? 'border-lime-500 bg-lime-500' : 'border-stone-300 dark:border-white/30 hover:border-lime-500 dark:hover:border-lime-500' %>">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3.5 h-3.5 <%= task.completed? ? 'text-white' : 'text-transparent' %>">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+            </button>
+            <div class="flex-1">
+              <% if is_inbox %>
+                <%= form.text_field :name, name: "task[name]", value: task.name,
+                    placeholder: "Task title",
+                    class: "w-full text-xl font-semibold tracking-tight bg-transparent border-none focus:outline-none focus:ring-0 text-stone-800 dark:text-stone-100 placeholder-stone-400 dark:placeholder-white/30 p-0",
+                    data: { task_modal_target: "nameField", action: "input->task-modal#scheduleAutoSave" } %>
+              <% else %>
+                <%= form.text_field :name,
+                    placeholder: "Task title",
+                    class: "w-full text-xl font-semibold tracking-tight bg-transparent border-none focus:outline-none focus:ring-0 text-stone-800 dark:text-stone-100 placeholder-stone-400 dark:placeholder-white/30 p-0",
+                    data: { task_modal_target: "nameField", action: "input->task-modal#scheduleAutoSave" } %>
+              <% end %>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div>
+            <% if is_inbox %>
+              <%= form.text_area :description, name: "task[description]", value: task.description,
+                  placeholder: "Add notes...",
+                  rows: 1,
+                  class: "w-full text-sm leading-snug tracking-tight bg-stone-100 dark:bg-white/5 border-none focus:outline-none focus:ring-0 text-stone-600 dark:text-stone-300 placeholder-stone-400 dark:placeholder-white/30 resize-none rounded-lg px-3 py-3 overflow-y-auto max-h-48",
+                  data: { task_modal_target: "descriptionField", action: "input->task-modal#scheduleAutoSave" } %>
+            <% else %>
+              <%= form.text_area :description,
+                  placeholder: "Add notes...",
+                  rows: 1,
+                  class: "w-full text-sm leading-snug tracking-tight bg-stone-100 dark:bg-white/5 border-none focus:outline-none focus:ring-0 text-stone-600 dark:text-stone-300 placeholder-stone-400 dark:placeholder-white/30 resize-none rounded-lg px-3 py-3 overflow-y-auto max-h-48",
+                  data: { task_modal_target: "descriptionField", action: "input->task-modal#scheduleAutoSave" } %>
+            <% end %>
+          </div>
+
+          <!-- Details Divider -->
+          <div class="border-t border-stone-100 dark:border-white/10 pt-4">
+            <h3 class="text-sm font-semibold text-stone-800 dark:text-white mb-4">Details</h3>
+
+            <!-- Properties -->
+            <div class="space-y-4">
+              <!-- Priority -->
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-stone-500 dark:text-white/50">Priority</span>
+                <div class="flex gap-1.5" data-task-modal-target="priorityGroup">
+                  <button type="button" aria-pressed="false" data-action="click->task-modal#selectPriority" data-priority-value="0" data-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 transition-colors duration-200 aria-pressed:bg-stone-200 dark:aria-pressed:bg-white/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-stone-300 dark:text-white/30">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" />
+                    </svg>
+                  </button>
+                  <button type="button" aria-pressed="false" data-action="click->task-modal#selectPriority" data-priority-value="1" data-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 transition-colors duration-200 aria-pressed:bg-stone-200 dark:aria-pressed:bg-white/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="1" class="w-4 h-4 text-yellow-500 dark:stroke-stone-700">
+                      <path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                  <button type="button" aria-pressed="false" data-action="click->task-modal#selectPriority" data-priority-value="2" data-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 transition-colors duration-200 aria-pressed:bg-stone-200 dark:aria-pressed:bg-white/20">
+                    <div class="flex -space-x-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="1" class="w-4 h-4 text-orange-400 dark:stroke-stone-700" style="position: relative; z-index: 2;"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="1" class="w-4 h-4 text-orange-400 dark:stroke-stone-700" style="position: relative; z-index: 1;"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" /></svg>
+                    </div>
+                  </button>
+                  <button type="button" aria-pressed="false" data-action="click->task-modal#selectPriority" data-priority-value="3" data-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 transition-colors duration-200 aria-pressed:bg-stone-200 dark:aria-pressed:bg-white/20">
+                    <div class="flex -space-x-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="1" class="w-4 h-4 text-red-500 dark:stroke-stone-700" style="position: relative; z-index: 3;"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="1" class="w-4 h-4 text-red-500 dark:stroke-stone-700" style="position: relative; z-index: 2;"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="1" class="w-4 h-4 text-red-500 dark:stroke-stone-700" style="position: relative; z-index: 1;"><path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" /></svg>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Due Date -->
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-stone-500 dark:text-white/50">Due Date</span>
+                <div data-controller="datepicker" data-datepicker-date-value="<%= task.due_date %>" class="relative">
+                  <%# Hidden input for form submission %>
+                  <% if is_inbox %>
+                    <%= form.hidden_field :due_date, name: "task[due_date]", value: task.due_date,
+                        data: { datepicker_target: "input", task_modal_target: "dueDateField", action: "change->task-modal#onDueDateChange" } %>
+                  <% else %>
+                    <%= form.hidden_field :due_date,
+                        data: { datepicker_target: "input", task_modal_target: "dueDateField", action: "change->task-modal#onDueDateChange" } %>
+                  <% end %>
+
+                  <%# Trigger button %>
+                  <button type="button"
+                          data-datepicker-target="trigger"
+                          data-action="click->datepicker#toggle"
+                          class="flex items-center gap-2 px-2 py-1.5 rounded-md bg-stone-100 dark:bg-white/10 hover:bg-stone-200 dark:hover:bg-white/20 transition-colors cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-stone-400 dark:text-white/40">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                    </svg>
+                    <span data-datepicker-target="display" data-task-modal-target="dueDateDisplay" class="text-sm text-stone-600 dark:text-stone-300"><%= task.due_date.present? ? task.due_date.strftime("%b %-d, %Y") : "None" %></span>
+                  </button>
+
+                  <%# Dropdown calendar %>
+                  <div data-datepicker-target="dropdown"
+                       class="hidden absolute right-0 top-full mt-2 z-[80] bg-white dark:bg-stone-800 rounded-md shadow-lg ring-1 ring-stone-200/50 dark:ring-white/10 p-3 w-64">
+
+                    <%# Month navigation %>
+                    <div class="flex items-center justify-between mb-3">
+                      <button type="button" data-action="click->datepicker#prevMonth" class="p-1.5 rounded-md hover:bg-stone-100 dark:hover:bg-white/10 text-stone-400 dark:text-white/40 transition-colors cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                        </svg>
+                      </button>
+                      <span data-datepicker-target="monthYear" class="text-sm font-medium text-stone-700 dark:text-stone-200"></span>
+                      <button type="button" data-action="click->datepicker#nextMonth" class="p-1.5 rounded-md hover:bg-stone-100 dark:hover:bg-white/10 text-stone-400 dark:text-white/40 transition-colors cursor-pointer">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <%# Day headers %>
+                    <div class="grid grid-cols-7 mb-1">
+                      <% %w[Mo Tu We Th Fr Sa Su].each do |day| %>
+                        <div class="h-8 w-8 flex items-center justify-center text-[10px] font-medium text-stone-400 dark:text-white/40"><%= day %></div>
+                      <% end %>
+                    </div>
+
+                    <%# Calendar grid %>
+                    <div data-datepicker-target="grid" class="grid grid-cols-7">
+                    </div>
+
+                    <%# Action buttons %>
+                    <div class="flex gap-2 mt-3 pt-3 border-t border-stone-100 dark:border-white/10">
+                      <button type="button" data-action="click->datepicker#clear" class="flex-1 px-2 py-1.5 text-xs font-medium text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors cursor-pointer">
+                        Clear
+                      </button>
+                      <button type="button" data-action="click->datepicker#selectToday" class="flex-1 px-2 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 bg-stone-100 dark:bg-white/10 rounded-sm hover:bg-stone-200 dark:hover:bg-white/20 transition-colors cursor-pointer">
+                        Today
+                      </button>
+                      <button type="button" data-action="click->datepicker#apply" class="flex-1 px-2 py-1.5 text-xs font-semibold text-white dark:text-stone-900 bg-purple-600 dark:bg-white rounded-sm hover:bg-purple-500 dark:hover:bg-stone-200 transition-colors cursor-pointer">
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Date Created -->
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-stone-500 dark:text-white/50">Date Created</span>
+                <div class="flex items-center gap-2 text-sm text-stone-700 dark:text-stone-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-blue-500">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                  </svg>
+                  <%= task.created_at.strftime("%b %-d, %Y") %>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Activity Divider -->
+          <div class="border-t border-stone-100 dark:border-white/10 pt-4">
+            <h3 class="text-sm font-semibold text-stone-800 dark:text-white mb-4">Activity</h3>
+            <%= render "shared/task_activities", task: task %>
+          </div>
+
+          <!-- Hidden submit button (triggered programmatically) -->
+          <%= form.submit "Save", class: "hidden", data: { task_modal_target: "submitButton" } %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

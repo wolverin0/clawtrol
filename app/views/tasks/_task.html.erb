@@ -1,0 +1,236 @@
+<li id="task_<%= task.id %>"
+    class="bg-stone-100 hover:bg-stone-200 dark:bg-white/10 dark:hover:bg-white/20 p-4 rounded-md h-14 flex items-center transition-colors group cursor-default md:cursor-grab md:active:cursor-grabbing relative"
+    data-controller="task-toggle dropdown"
+    data-task-toggle-target="card"
+    data-task-toggle-completed-value="<%= task.completed %>"
+    data-task-toggle-original-position-value="<%= task.original_position %>"
+    data-task-position="<%= task.position %>"
+    data-task-id="<%= task.id %>"
+    data-priority="<%= task.priority %>"
+    data-action="click@window->dropdown#closeOnOutside contextmenu->dropdown#openAtCursor">
+
+  <!-- Checkbox -->
+  <%= form_with(url: toggle_completed_project_task_path(project, task), method: :patch, data: { task_toggle_target: "form" }, class: "mr-4 relative z-10") do |form| %>
+    <button type="submit"
+            data-action="click->task-toggle#toggle"
+            data-task-toggle-target="checkbox"
+            class="flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors <%= task.completed? ? 'bg-lime-500 border-lime-500 hover:bg-lime-600 hover:border-lime-600' : 'bg-white dark:bg-transparent border-stone-300 dark:border-white/40 hover:border-lime-500 dark:hover:border-lime-500' %>">
+      <% if task.completed? %>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-white">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      <% end %>
+    </button>
+  <% end %>
+
+  <!-- Task name -->
+  <div class="flex-1 text-left flex items-center min-w-0">
+    <span class="tracking-tight leading-tight truncate <%= 'line-through text-stone-400 dark:text-white/40' if task.completed? %>"><%= task.name %></span>
+    <% if task.description.present? %>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="ml-2 w-4 h-4 text-stone-400 dark:text-white/40 flex-shrink-0">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+      </svg>
+    <% end %>
+    <!-- Clickable overlay for opening modal -->
+    <%= link_to edit_project_task_path(project, task),
+        data: { turbo_frame: "task_modal_#{task.id}" },
+        class: "absolute inset-0 z-0",
+        style: "left: 3.5rem; right: 3rem;" do %>
+    <% end %>
+    <%= turbo_frame_tag "task_modal_#{task.id}" %>
+  </div>
+
+  <!-- Due date indicator -->
+  <% if task.due_date.present? %>
+    <%
+      is_overdue = task.due_date < Date.current
+      is_today = task.due_date == Date.current
+      date_classes = if is_overdue
+        "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400"
+      elsif is_today
+        "bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400"
+      else
+        "bg-stone-200/60 dark:bg-white/5 text-stone-500 dark:text-white/50"
+      end
+    %>
+    <div class="flex items-center gap-1 px-1 py-0.5 rounded-sm text-xs tabular-nums <%= date_classes %>">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3 -mt-0.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+      </svg>
+      <span><%= task.due_date.strftime("%b %d") %></span>
+    </div>
+  <% end %>
+
+  <!-- Priority flames (clickable to cycle) -->
+  <%= form_with(url: cycle_priority_project_task_path(project, task), method: :patch, class: "flex-shrink-0 ml-3 w-8 flex justify-center relative z-10") do %>
+    <% flame_count = case task.priority
+      when "high" then 3
+      when "medium" then 2
+      when "low" then 1
+      else 0
+    end %>
+    <% flame_color = case task.priority
+      when "high" then "text-red-500"
+      when "medium" then "text-orange-400"
+      when "low" then "text-yellow-500"
+      else "text-stone-300 dark:text-white/30"
+    end %>
+    <button type="submit" class="flex items-center cursor-pointer hover:scale-110 transition-transform" title="Cycle priority">
+      <% if flame_count == 0 %>
+        <%# Outline flame for none %>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 <%= flame_color %>">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" />
+        </svg>
+      <% else %>
+        <%# Solid flames - overlapping %>
+        <div class="flex -space-x-2">
+          <% flame_count.times do |i| %>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="1" class="w-4 h-4 <%= flame_color %> dark:stroke-stone-800" style="<%= "position: relative; z-index: #{flame_count - i};" if flame_count > 1 %>">
+              <path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" />
+            </svg>
+          <% end %>
+        </div>
+      <% end %>
+    </button>
+  <% end %>
+
+  <!-- Three-dot menu -->
+  <div class="ml-2 flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity relative z-20" data-dropdown-target="container" data-controller="delete-confirm" data-delete-confirm-item-name-value="<%= task.name %>">
+    <button type="button"
+            data-action="click->dropdown#toggle"
+            data-dropdown-target="button"
+            class="cursor-pointer text-stone-400 hover:text-stone-600 dark:text-white/50 dark:hover:text-white transition-colors p-1"
+            aria-expanded="false"
+            aria-haspopup="true">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4">
+        <circle cx="8" cy="3" r="1.5" fill="currentColor"/>
+        <circle cx="8" cy="8" r="1.5" fill="currentColor"/>
+        <circle cx="8" cy="13" r="1.5" fill="currentColor"/>
+      </svg>
+    </button>
+
+    <!-- Dropdown menu -->
+    <div data-dropdown-target="menu"
+         class="hidden absolute right-0 mt-1 w-32 bg-white/95 dark:bg-stone-700/90 backdrop-blur-md rounded-md shadow-lg ring-1 ring-stone-200 ring-opacity-5 dark:ring-white/10 focus:outline-none z-[60]"
+         role="menu">
+      <div class="py-1" role="none">
+        <%= link_to edit_project_task_path(project, task),
+            data: { turbo_frame: "task_modal_#{task.id}", action: "click->dropdown#close" },
+            class: "flex items-center gap-2 px-4 py-2 text-xs text-stone-700 dark:text-white/90 hover:bg-stone-100 dark:hover:bg-white/10 transition-colors",
+            role: "menuitem" do %>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+          </svg>
+          Edit
+        <% end %>
+
+        <!-- Priority submenu -->
+        <div class="relative group/priority" role="none">
+          <div class="flex items-center gap-2 px-4 py-2 text-xs text-stone-700 dark:text-white/90 hover:bg-stone-100 dark:hover:bg-white/10 transition-colors cursor-default select-none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" />
+            </svg>
+            Priority
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="ml-auto w-3.5 h-3.5 opacity-60">
+              <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L10.94 10 7.23 6.29a.75.75 0 111.06-1.06l4.25 4.25c.3.3.3.79 0 1.08l-4.25 4.25a.75.75 0 01-1.06-.04z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="absolute top-0 -right-2 w-2 h-full"></div>
+          <div class="hidden group-hover/priority:block absolute top-0 left-full -ml-2 w-36 bg-white/95 dark:bg-stone-700/90 backdrop-blur-md rounded-md shadow-lg ring-1 ring-stone-200 ring-opacity-5 dark:ring-white/10 z-[70] py-1">
+            <% [
+                { value: 0, label: "None", flames: 0, color: "text-stone-300 dark:text-stone-500" },
+                { value: 1, label: "Low", flames: 1, color: "text-yellow-500" },
+                { value: 2, label: "Medium", flames: 2, color: "text-orange-400" },
+                { value: 3, label: "High", flames: 3, color: "text-red-500" }
+              ].each do |priority_option| %>
+              <%= form_with(model: [project, task], data: {
+                    action: "turbo:submit-end->dropdown#close"
+                  }, class: "block") do |form| %>
+                <%= form.hidden_field :priority, value: priority_option[:value] %>
+                <button type="submit"
+                        class="w-full flex items-center gap-2 px-4 py-2 text-xs text-stone-700 dark:text-white/90 hover:bg-stone-100 dark:hover:bg-white/10 transition-colors text-left <%= 'bg-stone-50 dark:bg-white/5' if task.priority_before_type_cast == priority_option[:value] %>"
+                        role="menuitem">
+                  <div class="w-5 flex justify-center">
+                    <% if priority_option[:flames] == 0 %>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3.5 h-3.5 <%= priority_option[:color] %>">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" />
+                      </svg>
+                    <% else %>
+                      <div class="flex -space-x-1.5">
+                        <% priority_option[:flames].times do |i| %>
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="white" stroke-width="1" class="w-3.5 h-3.5 <%= priority_option[:color] %> dark:stroke-stone-700" style="<%= "position: relative; z-index: #{priority_option[:flames] - i};" if priority_option[:flames] > 1 %>">
+                            <path fill-rule="evenodd" d="M12.963 2.286a.75.75 0 0 0-1.071-.136 9.742 9.742 0 0 0-3.539 6.176 7.547 7.547 0 0 1-1.705-1.715.75.75 0 0 0-1.152-.082A9 9 0 1 0 15.68 4.534a7.46 7.46 0 0 1-2.717-2.248ZM15.75 14.25a3.75 3.75 0 1 1-7.313-1.172c.628.465 1.35.81 2.133 1a5.99 5.99 0 0 1 1.925-3.546 3.75 3.75 0 0 1 3.255 3.718Z" clip-rule="evenodd" />
+                          </svg>
+                        <% end %>
+                      </div>
+                    <% end %>
+                  </div>
+                  <%= priority_option[:label] %>
+                  <% if task.priority_before_type_cast == priority_option[:value] %>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="ml-auto w-3.5 h-3.5">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                  <% end %>
+                </button>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Send to submenu -->
+        <div class="relative group/sendto" role="none">
+          <div class="flex items-center gap-2 px-4 py-2 text-xs text-stone-700 dark:text-white/90 hover:bg-stone-100 dark:hover:bg-white/10 transition-colors cursor-default select-none">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.125A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.875L6 12zm0 0h7.5" />
+            </svg>
+            Send to
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="ml-auto w-3.5 h-3.5 opacity-60">
+              <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L10.94 10 7.23 6.29a.75.75 0 111.06-1.06l4.25 4.25c.3.3.3.79 0 1.08l-4.25 4.25a.75.75 0 01-1.06-.04z" clip-rule="evenodd" />
+            </svg>
+          </div>
+          <div class="absolute top-0 -right-2 w-2 h-full"></div>
+          <div class="hidden group-hover/sendto:block absolute top-0 left-full -ml-2 w-44 bg-white/95 dark:bg-stone-700/90 backdrop-blur-md rounded-md shadow-lg ring-1 ring-stone-200 ring-opacity-5 dark:ring-white/10 z-[70] py-1">
+            <%# Send to Inbox option %>
+            <%= link_to send_to_project_task_path(project, task, target_project_id: "inbox"),
+                data: { turbo_method: :patch, action: "turbo:before-fetch-request->dropdown#close" },
+                class: "flex items-center gap-2 px-4 py-2 text-xs text-stone-700 dark:text-white/90 hover:bg-stone-100 dark:hover:bg-white/10 transition-colors border-b border-stone-100 dark:border-white/10",
+                role: "menuitem" do %>
+              <div class="w-5 h-5 rounded-md overflow-hidden flex-shrink-0 bg-stone-200 dark:bg-white/10 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-3 h-3 text-stone-500 dark:text-stone-400">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-17.5 0a2.25 2.25 0 0 0-2.25 2.25v1.5a2.25 2.25 0 0 0 2.25 2.25h15a2.25 2.25 0 0 0 2.25-2.25v-1.5a2.25 2.25 0 0 0-2.25-2.25m-17.5 0V6.75A2.25 2.25 0 0 1 4.5 4.5h15a2.25 2.25 0 0 1 2.25 2.25v6.75" />
+                </svg>
+              </div>
+              <span class="truncate">Inbox</span>
+            <% end %>
+            <%# Other projects %>
+            <% (@other_projects || current_user.projects.visible.where.not(id: project.id).includes(:image_attachment)).each do |p| %>
+              <%= link_to send_to_project_task_path(project, task, target_project_id: p.id),
+                  data: { turbo_method: :patch, action: "turbo:before-fetch-request->dropdown#close" },
+                  class: "flex items-center gap-2 px-4 py-2 text-xs text-stone-700 dark:text-white/90 hover:bg-stone-100 dark:hover:bg-white/10 transition-colors",
+                  role: "menuitem" do %>
+                <div class="w-5 h-5 rounded-md overflow-hidden flex-shrink-0 bg-white dark:bg-white/5 flex items-center justify-center">
+                  <%= image_tag p.image_url, class: "w-full h-full object-cover", alt: "#{p.title} thumbnail" %>
+                </div>
+                <span class="truncate"><%= p.title %></span>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+
+        <button type="button"
+                data-action="click->delete-confirm#open click->dropdown#close"
+                class="cursor-pointer flex items-center gap-2 w-full text-left px-4 py-2 text-xs text-stone-700 dark:text-white/90 hover:bg-stone-100 dark:hover:bg-white/10 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                role="menuitem">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+          </svg>
+          Delete
+        </button>
+      </div>
+    </div>
+    <%= render "application/delete_modal", url: project_task_path(project, task) %>
+  </div>
+</li>

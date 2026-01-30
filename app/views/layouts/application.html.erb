@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "clawdeck" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ClawDeck">
+    <meta name="application-name" content="ClawDeck">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%# Theme colors for Safari and other browsers %>
+    <meta name="theme-color" content="#f5f5f4" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0c0a09" media="(prefers-color-scheme: dark)">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%# Fonts %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+    <%= yield :head %>
+    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
+    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+    <%# Favicons %>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+    <%= render "application/plausible_analytics" %>
+    <%# Set sidebar state immediately to prevent flash %>
+    <script>
+      document.documentElement.classList.add("sidebar-ready");
+      if (localStorage.getItem("sidebar_open") === "true") {
+        document.documentElement.classList.add("sidebar-open");
+      }
+    </script>
+  </head>
+  <body class="h-screen overflow-hidden bg-stone-100 dark:bg-stone-950 p-2" data-controller="turbo-progress sidebar">
+    <%# Sidebar (for authenticated users) %>
+    <%= render "application/sidebar" %>
+
+    <%# Main content panel - full viewport with rounded corners %>
+    <div data-sidebar-target="content" class="h-[calc(100vh-1rem)] flex flex-col shadow-sm bg-stone-50 dark:bg-stone-900 rounded-3xl overflow-hidden transition-all duration-300 ease-in-out">
+      <%# Global Navbar - fixed at top %>
+      <%= render "application/navbar" %>
+
+      <div class="flex-1 overflow-y-auto px-4 <%= @inbox_page ? 'mb-0' : 'mb-4' %> overscroll-contain [-webkit-overflow-scrolling:touch]">
+        <main class="<%= @inbox_page || @breadcrumb_project ? 'w-full' : 'container max-w-lg mx-auto' %> <%= @inbox_page ? 'pb-4' : 'pb-8' %> text-stone-600 dark:text-purple-100 font-normal text-sm">
+          <% if content_for?(:skip_container) %>
+            <%= yield %>
+          <% else %>
+            <%= yield %>
+          <% end %>
+        </main>
+      </div>
+
+    </div>
+  </body>
+</html>

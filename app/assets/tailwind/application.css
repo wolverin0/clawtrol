@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    color-scheme: light dark;
+  }
+
+  html,
+  body {
+    font-family: "Nunito", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body {
+    background-color: #e7e5e4; /* stone-200 */
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html,
+    body {
+      background-color: #0c0a09; /* stone-950 */
+    }
+  }
+}
+
+/* Sidebar layout */
+@layer components {
+  /* Hide sidebar until JS determines state */
+  [data-sidebar-target="sidebar"] {
+    visibility: hidden;
+    transform: translateX(calc(-100% - 0.5rem));
+  }
+
+  /* Show sidebar once state is determined */
+  html.sidebar-ready [data-sidebar-target="sidebar"] {
+    visibility: visible;
+  }
+
+  /* Content has no margin by default */
+  [data-sidebar-target="content"] {
+    margin-left: 0;
+  }
+
+  /* When sidebar is open (class on html element) */
+  html.sidebar-open [data-sidebar-target="sidebar"] {
+    transform: translateX(0);
+  }
+
+  /* 48px sidebar + 8px gap = 56px */
+  html.sidebar-open [data-sidebar-target="content"] {
+    margin-left: 56px;
+  }
+}

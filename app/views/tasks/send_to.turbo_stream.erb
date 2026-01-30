@@ -1,0 +1,37 @@
+<%# Remove the task from the DOM in the current project %>
+<%= turbo_stream.remove "task_#{@task_id}" %>
+
+<%# Update progress bar and completed section visibility (similar to destroy) %>
+<%= turbo_stream.append "task-lists" do %>
+  <script>
+    (() => {
+      // Dispatch event to update progress bar for current project page
+      window.dispatchEvent(new CustomEvent('task:deleted', {
+        detail: {
+          totalTasks: <%= @project.tasks.count %>,
+          completedTasks: <%= @project.tasks.where(completed: true).count %>
+        }
+      }));
+
+      // Hide completed section if no completed tasks
+      const completedSection = document.getElementById('completed-section');
+      const completedTasks = <%= @project.tasks.completed.count %>;
+      if (completedSection && completedTasks === 0) {
+        completedSection.classList.add('hidden');
+      }
+    })();
+  </script>
+<% end %>
+
+<%# Flash message %>
+<%= turbo_stream.append "task-lists" do %>
+  <div class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] pointer-events-none">
+    <div data-controller="flash" class="py-1.5 px-3 bg-lime-50 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400 text-xs font-medium rounded-md transition-opacity duration-500 shadow-sm whitespace-nowrap" role="alert">
+      <%= notice_message %>
+    </div>
+  </div>
+<% end %>
+
+<%# Update sidebar badges %>
+<%= render "application/sidebar_badges" %>
+

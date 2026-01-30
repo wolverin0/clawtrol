@@ -1,0 +1,85 @@
+<%# If completed status changed, move task; otherwise just replace %>
+<% if @completed_changed %>
+  <%# Remove task from current location %>
+  <%= turbo_stream.remove "task_#{@task.id}" %>
+
+  <%# Add task to the correct list based on completion status %>
+  <% if @task.completed? %>
+    <%# Add to completed list (at the top) %>
+    <% completed_list_id = "completed-tasks-#{@task.task_list_id}" %>
+    <%= turbo_stream.prepend completed_list_id do %>
+      <%= render partial: "inbox/tasks/task", locals: { task: @task } %>
+    <% end %>
+  <% else %>
+    <%# Add to incomplete list, before the plus-trash-box %>
+    <% plus_trash_box_id = "plus-trash-box-inbox" %>
+    <%= turbo_stream.before plus_trash_box_id do %>
+      <%= render partial: "inbox/tasks/task", locals: { task: @task } %>
+    <% end %>
+  <% end %>
+
+  <%# Update progress bar and completed section visibility %>
+  <%= turbo_stream.append "tasks" do %>
+    <script>
+      (() => {
+        // Update inbox-level progress bar
+        window.dispatchEvent(new CustomEvent('task:toggled', {
+          detail: {
+            totalTasks: <%= @inbox.tasks.count %>,
+            completedTasks: <%= @inbox.tasks.where(completed: true).count %>
+          }
+        }));
+
+        // Update task list-level progress bar
+        <% task_list_total = @task.task_list.tasks.count %>
+        <% task_list_completed = @task.task_list.tasks.completed.count %>
+        const taskListId = <%= @task.task_list_id %>;
+        const totalTasks = <%= task_list_total %>;
+        const completedTasks = <%= task_list_completed %>;
+
+        const progressBar = document.querySelector(`#progress-bar-${taskListId}`);
+        if (progressBar) {
+          const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+          progressBar.style.width = `${percentage}%`;
+        }
+
+        // Show/hide completed section based on whether there are completed tasks
+        const completedSection = document.getElementById(`completed-section-${taskListId}`);
+        if (completedSection) {
+          if (completedTasks > 0) {
+            completedSection.classList.remove('hidden');
+          } else {
+            completedSection.classList.add('hidden');
+          }
+        }
+      })();
+    </script>
+    <div class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] pointer-events-none">
+      <div data-controller="flash" class="py-1.5 px-3 bg-lime-50 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400 text-xs font-medium rounded-md transition-opacity duration-500 shadow-sm whitespace-nowrap" role="alert">
+        Task updated
+      </div>
+    </div>
+  <% end %>
+<% else %>
+  <%# Just replace the task in place %>
+  <%= turbo_stream.replace "task_#{@task.id}" do %>
+    <%= render partial: "inbox/tasks/task", locals: { task: @task } %>
+  <% end %>
+
+  <%# Flash message %>
+  <%= turbo_stream.append "tasks" do %>
+    <div class="fixed top-4 left-1/2 -translate-x-1/2 z-[100] pointer-events-none">
+      <div data-controller="flash" class="py-1.5 px-3 bg-lime-50 dark:bg-lime-900/30 text-lime-600 dark:text-lime-400 text-xs font-medium rounded-md transition-opacity duration-500 shadow-sm whitespace-nowrap" role="alert">
+        Task updated
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<%# Update sidebar badges %>
+<%= render "application/sidebar_badges" %>
+
+<%# Update activity feed in task panel %>
+<%= turbo_stream.replace "task-activities-#{@task.id}" do %>
+  <%= render "shared/task_activities", task: @task %>
+<% end %>

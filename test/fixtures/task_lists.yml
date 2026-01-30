@@ -1,0 +1,25 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  title: Tasks
+  project: one
+  user: one
+  position: 1
+
+two:
+  title: Tasks
+  project: two
+  user: two
+  position: 1
+
+inbox_list_one:
+  title: Inbox
+  project: inbox_one
+  user: one
+  position: 1
+
+inbox_list_two:
+  title: Inbox
+  project: inbox_two
+  user: two
+  position: 1

@@ -1,0 +1,32 @@
+<%# Insert new task at the top of the tasks list %>
+<%= turbo_stream.prepend "tasks-list" do %>
+  <%= render partial: "tasks/task", locals: { task: @task, project: @project } %>
+<% end %>
+<%# Update navbar task count and progress bar %>
+<% task_list_completed = @task.task_list.tasks.completed.count %>
+<% task_list_uncompleted = @task.task_list.tasks.where(completed: false).count %>
+<% task_list_total = task_list_completed + task_list_uncompleted %>
+<% progress_percent = task_list_total > 0 ? (task_list_completed.to_f / task_list_total * 100).round : 0 %>
+<%= turbo_stream.append "tasks" do %>
+  <script>
+    (() => {
+      const uncompletedTasks = <%= task_list_uncompleted %>;
+      const progressPercent = <%= progress_percent %>;
+      const navbarCount = document.getElementById('navbar-task-count');
+      if (navbarCount) {
+        navbarCount.textContent = `${uncompletedTasks} ${uncompletedTasks === 1 ? 'task' : 'tasks'}`;
+      }
+      const progressBar = document.getElementById('navbar-progress-bar');
+      if (progressBar) {
+        progressBar.style.width = `${progressPercent}%`;
+      }
+      // Keep focus on add task input
+      setTimeout(() => {
+        const input = document.querySelector('[data-add-task-target="input"]');
+        if (input) {
+          input.focus();
+        }
+      }, 100);
+    })();
+  </script>
+<% end %>

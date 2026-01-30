@@ -1,0 +1,87 @@
+class TaskActivity < ApplicationRecord
+  belongs_to :task
+  belongs_to :user, optional: true
+
+  validates :action, presence: true
+
+  ACTIONS = %w[created updated completed uncompleted].freeze
+  TRACKED_FIELDS = %w[name description priority due_date].freeze
+
+  scope :recent, -> { order(created_at: :desc) }
+
+  def self.record_creation(task, source: "web")
+    create!(
+      task: task,
+      user: task.user,
+      action: "created",
+      source: source
+    )
+  end
+
+  def self.record_completion(task, completed:, source: "web")
+    create!(
+      task: task,
+      user: Current.user,
+      action: completed ? "completed" : "uncompleted",
+      source: source
+    )
+  end
+
+  def self.record_changes(task, changes, source: "web")
+    TRACKED_FIELDS.each do |field|
+      next unless changes.key?(field)
+
+      old_val, new_val = changes[field]
+      create!(
+        task: task,
+        user: Current.user,
+        action: "updated",
+        field_name: field,
+        old_value: format_value(field, old_val),
+        new_value: format_value(field, new_val),
+        source: source
+      )
+    end
+  end
+
+  def description
+    case action
+    when "created"
+      source == "api" ? "Created via API" : "Created"
+    when "completed"
+      "Marked complete"
+    when "uncompleted"
+      "Marked incomplete"
+    when "updated"
+      describe_update
+    else
+      action.humanize
+    end
+  end
+
+  private
+
+  def describe_update
+    field_label = field_name.humanize
+    if old_value.blank?
+      "Set #{field_label.downcase} to #{new_value}"
+    elsif new_value.blank?
+      "Removed #{field_label.downcase}"
+    else
+      "Changed #{field_label.downcase} from #{old_value} to #{new_value}"
+    end
+  end
+
+  def self.format_value(field, value)
+    return nil if value.nil?
+
+    case field
+    when "priority"
+      Task.priorities.key(value)&.humanize || value.to_s
+    when "due_date"
+      value.is_a?(Date) ? value.strftime("%b %d, %Y") : value.to_s
+    else
+      value.to_s.truncate(50)
+    end
+  end
+end
