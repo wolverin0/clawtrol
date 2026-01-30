@@ -3,8 +3,13 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
+        collection do
+          get :next
+        end
         member do
           patch :complete
+          patch :claim
+          patch :unclaim
         end
         resources :comments, only: [ :index, :create ]
       end

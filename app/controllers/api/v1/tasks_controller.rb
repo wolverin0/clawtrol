@@ -1,7 +1,43 @@
 module Api
   module V1
     class TasksController < BaseController
-      before_action :set_task, only: [ :show, :update, :destroy, :complete ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :claim, :unclaim ]
+
+      # GET /api/v1/tasks/next - get next task for agent to work on
+      # Returns highest priority unclaimed task in "up_next" status
+      # Returns 204 No Content if no tasks available or user has auto_mode disabled
+      def next
+        # Check if user has agent auto mode enabled
+        unless current_user.agent_auto_mode?
+          head :no_content
+          return
+        end
+
+        @task = current_user.tasks
+          .where(status: :up_next, blocked: false, agent_claimed_at: nil)
+          .reorder(priority: :desc, position: :asc)
+          .first
+
+        if @task
+          render json: task_json(@task)
+        else
+          head :no_content
+        end
+      end
+
+      # PATCH /api/v1/tasks/:id/claim - agent claims a task
+      def claim
+        @task.activity_source = "api"
+        @task.update!(agent_claimed_at: Time.current, status: :in_progress)
+        render json: task_json(@task)
+      end
+
+      # PATCH /api/v1/tasks/:id/unclaim - agent releases a task
+      def unclaim
+        @task.activity_source = "api"
+        @task.update!(agent_claimed_at: nil)
+        render json: task_json(@task)
+      end
 
       # GET /api/v1/tasks - all tasks for current user
       def index
@@ -106,6 +142,8 @@ module Api
           due_date: task.due_date&.iso8601,
           position: task.position,
           comments_count: task.comments_count,
+          agent_claimed_at: task.agent_claimed_at&.iso8601,
+          url: "https://app.clawdeck.io/board/tasks/#{task.id}",
           created_at: task.created_at.iso8601,
           updated_at: task.updated_at.iso8601
         }
