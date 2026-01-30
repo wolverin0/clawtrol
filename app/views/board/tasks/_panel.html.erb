@@ -19,7 +19,7 @@
   <!-- Slide-in Panel -->
   <div data-task-modal-target="modal"
        class="hidden fixed inset-y-0 right-0 z-[70] w-full max-w-md md:max-w-lg transition-transform duration-300 ease-out translate-x-full p-4">
-    <div class="h-full bg-bg-surface border border-border shadow-2xl flex flex-col rounded-xl overflow-hidden">
+    <div class="h-full bg-bg-elevated border border-border shadow-2xl shadow-black/50 ring-1 ring-white/5 flex flex-col rounded-xl overflow-hidden">
 
       <!-- Header: Column name and Close button -->
       <div class="px-5 py-4 border-b border-border flex-shrink-0">
@@ -58,7 +58,7 @@
             <%= form.text_area :description,
                 placeholder: "Add notes...",
                 rows: 1,
-                class: "w-full text-sm leading-snug tracking-tight bg-bg-elevated border-none focus:outline-none focus:ring-0 text-content-secondary placeholder-content-muted resize-none rounded-lg px-3 py-3 overflow-y-auto max-h-48",
+                class: "w-full text-sm leading-snug tracking-tight bg-bg-surface border border-border focus:border-accent/50 focus:outline-none focus:ring-0 text-content-secondary placeholder-content-muted resize-none rounded-lg px-3 py-3 overflow-y-auto max-h-48",
                 data: { task_modal_target: "descriptionField", action: "input->task-modal#scheduleAutoSave" } %>
           </div>
 

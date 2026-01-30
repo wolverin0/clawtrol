@@ -1,5 +1,5 @@
 <li id="task_<%= task.id %>"
-    class="group bg-bg-elevated rounded-md cursor-pointer transition-all hover:bg-bg-hover <%= 'border-l-4 border-l-status-warning' if task.blocked? %>"
+    class="group bg-bg-elevated border border-border rounded-md cursor-pointer transition-all hover:bg-bg-hover <%= 'border-l-4 border-l-status-warning' if task.blocked? %>"
     data-task-id="<%= task.id %>"
     data-task-status="<%= task.status %>"
     data-task-position="<%= task.position %>">

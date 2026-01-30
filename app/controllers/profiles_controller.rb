@@ -14,7 +14,7 @@ class ProfilesController < ApplicationController
     end
 
     if @user.update(profile_params)
-      redirect_to profile_path, notice: "Profile updated successfully."
+      redirect_to settings_path, notice: "Profile updated successfully."
     else
       render :show, status: :unprocessable_entity
     end
@@ -24,7 +24,7 @@ class ProfilesController < ApplicationController
     @api_token = current_user.api_tokens.find_by(name: "Clawdbot")
     @api_token&.destroy
     @api_token = current_user.api_tokens.create!(name: "Clawdbot")
-    redirect_to profile_path, notice: "API token regenerated."
+    redirect_to settings_path, notice: "API token regenerated."
   end
 
   private

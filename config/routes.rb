@@ -21,7 +21,7 @@ Rails.application.routes.draw do
   get "/auth/:provider/callback", to: "omniauth_callbacks#github", as: :omniauth_callback
   get "/auth/failure", to: "omniauth_callbacks#failure"
   resources :passwords, param: :token
-  resource :profile, only: [ :show, :update ] do
+  resource :settings, only: [ :show, :update ], controller: "profiles" do
     post :regenerate_api_token
   end
 

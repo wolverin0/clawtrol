@@ -1,11 +1,11 @@
 <% content_for :title, "Settings" %>
 <% content_for :breadcrumb_standalone, "Settings" %>
 
-<div class="space-y-8">
+<div class="space-y-8 mt-12">
   <!-- Section 1: Avatar -->
   <div>
     <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider mb-3 font-display">Avatar</h3>
-    <%= form_with(model: @user, url: profile_path, method: :patch, class: "space-y-3") do |form| %>
+    <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-3") do |form| %>
       <div class="bg-bg-elevated rounded-md p-4">
         <div class="flex items-center gap-4">
           <% if @user.avatar.attached? %>
@@ -47,7 +47,7 @@
   <!-- Section 2: Email -->
   <div class="">
     <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider mb-3 font-display">Email Address</h3>
-    <%= form_with(model: @user, url: profile_path, method: :patch, class: "space-y-3") do |form| %>
+    <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-3") do |form| %>
       <div class="bg-bg-elevated rounded-md p-4">
         <%= form.label :email_address, "Email", class: "block text-xs font-medium text-content-secondary mb-1" %>
         <%= form.email_field :email_address, placeholder: "your@email.com", class: "block w-full bg-transparent border-0 p-0 text-sm text-content placeholder:text-content-muted focus:ring-0 focus:outline-none" %>
@@ -128,7 +128,7 @@ Add this to your TOOLS.md:
       </div>
 
       <div class="pt-3 border-t border-border">
-        <%= button_to "Regenerate token", regenerate_api_token_profile_path,
+        <%= button_to "Regenerate token", regenerate_api_token_settings_path,
             method: :post,
             data: { confirm: "This will invalidate your current token. Continue?" },
             class: "px-3 py-1.5 bg-status-error/20 hover:bg-status-error/30 text-status-error text-xs font-medium rounded transition-colors" %>
