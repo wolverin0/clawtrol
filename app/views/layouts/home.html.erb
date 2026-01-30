@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="overflow-hidden">
+<html>
   <head>
     <title>ClawDeck - Mission Control for Your AI Agents</title>
     <meta name="description" content="Open source dashboard to manage, monitor, and orchestrate your AI workforce. Built for OpenClaw.">
@@ -28,9 +28,7 @@
     <meta name="apple-mobile-web-app-title" content="ClawDeck">
     <meta name="application-name" content="ClawDeck">
     <meta name="mobile-web-app-capable" content="yes">
-    <%# Theme colors for Safari and other browsers %>
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#1c1917" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#ffffff">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
@@ -48,36 +46,29 @@
         "priceCurrency": "USD"
       },
       "description": "Open source dashboard to manage, monitor, and orchestrate your AI workforce. Built for OpenClaw.",
-      "url": "https://clawdeck.io/",
-      "author": {
-        "@type": "Organization",
-        "name": "ClawDeck",
-        "url": "https://github.com/clawdeckio"
-      }
+      "url": "https://clawdeck.io/"
     }
     </script>
-    <%# Fonts %>
+    
+    <%# Same font as the app (Nunito) %>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+    
     <%= yield :head %>
-    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
     <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+    
     <%# Favicons %>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
     <%= render "application/plausible_analytics" %>
   </head>
-  <body class="overflow-hidden overscroll-none">
-    <main class="container mx-auto">
-      <%= yield %>
-    </main>
-    <footer class="fixed bottom-10 left-0 right-0 text-center text-xs text-stone-300 dark:text-white/40 tracking-tight">&copy; 2026 <a href="https://clawdeck.io" class="text-stone-400 hover:text-red-500 dark:text-white/50 dark:hover:text-stone-100 transition-colors">ClawDeck</a> · Open Source</footer>
+  <body class="bg-white min-h-screen" style="font-family: 'Nunito', sans-serif;">
+    <%= yield %>
   </body>
 </html>
