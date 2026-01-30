@@ -59,7 +59,10 @@
    ======================================== */
 .stars {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background-image:
     radial-gradient(2px 2px at 20px 30px, rgba(255, 255, 255, 0.8), transparent),
     radial-gradient(2px 2px at 40px 70px, rgba(255, 255, 255, 0.5), transparent),
@@ -82,7 +85,10 @@
 
 .nebula {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background:
     radial-gradient(ellipse 80% 50% at 20% 20%, rgba(255, 77, 77, 0.12), transparent 50%),
     radial-gradient(ellipse 60% 60% at 80% 30%, rgba(0, 229, 204, 0.08), transparent 50%),
