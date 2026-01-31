@@ -33,7 +33,7 @@ class User < ApplicationRecord
   # Find or create a user from GitHub OAuth data
   def self.find_or_create_from_github(auth)
     email = auth.info.email
-    avatar_url = auth.info.image
+    github_avatar_url = auth.info.image
     user = find_by(email_address: email)
 
     if user
@@ -41,37 +41,31 @@ class User < ApplicationRecord
       if user.provider.nil?
         user.update(provider: "github", uid: auth.uid)
       end
-      # Update avatar if user doesn't have one
-      user.attach_avatar_from_url(avatar_url) if avatar_url.present? && !user.avatar.attached?
+      # Update avatar URL if user doesn't have one
+      user.update(avatar_url: github_avatar_url) if github_avatar_url.present? && user.avatar_url.blank?
       user
     else
-      # Create new user from GitHub
-      user = create(
+      # Create new user from GitHub with avatar URL
+      create(
         email_address: email,
         provider: "github",
-        uid: auth.uid
+        uid: auth.uid,
+        avatar_url: github_avatar_url
       )
-      # Attach avatar for new user
-      user.attach_avatar_from_url(avatar_url) if avatar_url.present? && user.persisted?
-      user
     end
   end
 
-  # Attach avatar from a URL (used for GitHub OAuth)
-  def attach_avatar_from_url(url)
-    return if url.blank?
-
-    require "open-uri"
-    begin
-      downloaded_image = URI.open(url)
-      avatar.attach(
-        io: downloaded_image,
-        filename: "github_avatar_#{id}.jpg",
-        content_type: downloaded_image.content_type
-      )
-    rescue StandardError => e
-      Rails.logger.warn "Failed to attach avatar from URL: #{e.message}"
+  # Returns avatar source - Active Storage attachment takes priority over URL
+  def avatar_source
+    if avatar.attached?
+      avatar
+    elsif avatar_url.present?
+      avatar_url
     end
+  end
+
+  def has_avatar?
+    avatar.attached? || avatar_url.present?
   end
 
   # Check if user signed up via OAuth
