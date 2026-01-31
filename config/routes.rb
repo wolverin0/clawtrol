@@ -2,6 +2,8 @@ Rails.application.routes.draw do
   # API routes
   namespace :api do
     namespace :v1 do
+      resource :settings, only: [ :show, :update ]
+      
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
           get :next

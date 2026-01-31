@@ -3,12 +3,22 @@
   <%# Left section: Agent info %>
   <div class="flex items-center gap-4">
     <%# Agent identity %>
+    <% 
+      agent_working = current_user.tasks.where(status: :in_progress).where.not(agent_claimed_at: nil).exists?
+      agent_configured = current_user.api_tokens.where.not(last_used_at: nil).exists?
+      agent_status = agent_working ? "working" : (agent_configured ? "idle" : "not configured")
+      status_color = case agent_status
+        when "working" then "bg-status-success"
+        when "idle" then "bg-status-info"
+        else "bg-content-muted"
+      end
+    %>
     <div class="flex items-center gap-2">
-      <span class="text-xl"><%= current_user.agent_emoji %></span>
-      <span class="text-sm font-semibold text-content font-display"><%= current_user.agent_name %></span>
+      <span class="text-xl"><%= current_user.agent_emoji || "🦞" %></span>
+      <span class="text-sm font-semibold text-content font-display"><%= current_user.agent_name || "OpenClaw" %></span>
       <span class="flex items-center gap-1 text-xs text-content-muted">
-        <span class="w-2 h-2 rounded-full bg-content-muted"></span>
-        idle
+        <span class="w-2 h-2 rounded-full <%= status_color %> <%= 'animate-pulse' if agent_status == 'working' %>"></span>
+        <%= agent_status %>
       </span>
     </div>
   </div>
