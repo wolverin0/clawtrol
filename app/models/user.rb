@@ -26,6 +26,7 @@ class User < ApplicationRecord
   # Find or create a user from GitHub OAuth data
   def self.find_or_create_from_github(auth)
     email = auth.info.email
+    avatar_url = auth.info.image
     user = find_by(email_address: email)
 
     if user
@@ -33,14 +34,36 @@ class User < ApplicationRecord
       if user.provider.nil?
         user.update(provider: "github", uid: auth.uid)
       end
+      # Update avatar if user doesn't have one
+      user.attach_avatar_from_url(avatar_url) if avatar_url.present? && !user.avatar.attached?
       user
     else
       # Create new user from GitHub
-      create(
+      user = create(
         email_address: email,
         provider: "github",
         uid: auth.uid
       )
+      # Attach avatar for new user
+      user.attach_avatar_from_url(avatar_url) if avatar_url.present? && user.persisted?
+      user
+    end
+  end
+
+  # Attach avatar from a URL (used for GitHub OAuth)
+  def attach_avatar_from_url(url)
+    return if url.blank?
+
+    require "open-uri"
+    begin
+      downloaded_image = URI.open(url)
+      avatar.attach(
+        io: downloaded_image,
+        filename: "github_avatar_#{id}.jpg",
+        content_type: downloaded_image.content_type
+      )
+    rescue StandardError => e
+      Rails.logger.warn "Failed to attach avatar from URL: #{e.message}"
     end
   end
 
