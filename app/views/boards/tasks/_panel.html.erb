@@ -109,6 +109,7 @@
                 <% if task.assigned_to_agent? %>
                   <%= button_to unassign_board_task_path(@board, task),
                       method: :patch,
+                      data: { turbo_frame: "_top" },
                       class: "cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-accent/20 text-accent hover:bg-accent/30 transition-colors",
                       title: "Unassign from #{agent_name}" do %>
                     <span><%= agent_emoji %></span>
@@ -117,6 +118,7 @@
                 <% elsif agent_connected %>
                   <%= button_to assign_board_task_path(@board, task),
                       method: :patch,
+                      data: { turbo_frame: "_top" },
                       class: "cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors",
                       title: "Assign to #{agent_name}" do %>
                     <span><%= agent_emoji %></span>
