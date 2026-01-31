@@ -100,6 +100,11 @@ module Api
           @tasks = @tasks.where(priority: params[:priority])
         end
 
+        if params[:needs_reply].present?
+          needs_reply = ActiveModel::Type::Boolean.new.cast(params[:needs_reply])
+          @tasks = @tasks.where(needs_agent_reply: needs_reply)
+        end
+
         # Order by status then position
         @tasks = @tasks.reorder(status: :asc, position: :asc)
 
@@ -177,6 +182,7 @@ module Api
           position: task.position,
           comments_count: task.comments_count,
           agent_claimed_at: task.agent_claimed_at&.iso8601,
+          needs_agent_reply: task.needs_agent_reply,
           url: "https://app.clawdeck.io/board/tasks/#{task.id}",
           created_at: task.created_at.iso8601,
           updated_at: task.updated_at.iso8601

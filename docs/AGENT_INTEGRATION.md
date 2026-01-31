@@ -98,6 +98,24 @@ Content-Type: application/json
 }
 ```
 
+### Check for Comments Needing Reply
+
+Poll for tasks where a user has commented and the agent hasn't replied yet:
+
+```http
+GET /api/v1/tasks?needs_reply=true
+```
+
+This returns tasks where `needs_agent_reply=true`. The flag is automatically:
+- Set to `true` when a user adds a comment
+- Set to `false` when the agent adds a comment
+
+**Recommended polling pattern:**
+1. Check `?needs_reply=true` on each heartbeat
+2. For each task returned, read the latest comment
+3. Reply to that specific task (not any other task!)
+4. Your reply automatically clears the `needs_agent_reply` flag
+
 ### Mark as Blocked
 
 ```http
