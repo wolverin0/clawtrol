@@ -202,7 +202,7 @@ module Api
           assigned_at: task.assigned_at&.iso8601,
           agent_claimed_at: task.agent_claimed_at&.iso8601,
           board_id: task.board_id,
-          url: "https://app.clawdeck.io/boards/#{task.board_id}/tasks/#{task.id}",
+          url: "https://clawdeck.io/boards/#{task.board_id}/tasks/#{task.id}",
           created_at: task.created_at.iso8601,
           updated_at: task.updated_at.iso8601
         }
