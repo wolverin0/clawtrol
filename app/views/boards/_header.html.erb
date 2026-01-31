@@ -104,8 +104,8 @@
         aria-expanded="false"
         aria-haspopup="true">
         <div class="w-7 h-7 rounded-md overflow-hidden bg-bg-surface flex items-center justify-center">
-          <% if current_user.avatar.attached? %>
-            <%= image_tag current_user.avatar, class: "w-full h-full object-cover", alt: "Your avatar" %>
+          <% if current_user.has_avatar? %>
+            <%= image_tag current_user.avatar_source, class: "w-full h-full object-cover", alt: "Your avatar" %>
           <% else %>
             <svg class="w-4 h-4 text-content-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

@@ -8,7 +8,8 @@ class ProfilesController < ApplicationController
     @user = current_user
 
     if params[:user][:remove_avatar] == "1"
-      @user.avatar.purge
+      @user.avatar.purge if @user.avatar.attached?
+      @user.avatar_url = nil
     end
 
     if @user.update(profile_params)

@@ -11,8 +11,8 @@
       <div>
         <label class="block text-xs font-medium text-content-secondary mb-2">Avatar</label>
         <div class="flex items-center gap-4">
-          <% if @user.avatar.attached? %>
-            <%= image_tag @user.avatar, class: "w-14 h-14 object-cover rounded-full" %>
+          <% if @user.has_avatar? %>
+            <%= image_tag @user.avatar_source, class: "w-14 h-14 object-cover rounded-full" %>
           <% else %>
             <div class="w-14 h-14 rounded-full bg-bg-elevated flex items-center justify-center">
               <svg class="w-7 h-7 text-content-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,7 +25,7 @@
             <p class="text-xs text-content-muted mt-1">Max 512KB, 256x256px. JPEG, PNG, or WebP.</p>
           </div>
         </div>
-        <% if @user.avatar.attached? %>
+        <% if @user.avatar.attached? || @user.avatar_url.present? %>
           <div class="mt-3">
             <label class="flex items-center text-xs text-content-secondary cursor-pointer">
               <%= form.check_box :remove_avatar, class: "mr-2 rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
