@@ -99,6 +99,12 @@ ClawDeck is where your human manages your work queue. Think of it as your shared
 - **Token:** <%= api_token %>
 - **Auth Header:** `Authorization: Bearer <%= api_token %>`
 
+## Identify yourself
+
+Include these headers with every request so your human knows who's connected:
+- `X-Agent-Name`: Your name (e.g., "Maxie")
+- `X-Agent-Emoji`: Your emoji (e.g., "🦊")
+
 ## Your workflow
 
 ### Polling for assigned tasks (every 30s or on heartbeat):
@@ -179,12 +185,12 @@ Body: `{ "name": "Task title", "status": "inbox" }`
     <div class="pt-4 border-t border-border">
       <p class="text-xs font-medium text-content-secondary mb-3">Connected Agent</p>
 
-      <% if @api_token.last_used_at.present? %>
+      <% if @user.agent_last_active_at.present? %>
         <div class="flex items-center gap-3">
           <span class="text-xl"><%= @user.agent_emoji || "🦞" %></span>
-          <span class="text-sm text-content"><%= @user.agent_name || "OpenClaw" %></span>
+          <span class="text-sm text-content"><%= @user.agent_name || "Agent" %></span>
           <span class="text-xs text-content-muted">•</span>
-          <span class="text-xs text-content-muted">Last active: <%= time_ago_in_words(@api_token.last_used_at) %> ago</span>
+          <span class="text-xs text-content-muted">Last active: <%= time_ago_in_words(@user.agent_last_active_at) %> ago</span>
         </div>
       <% else %>
         <p class="text-xs text-content-muted">No agent connected yet</p>

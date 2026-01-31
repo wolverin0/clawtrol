@@ -15,7 +15,10 @@ module Api
 
       unless @current_user
         render json: { error: "Unauthorized" }, status: :unauthorized
+        return
       end
+
+      update_agent_info_from_headers
     end
 
     def extract_token_from_header
@@ -25,6 +28,17 @@ module Api
       # Expected format: "Bearer <token>"
       match = auth_header.match(/\ABearer\s+(.+)\z/i)
       match&.[](1)
+    end
+
+    def update_agent_info_from_headers
+      agent_name = request.headers["X-Agent-Name"]
+      agent_emoji = request.headers["X-Agent-Emoji"]
+
+      updates = { agent_last_active_at: Time.current }
+      updates[:agent_name] = agent_name if agent_name.present?
+      updates[:agent_emoji] = agent_emoji if agent_emoji.present?
+
+      current_user.update_columns(updates)
     end
   end
 end
