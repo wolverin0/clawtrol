@@ -37,12 +37,12 @@
   <div class="mt-4 pt-4 border-t border-border">
     <%= form_with url: board_task_comments_path(task), method: :post, data: { controller: "comment-form" } do |form| %>
       <input type="hidden" name="comment[author_type]" value="user">
-      <input type="hidden" name="comment[author_name]" value="<%= current_user.agent_name || 'User' %>">
+      <input type="hidden" name="comment[author_name]" value="<%= current_user.email_address.split('@').first.titleize %>">
       <div class="flex gap-2">
         <textarea name="comment[body]"
             placeholder="Add a comment..."
             rows="1"
-            class="flex-1 text-sm bg-bg-elevated border border-border rounded-lg px-3 py-2 text-content placeholder-content-muted focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+            class="flex-1 text-sm bg-bg-elevated border border-border rounded-lg px-3 py-2 text-content placeholder-content-muted focus:outline-none focus:ring-1 focus:ring-accent resize-none overflow-hidden"
             data-comment-form-target="input"
             data-action="keydown.enter->comment-form#submitOnEnter input->comment-form#autoResize"></textarea>
         <button type="submit"
