@@ -11,7 +11,7 @@ class Task < ApplicationRecord
   validates :status, inclusion: { in: statuses.keys }
 
   # Activity tracking - must be declared before callbacks that use it
-  attr_accessor :activity_source, :actor_name, :actor_emoji
+  attr_accessor :activity_source, :actor_name, :actor_emoji, :activity_note
 
   # Store activity_source before commit so it survives the transaction
   before_save :store_activity_source_for_broadcast
@@ -76,7 +76,7 @@ class Task < ApplicationRecord
   end
 
   def record_creation_activity
-    TaskActivity.record_creation(self, source: activity_source || "web", actor_name: actor_name, actor_emoji: actor_emoji)
+    TaskActivity.record_creation(self, source: activity_source || "web", actor_name: actor_name, actor_emoji: actor_emoji, note: activity_note)
   end
 
   def record_update_activities
@@ -85,12 +85,12 @@ class Task < ApplicationRecord
     # Track status/column changes
     if saved_change_to_status?
       old_status, new_status = saved_change_to_status
-      TaskActivity.record_status_change(self, old_status: old_status, new_status: new_status, source: source, actor_name: actor_name, actor_emoji: actor_emoji)
+      TaskActivity.record_status_change(self, old_status: old_status, new_status: new_status, source: source, actor_name: actor_name, actor_emoji: actor_emoji, note: activity_note)
     end
 
     # Track field changes
     tracked_changes = saved_changes.slice(*TaskActivity::TRACKED_FIELDS)
-    TaskActivity.record_changes(self, tracked_changes, source: source, actor_name: actor_name, actor_emoji: actor_emoji) if tracked_changes.any?
+    TaskActivity.record_changes(self, tracked_changes, source: source, actor_name: actor_name, actor_emoji: actor_emoji, note: activity_note) if tracked_changes.any?
   end
 
   # Turbo Streams broadcasts for real-time updates

@@ -178,6 +178,7 @@ module Api
         task.activity_source = "api"
         task.actor_name = request.headers["X-Agent-Name"]
         task.actor_emoji = request.headers["X-Agent-Emoji"]
+        task.activity_note = params[:activity_note] || params.dig(:task, :activity_note)
       end
 
       def task_params

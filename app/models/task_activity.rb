@@ -9,7 +9,7 @@ class TaskActivity < ApplicationRecord
 
   scope :recent, -> { order(created_at: :desc) }
 
-  def self.record_creation(task, source: "web", actor_name: nil, actor_emoji: nil)
+  def self.record_creation(task, source: "web", actor_name: nil, actor_emoji: nil, note: nil)
     create!(
       task: task,
       user: task.user,
@@ -17,11 +17,12 @@ class TaskActivity < ApplicationRecord
       source: source,
       actor_type: source == "api" ? "agent" : "user",
       actor_name: actor_name,
-      actor_emoji: actor_emoji
+      actor_emoji: actor_emoji,
+      note: note
     )
   end
 
-  def self.record_status_change(task, old_status:, new_status:, source: "web", actor_name: nil, actor_emoji: nil)
+  def self.record_status_change(task, old_status:, new_status:, source: "web", actor_name: nil, actor_emoji: nil, note: nil)
     create!(
       task: task,
       user: Current.user,
@@ -32,11 +33,12 @@ class TaskActivity < ApplicationRecord
       source: source,
       actor_type: source == "api" ? "agent" : "user",
       actor_name: actor_name,
-      actor_emoji: actor_emoji
+      actor_emoji: actor_emoji,
+      note: note
     )
   end
 
-  def self.record_changes(task, changes, source: "web", actor_name: nil, actor_emoji: nil)
+  def self.record_changes(task, changes, source: "web", actor_name: nil, actor_emoji: nil, note: nil)
     TRACKED_FIELDS.each do |field|
       next unless changes.key?(field)
 
@@ -51,7 +53,8 @@ class TaskActivity < ApplicationRecord
         source: source,
         actor_type: source == "api" ? "agent" : "user",
         actor_name: actor_name,
-        actor_emoji: actor_emoji
+        actor_emoji: actor_emoji,
+        note: note
       )
     end
   end

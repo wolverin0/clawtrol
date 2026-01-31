@@ -8,6 +8,9 @@
       <!-- Activity content -->
       <div class="flex-1 min-w-0">
         <p class="text-sm text-content-secondary"><%= activity.description %></p>
+        <% if activity.note.present? %>
+          <p class="text-sm text-content-muted mt-1 italic">"<%= activity.note %>"</p>
+        <% end %>
         <p class="text-xs text-content-muted mt-0.5">
           <%= time_ago_in_words(activity.created_at) %> ago
           <% if activity.actor_type == "agent" %>
