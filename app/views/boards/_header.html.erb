@@ -86,12 +86,15 @@
       <span class="hidden sm:inline">Board settings</span>
     </button>
 
-    <%# Agent emoji (links to settings) %>
+    <%# Agent indicator (links to settings) %>
     <% agent_connected = current_user.agent_last_active_at.present? %>
     <%= link_to settings_path,
-        class: "w-6 h-6 rounded-md bg-bg-elevated hover:bg-bg-hover flex items-center justify-center text-sm transition-colors",
-        title: agent_connected ? (current_user.agent_name || 'Agent') : "Configure agent" do %>
+        class: "relative w-7 h-7 rounded-md bg-bg-elevated hover:bg-bg-hover flex items-center justify-center text-sm transition-colors",
+        title: agent_connected ? "#{current_user.agent_name || 'Agent'} • Last active: #{time_ago_in_words(current_user.agent_last_active_at)} ago" : "Configure agent" do %>
       <%= agent_connected ? (current_user.agent_emoji || "🦞") : "🦞" %>
+      <% if agent_connected && current_user.agent_last_active_at > 5.minutes.ago %>
+        <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-bg-base"></span>
+      <% end %>
     <% end %>
 
     <%# User avatar dropdown %>

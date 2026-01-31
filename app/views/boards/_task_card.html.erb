@@ -104,7 +104,7 @@
 
     <%# Agent Assignment Badge %>
     <% if task.assigned_to_agent? %>
-      <span class="text-xs" title="Assigned to agent">🦞</span>
+      <span class="text-xs" title="Assigned to <%= current_user.agent_name || 'Agent' %>"><%= current_user.agent_emoji || "🦞" %></span>
     <% end %>
   </div>
   <% end %>

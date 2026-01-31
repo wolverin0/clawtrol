@@ -22,6 +22,8 @@ export default class extends Controller {
       swapThreshold: 0.65,
       invertSwap: true,
       filter: '[style*="display: none"]',
+      onStart: this.handleStart.bind(this),
+      onEnd: this.handleEnd.bind(this),
       onMove: this.move.bind(this),
       onUpdate: this.handleUpdate.bind(this)
     }
@@ -39,6 +41,16 @@ export default class extends Controller {
     if (this.sortable) {
       this.sortable.destroy()
     }
+  }
+
+  // Dispatch event when drag starts (for delete zone visibility)
+  handleStart(event) {
+    document.dispatchEvent(new CustomEvent("sortable:dragstart", { detail: { item: event.item } }))
+  }
+
+  // Dispatch event when drag ends (for delete zone visibility)
+  handleEnd(event) {
+    document.dispatchEvent(new CustomEvent("sortable:dragend", { detail: { item: event.item } }))
   }
 
   move(event) {
