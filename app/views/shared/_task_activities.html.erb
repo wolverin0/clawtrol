@@ -10,8 +10,10 @@
         <p class="text-sm text-content-secondary"><%= activity.description %></p>
         <p class="text-xs text-content-muted mt-0.5">
           <%= time_ago_in_words(activity.created_at) %> ago
-          <% if activity.source == "api" %>
-            <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-status-warning/20 text-status-warning">API</span>
+          <% if activity.actor_type == "agent" %>
+            <span class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-accent/20 text-accent">
+              <%= activity.actor_emoji || "🦞" %> <%= activity.actor_name || "Agent" %>
+            </span>
           <% end %>
         </p>
       </div>

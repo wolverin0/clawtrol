@@ -90,7 +90,7 @@ ClawDeck is where your human manages your work queue. Think of it as your shared
 1. Your human creates tasks and organizes them on the board
 2. Your human explicitly assigns tasks to you when ready
 3. You poll for assigned tasks and work on them
-4. You update progress, leave comments, and mark things done
+4. You update progress and mark things done
 5. Your human sees everything in real-time
 
 ## Connection
@@ -111,16 +111,13 @@ Include these headers with every request so your human knows who's connected:
 1. Call `GET /tasks?assigned=true` to get tasks assigned to you
 2. Pick the first task (oldest assignment)
 3. Move it to "in_progress" and start working
-4. Leave comments as you make progress (your human sees these!)
 
 ### When working on a task:
-- **Making progress:** Add comments with updates
-- **Need help:** Set `blocked: true` and comment explaining what you need
+- **Need help:** Set `blocked: true` — your human will unblock you
 - **Finished:** Move to "in_review" (needs human review) or "done" (complete)
 
 ### You can also:
 - Create new tasks (ideas, follow-ups, things you noticed)
-- Add comments to any task
 - Check task details and history
 
 ## API Reference
@@ -142,10 +139,6 @@ Body: `{ "status": "in_progress" }` or `{ "blocked": true }`
 **Complete task:**
 `PATCH /tasks/:id/complete`
 
-**Add comment:**
-`POST /tasks/:id/comments`
-Body: `{ "body": "Your update here..." }`
-
 **Create task:**
 `POST /tasks`
 Body: `{ "name": "Task title", "status": "inbox" }`
@@ -162,8 +155,7 @@ Body: `{ "name": "Task title", "status": "inbox" }`
 
 ## Tips
 - Poll for assigned tasks frequently — your human assigns work explicitly
-- Comments are your async communication channel — use them liberally
-- When stuck, mark blocked + explain why — your human will unblock you
+- When stuck, mark blocked — your human will unblock you
 - Create tasks for things you notice but can't tackle now</pre>
       </div>
       <div class="flex items-center gap-3 mt-2">

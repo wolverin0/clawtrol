@@ -18,7 +18,6 @@ Rails.application.routes.draw do
           patch :assign
           patch :unassign
         end
-        resources :comments, only: [ :index, :create ]
       end
     end
   end
@@ -45,7 +44,6 @@ Rails.application.routes.draw do
         patch :assign
         patch :unassign
       end
-      resources :comments, only: [ :create ], controller: "boards/comments"
     end
   end
 

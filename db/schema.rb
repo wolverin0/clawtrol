@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_31_134626) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_31_141344) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -65,16 +65,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_134626) do
     t.index ["user_id"], name: "index_boards_on_user_id"
   end
 
-  create_table "comments", force: :cascade do |t|
-    t.string "author_name"
-    t.string "author_type"
-    t.text "body"
-    t.datetime "created_at", null: false
-    t.bigint "task_id", null: false
-    t.datetime "updated_at", null: false
-    t.index ["task_id"], name: "index_comments_on_task_id"
-  end
-
   create_table "projects", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "description"
@@ -124,6 +114,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_134626) do
 
   create_table "task_activities", force: :cascade do |t|
     t.string "action", null: false
+    t.string "actor_emoji"
+    t.string "actor_name"
+    t.string "actor_type"
     t.datetime "created_at", null: false
     t.string "field_name"
     t.string "new_value"
@@ -165,7 +158,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_134626) do
     t.boolean "assigned_to_agent", default: false, null: false
     t.boolean "blocked", default: false, null: false
     t.bigint "board_id", null: false
-    t.integer "comments_count", default: 0, null: false
     t.boolean "completed", default: false, null: false
     t.datetime "completed_at"
     t.integer "confidence", default: 0, null: false
@@ -174,9 +166,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_134626) do
     t.date "due_date"
     t.integer "effort", default: 0, null: false
     t.integer "impact", default: 0, null: false
-    t.datetime "last_agent_read_at"
     t.string "name"
-    t.boolean "needs_agent_reply", default: false, null: false
     t.integer "original_position"
     t.integer "position"
     t.integer "priority", default: 0, null: false
@@ -190,7 +180,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_134626) do
     t.index ["assigned_to_agent"], name: "index_tasks_on_assigned_to_agent"
     t.index ["blocked"], name: "index_tasks_on_blocked"
     t.index ["board_id"], name: "index_tasks_on_board_id"
-    t.index ["needs_agent_reply"], name: "index_tasks_on_needs_agent_reply"
     t.index ["position"], name: "index_tasks_on_position"
     t.index ["project_id"], name: "index_tasks_on_project_id"
     t.index ["status"], name: "index_tasks_on_status"
@@ -219,7 +208,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_134626) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "api_tokens", "users"
   add_foreign_key "boards", "users"
-  add_foreign_key "comments", "tasks"
   add_foreign_key "projects", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "tags", "projects"

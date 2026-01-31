@@ -26,10 +26,7 @@ module Api
       end
 
       # GET /api/v1/tasks/pending_attention - tasks needing agent attention
-      # Returns tasks that:
-      # 1. Are in "in_progress" and were claimed by agent (need continued work)
-      # 2. Have new comments since last_agent_read_at
-      # Also marks returned tasks as "read" by updating last_agent_read_at
+      # Returns tasks that are in "in_progress" and were claimed by agent
       def pending_attention
         unless current_user.agent_auto_mode?
           render json: []
@@ -37,52 +34,37 @@ module Api
         end
 
         # Tasks in progress that agent claimed
-        in_progress_tasks = current_user.tasks
+        @tasks = current_user.tasks
           .where(status: :in_progress)
           .where.not(agent_claimed_at: nil)
 
-        # Tasks with unread comments (comments created after last_agent_read_at)
-        tasks_with_new_comments = current_user.tasks
-          .joins(:comments)
-          .where("comments.created_at > COALESCE(tasks.last_agent_read_at, tasks.created_at)")
-          .where("comments.author_type != 'agent'")  # Only human comments
-          .where(status: [:in_progress, :in_review, :up_next])  # Not done/inbox
-          .distinct
-
-        # Combine and dedupe
-        task_ids = (in_progress_tasks.pluck(:id) + tasks_with_new_comments.pluck(:id)).uniq
-        @tasks = current_user.tasks.where(id: task_ids).includes(:comments)
-
-        # Mark as read
-        @tasks.update_all(last_agent_read_at: Time.current)
-
-        render json: @tasks.map { |task| task_json_with_comments(task) }
+        render json: @tasks.map { |task| task_json(task) }
       end
 
       # PATCH /api/v1/tasks/:id/claim - agent claims a task
       def claim
-        @task.activity_source = "api"
+        set_task_activity_info(@task)
         @task.update!(agent_claimed_at: Time.current, status: :in_progress)
         render json: task_json(@task)
       end
 
       # PATCH /api/v1/tasks/:id/unclaim - agent releases a task
       def unclaim
-        @task.activity_source = "api"
+        set_task_activity_info(@task)
         @task.update!(agent_claimed_at: nil)
         render json: task_json(@task)
       end
 
       # PATCH /api/v1/tasks/:id/assign - assign task to agent
       def assign
-        @task.activity_source = "api"
+        set_task_activity_info(@task)
         @task.update!(assigned_to_agent: true, assigned_at: Time.current)
         render json: task_json(@task)
       end
 
       # PATCH /api/v1/tasks/:id/unassign - unassign task from agent
       def unassign
-        @task.activity_source = "api"
+        set_task_activity_info(@task)
         @task.update!(assigned_to_agent: false, assigned_at: nil)
         render json: task_json(@task)
       end
@@ -119,11 +101,6 @@ module Api
           @tasks = @tasks.where(priority: params[:priority])
         end
 
-        if params[:needs_reply].present?
-          needs_reply = ActiveModel::Type::Boolean.new.cast(params[:needs_reply])
-          @tasks = @tasks.where(needs_agent_reply: needs_reply)
-        end
-
         # Filter by agent assignment
         if params[:assigned].present?
           assigned = ActiveModel::Type::Boolean.new.cast(params[:assigned])
@@ -152,7 +129,7 @@ module Api
 
         @task = board.tasks.new(task_params)
         @task.user = current_user
-        @task.activity_source = "api"
+        set_task_activity_info(@task)
 
         if @task.save
           render json: task_json(@task), status: :created
@@ -168,7 +145,7 @@ module Api
 
       # PATCH /api/v1/tasks/:id
       def update
-        @task.activity_source = "api"
+        set_task_activity_info(@task)
         if @task.update(task_params)
           render json: task_json(@task)
         else
@@ -185,7 +162,7 @@ module Api
       # PATCH /api/v1/tasks/:id/complete
       # Toggles task between done and inbox status
       def complete
-        @task.activity_source = "api"
+        set_task_activity_info(@task)
         new_status = @task.status == "done" ? "inbox" : "done"
         @task.update!(status: new_status)
         render json: task_json(@task)
@@ -195,6 +172,12 @@ module Api
 
       def set_task
         @task = current_user.tasks.find(params[:id])
+      end
+
+      def set_task_activity_info(task)
+        task.activity_source = "api"
+        task.actor_name = request.headers["X-Agent-Name"]
+        task.actor_emoji = request.headers["X-Agent-Emoji"]
       end
 
       def task_params
@@ -214,30 +197,14 @@ module Api
           completed_at: task.completed_at&.iso8601,
           due_date: task.due_date&.iso8601,
           position: task.position,
-          comments_count: task.comments_count,
           assigned_to_agent: task.assigned_to_agent,
           assigned_at: task.assigned_at&.iso8601,
           agent_claimed_at: task.agent_claimed_at&.iso8601,
-          needs_agent_reply: task.needs_agent_reply,
           board_id: task.board_id,
           url: "https://app.clawdeck.io/boards/#{task.board_id}/tasks/#{task.id}",
           created_at: task.created_at.iso8601,
           updated_at: task.updated_at.iso8601
         }
-      end
-
-      def task_json_with_comments(task)
-        task_json(task).merge(
-          comments: task.comments.order(created_at: :desc).limit(10).map do |comment|
-            {
-              id: comment.id,
-              author_type: comment.author_type,
-              author_name: comment.author_name,
-              body: comment.body,
-              created_at: comment.created_at.iso8601
-            }
-          end
-        )
       end
     end
   end

@@ -1,4 +1,0 @@
-<%# Update the comments section %>
-<%= turbo_stream.replace "task-comments-#{@task.id}" do %>
-  <%= render "shared/task_comments", task: @task.reload %>
-<% end %>

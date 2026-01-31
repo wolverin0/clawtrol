@@ -2,7 +2,6 @@ class Task < ApplicationRecord
   belongs_to :user
   belongs_to :board
   has_many :activities, class_name: "TaskActivity", dependent: :destroy
-  has_many :comments, dependent: :destroy
 
   enum :priority, { none: 0, low: 1, medium: 2, high: 3 }, default: :none, prefix: true
   enum :status, { inbox: 0, up_next: 1, in_progress: 2, in_review: 3, done: 4 }, default: :inbox
@@ -12,7 +11,7 @@ class Task < ApplicationRecord
   validates :status, inclusion: { in: statuses.keys }
 
   # Activity tracking - must be declared before callbacks that use it
-  attr_accessor :activity_source
+  attr_accessor :activity_source, :actor_name, :actor_emoji
 
   # Store activity_source before commit so it survives the transaction
   before_save :store_activity_source_for_broadcast
@@ -77,7 +76,7 @@ class Task < ApplicationRecord
   end
 
   def record_creation_activity
-    TaskActivity.record_creation(self, source: activity_source || "web")
+    TaskActivity.record_creation(self, source: activity_source || "web", actor_name: actor_name, actor_emoji: actor_emoji)
   end
 
   def record_update_activities
@@ -86,12 +85,12 @@ class Task < ApplicationRecord
     # Track status/column changes
     if saved_change_to_status?
       old_status, new_status = saved_change_to_status
-      TaskActivity.record_status_change(self, old_status: old_status, new_status: new_status, source: source)
+      TaskActivity.record_status_change(self, old_status: old_status, new_status: new_status, source: source, actor_name: actor_name, actor_emoji: actor_emoji)
     end
 
     # Track field changes
     tracked_changes = saved_changes.slice(*TaskActivity::TRACKED_FIELDS)
-    TaskActivity.record_changes(self, tracked_changes, source: source) if tracked_changes.any?
+    TaskActivity.record_changes(self, tracked_changes, source: source, actor_name: actor_name, actor_emoji: actor_emoji) if tracked_changes.any?
   end
 
   # Turbo Streams broadcasts for real-time updates
