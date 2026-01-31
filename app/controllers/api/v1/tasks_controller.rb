@@ -105,8 +105,18 @@ module Api
           @tasks = @tasks.where(needs_agent_reply: needs_reply)
         end
 
-        # Order by status then position
-        @tasks = @tasks.reorder(status: :asc, position: :asc)
+        # Filter by agent assignment
+        if params[:assigned].present?
+          assigned = ActiveModel::Type::Boolean.new.cast(params[:assigned])
+          @tasks = @tasks.where(assigned_to_agent: assigned)
+        end
+
+        # Order by assigned_at for assigned tasks, otherwise by status then position
+        if params[:assigned].present? && ActiveModel::Type::Boolean.new.cast(params[:assigned])
+          @tasks = @tasks.reorder(assigned_at: :asc)
+        else
+          @tasks = @tasks.reorder(status: :asc, position: :asc)
+        end
 
         render json: @tasks.map { |task| task_json(task) }
       end
@@ -189,6 +199,8 @@ module Api
           due_date: task.due_date&.iso8601,
           position: task.position,
           comments_count: task.comments_count,
+          assigned_to_agent: task.assigned_to_agent,
+          assigned_at: task.assigned_at&.iso8601,
           agent_claimed_at: task.agent_claimed_at&.iso8601,
           needs_agent_reply: task.needs_agent_reply,
           board_id: task.board_id,

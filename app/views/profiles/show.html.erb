@@ -2,180 +2,193 @@
 <% content_for :breadcrumb_standalone, "Settings" %>
 
 <div class="space-y-6 mt-12">
-  <!-- Section 1: Agent -->
+  <!-- Section 1: Profile -->
   <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
-    <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">Agent</h3>
-    <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <%= form.label :agent_name, "Agent Name", class: "block text-xs font-medium text-content-secondary mb-1.5" %>
-          <%= form.text_field :agent_name, placeholder: "e.g., Maxie, Jarvis, Friday", class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
-        </div>
-        <div>
-          <%= form.label :agent_emoji, "Agent Emoji", class: "block text-xs font-medium text-content-secondary mb-1.5" %>
-          <%= form.text_field :agent_emoji, placeholder: "", maxlength: 2, class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
-        </div>
-      </div>
-      <% if @user.errors[:agent_name].any? || @user.errors[:agent_emoji].any? %>
-        <div>
-          <% @user.errors[:agent_name].each do |error| %>
-            <p class="text-status-error text-xs">Agent name <%= error %></p>
-          <% end %>
-          <% @user.errors[:agent_emoji].each do |error| %>
-            <p class="text-status-error text-xs">Agent emoji <%= error %></p>
-          <% end %>
-        </div>
-      <% end %>
-      <div>
-        <%= form.submit "Save agent", class: "cursor-pointer px-4 py-2 bg-accent text-content hover:bg-accent-hover text-xs font-semibold rounded-md transition-colors duration-200" %>
-      </div>
-    <% end %>
-  </div>
+    <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">Profile</h3>
 
-  <!-- Section 2: Avatar -->
-  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
-    <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">Avatar</h3>
     <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
-      <div class="flex items-center gap-4">
+      <!-- Avatar -->
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-2">Avatar</label>
+        <div class="flex items-center gap-4">
+          <% if @user.avatar.attached? %>
+            <%= image_tag @user.avatar, class: "w-14 h-14 object-cover rounded-full" %>
+          <% else %>
+            <div class="w-14 h-14 rounded-full bg-bg-elevated flex items-center justify-center">
+              <svg class="w-7 h-7 text-content-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+          <% end %>
+          <div class="flex-1">
+            <%= form.file_field :avatar, accept: "image/jpeg,image/jpg,image/png,image/webp", class: "block w-full text-xs text-content-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-bg-elevated file:text-content-secondary hover:file:bg-bg-hover file:cursor-pointer file:transition-colors" %>
+            <p class="text-xs text-content-muted mt-1">Max 512KB, 256x256px. JPEG, PNG, or WebP.</p>
+          </div>
+        </div>
         <% if @user.avatar.attached? %>
-          <%= image_tag @user.avatar, class: "w-16 h-16 object-cover rounded-full" %>
-        <% else %>
-          <div class="w-16 h-16 rounded-full bg-bg-elevated flex items-center justify-center">
-            <svg class="w-8 h-8 text-content-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
+          <div class="mt-3">
+            <label class="flex items-center text-xs text-content-secondary cursor-pointer">
+              <%= form.check_box :remove_avatar, class: "mr-2 rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
+              Remove avatar
+            </label>
           </div>
         <% end %>
-        <div class="flex-1">
-          <%= form.file_field :avatar, accept: "image/jpeg,image/jpg,image/png,image/webp", class: "block w-full text-xs text-content-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-bg-elevated file:text-content-secondary hover:file:bg-bg-hover file:cursor-pointer file:transition-colors" %>
-          <p class="text-xs text-content-muted mt-1">Max 512KB, 256x256px. JPEG, PNG, or WebP.</p>
-        </div>
+        <% if @user.errors[:avatar].any? %>
+          <div class="mt-2">
+            <% @user.errors[:avatar].each do |error| %>
+              <p class="text-status-error text-xs">Avatar <%= error %></p>
+            <% end %>
+          </div>
+        <% end %>
       </div>
-      <% if @user.avatar.attached? %>
-        <div class="pt-3 border-t border-border">
-          <label class="flex items-center text-xs text-content-secondary cursor-pointer">
-            <%= form.check_box :remove_avatar, class: "mr-2 rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
-            Remove avatar
-          </label>
-        </div>
-      <% end %>
-      <% if @user.errors[:avatar].any? %>
-        <div>
-          <% @user.errors[:avatar].each do |error| %>
-            <p class="text-status-error text-xs">Avatar <%= error %></p>
-          <% end %>
-        </div>
-      <% end %>
-      <div>
-        <%= form.submit "Save avatar", class: "cursor-pointer px-4 py-2 bg-accent text-content hover:bg-accent-hover text-xs font-semibold rounded-md transition-colors duration-200" %>
-      </div>
-    <% end %>
-  </div>
 
-  <!-- Section 3: Email -->
-  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
-    <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">Email Address</h3>
-    <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
-      <div>
-        <%= form.label :email_address, "Email", class: "block text-xs font-medium text-content-secondary mb-1.5" %>
+      <!-- Email -->
+      <div class="pt-4 border-t border-border">
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Email Address</label>
         <%= form.email_field :email_address, placeholder: "your@email.com", class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+        <% if @user.errors[:email_address].any? %>
+          <div class="mt-1">
+            <% @user.errors[:email_address].each do |error| %>
+              <p class="text-status-error text-xs">Email <%= error %></p>
+            <% end %>
+          </div>
+        <% end %>
       </div>
-      <% if @user.errors[:email_address].any? %>
-        <div>
-          <% @user.errors[:email_address].each do |error| %>
-            <p class="text-status-error text-xs">Email <%= error %></p>
-          <% end %>
-        </div>
-      <% end %>
-      <div>
-        <%= form.submit "Update email", class: "cursor-pointer px-4 py-2 bg-accent text-content hover:bg-accent-hover text-xs font-semibold rounded-md transition-colors duration-200" %>
+
+      <div class="pt-2">
+        <%= form.submit "Save profile", class: "cursor-pointer px-4 py-2 bg-accent text-content hover:bg-accent-hover text-xs font-semibold rounded-md transition-colors duration-200" %>
       </div>
     <% end %>
   </div>
 
-  <!-- Section 4: API Token -->
+  <!-- Section 2: OpenClaw Integration -->
   <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
-    <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">API Token</h3>
+    <div class="flex items-center gap-2">
+      <span class="text-lg">🦞</span>
+      <h3 class="text-sm font-semibold text-content font-display">OpenClaw Integration</h3>
+    </div>
 
-    <!-- Token display -->
-    <div>
-      <label class="block text-xs font-medium text-content-secondary mb-1.5">Your API Token</label>
-      <div class="flex items-center gap-2" data-controller="clipboard">
-        <code
+    <p class="text-xs text-content-secondary">
+      Connect your OpenClaw agent to ClawDeck. Copy the prompt below and add it to your agent's configuration.
+    </p>
+
+    <% api_url = "#{request.base_url}/api/v1" %>
+    <% api_token = @api_token.token %>
+
+    <!-- Comprehensive agent prompt -->
+    <div data-controller="clipboard">
+      <div class="bg-bg-elevated rounded-md max-h-96 overflow-y-auto">
+        <pre
           data-clipboard-target="source"
-          class="flex-1 bg-bg-elevated px-3 py-2 rounded-md text-xs font-mono text-content-secondary select-all break-all"
-        ><%= @api_token.token %></code>
+          class="px-3 py-3 text-xs font-mono text-content-secondary whitespace-pre-wrap break-words leading-relaxed"
+># ClawDeck — Your Task Dashboard
+
+ClawDeck is where your human manages your work queue. Think of it as your shared kanban board.
+
+## How it works
+
+1. Your human creates tasks and organizes them on the board
+2. Your human explicitly assigns tasks to you when ready
+3. You poll for assigned tasks and work on them
+4. You update progress, leave comments, and mark things done
+5. Your human sees everything in real-time
+
+## Connection
+
+- **API URL:** <%= api_url %>
+- **Token:** <%= api_token %>
+- **Auth Header:** `Authorization: Bearer <%= api_token %>`
+
+## Your workflow
+
+### Polling for assigned tasks (every 30s or on heartbeat):
+1. Call `GET /tasks?assigned=true` to get tasks assigned to you
+2. Pick the first task (oldest assignment)
+3. Move it to "in_progress" and start working
+4. Leave comments as you make progress (your human sees these!)
+
+### When working on a task:
+- **Making progress:** Add comments with updates
+- **Need help:** Set `blocked: true` and comment explaining what you need
+- **Finished:** Move to "in_review" (needs human review) or "done" (complete)
+
+### You can also:
+- Create new tasks (ideas, follow-ups, things you noticed)
+- Add comments to any task
+- Check task details and history
+
+## API Reference
+
+**Get assigned tasks (your work queue):**
+`GET /tasks?assigned=true`
+Returns tasks assigned to you, ordered by assignment time (oldest first).
+
+**List all tasks:**
+`GET /tasks` or `GET /tasks?status=in_progress`
+
+**Get task:**
+`GET /tasks/:id`
+
+**Update task:**
+`PATCH /tasks/:id`
+Body: `{ "status": "in_progress" }` or `{ "blocked": true }`
+
+**Complete task:**
+`PATCH /tasks/:id/complete`
+
+**Add comment:**
+`POST /tasks/:id/comments`
+Body: `{ "body": "Your update here..." }`
+
+**Create task:**
+`POST /tasks`
+Body: `{ "name": "Task title", "status": "inbox" }`
+
+## Statuses
+- `inbox` — New, not prioritized
+- `up_next` — Prioritized, waiting to be assigned
+- `in_progress` — You're working on it
+- `in_review` — Done, needs human review
+- `done` — Complete
+
+## Priorities
+`none`, `low`, `medium`, `high`
+
+## Tips
+- Poll for assigned tasks frequently — your human assigns work explicitly
+- Comments are your async communication channel — use them liberally
+- When stuck, mark blocked + explain why — your human will unblock you
+- Create tasks for things you notice but can't tackle now</pre>
+      </div>
+      <div class="flex items-center gap-3 mt-2">
         <button
           type="button"
           data-action="click->clipboard#copy"
-          class="px-3 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors"
+          class="cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors"
         >
           <span data-clipboard-target="label">Copy</span>
         </button>
+        <%= button_to "Regenerate token", regenerate_api_token_settings_path,
+            method: :post,
+            data: { turbo_confirm: "This will invalidate your current token. Continue?" },
+            class: "cursor-pointer text-xs text-content-muted hover:text-content-secondary transition-colors" %>
       </div>
-      <p class="text-xs text-content-muted mt-2">
-        Last used: <%= @api_token.last_used_at ? time_ago_in_words(@api_token.last_used_at) + " ago" : "Never" %>
-      </p>
     </div>
 
-    <!-- Setup prompt (collapsible) -->
-    <div class="pt-3 border-t border-border" data-controller="disclosure">
-      <div class="flex items-center justify-between">
-        <label class="block text-xs font-medium text-content-secondary">Clawdbot Setup Prompt</label>
-        <button
-          type="button"
-          data-action="click->disclosure#toggle"
-          class="flex items-center gap-1 text-xs text-content-muted hover:text-content-secondary transition-colors"
-        >
-          <span data-disclosure-target="label">Show instructions</span>
-          <svg data-disclosure-target="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5 transition-transform duration-200">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-          </svg>
-        </button>
-      </div>
-      <div data-disclosure-target="content" class="hidden mt-3">
-        <p class="text-xs text-content-muted mb-2">Send this to your Clawdbot to set up the ClawDeck integration:</p>
-        <div data-controller="clipboard">
-          <pre
-            data-clipboard-target="source"
-            class="bg-bg-elevated px-3 py-2 rounded-md text-xs font-mono text-content-secondary overflow-x-auto whitespace-pre-wrap break-all"
->I use ClawDeck (clawdeck.so) for task management. Set yourself up to work with it.
+    <!-- Connected Agent (within same box) -->
+    <div class="pt-4 border-t border-border">
+      <p class="text-xs font-medium text-content-secondary mb-3">Connected Agent</p>
 
-Add this to your TOOLS.md:
-
-### ClawDeck API
-- URL: `https://clawdeck.so/api/v1`
-- Token: `<%= @api_token.token %>`
-- Auth: `Authorization: Bearer <token>`
-- Endpoints:
-  - `/tasks` - GET (list all), POST (create task)
-  - `/tasks/:id` - GET, PATCH, DELETE
-  - `/tasks/:id/complete` - PATCH (toggle complete)
-  - `/tasks/:id/comments` - GET, POST
-
-**Task statuses:** inbox, up_next, in_progress, in_review, done
-
-**Quick Capture patterns:**
-- "task: <task>" or "remind me to <task>" -> create in inbox
-- Keywords: "urgent", "!", "high priority" -> priority: high
-- Keywords: "blocked" -> blocked: true</pre>
-          <button
-            type="button"
-            data-action="click->clipboard#copy"
-            class="mt-2 px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors"
-          >
-            <span data-clipboard-target="label">Copy prompt</span>
-          </button>
+      <% if @api_token.last_used_at.present? %>
+        <div class="flex items-center gap-3">
+          <span class="text-xl"><%= @user.agent_emoji || "🦞" %></span>
+          <span class="text-sm text-content"><%= @user.agent_name || "OpenClaw" %></span>
+          <span class="text-xs text-content-muted">•</span>
+          <span class="text-xs text-content-muted">Last active: <%= time_ago_in_words(@api_token.last_used_at) %> ago</span>
         </div>
-      </div>
-    </div>
-
-    <!-- Regenerate token -->
-    <div class="pt-3 border-t border-border">
-      <%= button_to "Regenerate token", regenerate_api_token_settings_path,
-          method: :post,
-          data: { confirm: "This will invalidate your current token. Continue?" },
-          class: "px-3 py-1.5 bg-status-error/20 hover:bg-status-error/30 text-status-error text-xs font-medium rounded-md transition-colors" %>
+      <% else %>
+        <p class="text-xs text-content-muted">No agent connected yet</p>
+      <% end %>
     </div>
   </div>
 </div>

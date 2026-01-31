@@ -37,6 +37,9 @@ class BoardsController < ApplicationController
 
     # Get all boards for the sidebar
     @boards = current_user.boards
+
+    # Get API token for agent status display
+    @api_token = current_user.api_token
   end
 
   def create

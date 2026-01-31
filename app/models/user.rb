@@ -7,6 +7,11 @@ class User < ApplicationRecord
   has_many :api_tokens, dependent: :destroy
   has_one_attached :avatar
 
+  # Primary API token for agent integration
+  def api_token
+    api_tokens.first || api_tokens.create!
+  end
+
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
   validate :acceptable_avatar, if: :avatar_changed?

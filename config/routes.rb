@@ -37,6 +37,10 @@ Rails.application.routes.draw do
   resources :boards, only: [ :index, :show, :create, :update, :destroy ] do
     patch :update_task_status, on: :member
     resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "boards/tasks" do
+      member do
+        patch :assign
+        patch :unassign
+      end
       resources :comments, only: [ :create ], controller: "boards/comments"
     end
   end

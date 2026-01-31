@@ -1,8 +1,9 @@
 class Boards::TasksController < ApplicationController
   before_action :set_board
-  before_action :set_task, only: [:show, :edit, :update, :destroy]
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign]
 
   def show
+    @api_token = current_user.api_token
     render layout: false
   end
 
@@ -53,6 +54,24 @@ class Boards::TasksController < ApplicationController
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to board_path(@board), notice: "Task deleted." }
+    end
+  end
+
+  def assign
+    @task.activity_source = "web"
+    @task.assign_to_agent!
+    respond_to do |format|
+      format.turbo_stream { render turbo_stream: turbo_stream.replace("task_#{@task.id}", partial: "boards/task_card", locals: { task: @task }) }
+      format.html { redirect_to board_path(@board), notice: "Task assigned to agent." }
+    end
+  end
+
+  def unassign
+    @task.activity_source = "web"
+    @task.unassign_from_agent!
+    respond_to do |format|
+      format.turbo_stream { render turbo_stream: turbo_stream.replace("task_#{@task.id}", partial: "boards/task_card", locals: { task: @task }) }
+      format.html { redirect_to board_path(@board), notice: "Task unassigned from agent." }
     end
   end
 
