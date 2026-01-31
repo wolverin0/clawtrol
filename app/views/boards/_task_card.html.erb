@@ -18,11 +18,11 @@
         </svg>
         Delete
       </button>
-      <%= render "application/delete_modal", url: board_task_path(@board, task) %>
+      <%= render "application/delete_modal", url: board_task_path(task.board, task) %>
     </div>
   </div>
 
-  <%= link_to board_task_path(@board, task), data: { turbo_frame: "task_panel" }, class: "block p-3" do %>
+  <%= link_to board_task_path(task.board, task), data: { turbo_frame: "task_panel" }, class: "block p-3" do %>
 
   <%# Task Name %>
   <div class="flex items-start gap-2">
