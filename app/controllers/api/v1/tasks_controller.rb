@@ -124,8 +124,9 @@ module Api
       # POST /api/v1/tasks
       def create
         # Assign to specified board or default to user's first board
-        board = if params[:task][:board_id].present?
-          current_user.boards.find(params[:task][:board_id])
+        board_id = params.dig(:task, :board_id) || params[:board_id]
+        board = if board_id.present?
+          current_user.boards.find(board_id)
         else
           current_user.boards.first || current_user.boards.create!(name: "Personal", icon: "📋", color: "gray")
         end
@@ -133,10 +134,6 @@ module Api
         @task = board.tasks.new(task_params)
         @task.user = current_user
         @task.activity_source = "api"
-
-        # Set position at top of the target status column
-        max_position = board.tasks.where(status: @task.status).maximum(:position) || 0
-        @task.position = max_position + 1
 
         if @task.save
           render json: task_json(@task), status: :created
