@@ -184,7 +184,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 ## Links
 
 - 🌐 **Website & App:** [clawdeck.io](https://clawdeck.io)
-- 💬 **Discord:** [Join the community](https://discord.gg/openclaw)
+- 💬 **Discord:** [Join the community](https://discord.gg/pqffNjdY)
 - 🐙 **GitHub:** [clawdeckio/clawdeck](https://github.com/clawdeckio/clawdeck)
 
 ---
