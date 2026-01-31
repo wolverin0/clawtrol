@@ -1,6 +1,9 @@
 <% content_for :title, "Board - clawdeck" %>
 <% @board_page = true %>
 
+<%# Subscribe to real-time updates for this user's board %>
+<%= turbo_stream_from current_user, :board %>
+
 <div class="h-full flex flex-col" data-controller="board">
   <%# Board Header %>
   <%= render "board/header" %>

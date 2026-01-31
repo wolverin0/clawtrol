@@ -10,6 +10,11 @@ class Task < ApplicationRecord
   validates :priority, inclusion: { in: priorities.keys }
   validates :status, inclusion: { in: statuses.keys }
 
+  # Real-time broadcasts to user's board
+  after_create_commit :broadcast_create
+  after_update_commit :broadcast_update
+  after_destroy_commit :broadcast_destroy
+
   # Activity tracking
   attr_accessor :activity_source
   after_create :record_creation_activity
@@ -63,5 +68,64 @@ class Task < ApplicationRecord
     # Track field changes
     tracked_changes = saved_changes.slice(*TaskActivity::TRACKED_FIELDS)
     TaskActivity.record_changes(self, tracked_changes, source: source) if tracked_changes.any?
+  end
+
+  # Turbo Streams broadcasts for real-time updates
+  def broadcast_create
+    broadcast_action_to(
+      user, :board,
+      action: :prepend,
+      target: "column-#{status}",
+      partial: "board/task_card",
+      locals: { task: self }
+    )
+    broadcast_column_count(status)
+  end
+
+  def broadcast_update
+    # If status changed, handle move between columns
+    if saved_change_to_status?
+      old_status, new_status = saved_change_to_status
+      # Remove from old column
+      broadcast_action_to(user, :board, action: :remove, target: "task_#{id}")
+      # Add to new column
+      broadcast_action_to(
+        user, :board,
+        action: :prepend,
+        target: "column-#{new_status}",
+        partial: "board/task_card",
+        locals: { task: self }
+      )
+      broadcast_column_count(old_status)
+      broadcast_column_count(new_status)
+    else
+      # Just update the card in place
+      broadcast_action_to(
+        user, :board,
+        action: :replace,
+        target: "task_#{id}",
+        partial: "board/task_card",
+        locals: { task: self }
+      )
+    end
+  end
+
+  def broadcast_destroy
+    broadcast_action_to(user, :board, action: :remove, target: "task_#{id}")
+    broadcast_column_count(status)
+  end
+
+  def broadcast_column_count(column_status)
+    count = user.tasks.where(status: column_status).count
+    broadcast_action_to(
+      user, :board,
+      action: :replace,
+      target: "column-#{column_status}-count",
+      html: %(<span id="column-#{column_status}-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded">#{count}</span>)
+    )
+  end
+
+  def broadcast_action_to(*streamables, action:, target:, **options)
+    Turbo::StreamsChannel.broadcast_action_to(*streamables, action: action, target: target, **options)
   end
 end
