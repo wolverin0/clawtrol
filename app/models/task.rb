@@ -11,14 +11,17 @@ class Task < ApplicationRecord
   validates :priority, inclusion: { in: priorities.keys }
   validates :status, inclusion: { in: statuses.keys }
 
-  # Real-time broadcasts to user's board (only for API/background changes)
-  # Skip broadcasts when activity_source is "web" since turbo_stream templates handle it
-  after_create_commit :broadcast_create, unless: -> { activity_source == "web" }
-  after_update_commit :broadcast_update, unless: -> { activity_source == "web" }
-  after_destroy_commit :broadcast_destroy, unless: -> { activity_source == "web" }
-
-  # Activity tracking
+  # Activity tracking - must be declared before callbacks that use it
   attr_accessor :activity_source
+
+  # Store activity_source before commit so it survives the transaction
+  before_save :store_activity_source_for_broadcast
+
+  # Real-time broadcasts to user's board (only for API/background changes)
+  # Skip broadcasts when activity_source is "web" since the UI already handles it
+  after_create_commit :broadcast_create
+  after_update_commit :broadcast_update
+  after_destroy_commit :broadcast_destroy
   after_create :record_creation_activity
   after_update :record_update_activities
 
@@ -53,6 +56,14 @@ class Task < ApplicationRecord
     self.position = max_position + 1
   end
 
+  def store_activity_source_for_broadcast
+    @stored_activity_source = activity_source
+  end
+
+  def skip_broadcast?
+    @stored_activity_source == "web"
+  end
+
   def sync_completed_with_status
     self.completed = (status == "done")
   end
@@ -85,6 +96,8 @@ class Task < ApplicationRecord
 
   # Turbo Streams broadcasts for real-time updates
   def broadcast_create
+    return if skip_broadcast?
+
     broadcast_to_board(
       action: :prepend,
       target: "column-#{status}",
@@ -95,6 +108,8 @@ class Task < ApplicationRecord
   end
 
   def broadcast_update
+    return if skip_broadcast?
+
     # If status changed, handle move between columns
     if saved_change_to_status?
       old_status, new_status = saved_change_to_status
@@ -121,6 +136,8 @@ class Task < ApplicationRecord
   end
 
   def broadcast_destroy
+    return if skip_broadcast?
+
     # Cache values before they become inaccessible
     cached_board_id = board_id
     cached_status = status
