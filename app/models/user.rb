@@ -18,8 +18,7 @@ class User < ApplicationRecord
   validates :password, length: { minimum: 8 }, if: :password_required?
   validates :password, confirmation: true, if: :password_required?
 
-  after_create :create_default_board
-  after_create :create_welcome_tasks
+  after_create_commit :create_onboarding_board
 
   validates :email_address, presence: true,
                            uniqueness: { case_sensitive: false },
@@ -90,23 +89,8 @@ class User < ApplicationRecord
     !oauth_user? && (new_record? || password.present?)
   end
 
-  def create_default_board
-    boards.create!(name: "Personal", icon: "📋", color: "gray")
-  end
-
-  def create_welcome_tasks
-    default_board = boards.first
-    return unless default_board
-
-    [
-      { name: "Welcome to ClawDeck!", status: :inbox, priority: :high },
-      { name: "Create your first task", status: :inbox, priority: :medium },
-      { name: "Drag tasks between columns", status: :up_next, priority: :low },
-      { name: "Use tags to organize tasks", status: :up_next, priority: :low, tags: ["tutorial"] },
-      { name: "Join the Discord community", status: :inbox, priority: :high }
-    ].each do |task_attrs|
-      default_board.tasks.create!(task_attrs.merge(user: self))
-    end
+  def create_onboarding_board
+    Board.create_onboarding_for(self)
   end
 
   def avatar_changed?
