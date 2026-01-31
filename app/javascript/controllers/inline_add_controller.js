@@ -9,16 +9,36 @@ export default class extends Controller {
     url: String
   }
 
+  connect() {
+    this.handleClickOutside = this.handleClickOutside.bind(this)
+  }
+
+  disconnect() {
+    document.removeEventListener("click", this.handleClickOutside)
+  }
+
   show() {
     this.buttonTarget.classList.add("hidden")
     this.formTarget.classList.remove("hidden")
     this.inputTarget.focus()
+    // Add click outside listener after a brief delay to avoid immediate trigger
+    setTimeout(() => {
+      document.addEventListener("click", this.handleClickOutside)
+    }, 0)
   }
 
   cancel() {
     this.formTarget.classList.add("hidden")
     this.buttonTarget.classList.remove("hidden")
     this.inputTarget.value = ""
+    document.removeEventListener("click", this.handleClickOutside)
+  }
+
+  handleClickOutside(event) {
+    // If click is outside the form, cancel
+    if (!this.formTarget.contains(event.target)) {
+      this.cancel()
+    }
   }
 
   handleKeydown(event) {
