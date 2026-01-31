@@ -1,0 +1,31 @@
+<%# Agent assignment button for task panel %>
+<% agent_connected = current_user.agent_last_active_at.present? %>
+<% agent_name = current_user.agent_name || "Agent" %>
+<% agent_emoji = agent_connected ? (current_user.agent_emoji || "🦞") : "🦞" %>
+
+<div id="task_<%= task.id %>_agent_assignment" class="flex items-center justify-between pb-4 -mt-2">
+  <span class="text-sm text-content-muted">Agent</span>
+
+  <% if task.assigned_to_agent? %>
+    <%= button_to unassign_board_task_path(board, task),
+        method: :patch,
+        class: "cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-accent/20 text-accent hover:bg-accent/30 transition-colors",
+        title: "Unassign from #{agent_name}" do %>
+      <span><%= agent_emoji %></span>
+      <span>Assigned</span>
+    <% end %>
+  <% elsif agent_connected %>
+    <%= button_to assign_board_task_path(board, task),
+        method: :patch,
+        class: "cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors",
+        title: "Assign to #{agent_name}" do %>
+      <span><%= agent_emoji %></span>
+      <span>Assign</span>
+    <% end %>
+  <% else %>
+    <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-content-muted bg-bg-elevated cursor-not-allowed" title="Connect an agent in Settings">
+      <span>🦞</span>
+      <span>No agent</span>
+    </span>
+  <% end %>
+</div>

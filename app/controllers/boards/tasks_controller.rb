@@ -61,7 +61,12 @@ class Boards::TasksController < ApplicationController
     @task.activity_source = "web"
     @task.assign_to_agent!
     respond_to do |format|
-      format.turbo_stream { render turbo_stream: turbo_stream.replace("task_#{@task.id}", partial: "boards/task_card", locals: { task: @task }) }
+      format.turbo_stream do
+        render turbo_stream: [
+          turbo_stream.replace("task_#{@task.id}", partial: "boards/task_card", locals: { task: @task }),
+          turbo_stream.replace("task_#{@task.id}_agent_assignment", partial: "boards/tasks/agent_assignment", locals: { task: @task, board: @board })
+        ]
+      end
       format.html { redirect_to board_path(@board), notice: "Task assigned to agent." }
     end
   end
@@ -70,7 +75,12 @@ class Boards::TasksController < ApplicationController
     @task.activity_source = "web"
     @task.unassign_from_agent!
     respond_to do |format|
-      format.turbo_stream { render turbo_stream: turbo_stream.replace("task_#{@task.id}", partial: "boards/task_card", locals: { task: @task }) }
+      format.turbo_stream do
+        render turbo_stream: [
+          turbo_stream.replace("task_#{@task.id}", partial: "boards/task_card", locals: { task: @task }),
+          turbo_stream.replace("task_#{@task.id}_agent_assignment", partial: "boards/tasks/agent_assignment", locals: { task: @task, board: @board })
+        ]
+      end
       format.html { redirect_to board_path(@board), notice: "Task unassigned from agent." }
     end
   end
