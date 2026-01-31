@@ -5,12 +5,12 @@
     data-task-status="<%= task.status %>"
     data-task-position="<%= task.position %>"
     data-action="contextmenu->dropdown#openAtCursor">
-  
+
   <%# Context Menu (right-click) %>
   <button data-dropdown-target="button" class="hidden" aria-expanded="false"></button>
   <div data-dropdown-target="menu" class="hidden fixed z-[100] min-w-[160px] bg-bg-elevated border border-border rounded-lg shadow-lg py-1">
     <div data-controller="delete-confirm" data-delete-confirm-item-name-value="<%= task.name.truncate(30) %>">
-      <button type="button" 
+      <button type="button"
               data-action="click->delete-confirm#open click->dropdown#close"
               class="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
@@ -18,11 +18,11 @@
         </svg>
         Delete
       </button>
-      <%= render "application/delete_modal", url: board_task_path(task) %>
+      <%= render "application/delete_modal", url: board_task_path(@board, task) %>
     </div>
   </div>
 
-  <%= link_to board_task_path(task), data: { turbo_frame: "task_panel" }, class: "block p-3" do %>
+  <%= link_to board_task_path(@board, task), data: { turbo_frame: "task_panel" }, class: "block p-3" do %>
 
   <%# Task Name %>
   <div class="flex items-start gap-2">

@@ -4,7 +4,9 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   openNewTaskModal(event) {
     event.preventDefault()
-    // Use turbo to load the new task form
-    Turbo.visit("/board/tasks/new", { frame: "new_task_modal" })
+    // Get the current board path from the URL
+    const path = window.location.pathname
+    const newTaskPath = `${path}/tasks/new`
+    Turbo.visit(newTaskPath, { frame: "new_task_modal" })
   }
 }

@@ -33,13 +33,19 @@ Rails.application.routes.draw do
     post :regenerate_api_token
   end
 
-  # Kanban Board (main authenticated view)
-  resource :board, only: [ :show ], controller: "board" do
-    patch :update_task_status
-    resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "board/tasks" do
-      resources :comments, only: [ :create ], controller: "board/comments"
+  # Boards (multi-board kanban views)
+  resources :boards, only: [ :index, :show, :create, :update, :destroy ] do
+    patch :update_task_status, on: :member
+    resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "boards/tasks" do
+      resources :comments, only: [ :create ], controller: "boards/comments"
     end
   end
+
+  # Redirect root board path to first board
+  get "board", to: redirect { |params, request|
+    # This will be handled by the controller for proper user scoping
+    "/boards"
+  }
   get "pages/home"
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

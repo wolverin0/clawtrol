@@ -1,5 +1,6 @@
 class Task < ApplicationRecord
   belongs_to :user
+  belongs_to :board
   has_many :activities, class_name: "TaskActivity", dependent: :destroy
   has_many :comments, dependent: :destroy
 
@@ -36,9 +37,9 @@ class Task < ApplicationRecord
   def set_position
     return if position.present?
 
-    # Prepend: shift all existing tasks down and insert at position 1
-    user.tasks.where(status: status).update_all("position = position + 1")
-    self.position = 1
+    # Append: set position to end of list
+    max_position = board.tasks.where(status: status).maximum(:position) || 0
+    self.position = max_position + 1
   end
 
   def sync_completed_with_status
@@ -76,7 +77,7 @@ class Task < ApplicationRecord
     broadcast_to_board(
       action: :prepend,
       target: "column-#{status}",
-      partial: "board/task_card",
+      partial: "boards/task_card",
       locals: { task: self }
     )
     broadcast_column_count(status)
@@ -92,7 +93,7 @@ class Task < ApplicationRecord
       broadcast_to_board(
         action: :prepend,
         target: "column-#{new_status}",
-        partial: "board/task_card",
+        partial: "boards/task_card",
         locals: { task: self }
       )
       broadcast_column_count(old_status)
@@ -102,7 +103,7 @@ class Task < ApplicationRecord
       broadcast_to_board(
         action: :replace,
         target: "task_#{id}",
-        partial: "board/task_card",
+        partial: "boards/task_card",
         locals: { task: self }
       )
     end
@@ -110,15 +111,15 @@ class Task < ApplicationRecord
 
   def broadcast_destroy
     # Cache values before they become inaccessible
-    cached_user_id = user_id
+    cached_board_id = board_id
     cached_status = status
     cached_id = id
-    stream = "user_#{cached_user_id}_board"
-    
+    stream = "board_#{cached_board_id}"
+
     Turbo::StreamsChannel.broadcast_action_to(stream, action: :remove, target: "task_#{cached_id}")
-    
+
     # Update column count
-    count = User.find(cached_user_id).tasks.where(status: cached_status).count
+    count = Board.find(cached_board_id).tasks.where(status: cached_status).count
     Turbo::StreamsChannel.broadcast_action_to(
       stream,
       action: :replace,
@@ -128,7 +129,7 @@ class Task < ApplicationRecord
   end
 
   def broadcast_column_count(column_status)
-    count = user.tasks.where(status: column_status).count
+    count = board.tasks.where(status: column_status).count
     broadcast_to_board(
       action: :replace,
       target: "column-#{column_status}-count",
@@ -137,7 +138,7 @@ class Task < ApplicationRecord
   end
 
   def board_stream_name
-    "user_#{user_id}_board"
+    "board_#{board_id}"
   end
 
   def broadcast_to_board(action:, target:, **options)

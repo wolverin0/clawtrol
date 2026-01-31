@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_30_234432) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_31_115849) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -53,6 +53,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_234432) do
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
   end
 
+  create_table "boards", force: :cascade do |t|
+    t.string "color", default: "gray"
+    t.datetime "created_at", null: false
+    t.string "icon", default: "📋"
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "position"], name: "index_boards_on_user_id_and_position"
+    t.index ["user_id"], name: "index_boards_on_user_id"
+  end
+
   create_table "comments", force: :cascade do |t|
     t.string "author_name"
     t.string "author_type"
@@ -85,6 +97,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_234432) do
     t.string "user_agent"
     t.integer "user_id", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "solid_cable_messages", force: :cascade do |t|
+    t.binary "channel", null: false
+    t.bigint "channel_hash", null: false
+    t.datetime "created_at", null: false
+    t.binary "payload", null: false
+    t.index ["channel"], name: "index_solid_cable_messages_on_channel"
+    t.index ["channel_hash"], name: "index_solid_cable_messages_on_channel_hash"
+    t.index ["created_at"], name: "index_solid_cable_messages_on_created_at"
   end
 
   create_table "tags", force: :cascade do |t|
@@ -140,6 +162,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_234432) do
   create_table "tasks", force: :cascade do |t|
     t.datetime "agent_claimed_at"
     t.boolean "blocked", default: false, null: false
+    t.bigint "board_id", null: false
     t.integer "comments_count", default: 0, null: false
     t.boolean "completed", default: false, null: false
     t.datetime "completed_at"
@@ -149,7 +172,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_234432) do
     t.date "due_date"
     t.integer "effort", default: 0, null: false
     t.integer "impact", default: 0, null: false
+    t.datetime "last_agent_read_at"
     t.string "name"
+    t.boolean "needs_agent_reply", default: false, null: false
     t.integer "original_position"
     t.integer "position"
     t.integer "priority", default: 0, null: false
@@ -161,6 +186,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_234432) do
     t.datetime "updated_at", null: false
     t.integer "user_id"
     t.index ["blocked"], name: "index_tasks_on_blocked"
+    t.index ["board_id"], name: "index_tasks_on_board_id"
+    t.index ["needs_agent_reply"], name: "index_tasks_on_needs_agent_reply"
     t.index ["position"], name: "index_tasks_on_position"
     t.index ["project_id"], name: "index_tasks_on_project_id"
     t.index ["status"], name: "index_tasks_on_status"
@@ -171,8 +198,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_234432) do
   create_table "users", force: :cascade do |t|
     t.boolean "admin", default: false, null: false
     t.boolean "agent_auto_mode", default: true, null: false
-    t.string "agent_emoji", default: "🤖"
-    t.string "agent_name", default: "Assistant"
+    t.string "agent_emoji", default: "🦞"
+    t.string "agent_name", default: "OpenClaw"
     t.datetime "created_at", null: false
     t.string "email_address", null: false
     t.string "password_digest"
@@ -186,6 +213,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_234432) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "api_tokens", "users"
+  add_foreign_key "boards", "users"
   add_foreign_key "comments", "tasks"
   add_foreign_key "projects", "users"
   add_foreign_key "sessions", "users"
@@ -197,6 +225,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_234432) do
   add_foreign_key "task_lists", "users"
   add_foreign_key "task_tags", "tags"
   add_foreign_key "task_tags", "tasks"
+  add_foreign_key "tasks", "boards"
   add_foreign_key "tasks", "projects"
   add_foreign_key "tasks", "task_lists"
   add_foreign_key "tasks", "users"

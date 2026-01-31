@@ -6,14 +6,14 @@
       <!-- Header -->
       <div class="px-5 py-4 border-b border-border flex items-center justify-between">
         <span class="text-sm font-semibold text-content font-display">New Task</span>
-        <%= link_to board_path, class: "p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors", data: { turbo_frame: "_top" } do %>
+        <%= link_to board_path(@board), class: "p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors", data: { turbo_frame: "_top" } do %>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
           </svg>
         <% end %>
       </div>
 
-      <%= form_with model: @task, url: board_tasks_path, class: "px-5 py-6 space-y-6" do |form| %>
+      <%= form_with model: @task, url: board_tasks_path(@board), class: "px-5 py-6 space-y-6" do |form| %>
         <% if @task.errors.any? %>
           <div class="p-3 bg-status-error/20 text-status-error text-xs rounded-md">
             <ul class="list-disc list-inside">
@@ -86,7 +86,7 @@
 
         <!-- Footer -->
         <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
-          <%= link_to "Cancel", board_path, class: "px-4 py-2 text-sm font-medium text-content-secondary hover:text-content transition-colors", data: { turbo_frame: "_top" } %>
+          <%= link_to "Cancel", board_path(@board), class: "px-4 py-2 text-sm font-medium text-content-secondary hover:text-content transition-colors", data: { turbo_frame: "_top" } %>
           <%= form.submit "Create Task", class: "px-4 py-2 text-sm font-semibold rounded-md bg-accent text-content hover:bg-accent-hover transition-colors cursor-pointer" %>
         </div>
       <% end %>

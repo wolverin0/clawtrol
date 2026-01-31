@@ -18,6 +18,9 @@ export default class extends Controller {
       delay: 150,
       delayOnTouchOnly: true,
       touchStartThreshold: 5,
+      emptyInsertThreshold: 50,
+      swapThreshold: 0.65,
+      invertSwap: true,
       filter: '[style*="display: none"]',
       onMove: this.move.bind(this),
       onUpdate: this.handleUpdate.bind(this)

@@ -113,11 +113,19 @@ module Api
 
       # POST /api/v1/tasks
       def create
-        @task = current_user.tasks.new(task_params)
+        # Assign to specified board or default to user's first board
+        board = if params[:task][:board_id].present?
+          current_user.boards.find(params[:task][:board_id])
+        else
+          current_user.boards.first || current_user.boards.create!(name: "Personal", icon: "📋", color: "gray")
+        end
+
+        @task = board.tasks.new(task_params)
+        @task.user = current_user
         @task.activity_source = "api"
 
         # Set position at top of the target status column
-        max_position = current_user.tasks.where(status: @task.status).maximum(:position) || 0
+        max_position = board.tasks.where(status: @task.status).maximum(:position) || 0
         @task.position = max_position + 1
 
         if @task.save
@@ -164,7 +172,7 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, tags: [])
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, tags: [])
       end
 
       def task_json(task)
@@ -183,7 +191,8 @@ module Api
           comments_count: task.comments_count,
           agent_claimed_at: task.agent_claimed_at&.iso8601,
           needs_agent_reply: task.needs_agent_reply,
-          url: "https://app.clawdeck.io/board/tasks/#{task.id}",
+          board_id: task.board_id,
+          url: "https://app.clawdeck.io/boards/#{task.board_id}/tasks/#{task.id}",
           created_at: task.created_at.iso8601,
           updated_at: task.updated_at.iso8601
         }

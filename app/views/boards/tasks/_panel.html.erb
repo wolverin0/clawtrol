@@ -42,7 +42,7 @@
 
       <!-- Content -->
       <div class="px-5 py-6 overflow-y-auto flex-1 min-h-0">
-        <%= form_with model: task, url: board_task_path(task), method: :patch, data: { task_modal_target: "form" }, class: "space-y-6" do |form| %>
+        <%= form_with model: task, url: board_task_path(@board, task), method: :patch, data: { task_modal_target: "form" }, class: "space-y-6" do |form| %>
           <%= form.hidden_field :priority, value: task.priority, data: { task_modal_target: "priorityField" } %>
 
           <!-- Title -->

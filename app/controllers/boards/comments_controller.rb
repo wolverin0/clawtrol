@@ -1,4 +1,5 @@
-class Board::CommentsController < ApplicationController
+class Boards::CommentsController < ApplicationController
+  before_action :set_board
   before_action :set_task
 
   def create
@@ -10,17 +11,21 @@ class Board::CommentsController < ApplicationController
     if @comment.save
       respond_to do |format|
         format.turbo_stream
-        format.html { redirect_to board_task_path(@task), notice: "Comment added." }
+        format.html { redirect_to board_task_path(@board, @task), notice: "Comment added." }
       end
     else
-      redirect_to board_task_path(@task), alert: "Could not add comment."
+      redirect_to board_task_path(@board, @task), alert: "Could not add comment."
     end
   end
 
   private
 
+  def set_board
+    @board = current_user.boards.find(params[:board_id])
+  end
+
   def set_task
-    @task = current_user.tasks.find(params[:task_id])
+    @task = @board.tasks.find(params[:task_id])
   end
 
   def comment_params

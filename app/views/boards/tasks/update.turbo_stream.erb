@@ -8,17 +8,17 @@
 
   <%# Add to new column %>
   <%= turbo_stream.prepend "column-#{new_status}" do %>
-    <%= render "board/task_card", task: @task %>
+    <%= render "boards/task_card", task: @task %>
   <% end %>
 
   <%# Update old column count %>
-  <% old_count = current_user.tasks.where(status: old_status).count %>
+  <% old_count = @board.tasks.where(status: old_status).count %>
   <%= turbo_stream.replace "column-#{old_status}-count" do %>
     <span id="column-<%= old_status %>-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded"><%= old_count %></span>
   <% end %>
 
   <%# Update new column count %>
-  <% new_count = current_user.tasks.where(status: new_status).count %>
+  <% new_count = @board.tasks.where(status: new_status).count %>
   <%= turbo_stream.replace "column-#{new_status}-count" do %>
     <span id="column-<%= new_status %>-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded"><%= new_count %></span>
   <% end %>
@@ -33,7 +33,7 @@
 <% else %>
   <%# Status didn't change - just update the card in place %>
   <%= turbo_stream.replace "task_#{@task.id}" do %>
-    <%= render "board/task_card", task: @task %>
+    <%= render "boards/task_card", task: @task %>
   <% end %>
 <% end %>
 

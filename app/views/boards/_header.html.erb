@@ -1,26 +1,57 @@
-<%# Board Header - replaces sidebar %>
+<%# Board Header %>
 <header class="relative flex-shrink-0 flex items-center justify-between px-6 py-4 bg-bg-base border-b border-border">
-  <%# Left section: Agent info %>
+  <%# Left section: Board switcher dropdown %>
   <div class="flex items-center gap-4">
-    <%# Agent identity %>
-    <% 
-      agent_working = current_user.tasks.where(status: :in_progress).where.not(agent_claimed_at: nil).exists?
-      agent_configured = current_user.api_tokens.where.not(last_used_at: nil).exists?
-      agent_status = agent_working ? "working" : (agent_configured ? "idle" : "not configured")
-      status_color = case agent_status
-        when "working" then "bg-status-success"
-        when "idle" then "bg-status-info"
-        else "bg-content-muted"
-      end
-    %>
-    <div class="flex items-center gap-2">
-      <span class="text-xl"><%= current_user.agent_emoji || "🦞" %></span>
-      <span class="text-sm font-semibold text-content font-display"><%= current_user.agent_name || "OpenClaw" %></span>
-      <span class="flex items-center gap-1 text-xs text-content-muted">
-        <span class="w-2 h-2 rounded-full <%= status_color %> <%= 'animate-pulse' if agent_status == 'working' %>"></span>
-        <%= agent_status %>
-      </span>
+    <%# Board switcher dropdown %>
+    <div class="relative" data-controller="dropdown">
+      <button type="button"
+              data-dropdown-target="button"
+              data-action="click->dropdown#toggle"
+              class="flex items-center gap-2 cursor-pointer hover:bg-bg-surface px-2 py-1 -ml-2 rounded-lg transition-colors">
+        <span class="text-xl"><%= @board.icon %></span>
+        <span class="text-sm font-semibold text-content font-display"><%= @board.name %></span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-content-muted">
+          <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+        </svg>
+      </button>
+
+      <%# Board switcher dropdown menu %>
+      <div data-dropdown-target="menu"
+           class="hidden absolute left-0 top-full mt-1 w-56 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
+        <%# Board list %>
+        <div class="py-1 max-h-64 overflow-y-auto">
+          <% @boards.each do |board| %>
+            <%= link_to board_path(board),
+                class: "flex items-center gap-3 px-3 py-2 text-sm hover:bg-bg-elevated transition-colors #{board.id == @board.id ? 'bg-bg-elevated' : ''}",
+                data: { turbo_frame: "_top" } do %>
+              <span class="text-lg"><%= board.icon %></span>
+              <span class="text-content truncate flex-1"><%= board.name %></span>
+              <% if board.id == @board.id %>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-accent">
+                  <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" />
+                </svg>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+
+        <%# Divider %>
+        <div class="border-t border-border"></div>
+
+        <%# New Board button %>
+        <div class="py-1">
+          <button type="button"
+                  onclick="document.getElementById('new-board-modal').classList.remove('hidden')"
+                  class="w-full flex items-center gap-3 px-3 py-2 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+              <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+            </svg>
+            <span>New Board</span>
+          </button>
+        </div>
+      </div>
     </div>
+
   </div>
 
   <%# Center section: Task counts (absolutely centered in viewport) %>
@@ -43,16 +74,6 @@
         <%= alert %>
       </div>
     <% end %>
-
-    <%# Auto/Pause toggle %>
-    <div class="flex items-center rounded-md bg-bg-surface p-0.5">
-      <button type="button" class="px-3 py-1.5 text-xs font-medium rounded bg-bg-elevated text-content shadow-sm">
-        Auto
-      </button>
-      <button type="button" class="px-3 py-1.5 text-xs font-medium rounded text-content-muted hover:text-content-secondary">
-        Pause
-      </button>
-    </div>
 
     <%# Add Task Button %>
     <button type="button"
@@ -131,3 +152,64 @@
     </div>
   </div>
 </header>
+
+<%# New Board Modal %>
+<div id="new-board-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/60" onclick="document.getElementById('new-board-modal').classList.add('hidden')"></div>
+  <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+    <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+      <span class="text-sm font-semibold text-content font-display">New Board</span>
+      <button type="button"
+              onclick="document.getElementById('new-board-modal').classList.add('hidden')"
+              class="p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <%= form_with model: Board.new, url: boards_path, class: "p-5 space-y-4" do |form| %>
+      <div>
+        <label class="block text-sm font-medium text-content-secondary mb-2">Board Name</label>
+        <%= form.text_field :name,
+            required: true,
+            placeholder: "e.g., Work, Personal, Side Project",
+            class: "w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-content placeholder-content-muted" %>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-content-secondary mb-2">Icon</label>
+        <div class="flex flex-wrap gap-2" id="icon-group">
+          <% Board::DEFAULT_ICONS.each do |icon| %>
+            <button type="button"
+                    onclick="selectBoardIcon(this, '<%= icon %>')"
+                    data-icon="<%= icon %>"
+                    class="w-10 h-10 flex items-center justify-center rounded-lg bg-bg-elevated hover:bg-bg-hover transition-colors text-xl cursor-pointer <%= icon == '📋' ? 'ring-2 ring-accent' : '' %>">
+              <%= icon %>
+            </button>
+          <% end %>
+        </div>
+        <%= form.hidden_field :icon, value: "📋", id: "board-icon-field" %>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-2">
+        <button type="button"
+                onclick="document.getElementById('new-board-modal').classList.add('hidden')"
+                class="px-4 py-2 text-sm font-medium text-content-secondary hover:text-content transition-colors cursor-pointer">
+          Cancel
+        </button>
+        <%= form.submit "Create Board", class: "px-4 py-2 text-sm font-semibold rounded-md bg-accent text-content hover:bg-accent-hover transition-colors cursor-pointer" %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  function selectBoardIcon(btn, icon) {
+    document.getElementById('board-icon-field').value = icon;
+    document.querySelectorAll('#icon-group button').forEach(b => {
+      b.classList.remove('ring-2', 'ring-accent');
+    });
+    btn.classList.add('ring-2', 'ring-accent');
+  }
+</script>

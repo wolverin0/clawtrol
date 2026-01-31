@@ -38,7 +38,7 @@ module Authentication
     end
 
     def redirect_if_authenticated
-      redirect_to board_path if authenticated?
+      redirect_to boards_path if authenticated?
     end
 
     def resume_session
@@ -55,7 +55,7 @@ module Authentication
     end
 
     def after_authentication_url
-      session.delete(:return_to_after_authenticating) || board_url
+      session.delete(:return_to_after_authenticating) || boards_url
     end
 
     def start_new_session_for(user)
