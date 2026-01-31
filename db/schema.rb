@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_30_223538) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_30_234432) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -138,6 +138,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_223538) do
   end
 
   create_table "tasks", force: :cascade do |t|
+    t.datetime "agent_claimed_at"
     t.boolean "blocked", default: false, null: false
     t.integer "comments_count", default: 0, null: false
     t.boolean "completed", default: false, null: false
@@ -169,6 +170,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_30_223538) do
 
   create_table "users", force: :cascade do |t|
     t.boolean "admin", default: false, null: false
+    t.boolean "agent_auto_mode", default: true, null: false
     t.string "agent_emoji", default: "🤖"
     t.string "agent_name", default: "Assistant"
     t.datetime "created_at", null: false
