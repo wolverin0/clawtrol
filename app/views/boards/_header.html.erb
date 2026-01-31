@@ -220,10 +220,10 @@
       <div class="flex items-center justify-end gap-3 pt-2">
         <button type="button"
                 onclick="document.getElementById('new-board-modal').classList.add('hidden')"
-                class="px-4 py-2 text-sm font-medium text-content-secondary hover:text-content transition-colors cursor-pointer">
+                class="px-4 py-2 text-sm rounded-md bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors cursor-pointer">
           Cancel
         </button>
-        <%= form.submit "Create Board", class: "px-4 py-2 text-sm font-semibold rounded-md bg-accent text-content hover:bg-accent-hover transition-colors cursor-pointer" %>
+        <%= form.submit "Create Board", class: "px-4 py-2 text-sm rounded-md bg-accent text-content hover:bg-accent-hover transition-colors cursor-pointer" %>
       </div>
     <% end %>
   </div>
@@ -309,10 +309,10 @@
         <div class="flex items-center gap-3">
           <button type="button"
                   onclick="document.getElementById('board-settings-modal').classList.add('hidden')"
-                  class="px-4 py-2 text-sm font-medium text-content-secondary hover:text-content transition-colors cursor-pointer">
+                  class="px-4 py-2 text-sm rounded-md bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors cursor-pointer">
             Cancel
           </button>
-          <%= form.submit "Save Changes", class: "px-4 py-2 text-sm font-semibold rounded-md bg-accent text-content hover:bg-accent-hover transition-colors cursor-pointer" %>
+          <%= form.submit "Save Changes", class: "px-4 py-2 text-sm rounded-md bg-accent text-content hover:bg-accent-hover transition-colors cursor-pointer" %>
         </div>
       </div>
     <% end %>
