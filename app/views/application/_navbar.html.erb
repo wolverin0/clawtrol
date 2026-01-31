@@ -3,7 +3,8 @@
   <%# Left section: Back to board %>
   <div class="flex items-center gap-4">
     <% if authenticated? %>
-      <%= link_to boards_path, class: "flex items-center gap-2 text-sm text-content-secondary hover:text-content transition-colors" do %>
+      <% last_board = session[:last_board_id] && current_user.boards.find_by(id: session[:last_board_id]) %>
+      <%= link_to last_board ? board_path(last_board) : boards_path, class: "flex items-center gap-2 text-sm text-content-secondary hover:text-content transition-colors" do %>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
           <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
         </svg>

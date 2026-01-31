@@ -1,7 +1,7 @@
 module Api
   module V1
     class TasksController < BaseController
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :claim, :unclaim ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :claim, :unclaim, :assign, :unassign ]
 
       # GET /api/v1/tasks/next - get next task for agent to work on
       # Returns highest priority unclaimed task in "up_next" status
@@ -73,9 +73,28 @@ module Api
         render json: task_json(@task)
       end
 
+      # PATCH /api/v1/tasks/:id/assign - assign task to agent
+      def assign
+        @task.activity_source = "api"
+        @task.update!(assigned_to_agent: true, assigned_at: Time.current)
+        render json: task_json(@task)
+      end
+
+      # PATCH /api/v1/tasks/:id/unassign - unassign task from agent
+      def unassign
+        @task.activity_source = "api"
+        @task.update!(assigned_to_agent: false, assigned_at: nil)
+        render json: task_json(@task)
+      end
+
       # GET /api/v1/tasks - all tasks for current user
       def index
         @tasks = current_user.tasks
+
+        # Filter by board
+        if params[:board_id].present?
+          @tasks = @tasks.where(board_id: params[:board_id])
+        end
 
         # Apply filters
         if params[:status].present? && Task.statuses.key?(params[:status])

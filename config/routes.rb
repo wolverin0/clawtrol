@@ -3,7 +3,9 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       resource :settings, only: [ :show, :update ]
-      
+
+      resources :boards, only: [ :index, :show, :create, :update, :destroy ]
+
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
           get :next
@@ -13,6 +15,8 @@ Rails.application.routes.draw do
           patch :complete
           patch :claim
           patch :unclaim
+          patch :assign
+          patch :unassign
         end
         resources :comments, only: [ :index, :create ]
       end
