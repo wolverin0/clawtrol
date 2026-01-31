@@ -102,21 +102,21 @@
             </div>
           </div>
 
-          <!-- Comments Section -->
-          <div class="border-t border-border pt-4">
-            <h3 class="text-sm font-semibold text-content mb-4 font-display">Comments</h3>
-            <%= render "shared/task_comments", task: task %>
-          </div>
-
-          <!-- Activity Divider -->
-          <div class="border-t border-border pt-4">
-            <h3 class="text-sm font-semibold text-content mb-4 font-display">Activity</h3>
-            <%= render "shared/task_activities", task: task %>
-          </div>
-
           <!-- Hidden submit button (triggered programmatically) -->
           <%= form.submit "Save", class: "hidden", data: { task_modal_target: "submitButton" } %>
         <% end %>
+
+        <!-- Comments Section (outside task form to avoid nesting) -->
+        <div class="border-t border-border pt-4">
+          <h3 class="text-sm font-semibold text-content mb-4 font-display">Comments</h3>
+          <%= render "shared/task_comments", task: task %>
+        </div>
+
+        <!-- Activity Divider -->
+        <div class="border-t border-border pt-4">
+          <h3 class="text-sm font-semibold text-content mb-4 font-display">Activity</h3>
+          <%= render "shared/task_activities", task: task %>
+        </div>
       </div>
     </div>
   </div>
