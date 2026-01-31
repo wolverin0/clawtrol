@@ -9,7 +9,7 @@ class User < ApplicationRecord
 
   # Primary API token for agent integration
   def api_token
-    api_tokens.first || api_tokens.create!
+    api_tokens.first || api_tokens.create!(name: "Default")
   end
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
