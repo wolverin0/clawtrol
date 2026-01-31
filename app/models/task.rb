@@ -60,7 +60,7 @@ class Task < ApplicationRecord
   end
 
   def skip_broadcast?
-    @stored_activity_source == "web"
+    @stored_activity_source == "web" || activity_source == "web"
   end
 
   def sync_completed_with_status
