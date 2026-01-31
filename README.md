@@ -2,17 +2,38 @@
 
 **Open source mission control for your AI agents.**
 
-ClawDeck is a kanban-style dashboard for managing AI agents powered by [OpenClaw](https://github.com/openclaw/openclaw). Track agent status, assign tasks, and orchestrate your AI workforce from one place.
+ClawDeck is a kanban-style dashboard for managing AI agents powered by [OpenClaw](https://github.com/openclaw/openclaw). Track tasks, assign work to your agent, and collaborate asynchronously.
 
 > 🚧 **Early Development** — ClawDeck is under active development. Expect breaking changes.
 
+## Get Started
+
+**Option 1: Use the hosted platform**  
+Sign up at [clawdeck.io](https://clawdeck.io) — free to start, we handle hosting.
+
+**Option 2: Self-host**  
+Clone this repo and run your own instance. See [Self-Hosting](#self-hosting) below.
+
+**Option 3: Contribute**  
+PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+---
+
 ## Features
 
-- **Agent Dashboard** — See all your agents and their current status
-- **Kanban Tasks** — Drag-and-drop task management per agent
-- **Project Boards** — Organize work into projects with agent assignments
-- **Real-time Updates** — Hotwire-powered live UI updates
+- **Kanban Boards** — Organize tasks across multiple boards
+- **Agent Assignment** — Assign tasks to your agent, track progress
+- **Activity Feed** — See what your agent is doing in real-time
 - **API Access** — Full REST API for agent integrations
+- **Real-time Updates** — Hotwire-powered live UI
+
+## How It Works
+
+1. You create tasks and organize them on boards
+2. You assign tasks to your agent when ready
+3. Your agent polls for assigned tasks and works on them
+4. Your agent updates progress via the API (activity feed)
+5. You see everything in real-time
 
 ## Tech Stack
 
@@ -21,7 +42,9 @@ ClawDeck is a kanban-style dashboard for managing AI agents powered by [OpenClaw
 - **Hotwire** (Turbo + Stimulus) + **Tailwind CSS**
 - **Authentication** via GitHub OAuth or email/password
 
-## Quick Start
+---
+
+## Self-Hosting
 
 ### Prerequisites
 - Ruby 3.3.1
@@ -43,60 +66,112 @@ Visit `http://localhost:3000`
 
 ClawDeck supports two authentication methods:
 
-1. **Email/Password** — Works out of the box, no configuration needed
-2. **GitHub OAuth** — Optional, requires setup (recommended for production)
+1. **Email/Password** — Works out of the box
+2. **GitHub OAuth** — Optional, recommended for production
 
-#### Setting up GitHub OAuth
+#### GitHub OAuth Setup
 
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
 2. Click **New OAuth App**
-3. Fill in the application details:
-   - **Application name:** ClawDeck (or your preferred name)
-   - **Homepage URL:** `http://localhost:3000` (or your production URL)
-   - **Authorization callback URL:** `http://localhost:3000/auth/github/callback`
-4. Click **Register application**
-5. Copy the **Client ID** and generate a **Client Secret**
-6. Add the credentials to your environment:
+3. Fill in:
+   - **Application name:** ClawDeck
+   - **Homepage URL:** Your domain
+   - **Authorization callback URL:** `https://yourdomain.com/auth/github/callback`
+4. Add credentials to environment:
 
 ```bash
-# For development, create a .env file in the project root:
-GITHUB_CLIENT_ID=your_client_id_here
-GITHUB_CLIENT_SECRET=your_client_secret_here
+GITHUB_CLIENT_ID=your_client_id
+GITHUB_CLIENT_SECRET=your_client_secret
 ```
-
-For production, set these as environment variables on your server or add them to your deployment configuration.
-
-Once configured, users will see a "Continue with GitHub" button on the login and signup pages. Without these variables, only email/password authentication is available.
 
 ### Running Tests
 ```bash
-bin/rails test              # Run all tests
-bin/rails test:system       # Run system tests
-bin/rubocop                 # Lint code
-bin/ci                      # Run full CI suite
+bin/rails test
+bin/rails test:system
+bin/rubocop
 ```
+
+---
 
 ## API
 
-ClawDeck exposes a REST API for agent integrations:
+ClawDeck exposes a REST API for agent integrations. Get your API token from Settings.
 
-```bash
-# List projects
-curl -H "Authorization: Bearer YOUR_TOKEN" https://your-clawdeck/api/v1/projects
+### Authentication
 
-# Create a task
-curl -X POST -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"task": {"name": "Research topic X"}}' \
-  https://your-clawdeck/api/v1/inbox/tasks
+Include your token in every request:
+```
+Authorization: Bearer YOUR_TOKEN
 ```
 
-See [API Documentation](docs/API.md) for full details.
+Include agent identity headers:
+```
+X-Agent-Name: Maxie
+X-Agent-Emoji: 🦊
+```
 
-## Deployment
+### Boards
 
-ClawDeck can be self-hosted on any VPS. See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
+```bash
+# List boards
+GET /api/v1/boards
 
-For managed hosting, visit [clawdeck.com](https://clawdeck.com) (coming soon).
+# Get board
+GET /api/v1/boards/:id
+
+# Create board
+POST /api/v1/boards
+{ "name": "My Project", "icon": "🚀" }
+
+# Update board
+PATCH /api/v1/boards/:id
+
+# Delete board
+DELETE /api/v1/boards/:id
+```
+
+### Tasks
+
+```bash
+# List tasks (with filters)
+GET /api/v1/tasks
+GET /api/v1/tasks?board_id=1
+GET /api/v1/tasks?status=in_progress
+GET /api/v1/tasks?assigned=true    # Your work queue
+
+# Get task
+GET /api/v1/tasks/:id
+
+# Create task
+POST /api/v1/tasks
+{ "name": "Research topic X", "status": "inbox", "board_id": 1 }
+
+# Update task (with optional activity note)
+PATCH /api/v1/tasks/:id
+{ "status": "in_progress", "activity_note": "Starting work on this" }
+
+# Delete task
+DELETE /api/v1/tasks/:id
+
+# Complete task
+PATCH /api/v1/tasks/:id/complete
+
+# Assign/unassign to agent
+PATCH /api/v1/tasks/:id/assign
+PATCH /api/v1/tasks/:id/unassign
+```
+
+### Task Statuses
+- `inbox` — New, not prioritized
+- `up_next` — Ready to be assigned
+- `in_progress` — Being worked on
+- `in_review` — Done, needs review
+- `done` — Complete
+
+### Priorities
+`none`, `low`, `medium`, `high`
+
+---
 
 ## Contributing
 
@@ -108,8 +183,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## Links
 
-- 🌐 **Website:** [clawdeck.io](https://clawdeck.io)
-- 📖 **Docs:** [clawdeck.io/docs](https://clawdeck.io/docs)
+- 🌐 **Website & App:** [clawdeck.io](https://clawdeck.io)
 - 💬 **Discord:** [Join the community](https://discord.gg/openclaw)
 - 🐙 **GitHub:** [clawdeckio/clawdeck](https://github.com/clawdeckio/clawdeck)
 
