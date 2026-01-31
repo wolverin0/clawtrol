@@ -82,8 +82,8 @@ class BoardsController < ApplicationController
     end
 
     # If a specific task changed status (moved between columns)
-    if params[:id].present? && params[:status].present?
-      @task = @board.tasks.find(params[:id])
+    if params[:task_id].present? && params[:status].present?
+      @task = @board.tasks.find(params[:task_id])
       @task.activity_source = "web"
       @task.update!(status: params[:status])
     end

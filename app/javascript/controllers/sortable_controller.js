@@ -113,7 +113,7 @@ export default class extends Controller {
           "Content-Type": "application/json",
           "X-CSRF-Token": this.csrfToken
         },
-        body: JSON.stringify({ id: taskId, status: newStatus, task_ids: taskIds })
+        body: JSON.stringify({ task_id: taskId, status: newStatus, task_ids: taskIds })
       })
 
       if (!response.ok) {

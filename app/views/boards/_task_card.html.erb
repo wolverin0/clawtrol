@@ -1,13 +1,13 @@
+<% has_current_user = defined?(current_user) && current_user %>
 <li id="task_<%= task.id %>"
     class="group bg-bg-elevated border border-border rounded-md cursor-pointer transition-all hover:bg-bg-hover <%= 'border-l-4 border-l-status-warning' if task.blocked? %>"
-    data-controller="dropdown"
+    <%= "data-controller=dropdown data-action=contextmenu->dropdown#openAtCursor" if has_current_user %>
     data-task-id="<%= task.id %>"
     data-task-status="<%= task.status %>"
-    data-task-position="<%= task.position %>"
-    data-action="contextmenu->dropdown#openAtCursor">
+    data-task-position="<%= task.position %>">
 
   <%# Context Menu (right-click) - only rendered when current_user is available (not during broadcasts) %>
-  <% if defined?(current_user) && current_user %>
+  <% if has_current_user %>
     <button data-dropdown-target="button" class="hidden" aria-expanded="false"></button>
     <div data-dropdown-target="menu" class="hidden fixed z-[100] min-w-[160px] bg-bg-elevated border border-border rounded-lg shadow-lg py-1">
       <%# Agent Assignment %>
