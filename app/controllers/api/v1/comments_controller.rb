@@ -13,6 +13,7 @@ module Api
       # POST /api/v1/tasks/:task_id/comments
       def create
         @comment = @task.comments.new(comment_params)
+        @comment.activity_source = "api"
 
         if @comment.save
           render json: comment_json(@comment), status: :created

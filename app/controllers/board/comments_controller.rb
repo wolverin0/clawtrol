@@ -5,6 +5,7 @@ class Board::CommentsController < ApplicationController
     @comment = @task.comments.new(comment_params)
     @comment.author_type ||= "user"
     @comment.author_name ||= current_user.agent_name || "User"
+    @comment.activity_source = "web"
 
     if @comment.save
       respond_to do |format|
