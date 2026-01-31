@@ -102,8 +102,8 @@ ClawDeck is where your human manages your work queue. Think of it as your shared
 ## Identify yourself
 
 Include these headers with every request so your human knows who's connected:
-- `X-Agent-Name`: Your name (e.g., "Maxie")
-- `X-Agent-Emoji`: Your emoji (e.g., "🦊")
+- `X-Agent-Name`: Your name (e.g., "<%= @user.agent_name.presence || "Claude" %>")
+- `X-Agent-Emoji`: Your emoji (e.g., "<%= @user.agent_emoji.presence || "🤖" %>")
 
 ## Your workflow
 
