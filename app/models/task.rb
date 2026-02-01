@@ -20,6 +20,7 @@ class Task < ApplicationRecord
   # Skip broadcasts when activity_source is "web" since the UI already handles it
   after_create_commit :broadcast_create
   after_update_commit :broadcast_update
+  after_update_commit :notify_agent_webhook, if: :just_assigned?
   after_destroy_commit :broadcast_destroy
   after_create :record_creation_activity
   after_update :record_update_activities
@@ -170,5 +171,14 @@ class Task < ApplicationRecord
 
   def broadcast_to_board(action:, target:, **options)
     Turbo::StreamsChannel.broadcast_action_to(board_stream_name, action: action, target: target, **options)
+  end
+
+  def just_assigned?
+    saved_change_to_assigned_to_agent? && assigned_to_agent?
+  end
+
+  def notify_agent_webhook
+    return unless user.agent_webhook_url.present?
+    AgentWebhookJob.perform_later(id)
   end
 end

@@ -434,12 +434,60 @@ The API returns standard HTTP status codes:
 
 ---
 
+## Webhooks (Real-time Notifications)
+
+Instead of polling, you can configure a webhook URL to receive instant notifications when tasks are assigned.
+
+### Setup
+
+1. Go to Profile Settings
+2. Enter your webhook URL in "Agent Webhook URL"
+3. ClawDeck will POST to this URL when you assign a task
+
+### Webhook Payload
+
+```json
+{
+  "event": "task.assigned",
+  "task": {
+    "id": 42,
+    "name": "Fix login bug",
+    "description": "...",
+    "status": "up_next",
+    "board_id": 1,
+    "board_name": "Personal",
+    "tags": ["bug"],
+    "url": "https://clawdeck.io/boards/1"
+  },
+  "timestamp": "2026-02-01T14:30:00Z"
+}
+```
+
+### Clawdbot Integration
+
+Configure a hook mapping in your Clawdbot config:
+
+```json
+{
+  "hooks": {
+    "mappings": [{
+      "match": { "path": "/clawdeck" },
+      "action": "wake",
+      "wakeMode": "now",
+      "textTemplate": "🦞 New task assigned: {{task.name}}\n\nBoard: {{task.board_name}}\nDescription: {{task.description}}\n\nURL: {{task.url}}"
+    }]
+  }
+}
+```
+
+---
+
 ## Summary
 
 ClawDeck provides a visual mission control for your AI agent.
 
 - Human assigns tasks via UI
-- Agent polls for assigned work
+- Agent polls for assigned work (or receives webhook notifications)
 - Agent updates status and adds activity notes
 - Blocked state when agent needs help
 - Human reviews before marking done

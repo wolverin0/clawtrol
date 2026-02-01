@@ -23,6 +23,7 @@ class User < ApplicationRecord
   validates :email_address, presence: true,
                            uniqueness: { case_sensitive: false },
                            format: { with: URI::MailTo::EMAIL_REGEXP, message: "must be a valid email address" }
+  validate :agent_webhook_url_must_be_https
 
   # Check if GitHub OAuth is configured
   def self.github_oauth_enabled?
@@ -119,6 +120,19 @@ class User < ApplicationRecord
 
     if width.present? && height.present? && (width > 256 || height > 256)
       errors.add(:avatar, "dimensions must not exceed 256x256 pixels")
+    end
+  end
+
+  def agent_webhook_url_must_be_https
+    return if agent_webhook_url.blank?
+
+    begin
+      uri = URI.parse(agent_webhook_url)
+      unless uri.is_a?(URI::HTTPS)
+        errors.add(:agent_webhook_url, "must be an HTTPS URL")
+      end
+    rescue URI::InvalidURIError
+      errors.add(:agent_webhook_url, "must be a valid URL")
     end
   end
 end
