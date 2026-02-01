@@ -5,8 +5,12 @@ module Api
 
       # GET /api/v1/boards
       def index
-        @boards = current_user.boards.order(:created_at)
-        render json: @boards.map { |board| board_json(board) }
+        @boards = current_user.boards
+          .left_joins(:tasks)
+          .select("boards.*, COUNT(tasks.id) as tasks_count_cache")
+          .group("boards.id")
+          .reorder(:created_at)
+        render json: @boards.map { |board| board_json(board, use_cached_count: true) }
       end
 
       # GET /api/v1/boards/:id
@@ -54,13 +58,13 @@ module Api
         params.permit(:name, :icon, :color)
       end
 
-      def board_json(board, include_tasks: false)
+      def board_json(board, include_tasks: false, use_cached_count: false)
         json = {
           id: board.id,
           name: board.name,
           icon: board.icon,
           color: board.color,
-          tasks_count: board.tasks.count,
+          tasks_count: use_cached_count ? (board.tasks_count_cache || 0) : board.tasks.count,
           created_at: board.created_at.iso8601,
           updated_at: board.updated_at.iso8601
         }

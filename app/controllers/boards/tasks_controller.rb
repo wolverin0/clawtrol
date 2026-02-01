@@ -92,7 +92,7 @@ class Boards::TasksController < ApplicationController
   end
 
   def set_task
-    @task = @board.tasks.find(params[:id])
+    @task = @board.tasks.includes(:activities).find(params[:id])
   end
 
   def task_params

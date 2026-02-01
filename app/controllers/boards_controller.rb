@@ -16,7 +16,7 @@ class BoardsController < ApplicationController
   def show
     @board_page = true
     session[:last_board_id] = @board.id
-    @tasks = @board.tasks
+    @tasks = @board.tasks.includes(:user)
 
     # Filter by tag if specified
     if params[:tag].present?
