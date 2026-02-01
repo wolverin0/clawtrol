@@ -28,6 +28,6 @@ class ProfilesController < ApplicationController
   private
 
   def profile_params
-    params.expect(user: [ :email_address, :avatar, :agent_webhook_url ])
+    params.expect(user: [ :email_address, :avatar ])
   end
 end
