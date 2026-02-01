@@ -15,10 +15,11 @@
   }
 %>
 
-<div class="flex-1 min-w-0 flex flex-col bg-bg-surface rounded-lg border border-border"
+<div class="flex-1 min-w-0 flex flex-col bg-bg-surface rounded-lg border border-border transition-colors"
      data-controller="inline-add"
      data-inline-add-status-value="<%= status %>"
-     data-inline-add-url-value="<%= board_tasks_path(@board) %>">
+     data-inline-add-url-value="<%= board_tasks_path(@board) %>"
+     data-status="<%= status %>">
   <%# Column Header %>
   <div class="flex items-center gap-2 px-3 py-3">
     <div class="w-2 h-2 rounded-full <%= column_colors[status] %>"></div>

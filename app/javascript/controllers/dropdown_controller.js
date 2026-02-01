@@ -7,11 +7,26 @@ export default class extends Controller {
   connect() {
     this.handleClickOutside = this.handleClickOutside.bind(this)
     this.handleKeydown = this.handleKeydown.bind(this)
+    this.handleCloseAll = this.handleCloseAll.bind(this)
+
+    // Listen for close-all event from other dropdowns
+    document.addEventListener("dropdown:close-all", this.handleCloseAll)
   }
 
   disconnect() {
     document.removeEventListener("click", this.handleClickOutside)
     document.removeEventListener("keydown", this.handleKeydown)
+    document.removeEventListener("dropdown:close-all", this.handleCloseAll)
+  }
+
+  handleCloseAll(event) {
+    // Close this dropdown unless it's the one that triggered the event
+    if (event.detail?.except !== this.element) {
+      const isOpen = !this.menuTarget.classList.contains("hidden")
+      if (isOpen) {
+        this.close()
+      }
+    }
   }
 
   toggle(event) {
@@ -28,6 +43,9 @@ export default class extends Controller {
   }
 
   open() {
+    // Close any other open dropdowns first
+    document.dispatchEvent(new CustomEvent("dropdown:close-all", { detail: { except: this.element } }))
+
     this.menuTarget.classList.remove("hidden")
     const triggerEl = this.hasTriggerTarget ? this.triggerTarget : this.buttonTarget
     triggerEl.setAttribute("aria-expanded", "true")
@@ -47,6 +65,8 @@ export default class extends Controller {
     event.stopPropagation()
 
     // Close any other open dropdowns first
+    document.dispatchEvent(new CustomEvent("dropdown:close-all", { detail: { except: this.element } }))
+
     const isOpen = !this.menuTarget.classList.contains("hidden")
     if (isOpen) {
       return

@@ -97,6 +97,14 @@
   z-index: 0;
 }
 
+/* ========================================
+   COLUMN DRAG HIGHLIGHT
+   ======================================== */
+.column-drag-over {
+  background: rgba(255, 77, 77, 0.03);
+  border-color: var(--color-accent-muted);
+}
+
 /* Sidebar layout */
 @layer components {
   /* Hide sidebar until JS determines state */

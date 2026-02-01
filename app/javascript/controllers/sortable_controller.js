@@ -25,6 +25,7 @@ export default class extends Controller {
       onStart: this.handleStart.bind(this),
       onEnd: this.handleEnd.bind(this),
       onMove: this.move.bind(this),
+      onChange: this.handleChange.bind(this),
       onUpdate: this.handleUpdate.bind(this)
     }
 
@@ -51,6 +52,25 @@ export default class extends Controller {
   // Dispatch event when drag ends (for delete zone visibility)
   handleEnd(event) {
     document.dispatchEvent(new CustomEvent("sortable:dragend", { detail: { item: event.item } }))
+
+    // Remove column highlight from all columns
+    document.querySelectorAll('.column-drag-over').forEach(el => {
+      el.classList.remove('column-drag-over')
+    })
+  }
+
+  // Handle visual feedback during drag
+  handleChange(event) {
+    // Add column highlight to the column being dragged over
+    const targetColumn = event.to.closest('[data-status]')
+    if (targetColumn) {
+      // Remove highlight from all columns first
+      document.querySelectorAll('.column-drag-over').forEach(el => {
+        el.classList.remove('column-drag-over')
+      })
+      // Add highlight to current column
+      targetColumn.classList.add('column-drag-over')
+    }
   }
 
   move(event) {
