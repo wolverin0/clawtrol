@@ -19,7 +19,7 @@
       <div data-dropdown-target="menu"
            class="hidden absolute left-0 top-full mt-1 w-56 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
         <%# Board list %>
-        <div class="py-1 max-h-64 overflow-y-auto">
+        <div class="py-1 max-h-[70vh] overflow-y-auto">
           <% @boards.each do |board| %>
             <%= link_to board_path(board),
                 class: "flex items-center gap-3 px-3 py-2 text-sm hover:bg-bg-elevated transition-colors #{board.id == @board.id ? 'bg-bg-elevated' : ''}",
