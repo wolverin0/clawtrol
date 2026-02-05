@@ -2,7 +2,7 @@ require "open3"
 
 class Boards::TasksController < ApplicationController
   before_action :set_board
-  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal]
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate]
 
   def show
     @api_token = current_user.api_token
@@ -147,7 +147,7 @@ class Boards::TasksController < ApplicationController
     end
 
     @task.activity_source = "web"
-    run_validation(@task)
+    execute_validation_command(@task)
 
     respond_to do |format|
       format.turbo_stream do
@@ -159,6 +159,67 @@ class Boards::TasksController < ApplicationController
 
   def validation_output_modal
     render layout: false
+  end
+
+  def validate_modal
+    render layout: false
+  end
+
+  def debate_modal
+    render layout: false
+  end
+
+  def review_output_modal
+    render layout: false
+  end
+
+  def run_validation
+    command = params[:command].presence || @task.validation_command
+    unless command.present?
+      redirect_to board_path(@board), alert: "No validation command specified"
+      return
+    end
+
+    @task.activity_source = "web"
+    @task.start_review!(type: "command", config: { command: command })
+    @task.update!(validation_command: command)
+
+    # Run validation in background
+    RunValidationJob.perform_later(@task.id)
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace("task_#{@task.id}", partial: "boards/task_card", locals: { task: @task.reload })
+      end
+      format.html { redirect_to board_path(@board), notice: "Validation started" }
+    end
+  end
+
+  def run_debate
+    style = params[:style] || "quick"
+    focus = params[:focus]
+    models = Array(params[:models]).reject(&:blank?)
+    models = %w[gemini claude glm] if models.empty?
+
+    @task.activity_source = "web"
+    @task.start_review!(
+      type: "debate",
+      config: {
+        style: style,
+        focus: focus,
+        models: models
+      }
+    )
+
+    # Run debate in background
+    RunDebateJob.perform_later(@task.id)
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace("task_#{@task.id}", partial: "boards/task_card", locals: { task: @task.reload })
+      end
+      format.html { redirect_to board_path(@board), notice: "Debate review started" }
+    end
   end
 
   def generate_followup
@@ -241,7 +302,7 @@ class Boards::TasksController < ApplicationController
   end
 
   # Run validation command for a task and update status
-  def run_validation(task)
+  def execute_validation_command(task)
     task.update!(validation_status: "pending")
 
     begin
