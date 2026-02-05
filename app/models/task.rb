@@ -490,20 +490,27 @@ class Task < ApplicationRecord
   end
 
   # Turbo Streams broadcasts for real-time updates
+  # Note: We reload with includes to avoid N+1 queries when rendering partials
   def broadcast_create
     return if skip_broadcast?
+
+    # Reload with associations to avoid N+1 when rendering the partial
+    task_with_associations = Task.includes(:board, :user).find(id)
 
     broadcast_to_board(
       action: :prepend,
       target: "column-#{status}",
       partial: "boards/task_card",
-      locals: { task: self }
+      locals: { task: task_with_associations }
     )
     broadcast_column_count(status)
   end
 
   def broadcast_update
     return if skip_broadcast?
+
+    # Reload with associations to avoid N+1 when rendering the partial
+    task_with_associations = Task.includes(:board, :user).find(id)
 
     # If status changed, handle move between columns
     if saved_change_to_status?
@@ -515,7 +522,7 @@ class Task < ApplicationRecord
         action: :prepend,
         target: "column-#{new_status}",
         partial: "boards/task_card",
-        locals: { task: self }
+        locals: { task: task_with_associations }
       )
       broadcast_column_count(old_status)
       broadcast_column_count(new_status)
@@ -527,7 +534,7 @@ class Task < ApplicationRecord
         action: :replace,
         target: "task_#{id}",
         partial: "boards/task_card",
-        locals: { task: self }
+        locals: { task: task_with_associations }
       )
     end
   end

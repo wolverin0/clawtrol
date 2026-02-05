@@ -83,6 +83,45 @@
         </button>
       </div>
 
+      <%# Notifications Bell %>
+      <div data-controller="notifications" 
+           data-notifications-url-value="<%= api_v1_notifications_path(format: :json) %>"
+           data-notifications-interval-value="30000"
+           data-notifications-browser-notifications-value="true"
+           class="relative">
+        <button type="button"
+                data-action="click->notifications#toggle"
+                class="relative w-8 h-8 rounded-md bg-bg-elevated hover:bg-bg-hover flex items-center justify-center text-sm transition-colors cursor-pointer"
+                title="Notifications">
+          🔔
+          <span data-notifications-target="badge" 
+                class="absolute -top-1 -right-1 bg-accent text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 hidden">
+            0
+          </span>
+        </button>
+        
+        <%# Notifications Panel %>
+        <div data-notifications-target="panel" 
+             class="hidden absolute right-0 mt-2 w-80 bg-bg-surface border border-border rounded-lg shadow-xl z-[100] overflow-hidden">
+          <%# Header %>
+          <div class="flex items-center justify-between px-4 py-3 border-b border-border bg-bg-elevated">
+            <span class="text-sm font-semibold text-content">Notifications</span>
+            <button type="button" 
+                    data-action="click->notifications#markAllRead"
+                    class="text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer">
+              Mark all read
+            </button>
+          </div>
+          <%# Notification List %>
+          <div data-notifications-target="list" class="max-h-80 overflow-y-auto">
+            <div class="px-4 py-8 text-center text-content-muted text-sm">
+              <span class="text-2xl block mb-2">🔔</span>
+              Loading...
+            </div>
+          </div>
+        </div>
+      </div>
+
       <%# Agent indicator (links to settings) %>
       <% agent_connected = current_user.agent_last_active_at.present? %>
       <%= link_to settings_path,
@@ -217,13 +256,16 @@
 </header>
 
 <%# New Board Modal %>
-<div id="new-board-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
-  <div class="absolute inset-0 bg-black/60" onclick="document.getElementById('new-board-modal').classList.add('hidden')"></div>
+<div id="new-board-modal" 
+     class="hidden fixed inset-0 z-50 flex items-center justify-center"
+     data-controller="board-modal"
+     data-board-modal-target="modal">
+  <div class="absolute inset-0 bg-black/60" data-action="click->board-modal#close"></div>
   <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
     <div class="px-5 py-4 border-b border-border flex items-center justify-between">
       <span class="text-sm font-semibold text-content font-display">New Board</span>
       <button type="button"
-              onclick="document.getElementById('new-board-modal').classList.add('hidden')"
+              data-action="click->board-modal#close"
               class="p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -240,28 +282,29 @@
             class: "w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-content placeholder-content-muted" %>
       </div>
 
-      <div>
+      <div data-controller="icon-selector">
         <label class="block text-sm font-medium text-content-secondary mb-2">Icon</label>
-        <div class="flex flex-wrap gap-2" id="icon-group">
+        <div class="flex flex-wrap gap-2">
           <% available_icons = Board::DEFAULT_ICONS.dup %>
           <% if current_user.agent_last_active_at.present? && current_user.agent_emoji.present? && !available_icons.include?(current_user.agent_emoji) %>
             <% available_icons << current_user.agent_emoji %>
           <% end %>
           <% available_icons.each do |icon| %>
             <button type="button"
-                    onclick="selectBoardIcon(this, '<%= icon %>')"
+                    data-action="click->icon-selector#select"
+                    data-icon-selector-target="button"
                     data-icon="<%= icon %>"
                     class="w-10 h-10 flex items-center justify-center rounded-lg bg-bg-elevated hover:bg-bg-hover transition-colors text-xl cursor-pointer <%= icon == '📋' ? 'ring-2 ring-accent' : '' %>">
               <%= icon %>
             </button>
           <% end %>
         </div>
-        <%= form.hidden_field :icon, value: "📋", id: "board-icon-field" %>
+        <%= form.hidden_field :icon, value: "📋", data: { icon_selector_target: "field" } %>
       </div>
 
       <div class="flex items-center justify-end gap-3 pt-2">
         <button type="button"
-                onclick="document.getElementById('new-board-modal').classList.add('hidden')"
+                data-action="click->board-modal#close"
                 class="px-4 py-2 text-sm rounded-md bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors cursor-pointer">
           Cancel
         </button>
@@ -271,32 +314,17 @@
   </div>
 </div>
 
-<script>
-  function selectBoardIcon(btn, icon) {
-    document.getElementById('board-icon-field').value = icon;
-    document.querySelectorAll('#icon-group button').forEach(b => {
-      b.classList.remove('ring-2', 'ring-accent');
-    });
-    btn.classList.add('ring-2', 'ring-accent');
-  }
-
-  function selectEditBoardIcon(btn, icon) {
-    document.getElementById('edit-board-icon-field').value = icon;
-    document.querySelectorAll('#edit-icon-group button').forEach(b => {
-      b.classList.remove('ring-2', 'ring-accent');
-    });
-    btn.classList.add('ring-2', 'ring-accent');
-  }
-</script>
-
 <%# Board Settings Modal %>
-<div id="board-settings-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
-  <div class="absolute inset-0 bg-black/60" onclick="document.getElementById('board-settings-modal').classList.add('hidden')"></div>
+<div id="board-settings-modal" 
+     class="hidden fixed inset-0 z-50 flex items-center justify-center"
+     data-controller="board-modal"
+     data-board-modal-target="modal">
+  <div class="absolute inset-0 bg-black/60" data-action="click->board-modal#close"></div>
   <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden max-h-[90vh] overflow-y-auto">
     <div class="px-5 py-4 border-b border-border flex items-center justify-between sticky top-0 bg-bg-surface z-10">
       <span class="text-sm font-semibold text-content font-display">Board Settings</span>
       <button type="button"
-              onclick="document.getElementById('board-settings-modal').classList.add('hidden')"
+              data-action="click->board-modal#close"
               class="p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -313,9 +341,9 @@
             class: "w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-content placeholder-content-muted" %>
       </div>
 
-      <div>
+      <div data-controller="icon-selector">
         <label class="block text-sm font-medium text-content-secondary mb-2">Icon</label>
-        <div class="flex flex-wrap gap-2" id="edit-icon-group">
+        <div class="flex flex-wrap gap-2">
           <% edit_icons = Board::DEFAULT_ICONS.dup %>
           <% if current_user.agent_last_active_at.present? && current_user.agent_emoji.present? && !edit_icons.include?(current_user.agent_emoji) %>
             <% edit_icons << current_user.agent_emoji %>
@@ -326,18 +354,19 @@
           <% end %>
           <% edit_icons.each do |icon| %>
             <button type="button"
-                    onclick="selectEditBoardIcon(this, '<%= icon %>')"
+                    data-action="click->icon-selector#select"
+                    data-icon-selector-target="button"
                     data-icon="<%= icon %>"
                     class="w-10 h-10 flex items-center justify-center rounded-lg bg-bg-elevated hover:bg-bg-hover transition-colors text-xl cursor-pointer <%= icon == @board.icon ? 'ring-2 ring-accent' : '' %>">
               <%= icon %>
             </button>
           <% end %>
         </div>
-        <%= form.hidden_field :icon, value: @board.icon, id: "edit-board-icon-field" %>
+        <%= form.hidden_field :icon, value: @board.icon, data: { icon_selector_target: "field" } %>
       </div>
 
       <%# Auto-Claim Section %>
-      <div class="border-t border-border pt-4 mt-4">
+      <div class="border-t border-border pt-4 mt-4" data-controller="auto-claim-tags">
         <div class="flex items-center justify-between mb-3">
           <div>
             <label class="block text-sm font-medium text-content">🤖 Auto-Claim</label>
@@ -346,13 +375,12 @@
           <label class="relative inline-flex items-center cursor-pointer">
             <%= form.check_box :auto_claim_enabled,
                 class: "sr-only peer",
-                id: "auto-claim-toggle",
-                data: { action: "change->auto-claim#toggle" } %>
+                data: { action: "change->auto-claim-tags#toggle" } %>
             <div class="w-11 h-6 bg-bg-elevated rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
           </label>
         </div>
 
-        <div id="auto-claim-options" class="<%= @board.auto_claim_enabled ? '' : 'hidden' %> space-y-3 pl-4 border-l-2 border-accent/30">
+        <div data-auto-claim-tags-target="options" class="<%= @board.auto_claim_enabled ? '' : 'hidden' %> space-y-3 pl-4 border-l-2 border-accent/30">
           <div>
             <label class="block text-xs font-medium text-content-secondary mb-1">Name Prefix (optional)</label>
             <%= form.text_field :auto_claim_prefix,
@@ -363,11 +391,11 @@
 
           <div>
             <label class="block text-xs font-medium text-content-secondary mb-1">Tags (optional)</label>
-            <div id="auto-claim-tags-container" class="flex flex-wrap gap-1 mb-2">
+            <div data-auto-claim-tags-target="container" class="flex flex-wrap gap-1 mb-2">
               <% (@board.auto_claim_tags || []).each do |tag| %>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-accent/20 text-accent auto-claim-tag">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-accent/20 text-accent auto-claim-tag" data-tag="<%= tag %>">
                   <%= tag %>
-                  <button type="button" onclick="removeAutoClaimTag(this, '<%= tag %>')" class="hover:text-accent-hover cursor-pointer">
+                  <button type="button" data-action="click->auto-claim-tags#remove" class="hover:text-accent-hover cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
                       <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
                     </svg>
@@ -377,18 +405,18 @@
             </div>
             <div class="flex gap-2">
               <input type="text" 
-                     id="auto-claim-tag-input" 
+                     data-auto-claim-tags-target="input"
+                     data-action="keydown->auto-claim-tags#addOnEnter"
                      placeholder="Add tag..." 
-                     class="flex-1 px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-content placeholder-content-muted"
-                     onkeydown="if(event.key === 'Enter') { event.preventDefault(); addAutoClaimTag(); }">
+                     class="flex-1 px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-content placeholder-content-muted">
               <button type="button" 
-                      onclick="addAutoClaimTag()"
+                      data-action="click->auto-claim-tags#add"
                       class="px-3 py-1.5 text-sm rounded-md bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors cursor-pointer">
                 Add
               </button>
             </div>
             <span class="text-xs text-content-muted mt-1">Claim tasks that have any of these tags</span>
-            <div id="auto-claim-tags-hidden">
+            <div data-auto-claim-tags-target="hidden">
               <% (@board.auto_claim_tags || []).each do |tag| %>
                 <input type="hidden" name="board[auto_claim_tags][]" value="<%= tag %>">
               <% end %>
@@ -418,7 +446,7 @@
 
         <div class="flex items-center gap-3">
           <button type="button"
-                  onclick="document.getElementById('board-settings-modal').classList.add('hidden')"
+                  data-action="click->board-modal#close"
                   class="px-4 py-2 text-sm rounded-md bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors cursor-pointer">
             Cancel
           </button>
@@ -428,62 +456,3 @@
     <% end %>
   </div>
 </div>
-
-<script>
-  // Auto-claim toggle
-  document.getElementById('auto-claim-toggle')?.addEventListener('change', function() {
-    const options = document.getElementById('auto-claim-options');
-    if (this.checked) {
-      options.classList.remove('hidden');
-    } else {
-      options.classList.add('hidden');
-    }
-  });
-
-  // Auto-claim tags management
-  function addAutoClaimTag() {
-    const input = document.getElementById('auto-claim-tag-input');
-    const tag = input.value.trim();
-    if (!tag) return;
-
-    // Check if tag already exists
-    const existingTags = document.querySelectorAll('#auto-claim-tags-hidden input');
-    for (const existing of existingTags) {
-      if (existing.value === tag) {
-        input.value = '';
-        return;
-      }
-    }
-
-    // Add visual tag
-    const container = document.getElementById('auto-claim-tags-container');
-    const tagEl = document.createElement('span');
-    tagEl.className = 'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-accent/20 text-accent auto-claim-tag';
-    tagEl.innerHTML = `${tag}<button type="button" onclick="removeAutoClaimTag(this, '${tag}')" class="hover:text-accent-hover cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg></button>`;
-    container.appendChild(tagEl);
-
-    // Add hidden input
-    const hiddenContainer = document.getElementById('auto-claim-tags-hidden');
-    const hiddenInput = document.createElement('input');
-    hiddenInput.type = 'hidden';
-    hiddenInput.name = 'board[auto_claim_tags][]';
-    hiddenInput.value = tag;
-    hiddenContainer.appendChild(hiddenInput);
-
-    input.value = '';
-  }
-
-  function removeAutoClaimTag(btn, tag) {
-    // Remove visual tag
-    btn.parentElement.remove();
-
-    // Remove hidden input
-    const hiddenInputs = document.querySelectorAll('#auto-claim-tags-hidden input');
-    for (const input of hiddenInputs) {
-      if (input.value === tag) {
-        input.remove();
-        break;
-      }
-    }
-  }
-</script>

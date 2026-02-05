@@ -196,6 +196,10 @@ module Api
         updates[:agent_session_key] = skey if skey.present?
 
         @task.update!(updates)
+
+        # Create notification for agent claim
+        Notification.create_for_agent_claim(@task)
+
         render json: task_json(@task)
       end
 
@@ -672,6 +676,9 @@ module Api
         set_task_activity_info(@task)
         @task.complete_review!(status: status, result: result)
 
+        # Create notification for review result
+        Notification.create_for_review(@task, passed: status == "passed")
+
         render json: {
           task: task_json(@task),
           review_status: @task.review_status,
@@ -699,6 +706,9 @@ module Api
         # Update task error state
         set_task_activity_info(@task)
         @task.set_error!(error_message)
+
+        # Create notification for error
+        Notification.create_for_error(@task, error_message)
 
         # Auto-fallback if enabled
         fallback_note = nil
@@ -750,19 +760,20 @@ module Api
       end
 
       # Auto-detect which board a task belongs to based on its name
+      # Uses board's auto_claim_prefix field for configurable matching
       # Used by spawn_ready to route tasks to the appropriate board
       def detect_board_for_task(name, user)
         return nil if name.blank?
 
-        case name.downcase
-        when /clawtrol|clawdeck|clawdk/i
-          user.boards.find_by(name: "ClawDeck")
-        when /pedrito/i
-          user.boards.find_by(name: "Pedrito")
-        else
-          # Default to ClawDeck, not Misc or aggregator
-          user.boards.find_by(name: "ClawDeck") || user.boards.where(is_aggregator: false).first
+        # First, check boards with auto_claim_prefix configured
+        user.boards.where.not(auto_claim_prefix: [nil, ""]).find_each do |board|
+          if name.downcase.include?(board.auto_claim_prefix.downcase)
+            return board
+          end
         end
+
+        # Fallback: find first non-aggregator board
+        user.boards.find_by(is_aggregator: false) || user.boards.first
       end
 
       # Simulate context usage based on session age (mock for now)

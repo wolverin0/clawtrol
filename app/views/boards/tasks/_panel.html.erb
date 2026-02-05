@@ -38,7 +38,9 @@
             <span class="text-[10px] font-mono text-content-muted">#<%= task.id %></span>
             <!-- Copy URL button -->
             <button type="button"
-                    onclick="navigator.clipboard.writeText(window.location.origin + '/boards/<%= task.board_id %>/tasks/<%= task.id %>').then(() => { this.innerHTML = '✅'; setTimeout(() => { this.innerHTML = '📋' }, 1500) })"
+                    data-controller="copy-url"
+                    data-copy-url-url-value="<%= "#{request.base_url}/boards/#{task.board_id}/tasks/#{task.id}" rescue "/boards/#{task.board_id}/tasks/#{task.id}" %>"
+                    data-action="click->copy-url#copy"
                     class="p-1.5 rounded text-content-muted hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer"
                     title="Copy task URL">
               📋
