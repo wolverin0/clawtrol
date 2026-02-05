@@ -25,12 +25,14 @@ class BoardsController < ApplicationController
     end
 
     # Group tasks by status
+    # Active columns: sort by position (drag order)
+    # Completed columns: sort by most recently updated (newest first)
     @columns = {
       inbox: @tasks.inbox.order(position: :asc),
       up_next: @tasks.up_next.order(position: :asc),
       in_progress: @tasks.in_progress.order(position: :asc),
-      in_review: @tasks.in_review.order(position: :asc),
-      done: @tasks.done.order(position: :asc)
+      in_review: @tasks.in_review.order(updated_at: :desc),
+      done: @tasks.done.order(completed_at: :desc, updated_at: :desc)
     }
 
     # Get all unique tags for the sidebar filter
