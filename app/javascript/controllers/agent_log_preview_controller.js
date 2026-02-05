@@ -34,7 +34,7 @@ export default class extends Controller {
 
   renderPreview(data) {
     if (!data.has_session) {
-      this.contentTarget.innerHTML = '<span class="text-content-muted">No agent session found</span>'
+      this.contentTarget.innerHTML = '<span class="text-content-muted">Waiting for agent connection...</span>'
       return
     }
 
