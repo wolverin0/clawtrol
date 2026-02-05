@@ -63,6 +63,7 @@ class Task < ApplicationRecord
   after_update :record_update_activities
   after_update :handle_recurring_completion, if: :saved_change_to_status?
   after_update :notify_openclaw_if_urgent, if: :saved_change_to_status?
+  after_update :warn_if_review_without_session, if: :saved_change_to_status?
 
   # Position management - acts_as_list functionality without the gem
   before_create :set_position
@@ -431,6 +432,12 @@ class Task < ApplicationRecord
 
     # When a recurring instance is completed, schedule the next one on the template
     parent_task.schedule_next_recurrence!
+  end
+
+  # Warn if task moves to in_review without a linked session (debugging aid)
+  def warn_if_review_without_session
+    return unless status == "in_review" && agent_session_id.blank?
+    Rails.logger.warn("[Task##{id}] Task '#{name}' moved to in_review WITHOUT agent_session_id — agent output may be lost!")
   end
 
   # Notify OpenClaw gateway when task is moved to in_progress and assigned to agent

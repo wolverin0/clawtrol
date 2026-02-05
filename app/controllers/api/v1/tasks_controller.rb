@@ -184,9 +184,18 @@ module Api
       end
 
       # PATCH /api/v1/tasks/:id/claim - agent claims a task
+      # Accepts optional session_id/session_key to link session at claim time
       def claim
         set_task_activity_info(@task)
-        @task.update!(agent_claimed_at: Time.current, status: :in_progress)
+
+        # Auto-link session if provided
+        sid = params[:session_id] || params[:agent_session_id]
+        skey = params[:session_key] || params[:agent_session_key]
+        updates = { agent_claimed_at: Time.current, status: :in_progress }
+        updates[:agent_session_id] = sid if sid.present?
+        updates[:agent_session_key] = skey if skey.present?
+
+        @task.update!(updates)
         render json: task_json(@task)
       end
 
@@ -344,9 +353,13 @@ module Api
 
       # POST /api/v1/tasks/:id/link_session
       # Links OpenClaw session info to a task after spawning
+      # Accepts both `session_id`/`session_key` and `agent_session_id`/`agent_session_key` aliases
       def link_session
-        @task.agent_session_id = params[:session_id]
-        @task.agent_session_key = params[:session_key]
+        sid = params[:session_id] || params[:agent_session_id]
+        skey = params[:session_key] || params[:agent_session_key]
+
+        @task.agent_session_id = sid if sid.present?
+        @task.agent_session_key = skey if skey.present?
         set_task_activity_info(@task)
 
         if @task.save
@@ -490,8 +503,16 @@ module Api
       # Appends agent output to description, moves to in_review
       # If validation_command is present, runs it and updates validation_status
       # Accepts optional `files` array of file paths produced by the agent
+      # Accepts optional `session_id`/`session_key` to auto-link session (last line of defense)
       def agent_complete
         set_task_activity_info(@task)
+
+        # Auto-link session if provided and not already set
+        sid = params[:session_id] || params[:agent_session_id]
+        skey = params[:session_key] || params[:agent_session_key]
+        @task.agent_session_id = sid if sid.present? && @task.agent_session_id.blank?
+        @task.agent_session_key = skey if skey.present? && @task.agent_session_key.blank?
+
         output = params[:output]
 
         updates = { status: :in_review }

@@ -267,7 +267,7 @@
                       <%= icon %>
                     </span>
                     <%= link_to view_file_board_task_path(@board, task, path: file_path),
-                        data: { turbo_frame: "file_viewer", action: "click->file-viewer#open" },
+                        data: { action: "click->file-viewer#open" },
                         class: "text-xs text-accent hover:underline truncate" do %>
                       <%= File.basename(file_path.to_s) %>
                     <% end %>

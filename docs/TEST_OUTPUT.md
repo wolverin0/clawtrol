@@ -1,22 +1,16 @@
 # Test Output File
 
-This is a test markdown file with:
+This is a test file to verify the file viewer works correctly.
 
-- **Bold text**
-- *Italic text*
-- `code blocks`
+## Features Tested
+- Markdown rendering
+- File path display
+- Panel open/close
+- Content loading via fetch
 
 ## Code Example
-
 ```ruby
-def hello
-  puts "world"
-end
+puts "Hello from the file viewer!"
 ```
 
-## Table
-
-| Feature | Status |
-|---------|--------|
-| File Viewer | ✅ Done |
-| Modal | ✅ Done |
+✅ If you can see this, the file viewer is working!
