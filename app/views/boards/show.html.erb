@@ -41,6 +41,14 @@
   <%# Follow-up Modal %>
   <%= turbo_frame_tag "followup_modal" %>
 
+  <%# Handoff Modal %>
+  <%= turbo_frame_tag "handoff_modal" %>
+
+  <%# Toast Container %>
+  <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+    <%# Toasts are prepended here via Turbo Stream %>
+  </div>
+
   <%# Delete Drop Zone - appears when dragging a card %>
   <div data-controller="delete-zone"
        data-delete-zone-url-value="<%= board_tasks_path(@board) %>"

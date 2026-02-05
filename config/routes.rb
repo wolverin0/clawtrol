@@ -55,6 +55,7 @@ Rails.application.routes.draw do
         patch :move
         get :followup_modal
         get :handoff_modal
+        post :generate_followup
         post :enhance_followup
         post :create_followup
         post :handoff

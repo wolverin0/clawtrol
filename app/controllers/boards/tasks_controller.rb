@@ -1,6 +1,6 @@
 class Boards::TasksController < ApplicationController
   before_action :set_board
-  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :followup_modal, :create_followup, :enhance_followup, :handoff_modal, :handoff]
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff]
 
   def show
     @api_token = current_user.api_token
@@ -121,6 +121,14 @@ class Boards::TasksController < ApplicationController
     respond_to do |format|
       format.turbo_stream
       format.html { redirect_to board_path(@board), notice: "Task handed off to #{new_model.upcase}" }
+    end
+  end
+
+  def generate_followup
+    suggestion = @task.generate_followup_suggestion
+    @task.update!(suggested_followup: suggestion) if suggestion.present?
+    respond_to do |format|
+      format.json { render json: { suggested_followup: suggestion } }
     end
   end
 

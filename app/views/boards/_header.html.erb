@@ -86,6 +86,22 @@
       <span class="hidden sm:inline">Board settings</span>
     </button>
 
+    <%# Error Badge - shows count of errored tasks %>
+    <div data-controller="error-badge" 
+         data-error-badge-url-value="<%= errored_count_api_v1_tasks_path(format: :json) %>"
+         data-error-badge-board-id-value="<%= @board.id %>"
+         data-error-badge-interval-value="30000">
+      <button type="button"
+              data-error-badge-target="button"
+              data-action="click->error-badge#filterErrors"
+              class="hidden relative px-2 py-1 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium transition-colors"
+              title="Click to show errored tasks">
+        <span class="flex items-center gap-1">
+          ⚠️ <span data-error-badge-target="count">0</span>
+        </span>
+      </button>
+    </div>
+
     <%# Agent indicator (links to settings) %>
     <% agent_connected = current_user.agent_last_active_at.present? %>
     <%= link_to settings_path,

@@ -160,7 +160,70 @@
     <% end %>
   </div>
 
-  <!-- Section 3: OpenClaw Integration -->
+  <!-- Section 3: Error Handling & Handoff -->
+  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">⚠️</span>
+      <h3 class="text-sm font-semibold text-content font-display">Error Handling & Handoff</h3>
+    </div>
+
+    <p class="text-xs text-content-secondary">
+      Configure how ClawDeck handles agent errors and automatic retries.
+    </p>
+
+    <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
+      <!-- Auto-retry toggle -->
+      <div class="flex items-center justify-between p-3 bg-bg-elevated rounded-lg">
+        <div>
+          <label class="text-sm font-medium text-content">Auto-retry on failure</label>
+          <p class="text-xs text-content-muted mt-0.5">Automatically retry failed tasks with the same or fallback model</p>
+        </div>
+        <%= form.check_box :auto_retry_enabled,
+            class: "rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
+      </div>
+
+      <!-- Max retries -->
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Maximum retries</label>
+        <%= form.select :auto_retry_max,
+            [["1 retry", 1], ["2 retries", 2], ["3 retries", 3], ["4 retries", 4], ["5 retries", 5]],
+            { selected: @user.auto_retry_max || 3 },
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+      </div>
+
+      <!-- Retry backoff -->
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Retry backoff delay</label>
+        <%= form.select :auto_retry_backoff,
+            [["30 seconds", "30s"], ["1 minute", "1min"], ["5 minutes", "5min"]],
+            { selected: @user.auto_retry_backoff || "1min" },
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+        <p class="text-xs text-content-muted mt-1">How long to wait before each retry attempt</p>
+      </div>
+
+      <!-- Fallback model chain -->
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Fallback model chain</label>
+        <%= form.text_field :fallback_model_chain,
+            value: @user.fallback_model_chain,
+            placeholder: "opus → sonnet → gemini",
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+        <p class="text-xs text-content-muted mt-1">Models to try in order if the primary fails. Use → or , to separate. Available: opus, sonnet, codex, gemini, glm</p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <%= form.submit "Save error handling settings", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
+        <% if @user.auto_retry_enabled? %>
+          <span class="flex items-center gap-1.5 text-xs text-yellow-500">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            Auto-retry enabled
+          </span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Section 4: OpenClaw Integration -->
   <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
     <div class="flex items-center gap-2">
       <span class="text-lg">🦞</span>
@@ -235,7 +298,9 @@ Task `model` field maps to spawn model parameter:
 - `GET /tasks/:id/agent_log` — Get transcript (`?since=N` for polling)
 - `POST /tasks/:id/generate_followup` — AI-suggested follow-up
 - `POST /tasks/:id/create_followup` — Create follow-up task
+- `POST /tasks/:id/handoff` — Handoff task to different model
 - `GET /tasks/recurring` — List recurring templates
+- `GET /tasks/errored_count` — Count of tasks in error state
 
 ## Task Fields
 - `name` / `description` — Title and details
@@ -247,6 +312,23 @@ Task `model` field maps to spawn model parameter:
 - `nightly` — Boolean, runs on "good night" trigger
 - `nightly_delay_hours` — Optional delay before execution
 - `recurring` / `recurrence_rule` / `recurrence_time` — Auto-recreation
+- `error_message` / `error_at` / `retry_count` — Error state
+
+## Error Handling & Handoff
+
+When a task fails, report the error:
+```
+PATCH /tasks/:id
+{ "task": { "error_message": "Description of failure", "error_at": "2024-01-15T10:30:00Z" } }
+```
+
+User can handoff to a different model via UI or API:
+```
+POST /tasks/:id/handoff
+{ "model": "opus", "include_transcript": true }
+```
+
+This clears error state, resets to `in_progress`, and changes the model. If `include_transcript` is true, the new model receives the previous session's context.
 
 ## Follow-up System
 

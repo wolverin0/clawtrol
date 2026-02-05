@@ -417,7 +417,7 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, tags: [])
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, tags: [])
       end
 
       # Simulate context usage based on session age (mock for now)
@@ -462,6 +462,7 @@ module Api
           nightly_delay_hours: task.nightly_delay_hours,
           error_message: task.error_message,
           error_at: task.error_at&.iso8601,
+          retry_count: task.retry_count,
           suggested_followup: task.suggested_followup,
           followup_task_id: task.followup_task_id,
           url: "https://clawdeck.io/boards/#{task.board_id}/tasks/#{task.id}",

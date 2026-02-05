@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_05_022001) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_05_025002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -169,6 +169,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_022001) do
     t.text "description"
     t.date "due_date"
     t.integer "effort", default: 0, null: false
+    t.datetime "error_at"
+    t.text "error_message"
     t.bigint "followup_task_id"
     t.integer "impact", default: 0, null: false
     t.string "model"
@@ -185,6 +187,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_022001) do
     t.string "recurrence_rule"
     t.time "recurrence_time"
     t.boolean "recurring", default: false, null: false
+    t.integer "retry_count", default: 0
     t.integer "status", default: 0, null: false
     t.text "suggested_followup"
     t.string "tags", default: [], array: true
@@ -194,6 +197,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_022001) do
     t.index ["assigned_to_agent"], name: "index_tasks_on_assigned_to_agent"
     t.index ["blocked"], name: "index_tasks_on_blocked"
     t.index ["board_id"], name: "index_tasks_on_board_id"
+    t.index ["error_at"], name: "index_tasks_on_error_at", where: "(error_at IS NOT NULL)"
     t.index ["followup_task_id"], name: "index_tasks_on_followup_task_id"
     t.index ["next_recurrence_at"], name: "index_tasks_on_next_recurrence_at"
     t.index ["nightly"], name: "index_tasks_on_nightly"
@@ -214,10 +218,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_022001) do
     t.string "agent_name"
     t.string "ai_api_key"
     t.string "ai_suggestion_model", default: "glm"
+    t.string "auto_retry_backoff", default: "1min"
+    t.boolean "auto_retry_enabled", default: false
+    t.integer "auto_retry_max", default: 3
     t.string "avatar_url"
     t.integer "context_threshold_percent", default: 70, null: false
     t.datetime "created_at", null: false
     t.string "email_address", null: false
+    t.string "fallback_model_chain"
     t.string "openclaw_gateway_token"
     t.string "openclaw_gateway_url"
     t.string "password_digest"

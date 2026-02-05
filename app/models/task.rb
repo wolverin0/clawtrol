@@ -80,6 +80,7 @@ class Task < ApplicationRecord
     updates = {
       error_message: nil,
       error_at: nil,
+      retry_count: 0,  # Reset retry count on handoff
       status: :in_progress,
       model: new_model,
       agent_claimed_at: nil  # Allow re-claim by agent
@@ -93,6 +94,17 @@ class Task < ApplicationRecord
     end
     
     update!(updates)
+  end
+
+  # Increment retry count (for auto-retry feature)
+  def increment_retry!
+    increment!(:retry_count)
+  end
+
+  # Check if max retries exceeded
+  def max_retries_exceeded?(max_retries = nil)
+    max = max_retries || user.auto_retry_max || 3
+    retry_count >= max
   end
 
   # Recurring task methods

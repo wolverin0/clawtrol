@@ -1,0 +1,122 @@
+<%= turbo_frame_tag "handoff_modal" do %>
+  <div class="fixed inset-0 z-50 flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
+    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+    <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+
+      <!-- Header -->
+      <div class="px-5 py-4 border-b border-border flex items-center justify-between flex-shrink-0 bg-red-500/10">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">⚠️</span>
+          <span class="text-sm font-semibold text-content font-display">Handoff Task</span>
+        </div>
+        <%= link_to board_path(@board), class: "p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors", data: { turbo_frame: "_top" } do %>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        <% end %>
+      </div>
+
+      <div class="overflow-y-auto flex-1">
+        <%= form_with url: handoff_board_task_path(@board, @task), method: :post, class: "px-5 py-5 space-y-4" do |form| %>
+          <!-- Task Info -->
+          <div class="p-3 bg-bg-elevated rounded-lg">
+            <span class="text-xs text-content-muted block mb-1">Task:</span>
+            <span class="text-sm font-medium text-content">#<%= @task.id %> <%= @task.name.truncate(50) %></span>
+            <% if @task.model.present? %>
+              <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-500/20 text-purple-400">
+                <%= @task.model.upcase %>
+              </span>
+            <% end %>
+          </div>
+
+          <!-- Error Message -->
+          <% if @task.error_message.present? %>
+            <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <div class="flex items-start gap-2">
+                <span class="text-red-400 flex-shrink-0">🚨</span>
+                <div class="flex-1 min-w-0">
+                  <span class="text-xs font-medium text-red-400 block mb-1">Error Message</span>
+                  <p class="text-sm text-content-secondary whitespace-pre-wrap break-words"><%= @task.error_message.truncate(500) %></p>
+                  <% if @task.error_at.present? %>
+                    <span class="text-xs text-content-muted mt-2 block">
+                      Occurred <%= time_ago_in_words(@task.error_at) %> ago
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Transcript Preview -->
+          <% if @task.agent_session_id.present? %>
+            <details class="group">
+              <summary class="p-3 bg-bg-elevated rounded-lg cursor-pointer list-none">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm">📟</span>
+                    <span class="text-sm text-content">View Last Activity</span>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-content-muted transition-transform group-open:rotate-180">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </div>
+              </summary>
+              <div class="mt-2 p-3 bg-bg-base rounded-lg max-h-48 overflow-y-auto"
+                   data-controller="agent-log-preview"
+                   data-agent-log-preview-url-value="<%= agent_log_api_v1_task_path(@task, format: :json) %>">
+                <div data-agent-log-preview-target="content" class="text-xs font-mono text-content-secondary">
+                  Loading transcript...
+                </div>
+              </div>
+            </details>
+          <% end %>
+
+          <!-- Model Selection -->
+          <div>
+            <label class="text-sm font-medium text-content-muted block mb-2">Hand off to model</label>
+            <div class="grid grid-cols-2 gap-2">
+              <% Task::MODELS.each do |model| %>
+                <label class="flex items-center gap-2 p-3 rounded-lg hover:bg-bg-elevated cursor-pointer border border-transparent has-[:checked]:border-accent/50 has-[:checked]:bg-accent/10 transition-colors <%= model == @task.model ? 'opacity-50' : '' %>">
+                  <%= form.radio_button :model, model, 
+                      checked: model == (model == @task.model ? nil : Task::MODELS.first),
+                      disabled: model == @task.model,
+                      class: "text-accent focus:ring-accent" %>
+                  <div>
+                    <span class="text-sm font-medium text-content"><%= model.upcase %></span>
+                    <% if model == @task.model %>
+                      <span class="text-xs text-content-muted block">Current model</span>
+                    <% end %>
+                  </div>
+                </label>
+              <% end %>
+            </div>
+          </div>
+
+          <!-- Include Transcript Option -->
+          <% if @task.agent_session_id.present? %>
+            <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-bg-elevated cursor-pointer border border-transparent has-[:checked]:border-accent/50 has-[:checked]:bg-accent/10 transition-colors">
+              <%= form.check_box :include_transcript, 
+                  checked: false,
+                  class: "rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
+              <div class="flex-1">
+                <span class="text-sm text-content">Include full transcript as context</span>
+                <p class="text-xs text-content-muted mt-0.5">New model will have access to previous session's work</p>
+              </div>
+            </label>
+          <% end %>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-between gap-3 pt-4 border-t border-border">
+            <div class="text-xs text-content-muted">
+              Clears error state & resets to In Progress
+            </div>
+            <div class="flex items-center gap-3">
+              <%= link_to "Cancel", board_path(@board), class: "px-4 py-2 text-sm font-medium text-content-secondary hover:text-content transition-colors", data: { turbo_frame: "_top" } %>
+              <%= form.submit "Handoff", class: "px-4 py-2 text-sm font-semibold rounded-md bg-accent text-content hover:bg-accent-hover transition-colors cursor-pointer" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

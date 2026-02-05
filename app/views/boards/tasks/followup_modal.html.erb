@@ -55,7 +55,7 @@
 
           <!-- Description with AI Generate and Enhance buttons -->
           <div data-controller="followup-suggestion enhance-followup" 
-               data-followup-suggestion-url-value="<%= generate_followup_api_v1_task_path(@task, format: :json) %>"
+               data-followup-suggestion-url-value="<%= generate_followup_board_task_path(@board, @task, format: :json) %>"
                data-followup-suggestion-cached-value="<%= @task.suggested_followup.present? %>"
                data-enhance-followup-url-value="<%= enhance_followup_board_task_path(@board, @task, format: :json) %>">
             <div class="flex items-center justify-between mb-2">
