@@ -157,12 +157,36 @@
     <%= render "application/delete_modal", url: board_task_path(task.board, task) %>
   <% end %>
 
+  <%# Quick Action Buttons (on hover) %>
+  <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
+    <%# NEXT button - promote to next status %>
+    <% next_status = { 'inbox' => 'up_next', 'up_next' => 'in_progress', 'in_progress' => 'in_review', 'in_review' => 'done' }[task.status] %>
+    <% if next_status %>
+      <%= button_to move_board_task_path(task.board, task, status: next_status),
+          method: :patch,
+          class: "px-2 py-1 text-xs bg-accent hover:bg-accent-hover text-white rounded transition-colors",
+          title: "Move to #{next_status.humanize}" do %>
+        NEXT →
+      <% end %>
+    <% end %>
+
+    <%# Follow-up button %>
+    <% if task.status.in?(['in_review', 'done']) %>
+      <%= link_to followup_modal_board_task_path(task.board, task),
+          class: "px-2 py-1 text-xs bg-bg-surface hover:bg-bg-hover text-content-secondary rounded transition-colors",
+          data: { turbo_frame: "followup_modal" },
+          title: "Create follow-up" do %>
+        ↪️
+      <% end %>
+    <% end %>
+  </div>
+
   <%= link_to board_task_path(task.board, task), data: { turbo_frame: "task_panel" }, class: "block p-3" do %>
 
-  <%# Task Name %>
+  <%# Task ID + Name %>
   <div class="flex items-start gap-2 min-w-0">
     <span class="flex-1 text-sm font-medium text-content leading-tight overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; max-width: 100%;">
-      <%= task.name %>
+      <span class="text-xs text-content-muted font-normal">#<%= task.id %></span> <%= task.name %>
     </span>
     <% if task.blocked? %>
       <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-status-warning" title="Blocked"></span>
