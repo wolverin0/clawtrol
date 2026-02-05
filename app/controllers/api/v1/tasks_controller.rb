@@ -3,7 +3,7 @@ module Api
     class TasksController < BaseController
       # agent_log is public (no auth required) - secured by task lookup
       skip_before_action :authenticate_api_token, only: [ :agent_log ]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :session_health ]
       before_action :set_task_for_agent_log, only: [ :agent_log ]
 
       private
@@ -183,6 +183,39 @@ module Api
         render json: task_json(@task)
       end
 
+      # GET /api/v1/tasks/:id/session_health - check agent session health for continuation
+      def session_health
+        unless @task.agent_session_key.present?
+          render json: { alive: false, context_percent: 0, recommendation: "fresh", reason: "no_session" }
+          return
+        end
+
+        # Mock the OpenClaw session status API for now
+        # In the future, this will call: GET {gateway_url}/api/sessions/{session_key}/status
+        # The real API returns: { alive: bool, usage: { inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens } }
+        
+        # For now, use stored context_usage_percent or simulate based on session age
+        context_percent = @task.context_usage_percent || simulate_context_usage(@task)
+        alive = context_percent < 100  # Session is "alive" if under 100%
+        
+        threshold = current_user.context_threshold_percent
+        recommendation = if !alive
+          "fresh"
+        elsif context_percent > threshold
+          "fresh"
+        else
+          "continue"
+        end
+
+        render json: {
+          alive: alive,
+          context_percent: context_percent,
+          recommendation: recommendation,
+          threshold: threshold,
+          session_key: @task.agent_session_key
+        }
+      end
+
       # POST /api/v1/tasks/:id/generate_followup - generate AI suggestion for followup
       def generate_followup
         suggestion = @task.generate_followup_suggestion
@@ -336,7 +369,19 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :nightly, :nightly_delay_hours, tags: [])
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, tags: [])
+      end
+
+      # Simulate context usage based on session age (mock for now)
+      # Real implementation will call OpenClaw API
+      def simulate_context_usage(task)
+        return 0 unless task.agent_claimed_at.present?
+        
+        # Simulate: older sessions have more context used
+        hours_active = ((Time.current - task.agent_claimed_at) / 1.hour).to_i
+        # Assume roughly 10-15% context per hour of active work
+        simulated = [ hours_active * rand(10..15), 95 ].min
+        simulated
       end
 
       def task_json(task)
@@ -363,6 +408,8 @@ module Api
           next_recurrence_at: task.next_recurrence_at&.iso8601,
           parent_task_id: task.parent_task_id,
           agent_session_id: task.agent_session_id,
+          agent_session_key: task.agent_session_key,
+          context_usage_percent: task.context_usage_percent,
           nightly: task.nightly,
           nightly_delay_hours: task.nightly_delay_hours,
           suggested_followup: task.suggested_followup,

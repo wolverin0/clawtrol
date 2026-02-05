@@ -1,0 +1,136 @@
+<%# Agent Terminal Panel - Bottom dock for monitoring agent activity %>
+<%# Include this in your layout with: render "layouts/agent_terminal" %>
+
+<div 
+  data-controller="agent-terminal"
+  data-agent-terminal-min-height-value="120"
+  data-agent-terminal-max-height-value="600"
+  data-agent-terminal-default-height-value="250"
+  data-agent-terminal-poll-interval-value="2000"
+  class="fixed bottom-0 left-0 right-0 z-50"
+>
+  <%# Main Panel Container %>
+  <div 
+    data-agent-terminal-target="panel"
+    class="hidden bg-[#0a0e14] border-t border-green-500/20 shadow-2xl shadow-black/50 flex flex-col"
+    style="height: 250px;"
+  >
+    <%# Resize Handle %>
+    <div 
+      data-agent-terminal-target="resizeHandle"
+      data-action="mousedown->agent-terminal#startResize"
+      class="h-1 bg-transparent hover:bg-green-500/30 cursor-ns-resize transition-colors flex-shrink-0"
+    >
+      <div class="w-16 h-1 mx-auto rounded-full bg-green-500/20 hover:bg-green-500/40 transition-colors"></div>
+    </div>
+
+    <%# Header: Tabs + Controls %>
+    <div class="flex items-center justify-between px-2 py-1 bg-[#0d1117] border-b border-green-500/10 flex-shrink-0">
+      <%# Tab List %>
+      <div class="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+        <%# Terminal Icon/Title %>
+        <button 
+          data-action="click->agent-terminal#toggle"
+          class="flex items-center gap-2 px-2 py-1 text-xs font-mono text-green-500 hover:text-green-400 transition-colors flex-shrink-0"
+          title="Toggle panel (Ctrl+`)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z" />
+          </svg>
+          <span class="hidden sm:inline">AGENT_TERMINAL</span>
+        </button>
+        
+        <div class="w-px h-4 bg-green-500/20 mx-1"></div>
+        
+        <%# Dynamic Tabs %>
+        <div 
+          data-agent-terminal-target="tabList"
+          class="flex items-center gap-1"
+        >
+          <%# Tabs rendered by JS %>
+        </div>
+      </div>
+
+      <%# Controls %>
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <%# Keyboard shortcut hint %>
+        <span class="hidden lg:inline text-[10px] text-content-muted font-mono px-2">Ctrl+`</span>
+        
+        <%# Collapse/Expand %>
+        <button 
+          data-agent-terminal-target="toggleButton"
+          data-action="click->agent-terminal#toggle"
+          class="p-1 text-content-muted hover:text-content-secondary transition-colors"
+          title="Collapse/Expand"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <%# Content Area %>
+    <div 
+      data-agent-terminal-target="content"
+      class="flex-1 overflow-y-auto p-2 font-mono text-xs leading-relaxed scrollbar-thin scrollbar-thumb-green-500/30 scrollbar-track-transparent"
+      style="background: linear-gradient(180deg, #0a0e14 0%, #0d1117 100%);"
+    >
+      <%# Content rendered by JS %>
+      <div data-agent-terminal-target="emptyState" class="flex items-center justify-center h-full text-content-muted">
+        <span class="animate-pulse">⏳ Waiting for agent output...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Custom scrollbar for terminal */
+  [data-agent-terminal-target="content"]::-webkit-scrollbar {
+    width: 6px;
+  }
+  [data-agent-terminal-target="content"]::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  [data-agent-terminal-target="content"]::-webkit-scrollbar-thumb {
+    background: rgba(34, 197, 94, 0.3);
+    border-radius: 3px;
+  }
+  [data-agent-terminal-target="content"]::-webkit-scrollbar-thumb:hover {
+    background: rgba(34, 197, 94, 0.5);
+  }
+
+  /* Hide horizontal scrollbar for tabs */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Terminal text effects */
+  [data-agent-terminal-target="content"] {
+    text-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+  }
+
+  /* Scanline effect (subtle) */
+  [data-agent-terminal-target="panel"]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.1),
+      rgba(0, 0, 0, 0.1) 1px,
+      transparent 1px,
+      transparent 2px
+    );
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0.3;
+  }
+</style>

@@ -32,10 +32,12 @@
     <% if @board_page %>
       <%# Board page - full screen, no wrapper %>
       <div class="h-screen flex flex-col bg-bg-base">
-        <main class="h-full text-content-secondary font-normal text-sm">
+        <main class="h-full text-content-secondary font-normal text-sm pb-0" data-agent-terminal-aware>
           <%= yield %>
         </main>
       </div>
+      <%# Agent Terminal Panel - only on board pages %>
+      <%= render "layouts/agent_terminal" %>
     <% else %>
       <%# Other pages - centered content with navbar %>
       <div class="h-screen flex flex-col bg-bg-base">

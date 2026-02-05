@@ -116,6 +116,8 @@ class Boards::TasksController < ApplicationController
     followup_description = params[:followup_description]
     destination = params[:destination] || "inbox"
     selected_model = params[:model].presence  # nil means inherit
+    continue_session = params[:continue_session] == "1"
+    inherit_session_key = params[:inherit_session_key]
 
     @followup = @task.create_followup_task!(
       followup_name: followup_name,
@@ -125,6 +127,11 @@ class Boards::TasksController < ApplicationController
     # Override model if specified (otherwise inherits from parent)
     if selected_model.present?
       @followup.update!(model: selected_model)
+    end
+
+    # Handle session continuation - copy session key if user chose to continue
+    if continue_session && inherit_session_key.present?
+      @followup.update!(agent_session_key: inherit_session_key)
     end
 
     # Handle destination

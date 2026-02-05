@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_05_005028) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_05_022001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -156,6 +156,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_005028) do
   create_table "tasks", force: :cascade do |t|
     t.datetime "agent_claimed_at"
     t.string "agent_session_id"
+    t.string "agent_session_key"
     t.datetime "assigned_at"
     t.boolean "assigned_to_agent", default: false, null: false
     t.boolean "blocked", default: false, null: false
@@ -163,6 +164,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_005028) do
     t.boolean "completed", default: false, null: false
     t.datetime "completed_at"
     t.integer "confidence", default: 0, null: false
+    t.integer "context_usage_percent"
     t.datetime "created_at", null: false
     t.text "description"
     t.date "due_date"
@@ -213,6 +215,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_005028) do
     t.string "ai_api_key"
     t.string "ai_suggestion_model", default: "glm"
     t.string "avatar_url"
+    t.integer "context_threshold_percent", default: 70, null: false
     t.datetime "created_at", null: false
     t.string "email_address", null: false
     t.string "openclaw_gateway_token"

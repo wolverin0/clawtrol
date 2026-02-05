@@ -20,6 +20,7 @@ Rails.application.routes.draw do
           patch :unassign
           patch :move
           get :agent_log
+          get :session_health
           post :generate_followup
           post :enhance_followup
           post :create_followup

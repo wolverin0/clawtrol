@@ -105,6 +105,47 @@
   border-color: var(--color-accent-muted);
 }
 
+/* ========================================
+   AGENT MODAL (Bottom Sheet on Mobile)
+   ======================================== */
+.agent-modal-backdrop.open {
+  opacity: 1;
+}
+
+.agent-modal.open {
+  /* Mobile: slide up from bottom */
+  transform: translateY(0);
+}
+
+@media (min-width: 768px) {
+  .agent-modal.open {
+    /* Desktop: fade in and scale up */
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Smooth transition for swipe-to-dismiss */
+.agent-modal {
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+  will-change: transform, opacity;
+}
+
+/* Agent preview button - always visible with good touch target */
+.agent-preview-btn {
+  min-width: 32px;
+  min-height: 32px;
+  /* Expand touch target invisibly for mobile */
+  position: relative;
+}
+
+.agent-preview-btn::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  /* 44x44px touch target */
+}
+
 /* Sidebar layout */
 @layer components {
   /* Hide sidebar until JS determines state */
