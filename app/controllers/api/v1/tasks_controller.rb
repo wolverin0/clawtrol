@@ -1,9 +1,11 @@
+require "open3"
+
 module Api
   module V1
     class TasksController < BaseController
       # agent_log is public (no auth required) - secured by task lookup
       skip_before_action :authenticate_api_token, only: [ :agent_log, :session_health ]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate ]
       before_action :set_task_for_agent_log, only: [ :agent_log, :session_health ]
 
       private
@@ -487,6 +489,7 @@ module Api
       # POST /api/v1/tasks/:id/agent_complete
       # Called by OpenClaw when agent finishes working on a task
       # Appends agent output to description, moves to in_review
+      # If validation_command is present, runs it and updates validation_status
       def agent_complete
         set_task_activity_info(@task)
         output = params[:output]
@@ -509,7 +512,31 @@ module Api
         updates[:agent_claimed_at] = nil
 
         @task.update!(updates)
+
+        # Run validation command if present
+        if @task.validation_command.present?
+          run_validation(@task)
+        end
+
         render json: task_json(@task)
+      end
+
+      # POST /api/v1/tasks/:id/revalidate
+      # Re-run the validation command for a task
+      def revalidate
+        unless @task.validation_command.present?
+          render json: { error: "No validation command configured" }, status: :unprocessable_entity
+          return
+        end
+
+        set_task_activity_info(@task)
+        run_validation(@task)
+
+        render json: {
+          task: task_json(@task),
+          validation_status: @task.validation_status,
+          validation_output: @task.validation_output
+        }
       end
 
       # POST /api/v1/tasks/:id/report_rate_limit
@@ -573,7 +600,46 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, tags: [])
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, tags: [])
+      end
+
+      # Run validation command for a task and update status
+      def run_validation(task)
+        task.update!(validation_status: "pending")
+
+        begin
+          # Run validation command with timeout (60 seconds max)
+          output, status = Open3.capture2e(
+            task.validation_command,
+            chdir: Rails.root.to_s,
+            timeout: 60
+          )
+
+          task.validation_output = output.to_s.truncate(65535)  # Limit output size
+
+          if status.success?
+            task.validation_status = "passed"
+            task.status = "in_review"
+          else
+            task.validation_status = "failed"
+            # Keep status as in_progress so agent can retry
+            task.status = "in_progress"
+          end
+
+          task.save!
+        rescue Timeout::Error
+          task.update!(
+            validation_status: "failed",
+            validation_output: "Validation command timed out after 60 seconds",
+            status: "in_progress"
+          )
+        rescue StandardError => e
+          task.update!(
+            validation_status: "failed",
+            validation_output: "Error running validation: #{e.message}",
+            status: "in_progress"
+          )
+        end
       end
 
       def spawn_ready_params
@@ -640,6 +706,9 @@ module Api
           retry_count: task.retry_count,
           suggested_followup: task.suggested_followup,
           followup_task_id: task.followup_task_id,
+          validation_command: task.validation_command,
+          validation_status: task.validation_status,
+          validation_output: task.validation_output,
           url: "https://clawdeck.io/boards/#{task.board_id}/tasks/#{task.id}",
           created_at: task.created_at.iso8601,
           updated_at: task.updated_at.iso8601

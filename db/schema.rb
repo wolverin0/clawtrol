@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_05_154000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_05_171615) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -57,10 +57,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_154000) do
     t.string "color", default: "gray"
     t.datetime "created_at", null: false
     t.string "icon", default: "📋"
+    t.boolean "is_aggregator", default: false, null: false
     t.string "name", null: false
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["is_aggregator"], name: "index_boards_on_is_aggregator", where: "(is_aggregator = true)"
     t.index ["user_id", "position"], name: "index_boards_on_user_id_and_position"
     t.index ["user_id"], name: "index_boards_on_user_id"
   end
@@ -171,6 +173,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_154000) do
     t.datetime "agent_claimed_at"
     t.string "agent_session_id"
     t.string "agent_session_key"
+    t.datetime "archived_at"
     t.datetime "assigned_at"
     t.boolean "assigned_to_agent", default: false, null: false
     t.boolean "blocked", default: false, null: false
@@ -208,6 +211,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_154000) do
     t.bigint "task_list_id"
     t.datetime "updated_at", null: false
     t.integer "user_id"
+    t.string "validation_command"
+    t.text "validation_output"
+    t.string "validation_status"
+    t.index ["archived_at"], name: "index_tasks_on_archived_at", where: "(archived_at IS NOT NULL)"
     t.index ["assigned_to_agent"], name: "index_tasks_on_assigned_to_agent"
     t.index ["blocked"], name: "index_tasks_on_blocked"
     t.index ["board_id"], name: "index_tasks_on_board_id"
@@ -222,6 +229,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_154000) do
     t.index ["status"], name: "index_tasks_on_status"
     t.index ["task_list_id"], name: "index_tasks_on_task_list_id"
     t.index ["user_id"], name: "index_tasks_on_user_id"
+    t.index ["validation_status"], name: "index_tasks_on_validation_status", where: "(validation_status IS NOT NULL)"
   end
 
   create_table "users", force: :cascade do |t|

@@ -14,7 +14,17 @@ class Board < ApplicationRecord
   COLORS = %w[gray red orange amber yellow lime green emerald teal cyan sky blue indigo violet purple fuchsia pink rose].freeze
 
   # Available board icons (emojis)
-  DEFAULT_ICONS = %w[📋 📝 🎯 🚀 💡 🔧 📊 🎨 📚 🏠 💼 🎮 🎵 📸 ✨ 🦞].freeze
+  DEFAULT_ICONS = %w[📋 📝 🎯 🚀 💡 🔧 📊 🎨 📚 🏠 💼 🎮 🎵 📸 ✨ 🦞 🌐].freeze
+
+  # Check if this board aggregates tasks from all boards
+  def aggregator?
+    is_aggregator?
+  end
+
+  # Get all tasks for this user (for aggregator boards)
+  def all_user_tasks
+    Task.where(user_id: user_id)
+  end
 
   def self.create_onboarding_for(user)
     board = user.boards.create!(

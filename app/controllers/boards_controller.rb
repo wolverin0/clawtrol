@@ -1,5 +1,5 @@
 class BoardsController < ApplicationController
-  before_action :set_board, only: [:show, :update, :destroy, :update_task_status]
+  before_action :set_board, only: [:show, :update, :destroy, :update_task_status, :archived]
 
   def index
     # Redirect to the first board
@@ -16,7 +16,16 @@ class BoardsController < ApplicationController
   def show
     @board_page = true
     session[:last_board_id] = @board.id
-    @tasks = @board.tasks.includes(:user)
+    
+    # For aggregator boards, show tasks from ALL boards (not archived)
+    if @board.aggregator?
+      @tasks = current_user.boards.where(is_aggregator: false).flat_map(&:tasks).reject { |t| t.status == "archived" }
+      @tasks = Task.where(id: @tasks.map(&:id)).includes(:user, :board)
+      @is_aggregator = true
+    else
+      @tasks = @board.tasks.not_archived.includes(:user)
+      @is_aggregator = false
+    end
 
     # Filter by tag if specified
     if params[:tag].present?
@@ -37,13 +46,26 @@ class BoardsController < ApplicationController
     }
 
     # Get all unique tags for the sidebar filter
-    @all_tags = @board.tasks.where.not(tags: []).pluck(:tags).flatten.uniq.sort
+    if @board.aggregator?
+      @all_tags = Task.joins(:board).where(boards: { user_id: current_user.id, is_aggregator: false }).where.not(tags: []).pluck(:tags).flatten.uniq.sort
+    else
+      @all_tags = @board.tasks.where.not(tags: []).pluck(:tags).flatten.uniq.sort
+    end
 
     # Get all boards for the sidebar
     @boards = current_user.boards
 
     # Get API token for agent status display
     @api_token = current_user.api_token
+  end
+
+  def archived
+    @board_page = true
+    @boards = current_user.boards
+    # Set empty columns for header partial (it expects @columns to exist)
+    @columns = { inbox: [], in_progress: [] }
+    tasks = @board.tasks.archived.reorder(archived_at: :desc, completed_at: :desc)
+    @pagy, @tasks = pagy(tasks, items: 20)
   end
 
   def create

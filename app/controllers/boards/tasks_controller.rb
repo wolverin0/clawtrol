@@ -1,6 +1,8 @@
+require "open3"
+
 class Boards::TasksController < ApplicationController
   before_action :set_board
-  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff]
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal]
 
   def show
     @api_token = current_user.api_token
@@ -138,6 +140,27 @@ class Boards::TasksController < ApplicationController
     end
   end
 
+  def revalidate
+    unless @task.validation_command.present?
+      redirect_to board_path(@board), alert: "No validation command configured"
+      return
+    end
+
+    @task.activity_source = "web"
+    run_validation(@task)
+
+    respond_to do |format|
+      format.turbo_stream do
+        render turbo_stream: turbo_stream.replace("task_#{@task.id}", partial: "boards/task_card", locals: { task: @task })
+      end
+      format.html { redirect_to board_path(@board), notice: "Validation #{@task.validation_status}" }
+    end
+  end
+
+  def validation_output_modal
+    render layout: false
+  end
+
   def generate_followup
     suggestion = @task.generate_followup_suggestion
     @task.update!(suggested_followup: suggestion) if suggestion.present?
@@ -211,9 +234,48 @@ class Boards::TasksController < ApplicationController
   end
 
   def task_params
-    permitted = params.require(:task).permit(:name, :title, :description, :priority, :status, :blocked, :due_date, :completed, :model, :recurring, :recurrence_rule, :recurrence_time, :nightly, :nightly_delay_hours, tags: [])
+    permitted = params.require(:task).permit(:name, :title, :description, :priority, :status, :blocked, :due_date, :completed, :model, :recurring, :recurrence_rule, :recurrence_time, :nightly, :nightly_delay_hours, :validation_command, tags: [])
     # Allow 'title' as alias for 'name'
     permitted[:name] = permitted.delete(:title) if permitted[:title].present? && permitted[:name].blank?
     permitted
+  end
+
+  # Run validation command for a task and update status
+  def run_validation(task)
+    task.update!(validation_status: "pending")
+
+    begin
+      # Run validation command with timeout (60 seconds max)
+      output, status = Open3.capture2e(
+        task.validation_command,
+        chdir: Rails.root.to_s,
+        timeout: 60
+      )
+
+      task.validation_output = output.to_s.truncate(65535)  # Limit output size
+
+      if status.success?
+        task.validation_status = "passed"
+        task.status = "in_review"
+      else
+        task.validation_status = "failed"
+        # Keep status as in_progress so agent can retry
+        task.status = "in_progress"
+      end
+
+      task.save!
+    rescue Timeout::Error
+      task.update!(
+        validation_status: "failed",
+        validation_output: "Validation command timed out after 60 seconds",
+        status: "in_progress"
+      )
+    rescue StandardError => e
+      task.update!(
+        validation_status: "failed",
+        validation_output: "Error running validation: #{e.message}",
+        status: "in_progress"
+      )
+    end
   end
 end

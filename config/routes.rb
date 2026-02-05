@@ -40,6 +40,7 @@ Rails.application.routes.draw do
           post :handoff
           post :link_session
           post :report_rate_limit
+          post :revalidate
         end
       end
     end
@@ -61,7 +62,10 @@ Rails.application.routes.draw do
 
   # Boards (multi-board kanban views)
   resources :boards, only: [ :index, :show, :create, :update, :destroy ] do
-    patch :update_task_status, on: :member
+    member do
+      patch :update_task_status
+      get :archived
+    end
     resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "boards/tasks" do
       member do
         patch :assign
@@ -70,10 +74,12 @@ Rails.application.routes.draw do
         patch :move_to_board
         get :followup_modal
         get :handoff_modal
+        get :validation_output_modal
         post :generate_followup
         post :enhance_followup
         post :create_followup
         post :handoff
+        post :revalidate
       end
     end
   end
