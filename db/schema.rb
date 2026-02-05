@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_05_171615) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_05_193254) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -54,14 +54,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_171615) do
   end
 
   create_table "boards", force: :cascade do |t|
+    t.boolean "auto_claim_enabled", default: false, null: false
+    t.string "auto_claim_prefix"
+    t.string "auto_claim_tags", default: [], array: true
     t.string "color", default: "gray"
     t.datetime "created_at", null: false
     t.string "icon", default: "📋"
     t.boolean "is_aggregator", default: false, null: false
+    t.datetime "last_auto_claim_at"
     t.string "name", null: false
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["auto_claim_enabled"], name: "index_boards_on_auto_claim_enabled", where: "(auto_claim_enabled = true)"
     t.index ["is_aggregator"], name: "index_boards_on_is_aggregator", where: "(is_aggregator = true)"
     t.index ["user_id", "position"], name: "index_boards_on_user_id_and_position"
     t.index ["user_id"], name: "index_boards_on_user_id"
@@ -79,21 +84,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_171615) do
     t.index ["resets_at"], name: "index_model_limits_on_resets_at", where: "(limited = true)"
     t.index ["user_id", "name"], name: "index_model_limits_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_model_limits_on_user_id"
-  end
-
-  create_table "projects", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "description"
-    t.boolean "inbox", default: false, null: false
-    t.integer "position"
-    t.integer "prioritization_method", default: 0, null: false
-    t.string "title"
-    t.datetime "updated_at", null: false
-    t.integer "user_id"
-    t.index ["position"], name: "index_projects_on_position"
-    t.index ["user_id", "inbox"], name: "index_projects_on_user_id_inbox_unique", unique: true, where: "(inbox = true)"
-    t.index ["user_id", "position"], name: "index_projects_on_user_id_and_position", unique: true
-    t.index ["user_id"], name: "index_projects_on_user_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -115,19 +105,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_171615) do
     t.index ["created_at"], name: "index_solid_cable_messages_on_created_at"
   end
 
-  create_table "tags", force: :cascade do |t|
-    t.string "color", default: "gray", null: false
-    t.datetime "created_at", null: false
-    t.string "name", null: false
-    t.integer "position"
-    t.bigint "project_id", null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["project_id", "name"], name: "index_tags_on_project_id_and_name", unique: true
-    t.index ["project_id"], name: "index_tags_on_project_id"
-    t.index ["user_id"], name: "index_tags_on_user_id"
-  end
-
   create_table "task_activities", force: :cascade do |t|
     t.string "action", null: false
     t.string "actor_emoji"
@@ -145,28 +122,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_171615) do
     t.index ["task_id", "created_at"], name: "index_task_activities_on_task_id_and_created_at"
     t.index ["task_id"], name: "index_task_activities_on_task_id"
     t.index ["user_id"], name: "index_task_activities_on_user_id"
-  end
-
-  create_table "task_lists", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.integer "position"
-    t.bigint "project_id", null: false
-    t.string "title"
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["position"], name: "index_task_lists_on_position"
-    t.index ["project_id"], name: "index_task_lists_on_project_id"
-    t.index ["user_id"], name: "index_task_lists_on_user_id"
-  end
-
-  create_table "task_tags", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.bigint "tag_id", null: false
-    t.bigint "task_id", null: false
-    t.datetime "updated_at", null: false
-    t.index ["tag_id"], name: "index_task_tags_on_tag_id"
-    t.index ["task_id", "tag_id"], name: "index_task_tags_on_task_id_and_tag_id", unique: true
-    t.index ["task_id"], name: "index_task_tags_on_task_id"
   end
 
   create_table "tasks", force: :cascade do |t|
@@ -196,19 +151,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_171615) do
     t.boolean "nightly", default: false, null: false
     t.integer "nightly_delay_hours"
     t.integer "original_position"
+    t.jsonb "output_files", default: [], null: false
     t.bigint "parent_task_id"
     t.integer "position"
     t.integer "priority", default: 0, null: false
-    t.integer "project_id"
     t.integer "reach", default: 0, null: false
     t.string "recurrence_rule"
     t.time "recurrence_time"
     t.boolean "recurring", default: false, null: false
     t.integer "retry_count", default: 0
+    t.jsonb "review_config", default: {}
+    t.jsonb "review_result", default: {}
+    t.string "review_status"
+    t.string "review_type"
     t.integer "status", default: 0, null: false
     t.text "suggested_followup"
     t.string "tags", default: [], array: true
-    t.bigint "task_list_id"
     t.datetime "updated_at", null: false
     t.integer "user_id"
     t.string "validation_command"
@@ -224,10 +182,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_171615) do
     t.index ["nightly"], name: "index_tasks_on_nightly"
     t.index ["parent_task_id"], name: "index_tasks_on_parent_task_id"
     t.index ["position"], name: "index_tasks_on_position"
-    t.index ["project_id"], name: "index_tasks_on_project_id"
     t.index ["recurring"], name: "index_tasks_on_recurring"
+    t.index ["review_status"], name: "index_tasks_on_review_status", where: "(review_status IS NOT NULL)"
+    t.index ["review_type"], name: "index_tasks_on_review_type", where: "(review_type IS NOT NULL)"
     t.index ["status"], name: "index_tasks_on_status"
-    t.index ["task_list_id"], name: "index_tasks_on_task_list_id"
     t.index ["user_id"], name: "index_tasks_on_user_id"
     t.index ["validation_status"], name: "index_tasks_on_validation_status", where: "(validation_status IS NOT NULL)"
   end
@@ -263,19 +221,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_171615) do
   add_foreign_key "api_tokens", "users"
   add_foreign_key "boards", "users"
   add_foreign_key "model_limits", "users"
-  add_foreign_key "projects", "users"
   add_foreign_key "sessions", "users"
-  add_foreign_key "tags", "projects"
-  add_foreign_key "tags", "users"
   add_foreign_key "task_activities", "tasks"
   add_foreign_key "task_activities", "users"
-  add_foreign_key "task_lists", "projects"
-  add_foreign_key "task_lists", "users"
-  add_foreign_key "task_tags", "tags"
-  add_foreign_key "task_tags", "tasks"
   add_foreign_key "tasks", "boards"
-  add_foreign_key "tasks", "projects"
-  add_foreign_key "tasks", "task_lists"
   add_foreign_key "tasks", "tasks", column: "followup_task_id", on_delete: :nullify
   add_foreign_key "tasks", "tasks", column: "parent_task_id", on_delete: :nullify
   add_foreign_key "tasks", "users"
