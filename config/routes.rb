@@ -4,6 +4,12 @@ Rails.application.routes.draw do
     namespace :v1 do
       resource :settings, only: [ :show, :update ]
 
+      # Model rate limit tracking
+      get "models/status", to: "model_limits#status"
+      post "models/best", to: "model_limits#best"
+      post "models/:model_name/limit", to: "model_limits#record_limit"
+      delete "models/:model_name/limit", to: "model_limits#clear_limit"
+
       resources :boards, only: [ :index, :show, :create, :update, :destroy ] do
         member do
           get :status
@@ -33,6 +39,7 @@ Rails.application.routes.draw do
           post :create_followup
           post :handoff
           post :link_session
+          post :report_rate_limit
         end
       end
     end
