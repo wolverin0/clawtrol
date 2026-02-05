@@ -21,17 +21,17 @@
      aria-modal="true"
      aria-labelledby="agent-modal-title-<%= task.id %>"
      class="agent-modal hidden fixed z-[90] transition-all duration-300 ease-out
-            <%# Mobile: bottom sheet %>
-            inset-x-0 bottom-0 translate-y-full
+            <%# Mobile: bottom sheet - full screen container with content at bottom %>
+            inset-0 flex flex-col justify-end
             <%# Desktop: centered %>
-            md:inset-0 md:flex md:items-center md:justify-center md:translate-y-0 md:opacity-0 md:scale-95">
+            md:justify-center md:items-center">
   
   <div class="agent-modal-content bg-bg-surface border border-border shadow-2xl
-              <%# Mobile: full width, rounded top %>
-              w-full rounded-t-2xl max-h-[80vh]
-              <%# Desktop: max width, fully rounded %>
-              md:w-full md:max-w-lg md:mx-4 md:rounded-xl md:max-h-[70vh]
-              flex flex-col overflow-hidden">
+              <%# Mobile: full width, rounded top, slides up %>
+              w-full rounded-t-2xl max-h-[80vh] translate-y-full
+              <%# Desktop: max width, fully rounded, scales %>
+              md:w-full md:max-w-lg md:mx-4 md:rounded-xl md:max-h-[70vh] md:translate-y-0 md:scale-95 md:opacity-0
+              flex flex-col overflow-hidden transition-all duration-300 ease-out">
     
     <%# Drag handle (mobile only) %>
     <div class="md:hidden flex justify-center py-2 bg-bg-surface">

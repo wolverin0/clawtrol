@@ -112,23 +112,23 @@
   opacity: 1;
 }
 
-.agent-modal.open {
-  /* Mobile: slide up from bottom - !important to override Tailwind utility */
+/* Animate the content, not the container */
+.agent-modal.open .agent-modal-content {
+  /* Mobile: slide up from bottom */
   transform: translateY(0) !important;
   opacity: 1 !important;
 }
 
 @media (min-width: 768px) {
-  .agent-modal.open {
+  .agent-modal.open .agent-modal-content {
     /* Desktop: fade in and scale up */
-    opacity: 1;
-    transform: scale(1);
+    opacity: 1 !important;
+    transform: scale(1) !important;
   }
 }
 
-/* Smooth transition for swipe-to-dismiss */
-.agent-modal {
-  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+/* Smooth transition for content */
+.agent-modal-content {
   will-change: transform, opacity;
 }
 
