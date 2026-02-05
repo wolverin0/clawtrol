@@ -66,6 +66,18 @@ class BoardsController < ApplicationController
     @columns = { inbox: [], in_progress: [] }
     tasks = @board.tasks.archived.reorder(archived_at: :desc, completed_at: :desc)
     @pagy, @tasks = pagy(tasks, items: 20)
+
+    # Handle AJAX requests for infinite scroll pagination
+    if request.xhr?
+      html = render_to_string(
+        partial: "boards/archived_row",
+        collection: @tasks,
+        as: :task,
+        locals: { board: @board }
+      )
+      response.set_header("X-Has-More", @pagy.next.present?.to_s)
+      render html: html.html_safe
+    end
   end
 
   def create
