@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { subscribeToKanban } from "channels/index"
+import { subscribeToKanban } from "channels"
 
 /**
  * Auto-refresh controller for kanban board

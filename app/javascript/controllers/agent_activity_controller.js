@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import { subscribeToAgentActivity } from "channels/index"
+import { subscribeToAgentActivity } from "channels"
 
 export default class extends Controller {
   static targets = ["log", "emptyState", "loadingState", "statusBadge"]
