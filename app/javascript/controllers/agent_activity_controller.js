@@ -113,22 +113,22 @@ export default class extends Controller {
     if (msg.content && Array.isArray(msg.content)) {
       msg.content.forEach(item => {
         if (item.type === 'text' && item.text) {
-          // User messages and text content
-          const text = item.text.length > 500 ? item.text.substring(0, 500) + '...' : item.text
+          // User messages and text content - show full text in panel
+          const text = item.text.length > 5000 ? item.text.substring(0, 5000) + '...' : item.text
           contentHtml += `<div class="text-sm text-content whitespace-pre-wrap break-words">${this.escapeHtml(text)}</div>`
         }
         if (item.type === 'thinking' && item.text) {
-          // Assistant thinking - show collapsed
-          const thinking = item.text.length > 200 ? item.text.substring(0, 200) + '...' : item.text
+          // Assistant thinking
+          const thinking = item.text.length > 1500 ? item.text.substring(0, 1500) + '...' : item.text
           contentHtml += `<div class="text-xs text-content-muted italic bg-bg-surface/50 rounded px-2 py-1 mt-1">💭 ${this.escapeHtml(thinking)}</div>`
         }
         if (item.type === 'tool_call') {
           contentHtml += `<div class="text-xs font-mono text-accent mt-1">🔧 ${this.escapeHtml(item.name || 'tool')}</div>`
         }
         if (item.type === 'tool_result' && item.text) {
-          // Tool results - show truncated
-          const result = item.text.length > 300 ? item.text.substring(0, 300) + '...' : item.text
-          contentHtml += `<div class="text-xs font-mono text-content-muted bg-bg-surface rounded px-2 py-1 mt-1 max-h-20 overflow-y-auto whitespace-pre-wrap">${this.escapeHtml(result)}</div>`
+          // Tool results - show more in panel
+          const result = item.text.length > 3000 ? item.text.substring(0, 3000) + '...' : item.text
+          contentHtml += `<div class="text-xs font-mono text-content-muted bg-bg-surface rounded px-2 py-1 mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap">${this.escapeHtml(result)}</div>`
         }
       })
     }
