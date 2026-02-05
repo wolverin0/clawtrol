@@ -1,13 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
+import { subscribeToKanban } from "channels/index"
 
 /**
  * Auto-refresh controller for kanban board
- * Polls for changes and refreshes the view when tasks are modified
+ * Uses WebSocket for real-time updates with polling as fallback
  */
 export default class extends Controller {
   static values = {
     boardId: Number,
-    interval: { type: Number, default: 15000 }, // 15 seconds default
+    interval: { type: Number, default: 15000 }, // 15 seconds default (fallback polling)
     apiPath: String
   }
 
@@ -17,14 +18,16 @@ export default class extends Controller {
     this.lastFingerprint = null
     this.isRefreshing = false
     this.isPaused = false
+    this.wsConnected = false
+    this.subscription = null
     
     // Get initial fingerprint
     this.fetchFingerprint().then(fp => {
       this.lastFingerprint = fp
     })
     
-    // Start polling
-    this.startPolling()
+    // Try WebSocket first
+    this.connectWebSocket()
     
     // Pause when tab is not visible
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this)
@@ -37,20 +40,61 @@ export default class extends Controller {
 
   disconnect() {
     this.stopPolling()
+    this.disconnectWebSocket()
     document.removeEventListener("visibilitychange", this.handleVisibilityChange)
     document.removeEventListener("turbo:load", this.handleTurboLoad)
   }
 
+  connectWebSocket() {
+    if (!this.boardIdValue) return
+    
+    try {
+      this.subscription = subscribeToKanban(this.boardIdValue, {
+        onConnected: () => {
+          this.wsConnected = true
+          this.stopPolling() // Disable polling when WebSocket is active
+          console.log("[KanbanRefresh] WebSocket connected, polling disabled")
+        },
+        onDisconnected: () => {
+          this.wsConnected = false
+          this.startPolling() // Re-enable polling as fallback
+          console.log("[KanbanRefresh] WebSocket disconnected, polling enabled")
+        },
+        onReceived: (data) => {
+          // Trigger refresh when we get a message
+          if (data.type === "refresh" || data.type === "create" || data.type === "update" || data.type === "destroy") {
+            this.refresh()
+          }
+        }
+      })
+    } catch (error) {
+      console.warn("[KanbanRefresh] WebSocket connection failed, using polling:", error)
+      this.startPolling()
+    }
+  }
+
+  disconnectWebSocket() {
+    if (this.subscription) {
+      this.subscription.unsubscribe()
+      this.subscription = null
+    }
+    this.wsConnected = false
+  }
+
   startPolling() {
+    if (this.pollInterval) return // Already polling
+    
     this.pollInterval = setInterval(() => {
       this.checkForChanges()
     }, this.intervalValue)
+    console.log("[KanbanRefresh] Polling started (fallback mode)")
   }
 
   stopPolling() {
     if (this.pollInterval) {
       clearInterval(this.pollInterval)
       this.pollInterval = null
+      console.log("[KanbanRefresh] Polling stopped")
     }
   }
 
@@ -60,7 +104,9 @@ export default class extends Controller {
     } else {
       this.isPaused = false
       // Check immediately when tab becomes visible again
-      this.checkForChanges()
+      if (!this.wsConnected) {
+        this.checkForChanges()
+      }
     }
   }
 

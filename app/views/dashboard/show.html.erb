@@ -1,0 +1,190 @@
+<% content_for :title, "Dashboard - clawdeck" %>
+<% content_for :breadcrumb_standalone, "📊 Dashboard Overview" %>
+
+<div class="py-6 space-y-6">
+  <%# Status Cards Row %>
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <%# Inbox card %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/50 transition-colors">
+      <div class="text-2xl font-bold text-content"><%= @inbox_count %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1">
+        <span>📥</span>
+        <span>Inbox</span>
+      </div>
+    </div>
+
+    <%# Active card %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/50 transition-colors">
+      <div class="text-2xl font-bold text-accent"><%= @active_count %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1">
+        <span>🔴</span>
+        <span>Active</span>
+      </div>
+    </div>
+
+    <%# In Review card %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/50 transition-colors">
+      <div class="text-2xl font-bold text-yellow-400"><%= @review_count %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1">
+        <span>👁️</span>
+        <span>In Review</span>
+      </div>
+    </div>
+
+    <%# Errors card %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-red-500/50 transition-colors <%= @error_count > 0 ? 'border-red-500/30' : '' %>">
+      <div class="text-2xl font-bold <%= @error_count > 0 ? 'text-red-400' : 'text-content' %>"><%= @error_count %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1">
+        <span>⚠️</span>
+        <span>Errors</span>
+      </div>
+    </div>
+
+    <%# Done Today card %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-green-500/50 transition-colors">
+      <div class="text-2xl font-bold text-green-400"><%= @done_today %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1">
+        <span>✅</span>
+        <span>Done Today</span>
+      </div>
+    </div>
+  </div>
+
+  <%# Active Agents Section %>
+  <div class="bg-bg-elevated border border-border rounded-xl p-4">
+    <h3 class="text-sm font-semibold text-content mb-3 flex items-center gap-2">
+      <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+      Active Agents
+    </h3>
+    <% if @active_tasks.any? %>
+      <div class="space-y-1">
+        <% @active_tasks.each do |task| %>
+          <div class="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-bg-hover transition-colors">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="text-lg flex-shrink-0"><%= task.board.icon %></span>
+              <div class="min-w-0">
+                <%= link_to "##{task.id} #{task.name.truncate(50)}", board_task_path(task.board, task), class: "text-sm text-content hover:text-accent transition-colors truncate block", data: { turbo_frame: "_top" } %>
+                <div class="text-xs text-content-muted">
+                  <%= task.board.name %> • Updated <%= time_ago_in_words(task.updated_at) %> ago
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <% if task.context_usage_percent.present? %>
+                <div class="flex items-center gap-1">
+                  <div class="w-16 h-1.5 bg-bg-base rounded-full overflow-hidden">
+                    <div class="h-full bg-accent rounded-full" style="width: <%= task.context_usage_percent %>%"></div>
+                  </div>
+                  <span class="text-xs text-content-muted"><%= task.context_usage_percent %>%</span>
+                </div>
+              <% end %>
+              <% if task.model.present? %>
+                <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-bg-base text-content-secondary">
+                  <%= task.model.capitalize %>
+                </span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="text-center py-8 text-content-muted">
+        <span class="text-2xl block mb-2">🦞</span>
+        <span class="text-sm">No active agents right now</span>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Bottom Row: Today's Activity + Recent Tasks + Model Status %>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <%# Today's Activity %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-content mb-3 flex items-center gap-2">
+        📈 Today's Activity
+      </h3>
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-content-muted">Completed</span>
+          <span class="text-sm font-medium text-green-400"><%= @done_today %></span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-content-muted">Spawned</span>
+          <span class="text-sm font-medium text-content"><%= @spawned_today %></span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-content-muted">Failed</span>
+          <span class="text-sm font-medium <%= @failed_today > 0 ? 'text-red-400' : 'text-content' %>"><%= @failed_today %></span>
+        </div>
+        <%# Throughput bar %>
+        <div class="pt-2 border-t border-border">
+          <div class="text-xs text-content-muted mb-1">Throughput</div>
+          <div class="flex items-center gap-2">
+            <div class="flex-1 h-2 bg-bg-base rounded-full overflow-hidden">
+              <% total = [@done_today, @spawned_today].max %>
+              <% bar_width = total > 0 ? (@done_today.to_f / total * 100).round : 0 %>
+              <div class="h-full bg-green-500/70 rounded-full transition-all" style="width: <%= bar_width %>%"></div>
+            </div>
+            <span class="text-xs text-content-muted"><%= @done_today %>/<%= @spawned_today %></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Recent Tasks %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-content mb-3 flex items-center gap-2">
+        🕐 Recent Tasks
+      </h3>
+      <% if @recent_tasks.any? %>
+        <div class="space-y-1 max-h-48 overflow-y-auto">
+          <% @recent_tasks.each do |task| %>
+            <div class="flex items-center gap-2 py-1.5">
+              <span class="text-sm flex-shrink-0"><%= task.board.icon %></span>
+              <%= link_to task.name.truncate(35), board_task_path(task.board, task), class: "text-sm text-content-secondary hover:text-accent transition-colors truncate", data: { turbo_frame: "_top" } %>
+              <span class="ml-auto flex-shrink-0 px-1.5 py-0.5 rounded text-xs font-medium <%= status_badge_class(task.status) %>">
+                <%= task.status.humanize %>
+              </span>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-6 text-content-muted text-sm">
+          No recent tasks
+        </div>
+      <% end %>
+    </div>
+
+    <%# Model Status %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-content mb-3 flex items-center gap-2">
+        🤖 Model Status
+      </h3>
+      <div class="space-y-2">
+        <% Task::MODELS.each do |model_name| %>
+          <% limit = @model_limits.find { |l| l.name == model_name } %>
+          <% is_limited = limit&.active_limit? %>
+          <div class="flex items-center justify-between py-1.5">
+            <span class="text-sm text-content-secondary flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full <%= is_limited ? 'bg-red-500' : 'bg-green-500' %>"></span>
+              <%= model_name.capitalize %>
+            </span>
+            <% if is_limited %>
+              <span class="text-xs text-red-400">
+                Resets <%= limit.time_until_reset || 'soon' %>
+              </span>
+            <% else %>
+              <span class="text-xs text-green-400">Available</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%# Quick Links %>
+  <div class="flex flex-wrap items-center justify-center gap-3 pt-4">
+    <% @boards.each do |board| %>
+      <%= link_to "#{board.icon} #{board.name}", board_path(board), class: "inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-elevated border border-border hover:border-accent/50 hover:bg-bg-hover text-sm text-content-secondary hover:text-content transition-colors" %>
+    <% end %>
+  </div>
+</div>

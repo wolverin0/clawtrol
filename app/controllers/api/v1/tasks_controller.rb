@@ -200,6 +200,12 @@ module Api
         # Create notification for agent claim
         Notification.create_for_agent_claim(@task)
 
+        # Broadcast agent activity started via WebSocket
+        AgentActivityChannel.broadcast_status(@task.id, "in_progress", {
+          agent_claimed: true,
+          session_linked: sid.present?
+        })
+
         render json: task_json(@task)
       end
 
@@ -367,6 +373,12 @@ module Api
         set_task_activity_info(@task)
 
         if @task.save
+          # Broadcast session linked - clients can start watching for activity
+          AgentActivityChannel.broadcast_status(@task.id, @task.status, {
+            session_linked: true,
+            has_session: @task.agent_session_id.present?
+          })
+
           render json: { success: true, task_id: @task.id, task: task_json(@task) }
         else
           render json: { errors: @task.errors }, status: :unprocessable_entity
@@ -465,6 +477,17 @@ module Api
         @task.user = current_user
         set_task_activity_info(@task)
 
+        # Apply template if specified
+        if params.dig(:task, :template_slug).present?
+          template = TaskTemplate.find_for_user(params[:task][:template_slug], current_user)
+          if template
+            task_name = @task.name || ""
+            template_attrs = template.to_task_attributes(task_name)
+            @task.assign_attributes(template_attrs.except(:name))
+            @task.name = template_attrs[:name] if task_name.present?
+          end
+        end
+
         if @task.save
           render json: task_json(@task), status: :created
         else
@@ -543,6 +566,12 @@ module Api
         updates[:agent_claimed_at] = nil
 
         @task.update!(updates)
+
+        # Broadcast agent activity completion via WebSocket
+        AgentActivityChannel.broadcast_status(@task.id, "in_review", {
+          output_present: output.present?,
+          files_count: (@task.output_files || []).size
+        })
 
         # Run validation command if present (legacy method)
         if @task.validation_command.present?

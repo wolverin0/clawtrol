@@ -504,6 +504,9 @@ class Task < ApplicationRecord
       locals: { task: task_with_associations }
     )
     broadcast_column_count(status)
+
+    # Also broadcast via ActionCable KanbanChannel for WebSocket clients
+    KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "create")
   end
 
   def broadcast_update
@@ -537,6 +540,14 @@ class Task < ApplicationRecord
         locals: { task: task_with_associations }
       )
     end
+
+    # Also broadcast via ActionCable KanbanChannel for WebSocket clients
+    KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "update")
+
+    # Broadcast agent activity updates when agent-related fields change
+    if saved_change_to_agent_session_id? || saved_change_to_status? || saved_change_to_agent_claimed_at?
+      AgentActivityChannel.broadcast_status(id, status)
+    end
   end
 
   def broadcast_destroy
@@ -558,6 +569,9 @@ class Task < ApplicationRecord
       target: "column-#{cached_status}-count",
       html: %(<span id="column-#{cached_status}-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded">#{count}</span>)
     )
+
+    # Also broadcast via ActionCable KanbanChannel for WebSocket clients
+    KanbanChannel.broadcast_refresh(cached_board_id, task_id: cached_id, action: "destroy")
   end
 
   def broadcast_column_count(column_status)

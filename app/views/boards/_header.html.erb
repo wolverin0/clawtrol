@@ -2,9 +2,14 @@
 <header class="relative flex-shrink-0 bg-bg-base">
   <%# Main header row %>
   <div class="flex items-center justify-between px-6 py-3 border-b border-border">
-    <%# Left section: Logo/Brand %>
+    <%# Left section: Logo/Brand + Dashboard %>
     <div class="flex items-center gap-3">
       <span class="text-lg font-semibold text-content font-display">🦞 ClawDeck</span>
+      <%= link_to dashboard_path,
+          class: "px-2 py-1 rounded-md text-sm text-content-muted hover:text-content hover:bg-bg-elevated transition-colors",
+          title: "Dashboard Overview" do %>
+        📊
+      <% end %>
     </div>
 
     <%# Center section: Task counts (hidden on mobile) %>

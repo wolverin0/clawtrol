@@ -1,4 +1,23 @@
 module ApplicationHelper
+  def status_badge_class(status)
+    case status.to_s
+    when "inbox"
+      "bg-bg-base text-content-muted"
+    when "up_next"
+      "bg-blue-500/20 text-blue-400"
+    when "in_progress"
+      "bg-accent/20 text-accent"
+    when "in_review"
+      "bg-yellow-500/20 text-yellow-400"
+    when "done"
+      "bg-green-500/20 text-green-400"
+    when "archived"
+      "bg-bg-base text-content-muted"
+    else
+      "bg-bg-base text-content-muted"
+    end
+  end
+
   def activity_icon_bg(activity)
     case activity.action
     when "created"

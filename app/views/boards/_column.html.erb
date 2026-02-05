@@ -43,11 +43,24 @@
   <div data-inline-add-target="form" class="hidden px-2 py-2">
     <div class="bg-bg-elevated rounded-lg border border-border p-2">
       <textarea data-inline-add-target="input"
-                data-action="keydown->inline-add#handleKeydown"
-                placeholder="Enter a title for this card..."
+                data-action="keydown->inline-add#handleKeydown input->inline-add#handleInput"
+                placeholder="Enter a title... or /review, /bug, /test..."
                 rows="3"
                 class="w-full bg-transparent text-sm text-content placeholder-content-muted resize-none focus:outline-none"></textarea>
+      <%# Template hint %>
+      <div data-inline-add-target="hint" class="hidden text-xs mb-2 px-1"></div>
+      <%# Template dropdown %>
       <div class="flex items-center gap-2 mt-2">
+        <select data-inline-add-target="templateSelect"
+                data-action="change->inline-add#applyTemplate"
+                class="flex-1 text-xs bg-bg-surface border border-border rounded px-2 py-1.5 text-content-muted focus:outline-none focus:border-accent cursor-pointer">
+          <option value="">Quick add...</option>
+          <option value="review">🔍 Code Review</option>
+          <option value="bug">🐛 Bug Fix</option>
+          <option value="doc">📝 Documentation</option>
+          <option value="test">🧪 Write Tests</option>
+          <option value="research">🔬 Research</option>
+        </select>
         <button type="button"
                 data-action="click->inline-add#submit"
                 class="px-3 py-1.5 text-xs font-semibold rounded bg-accent text-content hover:bg-accent-hover transition-colors cursor-pointer">

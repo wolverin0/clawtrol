@@ -26,6 +26,13 @@ Rails.application.routes.draw do
         end
       end
 
+      # Task templates for slash commands
+      resources :task_templates, only: [ :index, :show, :create, :update, :destroy ] do
+        collection do
+          post :apply
+        end
+      end
+
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
           get :next
@@ -73,6 +80,9 @@ Rails.application.routes.draw do
   resource :settings, only: [ :show, :update ], controller: "profiles" do
     post :regenerate_api_token
   end
+
+  # Dashboard overview page
+  get "dashboard", to: "dashboard#show"
 
   # Boards (multi-board kanban views)
   resources :boards, only: [ :index, :show, :create, :update, :destroy ] do

@@ -1,6 +1,6 @@
 <%# Navbar for non-board pages (settings, etc.) - matches board header style %>
 <header class="relative flex-shrink-0 flex items-center justify-between px-6 py-4 bg-bg-base border-b border-border">
-  <%# Left section: Back to board %>
+  <%# Left section: Back to board + Dashboard %>
   <div class="flex items-center gap-4">
     <% if authenticated? %>
       <% last_board = session[:last_board_id] && current_user.boards.find_by(id: session[:last_board_id]) %>
@@ -9,6 +9,9 @@
           <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
         </svg>
         <span class="hidden sm:inline">Back to Board</span>
+      <% end %>
+      <%= link_to dashboard_path, class: "text-sm text-content-muted hover:text-content transition-colors", title: "Dashboard Overview" do %>
+        📊
       <% end %>
     <% else %>
       <%= link_to root_path, class: "flex items-center" do %>

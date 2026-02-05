@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { subscribeToAgentActivity } from "channels/index"
 
 export default class extends Controller {
   static targets = ["log", "emptyState", "loadingState", "statusBadge"]
@@ -13,8 +14,13 @@ export default class extends Controller {
     this.lastLine = 0
     this.isPolling = false
     this.pollTimer = null
+    this.wsConnected = false
+    this.subscription = null
     
     if (this.sessionIdValue) {
+      // Try WebSocket first
+      this.connectWebSocket()
+      // Start polling immediately as fallback (will be disabled if WS connects)
       this.startPolling()
     } else {
       this.showEmptyState()
@@ -23,12 +29,57 @@ export default class extends Controller {
 
   disconnect() {
     this.stopPolling()
+    this.disconnectWebSocket()
+  }
+
+  connectWebSocket() {
+    if (!this.taskIdValue) return
+    
+    try {
+      this.subscription = subscribeToAgentActivity(this.taskIdValue, {
+        onConnected: () => {
+          this.wsConnected = true
+          this.stopPolling() // Disable polling when WebSocket is active
+          console.log("[AgentActivity] WebSocket connected, polling disabled")
+        },
+        onDisconnected: () => {
+          this.wsConnected = false
+          // Re-enable polling as fallback if we should still be polling
+          if (this.shouldPoll()) {
+            this.startPolling()
+          }
+          console.log("[AgentActivity] WebSocket disconnected, polling enabled")
+        },
+        onReceived: (data) => {
+          // Trigger poll/fetch when we get a message
+          if (data.type === "activity" || data.type === "status") {
+            this.poll() // Fetch latest data
+          }
+        }
+      })
+    } catch (error) {
+      console.warn("[AgentActivity] WebSocket connection failed:", error)
+      // Polling is already started as fallback
+    }
+  }
+
+  disconnectWebSocket() {
+    if (this.subscription) {
+      this.subscription.unsubscribe()
+      this.subscription = null
+    }
+    this.wsConnected = false
+  }
+
+  shouldPoll() {
+    return ['in_progress', 'up_next'].includes(this.taskStatusValue)
   }
 
   startPolling() {
     if (this.isPolling) return
     this.isPolling = true
     this.poll()
+    console.log("[AgentActivity] Polling started")
   }
 
   stopPolling() {
@@ -37,10 +88,13 @@ export default class extends Controller {
       clearTimeout(this.pollTimer)
       this.pollTimer = null
     }
+    console.log("[AgentActivity] Polling stopped")
   }
 
   async poll() {
-    if (!this.isPolling) return
+    // Only skip if we're in polling mode AND not actively polling
+    // When WS triggers poll(), we should always fetch
+    if (this.isPolling === false && !this.wsConnected) return
     
     try {
       const response = await fetch(`/api/v1/tasks/${this.taskIdValue}/agent_log?since=${this.lastLine}`)
@@ -79,7 +133,8 @@ export default class extends Controller {
         }
       }
 
-      if (!['in_progress', 'up_next'].includes(data.task_status)) {
+      // Stop polling if task is complete (but keep WS for final updates)
+      if (!this.shouldPoll()) {
         this.stopPolling()
         return
       }
@@ -92,7 +147,8 @@ export default class extends Controller {
   }
 
   scheduleNextPoll() {
-    if (!this.isPolling) return
+    // Only schedule next poll if we're in polling mode (not WS mode)
+    if (!this.isPolling || this.wsConnected) return
     this.pollTimer = setTimeout(() => this.poll(), this.pollIntervalValue)
   }
 
@@ -199,7 +255,7 @@ export default class extends Controller {
   refresh() {
     this.lastLine = 0
     if (this.hasLogTarget) this.logTarget.innerHTML = ''
-    if (!this.isPolling) this.startPolling()
+    if (!this.isPolling && !this.wsConnected) this.startPolling()
     else this.poll()
   }
 }

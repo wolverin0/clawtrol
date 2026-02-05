@@ -6,3 +6,7 @@ pin "@hotwired/stimulus", to: "stimulus.min.js"
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
 pin "sortablejs" # @1.15.6
+
+# ActionCable for WebSocket channels
+pin "@rails/actioncable", to: "actioncable.esm.js"
+pin_all_from "app/javascript/channels", under: "channels"

@@ -18,6 +18,17 @@ class Boards::TasksController < ApplicationController
     @task.status ||= :inbox
     @task.activity_source = "web"
 
+    # Apply template if specified
+    if params.dig(:task, :template_slug).present?
+      template = TaskTemplate.find_for_user(params[:task][:template_slug], current_user)
+      if template
+        task_name = @task.name || @task.title || ""
+        template_attrs = template.to_task_attributes(task_name)
+        @task.assign_attributes(template_attrs.except(:name)) # Don't override name, it's already set
+        @task.name = template_attrs[:name] if task_name.present? # Apply icon prefix
+      end
+    end
+
     if @task.save
       respond_to do |format|
         format.turbo_stream
