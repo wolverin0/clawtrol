@@ -24,7 +24,7 @@ export default class extends Controller {
     if (event.detail?.except !== this.element) {
       const isOpen = !this.menuTarget.classList.contains("hidden")
       if (isOpen) {
-        this.close()
+        this.close()  // This now dispatches dropdown:closed and removes z-index
       }
     }
   }
@@ -48,6 +48,8 @@ export default class extends Controller {
     // Hide any visible agent previews (they shouldn't overlap context menus)
     document.dispatchEvent(new CustomEvent("dropdown:opened"))
 
+    // Boost card z-index so dropdown menu appears above sibling cards
+    this.element.classList.add("z-[100]")
     this.menuTarget.classList.remove("hidden")
     const triggerEl = this.hasTriggerTarget ? this.triggerTarget : this.buttonTarget
     triggerEl.setAttribute("aria-expanded", "true")
@@ -75,6 +77,9 @@ export default class extends Controller {
     if (isOpen) {
       return
     }
+
+    // Boost card z-index so dropdown menu appears above sibling cards
+    this.element.classList.add("z-[100]")
 
     // Show menu first (but keep it positioned off-screen temporarily to measure)
     const menu = this.menuTarget
@@ -148,8 +153,12 @@ export default class extends Controller {
       this.containerTarget.classList.add("opacity-0")
       this.containerTarget.classList.remove("z-[80]")
     }
+    // Remove z-index boost from card
+    this.element.classList.remove("z-[100]")
     document.removeEventListener("click", this.handleClickOutside)
     document.removeEventListener("keydown", this.handleKeydown)
+    // Signal that dropdown closed (so previews can re-enable)
+    document.dispatchEvent(new CustomEvent("dropdown:closed"))
   }
 
   select(event) {

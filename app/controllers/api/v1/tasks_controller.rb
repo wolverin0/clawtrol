@@ -2,9 +2,9 @@ module Api
   module V1
     class TasksController < BaseController
       # agent_log is public (no auth required) - secured by task lookup
-      skip_before_action :authenticate_api_token, only: [ :agent_log ]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :session_health, :handoff, :link_session ]
-      before_action :set_task_for_agent_log, only: [ :agent_log ]
+      skip_before_action :authenticate_api_token, only: [ :agent_log, :session_health ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session ]
+      before_action :set_task_for_agent_log, only: [ :agent_log, :session_health ]
 
       private
 
@@ -218,7 +218,7 @@ module Api
         context_percent = @task.context_usage_percent || simulate_context_usage(@task)
         alive = context_percent < 100  # Session is "alive" if under 100%
         
-        threshold = current_user.context_threshold_percent
+        threshold = current_user&.context_threshold_percent || 70  # Default 70% for public access
         recommendation = if !alive
           "fresh"
         elsif context_percent > threshold
@@ -299,7 +299,8 @@ module Api
         @task = current_user.tasks.new(spawn_ready_params)
         @task.status = :in_progress
         @task.assigned_to_agent = true
-        @task.board_id ||= current_user.boards.first&.id
+        # Auto-detect board based on task name if not specified
+        @task.board_id ||= detect_board_for_task(@task.name, current_user)&.id || current_user.boards.first&.id
         set_task_activity_info(@task)
 
         if @task.save
@@ -495,6 +496,21 @@ module Api
 
       def spawn_ready_params
         params.require(:task).permit(:name, :description, :model, :priority, :board_id, tags: [])
+      end
+
+      # Auto-detect which board a task belongs to based on its name
+      # Used by spawn_ready to route tasks to the appropriate board
+      def detect_board_for_task(name, user)
+        return nil if name.blank?
+
+        case name.downcase
+        when /clawdeck|clawdk/i
+          user.boards.find_by(name: 'ClawDeck')
+        when /pedrito/i
+          user.boards.find_by(name: 'Pedrito')
+        else
+          user.boards.find_by(name: 'Misc')
+        end
       end
 
       # Simulate context usage based on session age (mock for now)

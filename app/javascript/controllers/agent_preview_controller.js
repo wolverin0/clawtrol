@@ -12,13 +12,27 @@ export default class extends Controller {
     this.polling = false
     this.showTimeout = null
     this.hideTimeout = null
+    this.dropdownOpen = false
     
     // Hide preview when dropdowns open (context menus shouldn't overlap with previews)
-    this.hideOnDropdown = () => this.hideImmediately()
+    this.hideOnDropdown = () => {
+      this.dropdownOpen = true
+      this.hideImmediately()
+    }
     document.addEventListener("dropdown:opened", this.hideOnDropdown)
     
+    // Allow preview again when dropdown closes
+    this.enableOnDropdownClose = () => { this.dropdownOpen = false }
+    document.addEventListener("dropdown:closed", this.enableOnDropdownClose)
+    
     // Hide preview on click (user is opening the task panel)
-    this.hideOnClick = () => this.hideImmediately()
+    // But NOT if clicking inside the preview itself (e.g., pin button)
+    this.hideOnClick = (event) => {
+      if (this.hasPreviewTarget && this.previewTarget.contains(event.target)) {
+        return // Don't hide when clicking inside the preview
+      }
+      this.hideImmediately()
+    }
     this.element.addEventListener('click', this.hideOnClick)
     this.element.addEventListener('mousedown', this.hideOnClick)
   }
@@ -28,6 +42,7 @@ export default class extends Controller {
     clearTimeout(this.showTimeout)
     clearTimeout(this.hideTimeout)
     document.removeEventListener("dropdown:opened", this.hideOnDropdown)
+    document.removeEventListener("dropdown:closed", this.enableOnDropdownClose)
     if (this.hideOnClick) {
       this.element.removeEventListener('click', this.hideOnClick)
       this.element.removeEventListener('mousedown', this.hideOnClick)
@@ -36,10 +51,12 @@ export default class extends Controller {
 
   show() {
     if (!this.hasPreviewTarget) return
+    if (this.dropdownOpen) return  // Don't show preview while dropdown is open
     clearTimeout(this.hideTimeout)
     
     // Delay before showing to avoid flicker on quick mouse movements
     this.showTimeout = setTimeout(() => {
+      if (this.dropdownOpen) return  // Double-check after timeout
       const rect = this.element.getBoundingClientRect()
       const preview = this.previewTarget
       
@@ -47,7 +64,7 @@ export default class extends Controller {
       preview.style.position = 'fixed'
       preview.style.left = `${rect.left}px`
       preview.style.width = `${rect.width}px`
-      preview.style.zIndex = '9999'
+      preview.style.zIndex = '40'  // Keep below dropdown menus (z-[10000]) and modal overlays
       
       // Reset both top/bottom before calculating
       preview.style.top = 'auto'

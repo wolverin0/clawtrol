@@ -1,3 +1,5 @@
-RailsLiveReload.configure do |config|
-  config.enabled = false
+if defined?(RailsLiveReload)
+  RailsLiveReload.configure do |config|
+    config.enabled = false
+  end
 end
