@@ -28,8 +28,15 @@ module Api
           return
         end
 
+        # Sanitize session ID to prevent path traversal attacks
+        session_id = @task.agent_session_id.to_s
+        unless session_id.match?(/\A[a-zA-Z0-9_\-]+\z/)
+          render json: { messages: [], total_lines: 0, has_session: false, error: "Invalid session ID format" }
+          return
+        end
+
         # Build path to the transcript file
-        transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{@task.agent_session_id}.jsonl")
+        transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl")
 
         unless File.exist?(transcript_path)
           # Fallback: extract "## Agent Output" from task description if present
@@ -37,11 +44,11 @@ module Api
             output_match = @task.description.match(/## Agent Output.*?\n(.*)/m)
             if output_match
               extracted_output = output_match[1].strip
-              render json: { 
-                messages: [{ role: "assistant", content: [{ type: "text", text: extracted_output }] }], 
-                total_lines: 1, 
-                has_session: true, 
-                fallback: true 
+              render json: {
+                messages: [{ role: "assistant", content: [{ type: "text", text: extracted_output }] }],
+                total_lines: 1,
+                has_session: true,
+                fallback: true
               }
               return
             end
@@ -213,11 +220,11 @@ module Api
         # Mock the OpenClaw session status API for now
         # In the future, this will call: GET {gateway_url}/api/sessions/{session_key}/status
         # The real API returns: { alive: bool, usage: { inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens } }
-        
+
         # For now, use stored context_usage_percent or simulate based on session age
         context_percent = @task.context_usage_percent || simulate_context_usage(@task)
         alive = context_percent < 100  # Session is "alive" if under 100%
-        
+
         threshold = current_user&.context_threshold_percent || 70  # Default 70% for public access
         recommendation = if !alive
           "fresh"
@@ -259,7 +266,7 @@ module Api
         end
 
         include_transcript = ActiveModel::Type::Boolean.new.cast(params[:include_transcript])
-        
+
         # Build handoff context for orchestrator
         context = {
           task_id: @task.id,
@@ -307,13 +314,13 @@ module Api
         # Auto-fallback: check if requested model is available, otherwise use fallback
         requested_model = @task.model
         fallback_note = nil
-        
+
         if requested_model.present?
           # Clear any expired limits first
           ModelLimit.clear_expired_limits!
-          
+
           actual_model, fallback_note = ModelLimit.best_available_model(current_user, requested_model)
-          
+
           if actual_model != requested_model
             @task.model = actual_model
             # Prepend fallback note to description
@@ -360,7 +367,7 @@ module Api
         )
 
         # Auto-complete parent task when follow-up is created
-        @task.update!(status: 'done', completed: true, completed_at: Time.current)
+        @task.update!(status: "done", completed: true, completed_at: Time.current)
 
         render json: { followup: task_json(followup), source_task: task_json(@task) }, status: :created
       end
@@ -530,7 +537,7 @@ module Api
         fallback_note = nil
         if params[:auto_fallback] != false
           new_model, fallback_note = ModelLimit.best_available_model(current_user, model_name)
-          
+
           if new_model != model_name
             @task.handoff!(new_model: new_model, include_transcript: false)
             @task.activity_note = fallback_note
@@ -580,11 +587,11 @@ module Api
 
         case name.downcase
         when /clawdeck|clawdk/i
-          user.boards.find_by(name: 'ClawDeck')
+          user.boards.find_by(name: "ClawDeck")
         when /pedrito/i
-          user.boards.find_by(name: 'Pedrito')
+          user.boards.find_by(name: "Pedrito")
         else
-          user.boards.find_by(name: 'Misc')
+          user.boards.find_by(name: "Misc")
         end
       end
 
@@ -592,7 +599,7 @@ module Api
       # Real implementation will call OpenClaw API
       def simulate_context_usage(task)
         return 0 unless task.agent_claimed_at.present?
-        
+
         # Simulate: older sessions have more context used
         hours_active = ((Time.current - task.agent_claimed_at) / 1.hour).to_i
         # Assume roughly 10-15% context per hour of active work
