@@ -5,7 +5,8 @@ class Api::V1::TasksControllerTest < ActionDispatch::IntegrationTest
     @user = users(:one)
     @api_token = api_tokens(:one)
     @task = tasks(:one)
-    @auth_header = { "Authorization" => "Bearer #{@api_token.token}" }
+    # Use the known plaintext token that corresponds to the fixture's token_digest
+    @auth_header = { "Authorization" => "Bearer test_token_one_abc123def456" }
   end
 
   # Authentication tests

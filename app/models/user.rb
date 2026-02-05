@@ -8,9 +8,19 @@ class User < ApplicationRecord
   has_many :model_limits, dependent: :destroy
   has_one_attached :avatar
 
+  # Security: encrypt sensitive fields at rest using Rails 7+ built-in encryption
+  encrypts :ai_api_key
+
   # Primary API token for agent integration
+  # Note: raw_token is only available on the returned object if the token was just created
   def api_token
     api_tokens.first || api_tokens.create!(name: "Default")
+  end
+
+  # Create a new API token, returning an object with raw_token available
+  def regenerate_api_token!
+    api_tokens.destroy_all
+    api_tokens.create!(name: "Default")
   end
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }

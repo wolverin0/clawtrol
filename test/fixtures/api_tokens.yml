@@ -1,12 +1,16 @@
 # API Tokens fixtures
+# Tokens are now stored as SHA256 hashes
+# token_digest = SHA256("test_token_one_abc123def456") etc.
 one:
-  token: test_token_one_abc123def456
+  token_digest: <%= Digest::SHA256.hexdigest("test_token_one_abc123def456") %>
+  token_prefix: test_tok
   name: Test Token One
   user: one
   last_used_at: nil
 
 two:
-  token: test_token_two_xyz789ghi012
+  token_digest: <%= Digest::SHA256.hexdigest("test_token_two_xyz789ghi012") %>
+  token_prefix: test_tok
   name: Test Token Two
   user: two
   last_used_at: nil

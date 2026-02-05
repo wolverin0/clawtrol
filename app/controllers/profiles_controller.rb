@@ -21,8 +21,9 @@ class ProfilesController < ApplicationController
 
   def regenerate_api_token
     current_user.api_tokens.destroy_all
-    @api_token = current_user.api_tokens.create!
-    redirect_to settings_path, notice: "API token regenerated."
+    @api_token = current_user.api_tokens.create!(name: "Default")
+    # Flash the raw token so it can be shown once to the user
+    redirect_to settings_path, notice: "API token regenerated. New token: #{@api_token.raw_token} — Copy it now, it won't be shown again!"
   end
 
   private

@@ -1,4 +1,5 @@
 require "open3"
+require "shellwords"
 
 # Centralized service for running validation commands against tasks.
 # Used by:
@@ -30,7 +31,8 @@ class ValidationRunnerService
       exit_status = nil
 
       Timeout.timeout(@timeout) do
-        output, exit_status = Open3.capture2e(command, chdir: Rails.root.to_s)
+        # Security: use Shellwords.shellsplit to prevent shell metacharacter injection
+        output, exit_status = Open3.capture2e(*Shellwords.shellsplit(command), chdir: Rails.root.to_s)
       end
 
       truncated_output = output.to_s.truncate(MAX_OUTPUT_SIZE)

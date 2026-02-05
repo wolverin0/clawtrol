@@ -235,7 +235,9 @@
     </p>
 
     <% api_url = "#{request.base_url}/api/v1" %>
-    <% api_token = @api_token.token %>
+    <% # Security: raw token is only available right after creation/regeneration
+       # Otherwise show masked version. User should copy from the flash message.
+       api_token = @api_token.raw_token.presence || @api_token.masked_token %>
 
     <!-- Comprehensive agent prompt -->
     <div data-controller="clipboard">
