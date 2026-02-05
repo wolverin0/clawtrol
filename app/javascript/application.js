@@ -3,4 +3,4 @@ import "@hotwired/turbo-rails"
 import "controllers"
 
 // ActionCable channels for WebSocket communication
-import "channels/index"
+import "channels"

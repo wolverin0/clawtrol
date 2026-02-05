@@ -124,21 +124,4 @@
   </div>
 </div>
 
-<% if params[:task].present? %>
-  <script>
-    // Auto-open task panel from ?task=ID (e.g. direct link, phone, shared URL)
-    // Wait for DOM + Stimulus to be ready, then click the card link
-    setTimeout(function() {
-      const taskId = "<%= params[:task] %>";
-      // Find the card's link that targets task_panel frame
-      const link = document.querySelector('[data-task-id="' + taskId + '"] a[data-turbo-frame="task_panel"]');
-      if (link) {
-        link.click();
-      } else {
-        // Card might be off-screen (scrolled column). Find any link to this task.
-        const anyLink = document.querySelector('a[href*="/tasks/' + taskId + '"][data-turbo-frame="task_panel"]');
-        if (anyLink) anyLink.click();
-      }
-    }, 500);
-  </script>
-<% end %>
+<%# Task auto-open removed - direct visits render full page via show action %>

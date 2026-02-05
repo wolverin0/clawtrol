@@ -1,12 +1,3 @@
-<% if turbo_frame_request? %>
-  <%= turbo_frame_tag "task_panel" do %>
-    <%= render "boards/tasks/panel", task: @task %>
-  <% end %>
-<% else %>
-  <div class="max-w-4xl mx-auto py-8 px-4">
-    <div class="mb-4">
-      <%= link_to "← Back to Board", board_path(@board), class: "text-accent hover:text-accent-hover text-sm" %>
-    </div>
-    <%= render "boards/tasks/panel", task: @task %>
-  </div>
+<%= turbo_frame_tag "task_panel" do %>
+  <%= render "boards/tasks/panel", task: @task %>
 <% end %>
