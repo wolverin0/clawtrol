@@ -31,7 +31,6 @@ export default class extends Controller {
   }
 
   connect() {
-    console.log("[agent-terminal] Controller connected")
     this.pinnedTasks = new Map() // taskId -> { name, lastLine, content, polling }
     this.activeTabId = null
     this.isCollapsed = false
@@ -77,7 +76,6 @@ export default class extends Controller {
 
   pinTask(event) {
     const { taskId, taskName } = event.detail
-    console.log("[agent-terminal] pinTask", taskId, taskName)
     
     if (this.pinnedTasks.has(taskId)) {
       // Already pinned, just switch to it
@@ -106,7 +104,6 @@ export default class extends Controller {
       taskId = parseInt(btn.dataset.taskId, 10)
     }
     
-    console.log("[agent-terminal] unpinTask", taskId)
     this.stopPolling(taskId)
     this.pinnedTasks.delete(taskId)
     
@@ -125,14 +122,12 @@ export default class extends Controller {
       taskId = parseInt(taskIdOrEvent.currentTarget.dataset.taskId, 10)
     }
     
-    console.log("[agent-terminal] switchTab", taskId)
     this.activeTabId = taskId
     this.render()
     this.scrollToBottom()
   }
 
   toggle() {
-    console.log("[agent-terminal] toggle")
     if (this.pinnedTasks.size === 0) return
     
     this.isCollapsed = !this.isCollapsed

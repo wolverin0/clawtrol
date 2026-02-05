@@ -16,8 +16,6 @@ export default class extends Controller {
     // Hide preview when dropdowns open (context menus shouldn't overlap with previews)
     this.hideOnDropdown = () => this.hideImmediately()
     document.addEventListener("dropdown:opened", this.hideOnDropdown)
-    
-    console.log("[agent-preview] connected for task", this.taskIdValue)
   }
 
   disconnect() {
@@ -146,8 +144,6 @@ export default class extends Controller {
   pinToTerminal(event) {
     event.preventDefault()
     event.stopPropagation()
-    
-    console.log("[agent-preview] Pin to terminal clicked for task", this.taskIdValue)
     
     // Dispatch custom event that the terminal controller listens to
     const pinEvent = new CustomEvent('agent-terminal:pin', {

@@ -10,7 +10,6 @@ export default class extends Controller {
   }
 
   connect() {
-    console.log('[AgentActivity] Controller connected', this.taskIdValue, this.sessionIdValue)
     this.lastLine = 0
     this.isPolling = false
     this.pollTimer = null
@@ -53,7 +52,6 @@ export default class extends Controller {
       }
 
       const data = await response.json()
-      console.log('[AgentActivity] Got data:', data.messages?.length, 'messages')
       
       if (data.task_status) {
         this.taskStatusValue = data.task_status
