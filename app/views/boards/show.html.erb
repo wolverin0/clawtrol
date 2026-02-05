@@ -67,10 +67,22 @@
   <%# Review Output Modal %>
   <%= turbo_frame_tag "review_output_modal" %>
 
-  <%# Toast Container %>
+  <%# Toast Container (for Turbo Stream toasts) %>
   <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
     <%# Toasts are prepended here via Turbo Stream %>
   </div>
+
+  <%# Undo Toast Container (for status change undo) %>
+  <div data-controller="undo-toast" 
+       data-undo-toast-duration-value="5000"
+       class="fixed bottom-4 left-1/2 -translate-x-1/2 z-[90] pointer-events-none">
+    <div data-undo-toast-target="container" class="flex flex-col gap-2">
+      <%# Undo toasts are dynamically added here %>
+    </div>
+  </div>
+
+  <%# Keyboard Shortcuts Help Modal %>
+  <%= render "shared/keyboard_help" %>
 
   <%# Delete Drop Zone - appears when dragging a card %>
   <div data-controller="delete-zone"

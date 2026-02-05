@@ -116,6 +116,7 @@ export default class extends Controller {
     if (!this.hasUrlValue || !this.hasStatusValue) return
 
     const taskId = event.item.dataset.taskId
+    const taskName = event.item.querySelector(".text-content")?.textContent?.trim() || "Task"
     const newStatus = this.statusValue
     const oldStatus = event.from.id.replace("column-", "")
 
@@ -129,6 +130,9 @@ export default class extends Controller {
     // Update column counters
     this.updateColumnCount(oldStatus, -1)
     this.updateColumnCount(newStatus, 1)
+
+    // Extract board ID from URL (e.g., /boards/1/update_task_status)
+    const boardId = this.urlValue.match(/\/boards\/(\d+)\//)?.[1]
 
     try {
       const response = await fetch(this.urlValue, {
@@ -152,6 +156,22 @@ export default class extends Controller {
         if (cardElement) {
           cardElement.outerHTML = data.html
         }
+      }
+
+      // Dispatch event for undo toast (only if status actually changed)
+      if (oldStatus !== newStatus) {
+        // Clean up task name (remove task ID prefix like "#123 ")
+        const cleanTaskName = taskName.replace(/^#\d+\s*/, "").trim()
+        
+        document.dispatchEvent(new CustomEvent("task:status-changed", {
+          detail: {
+            taskId,
+            taskName: cleanTaskName || "Task",
+            oldStatus,
+            newStatus,
+            boardId
+          }
+        }))
       }
     } catch (error) {
       console.error("Error updating task status:", error)

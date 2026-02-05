@@ -21,7 +21,7 @@
   /* Text/Content */
   --color-content: #ffffff;
   --color-content-secondary: #a0aec0;
-  --color-content-muted: #64748b;
+  --color-content-muted: #8892b0; /* WCAG AA compliant (4.5:1 against dark bg) */
   --color-content-inverse: #050810;
 
   /* Borders */
@@ -103,6 +103,37 @@
 .column-drag-over {
   background: rgba(255, 77, 77, 0.03);
   border-color: var(--color-accent-muted);
+}
+
+/* ========================================
+   KANBAN COLUMN TINTS & STATES
+   ======================================== */
+/* Subtle background tints per status */
+.column-up-next {
+  background: rgba(59, 130, 246, 0.03); /* blue tint */
+}
+
+.column-in-progress {
+  background: rgba(245, 158, 11, 0.03); /* amber tint */
+  border-top: 2px solid var(--color-accent);
+}
+
+.column-in-review {
+  background: rgba(168, 85, 247, 0.03); /* purple tint */
+}
+
+.column-done {
+  background: rgba(34, 197, 94, 0.03); /* green tint */
+}
+
+/* Done column cards: dimmed, brighten on hover */
+.column-done li[id^="task_"] {
+  opacity: 0.75;
+  transition: opacity 0.15s ease;
+}
+
+.column-done li[id^="task_"]:hover {
+  opacity: 1;
 }
 
 /* ========================================
