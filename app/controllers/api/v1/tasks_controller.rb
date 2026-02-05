@@ -3,7 +3,7 @@ module Api
     class TasksController < BaseController
       # agent_log is public (no auth required) - secured by task lookup
       skip_before_action :authenticate_api_token, only: [ :agent_log ]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :session_health, :handoff ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :session_health, :handoff, :link_session ]
       before_action :set_task_for_agent_log, only: [ :agent_log ]
 
       private
@@ -292,6 +292,37 @@ module Api
         }
       end
 
+      # POST /api/v1/tasks/spawn_ready
+      # Creates a task ready for agent spawn (in_progress, assigned_to_agent: true)
+      # Returns the task ID for the orchestrator to spawn an agent
+      def spawn_ready
+        @task = current_user.tasks.new(spawn_ready_params)
+        @task.status = :in_progress
+        @task.assigned_to_agent = true
+        @task.board_id ||= current_user.boards.first&.id
+        set_task_activity_info(@task)
+
+        if @task.save
+          render json: task_json(@task), status: :created
+        else
+          render json: { errors: @task.errors }, status: :unprocessable_entity
+        end
+      end
+
+      # POST /api/v1/tasks/:id/link_session
+      # Links OpenClaw session info to a task after spawning
+      def link_session
+        @task.agent_session_id = params[:session_id]
+        @task.agent_session_key = params[:session_key]
+        set_task_activity_info(@task)
+
+        if @task.save
+          render json: { success: true, task_id: @task.id, task: task_json(@task) }
+        else
+          render json: { errors: @task.errors }, status: :unprocessable_entity
+        end
+      end
+
       # POST /api/v1/tasks/:id/create_followup - create a followup task
       def create_followup
         set_task_activity_info(@task)
@@ -460,6 +491,10 @@ module Api
 
       def task_params
         params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, tags: [])
+      end
+
+      def spawn_ready_params
+        params.require(:task).permit(:name, :description, :model, :priority, :board_id, tags: [])
       end
 
       # Simulate context usage based on session age (mock for now)

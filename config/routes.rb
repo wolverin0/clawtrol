@@ -12,6 +12,7 @@ Rails.application.routes.draw do
           get :pending_attention
           get :recurring
           get :errored_count
+          post :spawn_ready
         end
         member do
           patch :complete
@@ -27,6 +28,7 @@ Rails.application.routes.draw do
           post :enhance_followup
           post :create_followup
           post :handoff
+          post :link_session
         end
       end
     end
