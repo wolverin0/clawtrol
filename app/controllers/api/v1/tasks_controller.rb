@@ -1,11 +1,10 @@
-require "open3"
 
 module Api
   module V1
     class TasksController < BaseController
       # agent_log is public (no auth required) - secured by task lookup
       skip_before_action :authenticate_api_token, only: [ :agent_log, :session_health ]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :file ]
       before_action :set_task_for_agent_log, only: [ :agent_log, :session_health ]
 
       private
@@ -490,6 +489,7 @@ module Api
       # Called by OpenClaw when agent finishes working on a task
       # Appends agent output to description, moves to in_review
       # If validation_command is present, runs it and updates validation_status
+      # Accepts optional `files` array of file paths produced by the agent
       def agent_complete
         set_task_activity_info(@task)
         output = params[:output]
@@ -505,6 +505,12 @@ module Api
           end
         end
 
+        # Store output files if provided
+        if params[:files].present?
+          files = Array(params[:files]).map(&:to_s).reject(&:blank?)
+          updates[:output_files] = (@task.output_files || []) + files
+        end
+
         # Set completed_at if not already set
         updates[:completed_at] = Time.current unless @task.completed_at.present?
 
@@ -513,12 +519,53 @@ module Api
 
         @task.update!(updates)
 
-        # Run validation command if present
+        # Run validation command if present (legacy method)
         if @task.validation_command.present?
-          run_validation(@task)
+          ValidationRunnerService.new(@task).call
         end
 
         render json: task_json(@task)
+      end
+
+      # GET /api/v1/tasks/:id/file?path=docs/PROJECT_REVIEW.md
+      # Returns file content for a task's output file
+      # Validates path to prevent directory traversal
+      def file
+        path = params[:path].to_s
+        if path.blank?
+          render json: { error: "Path parameter required" }, status: :bad_request
+          return
+        end
+
+        # Determine project root from board or use Rails root
+        project_root = Rails.root.to_s
+
+        # Resolve the file path
+        if Pathname.new(path).absolute?
+          full_path = File.expand_path(path)
+        else
+          full_path = File.expand_path(File.join(project_root, path))
+        end
+
+        # Security: prevent directory traversal - file must exist and be readable
+        unless full_path.start_with?(project_root) || (@task.output_files || []).include?(path)
+          render json: { error: "Access denied: path outside project directory" }, status: :forbidden
+          return
+        end
+
+        unless File.exist?(full_path) && File.file?(full_path)
+          render json: { error: "File not found: #{path}" }, status: :not_found
+          return
+        end
+
+        # Read and return file content
+        content = File.read(full_path, encoding: "UTF-8")
+        render json: {
+          path: path,
+          content: content,
+          size: File.size(full_path),
+          extension: File.extname(full_path).delete(".")
+        }
       end
 
       # POST /api/v1/tasks/:id/revalidate
@@ -530,12 +577,84 @@ module Api
         end
 
         set_task_activity_info(@task)
-        run_validation(@task)
+        ValidationRunnerService.new(@task).call
 
         render json: {
           task: task_json(@task),
           validation_status: @task.validation_status,
           validation_output: @task.validation_output
+        }
+      end
+
+      # POST /api/v1/tasks/:id/start_validation
+      # Start a validation review with a command
+      def start_validation
+        command = params[:command].presence || @task.validation_command
+        unless command.present?
+          render json: { error: "No validation command specified" }, status: :unprocessable_entity
+          return
+        end
+
+        set_task_activity_info(@task)
+        @task.start_review!(type: "command", config: { command: command })
+        @task.update!(validation_command: command)
+
+        # Run validation in background
+        RunValidationJob.perform_later(@task.id)
+
+        render json: {
+          task: task_json(@task),
+          review_status: @task.review_status,
+          message: "Validation started"
+        }
+      end
+
+      # POST /api/v1/tasks/:id/run_debate
+      # Start a debate review
+      def run_debate
+        style = params[:style] || "quick"
+        focus = params[:focus]
+        models = Array(params[:models]).reject(&:blank?)
+        models = %w[gemini claude glm] if models.empty?
+
+        set_task_activity_info(@task)
+        @task.start_review!(
+          type: "debate",
+          config: {
+            style: style,
+            focus: focus,
+            models: models
+          }
+        )
+
+        # Run debate in background
+        RunDebateJob.perform_later(@task.id)
+
+        render json: {
+          task: task_json(@task),
+          review_status: @task.review_status,
+          message: "Debate review started"
+        }
+      end
+
+      # POST /api/v1/tasks/:id/complete_review
+      # Complete a review with status and result (called by background job or external process)
+      def complete_review
+        status = params[:status]
+        result = params[:result] || {}
+
+        unless %w[passed failed].include?(status)
+          render json: { error: "Status must be 'passed' or 'failed'" }, status: :unprocessable_entity
+          return
+        end
+
+        set_task_activity_info(@task)
+        @task.complete_review!(status: status, result: result)
+
+        render json: {
+          task: task_json(@task),
+          review_status: @task.review_status,
+          review_result: @task.review_result
         }
       end
 
@@ -600,49 +719,10 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, tags: [])
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, tags: [], review_config: {}, review_result: {})
       end
 
-      # Run validation command for a task and update status
-      def run_validation(task)
-        task.update!(validation_status: "pending")
-
-        begin
-          # Run validation command with timeout (60 seconds max)
-          output = nil
-          exit_status = nil
-
-          Timeout.timeout(60) do
-            output, status = Open3.capture2e(task.validation_command, chdir: Rails.root.to_s)
-            exit_status = status
-          end
-
-          task.validation_output = output.to_s.truncate(65535)  # Limit output size
-
-          if exit_status&.success?
-            task.validation_status = "passed"
-            task.status = "in_review"
-          else
-            task.validation_status = "failed"
-            # Keep status as in_progress so agent can retry
-            task.status = "in_progress"
-          end
-
-          task.save!
-        rescue Timeout::Error
-          task.update!(
-            validation_status: "failed",
-            validation_output: "Validation command timed out after 60 seconds",
-            status: "in_progress"
-          )
-        rescue StandardError => e
-          task.update!(
-            validation_status: "failed",
-            validation_output: "Error running validation: #{e.message}",
-            status: "in_progress"
-          )
-        end
-      end
+      # Validation command execution delegated to ValidationRunnerService
 
       def spawn_ready_params
         params.require(:task).permit(:name, :description, :model, :priority, :board_id, tags: [])
@@ -711,6 +791,11 @@ module Api
           validation_command: task.validation_command,
           validation_status: task.validation_status,
           validation_output: task.validation_output,
+          review_type: task.review_type,
+          review_status: task.review_status,
+          review_config: task.review_config,
+          review_result: task.review_result,
+          output_files: task.output_files || [],
           url: "https://clawdeck.io/boards/#{task.board_id}/tasks/#{task.id}",
           created_at: task.created_at.iso8601,
           updated_at: task.updated_at.iso8601

@@ -1,8 +1,6 @@
-require "open3"
-
 class Boards::TasksController < ApplicationController
   before_action :set_board
-  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate]
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file]
 
   def show
     @api_token = current_user.api_token
@@ -147,7 +145,7 @@ class Boards::TasksController < ApplicationController
     end
 
     @task.activity_source = "web"
-    execute_validation_command(@task)
+    ValidationRunnerService.new(@task).call
 
     respond_to do |format|
       format.turbo_stream do
@@ -193,6 +191,59 @@ class Boards::TasksController < ApplicationController
       end
       format.html { redirect_to board_path(@board), notice: "Validation started" }
     end
+  end
+
+  def view_file
+    path = params[:path].to_s
+    if path.blank?
+      render plain: "Path parameter required", status: :bad_request
+      return
+    end
+
+    # Resolve file path - allow absolute paths in output_files or relative to Rails root
+    if Pathname.new(path).absolute?
+      full_path = File.expand_path(path)
+    else
+      full_path = File.expand_path(File.join(Rails.root.to_s, path))
+    end
+
+    # Security: must be in output_files list OR within project root
+    allowed = (@task.output_files || []).include?(path) || full_path.start_with?(Rails.root.to_s)
+
+    unless allowed
+      render plain: "Access denied", status: :forbidden
+      return
+    end
+
+    unless File.exist?(full_path) && File.file?(full_path)
+      @file_error = "File not found: #{path}"
+      @file_path = path
+      render layout: false
+      return
+    end
+
+    @file_path = path
+    @file_content = File.read(full_path, encoding: "UTF-8")
+    @file_extension = File.extname(full_path).delete(".")
+
+    # Render markdown if applicable
+    if %w[md markdown].include?(@file_extension)
+      renderer = Redcarpet::Render::HTML.new(
+        hard_wrap: true,
+        link_attributes: { target: "_blank", rel: "noopener" }
+      )
+      markdown = Redcarpet::Markdown.new(renderer,
+        fenced_code_blocks: true,
+        tables: true,
+        autolink: true,
+        strikethrough: true,
+        highlight: true,
+        no_intra_emphasis: true
+      )
+      @rendered_html = markdown.render(@file_content).html_safe
+    end
+
+    render layout: false
   end
 
   def run_debate
@@ -301,44 +352,5 @@ class Boards::TasksController < ApplicationController
     permitted
   end
 
-  # Run validation command for a task and update status
-  def execute_validation_command(task)
-    task.update!(validation_status: "pending")
-
-    begin
-      # Run validation command with timeout (60 seconds max)
-      output = nil
-      exit_status = nil
-
-      Timeout.timeout(60) do
-        output, status = Open3.capture2e(task.validation_command, chdir: Rails.root.to_s)
-        exit_status = status
-      end
-
-      task.validation_output = output.to_s.truncate(65535)  # Limit output size
-
-      if exit_status&.success?
-        task.validation_status = "passed"
-        task.status = "in_review"
-      else
-        task.validation_status = "failed"
-        # Keep status as in_progress so agent can retry
-        task.status = "in_progress"
-      end
-
-      task.save!
-    rescue Timeout::Error
-      task.update!(
-        validation_status: "failed",
-        validation_output: "Validation command timed out after 60 seconds",
-        status: "in_progress"
-      )
-    rescue StandardError => e
-      task.update!(
-        validation_status: "failed",
-        validation_output: "Error running validation: #{e.message}",
-        status: "in_progress"
-      )
-    end
-  end
+  # Validation command execution delegated to ValidationRunnerService
 end
