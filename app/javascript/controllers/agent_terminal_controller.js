@@ -468,18 +468,18 @@ export default class extends Controller {
     if (msg.content && Array.isArray(msg.content)) {
       msg.content.forEach(item => {
         if (item.type === 'text' && item.text) {
-          const text = item.text.length > 500 ? item.text.substring(0, 500) + '...' : item.text
+          const text = item.text.length > 5000 ? item.text.substring(0, 5000) + '...' : item.text
           contentHtml += `<div class="${textColor} whitespace-pre-wrap break-words leading-relaxed">${this.escapeHtml(text)}</div>`
         }
         if (item.type === 'thinking' && item.text) {
-          const thinking = item.text.length > 150 ? item.text.substring(0, 150) + '...' : item.text
+          const thinking = item.text.length > 1500 ? item.text.substring(0, 1500) + '...' : item.text
           contentHtml += `<div class="${isAmber ? 'text-yellow-400/70' : 'text-purple-400/70'} italic text-xs mt-1">💭 ${this.escapeHtml(thinking)}</div>`
         }
         if (item.type === 'tool_call') {
           contentHtml += `<div class="${isAmber ? 'text-orange-400' : 'text-amber-400'} text-xs mt-1">🔧 ${this.escapeHtml(item.name || 'tool')}</div>`
         }
         if (item.type === 'tool_result' && item.text) {
-          const result = item.text.length > 200 ? item.text.substring(0, 200) + '...' : item.text
+          const result = item.text.length > 3000 ? item.text.substring(0, 3000) + '...' : item.text
           contentHtml += `<div class="${isAmber ? 'text-orange-300/60' : 'text-amber-300/60'} text-xs mt-1 font-mono bg-black/30 px-2 py-1 rounded max-h-16 overflow-y-auto">${this.escapeHtml(result)}</div>`
         }
       })
