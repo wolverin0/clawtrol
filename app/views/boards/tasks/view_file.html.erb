@@ -11,13 +11,23 @@
           <span class="text-[10px] text-content-muted font-mono bg-bg-elevated px-1.5 py-0.5 rounded"><%= @file_extension.upcase %></span>
         <% end %>
       </div>
-      <button type="button"
-              data-action="click->file-viewer#close"
-              class="cursor-pointer p-1.5 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors flex-shrink-0">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-        </svg>
-      </button>
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <button type="button"
+                data-action="click->file-viewer#expand"
+                class="cursor-pointer p-1.5 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors"
+                title="Expand file viewer">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9m11.25-5.25v4.5m0-4.5h-4.5m4.5 0L15 9m-11.25 11.25v-4.5m0 4.5h4.5m-4.5 0L9 15m11.25 5.25v-4.5m0 4.5h-4.5m4.5 0L15 15" />
+          </svg>
+        </button>
+        <button type="button"
+                data-action="click->file-viewer#close"
+                class="cursor-pointer p-1.5 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- File Content -->

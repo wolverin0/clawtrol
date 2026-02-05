@@ -5,14 +5,14 @@ import { Controller } from "@hotwired/stimulus"
 // Uses fetch-based approach instead of Turbo Frames to avoid issues
 // with hidden containers and event.preventDefault() conflicts.
 export default class extends Controller {
-  static targets = ["panel"]
+  static targets = ["panel", "fullscreenModal", "fullscreenContent", "fullscreenFileName"]
 
   connect() {
-    // Nothing needed on connect
+    this._handleEscape = this._handleEscape.bind(this)
   }
 
   disconnect() {
-    // Nothing needed on disconnect
+    document.removeEventListener("keydown", this._handleEscape)
   }
 
   async open(event) {
@@ -99,6 +99,84 @@ export default class extends Controller {
       if (frame) {
         frame.innerHTML = ""
       }
+    }
+  }
+
+  expand() {
+    if (!this.hasFullscreenModalTarget || !this.hasPanelTarget) return
+
+    // Get the file name from the panel header
+    const panelFrame = this.panelTarget.querySelector("turbo-frame")
+    if (!panelFrame) return
+
+    const fileNameEl = panelFrame.querySelector("[title]")
+    const fileName = fileNameEl ? fileNameEl.textContent.trim() : "File"
+
+    // Get the file content (markdown-content div or pre block)
+    const contentSource = panelFrame.querySelector(".markdown-content") || panelFrame.querySelector("pre")
+    if (!contentSource) return
+
+    // Set the file name in the fullscreen header
+    if (this.hasFullscreenFileNameTarget) {
+      this.fullscreenFileNameTarget.textContent = fileName
+    }
+
+    // Clone the content into the fullscreen modal
+    if (this.hasFullscreenContentTarget) {
+      const container = this.fullscreenContentTarget.querySelector(".markdown-content")
+      if (container) {
+        // If source is a markdown-content div, copy its innerHTML
+        // If source is a pre block, wrap it appropriately
+        if (contentSource.classList.contains("markdown-content")) {
+          container.innerHTML = contentSource.innerHTML
+        } else {
+          container.innerHTML = contentSource.outerHTML
+        }
+      }
+    }
+
+    // Show the fullscreen modal with fade-in
+    this.fullscreenModalTarget.classList.remove("hidden")
+    // Force reflow then animate
+    this.fullscreenModalTarget.offsetHeight
+    this.fullscreenModalTarget.style.opacity = "0"
+    requestAnimationFrame(() => {
+      this.fullscreenModalTarget.style.transition = "opacity 150ms ease-out"
+      this.fullscreenModalTarget.style.opacity = "1"
+    })
+
+    // Listen for Escape key
+    document.addEventListener("keydown", this._handleEscape)
+  }
+
+  collapse() {
+    if (!this.hasFullscreenModalTarget) return
+
+    // Fade out then hide
+    this.fullscreenModalTarget.style.transition = "opacity 150ms ease-in"
+    this.fullscreenModalTarget.style.opacity = "0"
+
+    setTimeout(() => {
+      this.fullscreenModalTarget.classList.add("hidden")
+      this.fullscreenModalTarget.style.opacity = ""
+      this.fullscreenModalTarget.style.transition = ""
+
+      // Clear the content
+      if (this.hasFullscreenContentTarget) {
+        const container = this.fullscreenContentTarget.querySelector(".markdown-content")
+        if (container) {
+          container.innerHTML = ""
+        }
+      }
+    }, 150)
+
+    document.removeEventListener("keydown", this._handleEscape)
+  }
+
+  _handleEscape(event) {
+    if (event.key === "Escape") {
+      event.stopPropagation()
+      this.collapse()
     }
   }
 }

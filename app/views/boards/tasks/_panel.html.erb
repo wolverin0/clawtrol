@@ -284,6 +284,39 @@
             </turbo-frame>
           </div>
 
+          <%# Fullscreen File Viewer Modal %>
+          <div data-file-viewer-target="fullscreenModal"
+               class="hidden fixed inset-0 z-[80] flex items-center justify-center p-4"
+               data-action="keydown.esc->file-viewer#collapse">
+            <!-- Backdrop -->
+            <div class="absolute inset-0 bg-black/70"
+                 data-action="click->file-viewer#collapse"></div>
+            <!-- Modal Content -->
+            <div class="relative w-[95vw] max-w-6xl h-[95vh] bg-bg-surface border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden">
+              <!-- Header -->
+              <div class="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="text-sm">📄</span>
+                  <span data-file-viewer-target="fullscreenFileName" class="text-sm font-medium text-content truncate"></span>
+                </div>
+                <button type="button"
+                        data-action="click->file-viewer#collapse"
+                        class="cursor-pointer p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors flex-shrink-0"
+                        title="Close expanded view">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <!-- Scrollable Content -->
+              <div data-file-viewer-target="fullscreenContent"
+                   class="flex-1 overflow-y-auto px-6 py-6">
+                <div class="max-w-4xl mx-auto markdown-content">
+                </div>
+              </div>
+            </div>
+          </div>
+
           <%# Agent Activity Section %>
           <% if task.agent_session_id.present? || task.status == "in_progress" %>
             <div class="flex-1 min-h-0 overflow-hidden flex flex-col px-5 py-4"
