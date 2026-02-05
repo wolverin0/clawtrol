@@ -48,6 +48,22 @@
         <span class="hidden sm:inline">Board settings</span>
       </button>
 
+      <%# Model Status Widget - shows rate limit status %>
+      <div class="relative"
+           data-controller="model-status" 
+           data-model-status-url-value="<%= api_v1_models_status_path(format: :json) %>"
+           data-model-status-interval-value="60000">
+        <div data-model-status-target="badge"
+             class="hidden px-2 py-1 rounded-md bg-bg-elevated hover:bg-bg-hover text-xs font-medium transition-colors"
+             title="Model availability">
+          <%# Content populated by JavaScript %>
+        </div>
+        <div data-model-status-target="dropdown"
+             class="hidden absolute right-0 top-full mt-1 w-56 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
+          <%# Content populated by JavaScript %>
+        </div>
+      </div>
+
       <%# Error Badge - shows count of errored tasks %>
       <div data-controller="error-badge" 
            data-error-badge-url-value="<%= errored_count_api_v1_tasks_path(format: :json) %>"

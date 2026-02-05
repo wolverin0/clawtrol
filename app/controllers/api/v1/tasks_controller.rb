@@ -3,7 +3,7 @@ module Api
     class TasksController < BaseController
       # agent_log is public (no auth required) - secured by task lookup
       skip_before_action :authenticate_api_token, only: [ :agent_log, :session_health ]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit ]
       before_action :set_task_for_agent_log, only: [ :agent_log, :session_health ]
 
       private
@@ -295,6 +295,7 @@ module Api
       # POST /api/v1/tasks/spawn_ready
       # Creates a task ready for agent spawn (in_progress, assigned_to_agent: true)
       # Returns the task ID for the orchestrator to spawn an agent
+      # Supports auto-fallback: if requested model is rate-limited, uses next available
       def spawn_ready
         @task = current_user.tasks.new(spawn_ready_params)
         @task.status = :in_progress
@@ -303,8 +304,31 @@ module Api
         @task.board_id ||= detect_board_for_task(@task.name, current_user)&.id || current_user.boards.first&.id
         set_task_activity_info(@task)
 
+        # Auto-fallback: check if requested model is available, otherwise use fallback
+        requested_model = @task.model
+        fallback_note = nil
+        
+        if requested_model.present?
+          # Clear any expired limits first
+          ModelLimit.clear_expired_limits!
+          
+          actual_model, fallback_note = ModelLimit.best_available_model(current_user, requested_model)
+          
+          if actual_model != requested_model
+            @task.model = actual_model
+            # Prepend fallback note to description
+            if fallback_note.present?
+              @task.description = "#{fallback_note}\n\n---\n\n#{@task.description}"
+            end
+          end
+        end
+
         if @task.save
-          render json: task_json(@task), status: :created
+          response = task_json(@task)
+          response[:fallback_used] = fallback_note.present?
+          response[:fallback_note] = fallback_note
+          response[:requested_model] = requested_model
+          render json: response, status: :created
         else
           render json: { errors: @task.errors }, status: :unprocessable_entity
         end
@@ -479,6 +503,53 @@ module Api
 
         @task.update!(updates)
         render json: task_json(@task)
+      end
+
+      # POST /api/v1/tasks/:id/report_rate_limit
+      # Called when a task encounters a rate limit error for its model
+      # Records the limit and optionally triggers auto-fallback
+      def report_rate_limit
+        model_name = params[:model_name] || @task.model
+        error_message = params[:error_message] || "Rate limit exceeded"
+        resets_at = params[:resets_at].present? ? Time.parse(params[:resets_at]) : nil
+
+        unless model_name.present?
+          render json: { error: "Model name required" }, status: :unprocessable_entity
+          return
+        end
+
+        # Record the rate limit
+        limit = ModelLimit.record_limit!(current_user, model_name, error_message)
+        limit.update!(resets_at: resets_at) if resets_at.present?
+
+        # Update task error state
+        set_task_activity_info(@task)
+        @task.set_error!(error_message)
+
+        # Auto-fallback if enabled
+        fallback_note = nil
+        if params[:auto_fallback] != false
+          new_model, fallback_note = ModelLimit.best_available_model(current_user, model_name)
+          
+          if new_model != model_name
+            @task.handoff!(new_model: new_model, include_transcript: false)
+            @task.activity_note = fallback_note
+            @task.save!
+          end
+        end
+
+        render json: {
+          task: task_json(@task),
+          model_limit: {
+            model: limit.model_name,
+            limited: limit.limited,
+            resets_at: limit.resets_at&.iso8601,
+            resets_in: limit.time_until_reset
+          },
+          fallback_used: fallback_note.present?,
+          fallback_note: fallback_note,
+          new_model: @task.model
+        }
       end
 
       private

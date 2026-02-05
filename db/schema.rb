@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_05_150700) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_05_154000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -63,6 +63,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_150700) do
     t.bigint "user_id", null: false
     t.index ["user_id", "position"], name: "index_boards_on_user_id_and_position"
     t.index ["user_id"], name: "index_boards_on_user_id"
+  end
+
+  create_table "model_limits", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.datetime "last_error_at"
+    t.boolean "limited", default: false, null: false
+    t.string "name", null: false
+    t.datetime "resets_at"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["resets_at"], name: "index_model_limits_on_resets_at", where: "(limited = true)"
+    t.index ["user_id", "name"], name: "index_model_limits_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_model_limits_on_user_id"
   end
 
   create_table "projects", force: :cascade do |t|
@@ -240,6 +254,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_150700) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "api_tokens", "users"
   add_foreign_key "boards", "users"
+  add_foreign_key "model_limits", "users"
   add_foreign_key "projects", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "tags", "projects"
