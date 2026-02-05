@@ -2,6 +2,29 @@ require "open3"
 require "shellwords"
 require "fileutils"
 
+# RunDebateJob - Multi-Model Debate Review System
+#
+# CURRENT STATE (2026-02-05): MOCK IMPLEMENTATION
+# ================================================
+# This job currently generates a FAKE synthesis file instead of
+# actually calling multiple LLM models for debate.
+#
+# What it SHOULD do:
+# - Spawn multiple AI agents (gemini, claude, glm) in parallel
+# - Have them debate the task's implementation quality
+# - Generate a real synthesis from their perspectives
+# - Use the debate skill: /debate [-r N] [-d STYLE] <question>
+#
+# What it CURRENTLY does:
+# - Creates a placeholder synthesis.md with pre-written content
+# - Always returns "PASS" unless hardcoded keywords are present
+# - Does NOT call any external LLM APIs
+#
+# TODO: Implement real multi-model debate (see issue #XXX)
+# - Requires: OpenClaw multi-agent spawning
+# - Requires: debate skill integration
+# - Requires: synthesis merging logic
+#
 class RunDebateJob < ApplicationJob
   queue_as :default
 

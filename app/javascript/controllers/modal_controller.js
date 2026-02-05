@@ -1,8 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
 // Generic modal controller for closing modals
-// Used by followup_modal, new_task_modal, etc.
+// Used by followup_modal, new_task_modal, keyboard_help, etc.
+// Supports both Turbo frame modals and simple hidden-class modals
 export default class extends Controller {
+  static targets = ["container"]
+
   connect() {
     // Listen for ESC key globally
     this.boundHandleKeydown = this.handleKeydown.bind(this)
@@ -19,11 +22,28 @@ export default class extends Controller {
     }
   }
 
+  open() {
+    // For simple hidden-class modals
+    if (this.hasContainerTarget) {
+      this.containerTarget.classList.remove("hidden")
+    } else {
+      this.element.classList.remove("hidden")
+    }
+  }
+
   close() {
-    // Navigate to board path to clear the turbo frame
+    // Try Turbo frame approach first (for turbo modals)
     const cancelLink = this.element.querySelector('a[data-turbo-frame="_top"]')
     if (cancelLink) {
       cancelLink.click()
+      return
+    }
+
+    // For simple hidden-class modals
+    if (this.hasContainerTarget) {
+      this.containerTarget.classList.add("hidden")
+    } else {
+      this.element.classList.add("hidden")
     }
   }
 }
