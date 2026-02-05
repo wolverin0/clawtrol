@@ -4,7 +4,11 @@ class Boards::TasksController < ApplicationController
 
   def show
     @api_token = current_user.api_token
-    render layout: false
+    if turbo_frame_request?
+      render layout: false
+    else
+      render # full layout for direct visits
+    end
   end
 
   def new
