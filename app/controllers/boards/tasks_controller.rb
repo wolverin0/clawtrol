@@ -246,15 +246,17 @@ class Boards::TasksController < ApplicationController
 
     begin
       # Run validation command with timeout (60 seconds max)
-      output, status = Open3.capture2e(
-        task.validation_command,
-        chdir: Rails.root.to_s,
-        timeout: 60
-      )
+      output = nil
+      exit_status = nil
+
+      Timeout.timeout(60) do
+        output, status = Open3.capture2e(task.validation_command, chdir: Rails.root.to_s)
+        exit_status = status
+      end
 
       task.validation_output = output.to_s.truncate(65535)  # Limit output size
 
-      if status.success?
+      if exit_status&.success?
         task.validation_status = "passed"
         task.status = "in_review"
       else
