@@ -104,8 +104,8 @@ export default class extends Controller {
       previewContent = messages.slice(-3).map(m => {
         const icon = m.role === 'user' ? '👤' : '🤖'
         const rawContent = this.extractContent(m.content)
-        const text = this.escapeHtml(rawContent.substring(0, 100))
-        const ellipsis = rawContent.length > 100 ? '...' : ''
+        const text = this.escapeHtml(rawContent.substring(0, 250))
+        const ellipsis = rawContent.length > 250 ? '...' : ''
         return `<div class="text-xs truncate text-content-secondary">${icon} ${text}${ellipsis}</div>`
       }).join('')
     }

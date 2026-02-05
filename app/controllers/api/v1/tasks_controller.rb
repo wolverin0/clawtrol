@@ -34,7 +34,7 @@ module Api
         unless File.exist?(transcript_path)
           # Fallback: extract "## Agent Output" from task description if present
           if @task.description.present? && @task.description.include?("## Agent Output")
-            output_match = @task.description.match(/## Agent Output\s*\n(.*)/m)
+            output_match = @task.description.match(/## Agent Output.*?\n(.*)/m)
             if output_match
               extracted_output = output_match[1].strip
               render json: { 

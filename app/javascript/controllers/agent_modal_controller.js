@@ -195,18 +195,18 @@ export default class extends Controller {
     if (msg.content && Array.isArray(msg.content)) {
       msg.content.forEach(item => {
         if (item.type === 'text' && item.text) {
-          const text = item.text.length > 300 ? item.text.substring(0, 300) + '...' : item.text
+          const text = item.text.length > 2000 ? item.text.substring(0, 2000) + '...' : item.text
           contentHtml += `<div class="text-xs text-content whitespace-pre-wrap break-words">${this.escapeHtml(text)}</div>`
         }
         if (item.type === 'thinking' && item.text) {
-          const thinking = item.text.length > 100 ? item.text.substring(0, 100) + '...' : item.text
+          const thinking = item.text.length > 500 ? item.text.substring(0, 500) + '...' : item.text
           contentHtml += `<div class="text-[10px] text-content-muted italic bg-bg-surface/50 rounded px-1.5 py-0.5 mt-1">💭 ${this.escapeHtml(thinking)}</div>`
         }
         if (item.type === 'tool_call') {
           contentHtml += `<div class="text-[10px] font-mono text-accent mt-1">🔧 ${this.escapeHtml(item.name || 'tool')}</div>`
         }
         if (item.type === 'tool_result' && item.text) {
-          const result = item.text.length > 150 ? item.text.substring(0, 150) + '...' : item.text
+          const result = item.text.length > 1000 ? item.text.substring(0, 1000) + '...' : item.text
           contentHtml += `<div class="text-[10px] font-mono text-content-muted bg-bg-surface rounded px-1.5 py-0.5 mt-1 max-h-12 overflow-y-auto whitespace-pre-wrap">${this.escapeHtml(result)}</div>`
         }
       })
