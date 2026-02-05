@@ -64,6 +64,7 @@ class Task < ApplicationRecord
   after_update :handle_recurring_completion, if: :saved_change_to_status?
   after_update :notify_openclaw_if_urgent, if: :saved_change_to_status?
   after_update :warn_if_review_without_session, if: :saved_change_to_status?
+  after_update :create_status_notification, if: :saved_change_to_status?
 
   # Position management - acts_as_list functionality without the gem
   before_create :set_position
@@ -479,6 +480,13 @@ class Task < ApplicationRecord
     if user.openclaw_gateway_url.present?
       AutoClaimNotifyJob.perform_later(id)
     end
+  end
+
+  # Create notification on status change
+  def create_status_notification
+    return unless user
+    old_status, new_status = saved_change_to_status
+    Notification.create_for_status_change(self, old_status, new_status)
   end
 
   # Turbo Streams broadcasts for real-time updates

@@ -6,6 +6,7 @@ class User < ApplicationRecord
   has_many :tasks, dependent: :destroy
   has_many :api_tokens, dependent: :destroy
   has_many :model_limits, dependent: :destroy
+  has_many :notifications, dependent: :destroy
   has_one_attached :avatar
 
   # Security: encrypt sensitive fields at rest using Rails 7+ built-in encryption

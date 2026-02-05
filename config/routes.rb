@@ -4,6 +4,16 @@ Rails.application.routes.draw do
     namespace :v1 do
       resource :settings, only: [ :show, :update ]
 
+      # Notifications
+      resources :notifications, only: [:index] do
+        collection do
+          post :mark_all_read
+        end
+        member do
+          post :mark_read
+        end
+      end
+
       # Model rate limit tracking
       get "models/status", to: "model_limits#status"
       post "models/best", to: "model_limits#best"
