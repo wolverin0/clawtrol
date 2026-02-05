@@ -222,10 +222,9 @@
       <%# NEXT button - always visible for non-done tasks %>
       <% next_status = { 'inbox' => 'up_next', 'up_next' => 'in_progress', 'in_progress' => 'in_review', 'in_review' => 'done' }[task.status] %>
       <% if next_status %>
-        <%= button_to move_board_task_path(task.board, task, status: next_status),
-            method: :patch,
-            form: { data: { turbo_frame: "_top" } },
-            class: "px-1.5 py-0.5 text-[10px] bg-accent/80 hover:bg-accent text-white rounded transition-colors",
+        <%= link_to move_board_task_path(task.board, task, status: next_status),
+            data: { turbo_method: :patch, turbo_frame: "_top" },
+            class: "inline-flex items-center px-1.5 py-0.5 text-[10px] bg-accent/80 hover:bg-accent text-white rounded transition-colors",
             title: "Move to #{next_status.humanize}" do %>
           NEXT →
         <% end %>
