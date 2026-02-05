@@ -1,5 +1,5 @@
 <% has_current_user = defined?(current_user) && current_user %>
-<% show_agent_preview = task.status == 'in_progress' && task.agent_session_id.present? %>
+<% show_agent_preview = %w[in_progress in_review].include?(task.status) && task.agent_session_id.present? %>
 <% show_agent_modal_btn = task.agent_session_id.present? %>
 <% show_error_state = task.errored? %>
 <li id="task_<%= task.id %>"
