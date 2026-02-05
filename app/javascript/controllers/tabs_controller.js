@@ -11,32 +11,40 @@ export default class extends Controller {
     }
   }
 
+  // Legacy action name for backwards compatibility
   select(event) {
     event.preventDefault()
     this.selectTab(event.currentTarget)
   }
 
+  // New action name matching task spec
+  switch(event) {
+    event.preventDefault()
+    this.selectTab(event.currentTarget)
+  }
+
   selectTab(selectedTab) {
-    const selectedId = selectedTab.dataset.tabId
+    // Support both data-tab-id (legacy) and data-tab (new)
+    const selectedId = selectedTab.dataset.tab || selectedTab.dataset.tabId
 
     // Update tab styles
     this.tabTargets.forEach(tab => {
-      if (tab.dataset.tabId === selectedId) {
-        tab.classList.remove("border-transparent", "text-content-muted")
-        tab.classList.add("border-accent", "text-accent")
-      } else {
-        tab.classList.remove("border-accent", "text-accent")
-        tab.classList.add("border-transparent", "text-content-muted")
-      }
+      const tabId = tab.dataset.tab || tab.dataset.tabId
+      const isActive = tabId === selectedId
+      
+      // Active state
+      tab.classList.toggle("border-accent", isActive)
+      tab.classList.toggle("text-content", isActive)
+      
+      // Inactive state
+      tab.classList.toggle("border-transparent", !isActive)
+      tab.classList.toggle("text-content-muted", !isActive)
     })
 
     // Show/hide panels
     this.panelTargets.forEach(panel => {
-      if (panel.dataset.tabId === selectedId) {
-        panel.classList.remove("hidden")
-      } else {
-        panel.classList.add("hidden")
-      }
+      const panelId = panel.dataset.tab || panel.dataset.tabId
+      panel.classList.toggle("hidden", panelId !== selectedId)
     })
   }
 }

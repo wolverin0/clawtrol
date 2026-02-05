@@ -36,6 +36,13 @@
             </span>
             <!-- Task ID -->
             <span class="text-[10px] font-mono text-content-muted">#<%= task.id %></span>
+            <!-- Copy URL button -->
+            <button type="button"
+                    onclick="navigator.clipboard.writeText(window.location.origin + '/boards/<%= task.board_id %>/tasks/<%= task.id %>').then(() => { this.innerHTML = '✅'; setTimeout(() => { this.innerHTML = '📋' }, 1500) })"
+                    class="p-1.5 rounded text-content-muted hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer"
+                    title="Copy task URL">
+              📋
+            </button>
           </div>
 
           <!-- Close button -->
@@ -242,6 +249,14 @@
           <div class="border-t border-border pt-4">
             <h3 class="text-sm font-semibold text-content mb-4 font-display">Activity</h3>
             <%= render "shared/task_activities", task: task %>
+          </div>
+
+          <!-- Task Timestamps Footer -->
+          <div class="mt-4 pt-3 border-t border-border text-xs text-content-muted">
+            Created <%= time_ago_in_words(task.created_at) %> ago
+            <% if task.completed_at.present? %>
+              • Completed <%= time_ago_in_words(task.completed_at) %> ago
+            <% end %>
           </div>
         </div>
 

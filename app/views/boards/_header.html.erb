@@ -12,6 +12,8 @@
       <span><span id="header-inbox-count"><%= @columns[:inbox]&.count || 0 %></span> inbox</span>
       <span class="text-content-muted/50">|</span>
       <span><span id="header-in_progress-count"><%= @columns[:in_progress]&.count || 0 %></span> in progress</span>
+      <span class="text-content-muted/50">|</span>
+      <span>✅ <span id="header-done_today-count"><%= @board.tasks.where(status: :done).where("updated_at >= ?", Time.zone.now.beginning_of_day).count %></span> done today</span>
       <%# Auto-refresh indicator %>
       <span data-kanban-refresh-target="indicator" 
             class="opacity-0 transition-opacity duration-200 flex items-center gap-1 text-accent">

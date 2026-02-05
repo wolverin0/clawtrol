@@ -172,6 +172,15 @@ export default class extends Controller {
             boardId
           }
         }))
+
+        // 🎉 Confetti on task completion!
+        if (newStatus === "done") {
+          import("canvas-confetti").then(m => {
+            m.default({ particleCount: 100, spread: 70, origin: { y: 0.6 } })
+          }).catch(() => {
+            // Confetti not available, no big deal
+          })
+        }
       }
     } catch (error) {
       console.error("Error updating task status:", error)

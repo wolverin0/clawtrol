@@ -1,0 +1,45 @@
+<%# Card Actions: NEXT button, Follow-up button, Agent activity button %>
+<%# Required locals: task, has_current_user, show_agent_modal_btn %>
+
+<%# NEXT button - visible for all active statuses, Archive for done %>
+<% next_status = { 'inbox' => 'up_next', 'up_next' => 'in_progress', 'in_progress' => 'in_review', 'in_review' => 'done', 'done' => 'archived' }[task.status] %>
+<% if next_status %>
+  <% if task.status == 'done' %>
+    <%= link_to move_board_task_path(task.board, task, status: next_status),
+        data: { turbo_method: :patch, turbo_frame: "_top" },
+        class: "inline-flex items-center px-1.5 py-0.5 text-[10px] bg-content-muted/20 hover:bg-content-muted/30 text-content-muted rounded transition-colors",
+        title: "Archive this task" do %>
+      📦
+    <% end %>
+  <% else %>
+    <%= link_to move_board_task_path(task.board, task, status: next_status),
+        data: { turbo_method: :patch, turbo_frame: "_top" },
+        class: "inline-flex items-center px-1.5 py-0.5 text-[10px] bg-accent/80 hover:bg-accent text-white rounded transition-colors",
+        title: "Move to #{next_status.humanize}" do %>
+      NEXT →
+    <% end %>
+  <% end %>
+<% end %>
+
+<%# Follow-up button - show for in_review and done %>
+<% if task.status.in?(['in_review', 'done']) %>
+  <%= link_to followup_modal_board_task_path(task.board, task),
+      class: "px-1.5 py-0.5 text-[10px] bg-bg-surface hover:bg-bg-hover text-content-muted rounded transition-colors",
+      data: { turbo_frame: "followup_modal" },
+      title: "Create follow-up" do %>
+    ↪️
+  <% end %>
+<% end %>
+
+<%# Agent Activity Button (📟) - always visible when task has agent session %>
+<% if show_agent_modal_btn && has_current_user %>
+  <button type="button"
+          data-action="click->agent-modal#open"
+          class="agent-preview-btn inline-flex items-center justify-center w-8 h-8 text-sm rounded-md 
+                 <%= task.status == 'in_progress' ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-bg-surface text-content-muted hover:bg-bg-hover' %>
+                 transition-colors"
+          aria-label="View agent activity"
+          title="Agent activity<%= task.status == 'in_progress' ? ' (Live)' : '' %>">
+    📟
+  </button>
+<% end %>

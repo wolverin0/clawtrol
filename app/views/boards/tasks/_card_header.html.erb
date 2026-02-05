@@ -1,0 +1,43 @@
+<%# Card Header: Error banner, Title, ID, Spinner %>
+<%# Required locals: task, show_error_state, has_current_user %>
+
+<%# Error banner - shown when task has error %>
+<% if show_error_state && has_current_user %>
+  <div class="px-3 py-2 bg-red-500/10 border-b border-red-500/30">
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <span class="text-red-400 flex-shrink-0">⚠️</span>
+        <span class="text-xs text-red-400 truncate"><%= task.error_message&.truncate(60) || "Error occurred" %></span>
+      </div>
+      <%= link_to handoff_modal_board_task_path(task.board, task),
+          data: { turbo_frame: "handoff_modal" },
+          class: "flex-shrink-0 px-2 py-1 text-[10px] font-medium bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-colors" do %>
+        🔄 Handoff
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<%# Main card content - clickable to open task panel %>
+<%= link_to board_task_path(task.board, task), data: { turbo_frame: "task_panel" }, class: "block p-3 pb-1" do %>
+  <%# Task ID + Name %>
+  <div class="flex items-start gap-2 min-w-0">
+    <span class="flex-1 text-sm font-medium text-content leading-tight overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; max-width: 100%;">
+      <% if show_error_state %><span class="text-red-400">⚠️</span> <% end %><span class="text-xs text-content-muted font-normal">#<%= task.id %></span><% if task.status == 'in_progress' && task.assigned_to_agent? && task.agent_session_id.present? %><span class="inline-block align-middle ml-1"><span class="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin"></span></span><% end %> <%= task.name %>
+    </span>
+    <% if task.blocked? %>
+      <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-status-warning" title="Blocked"></span>
+    <% end %>
+  </div>
+
+  <%# Tags %>
+  <% if task.tags.present? && task.tags.any? %>
+    <div class="flex flex-wrap gap-1 mt-2">
+      <% task.tags.each do |tag| %>
+        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-bg-surface text-content-secondary">
+          <%= tag %>
+        </span>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

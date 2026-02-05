@@ -283,6 +283,13 @@
 
   <%# Main card content - clickable to open task panel %>
   <%= link_to board_task_path(task.board, task), data: { turbo_frame: "task_panel" }, class: "block p-3 pb-1" do %>
+    <%# Parent task link for follow-ups %>
+    <% if task.parent_task_id.present? %>
+      <div class="mb-1">
+        <span class="text-[10px] text-content-muted">↪ follow-up of #<%= task.parent_task_id %></span>
+      </div>
+    <% end %>
+
     <%# Task ID + Name %>
     <div class="flex items-start gap-2 min-w-0">
       <span class="flex-1 text-sm font-medium text-content leading-tight overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; max-width: 100%;">

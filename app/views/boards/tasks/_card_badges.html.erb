@@ -1,0 +1,114 @@
+<%# Card Badges: Model, Review, Validation, Recurring, Nightly, Followup, Agent assignment %>
+<%# Required locals: task, has_current_user %>
+<%# These badges are shown on hover (desktop) via progressive disclosure %>
+
+<%# Board badge (for aggregator views) %>
+<% if defined?(@is_aggregator) && @is_aggregator && task.board.present? %>
+  <span class="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium bg-bg-surface text-content-muted" title="Board: <%= task.board.name %>">
+    <%= task.board.icon %>
+  </span>
+<% end %>
+
+<%# Model badge %>
+<% if task.model.present? %>
+  <% model_color = case task.model.to_s.downcase
+    when /opus/ then "bg-purple-500/20 text-purple-400"
+    when /sonnet/ then "bg-blue-500/20 text-blue-400"
+    when /gemini/ then "bg-green-500/20 text-green-400"
+    when /glm/ then "bg-yellow-500/20 text-yellow-400"
+    when /codex/ then "bg-orange-500/20 text-orange-400"
+    else "bg-purple-500/20 text-purple-400"
+  end %>
+  <span class="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium <%= model_color %>" title="Model: <%= task.model %>">
+    <%= task.model.upcase %>
+  </span>
+<% end %>
+
+<%# Review status badge (new review system) %>
+<% if task.has_review? %>
+  <% review_badge_class = case task.review_status
+    when "passed" then "bg-green-500/20 text-green-400"
+    when "failed" then "bg-red-500/20 text-red-400"
+    when "running" then "bg-yellow-500/20 text-yellow-400"
+    when "pending" then "bg-blue-500/20 text-blue-400"
+    else "bg-gray-500/20 text-gray-400"
+  end %>
+  <% review_icon = case task.review_status
+    when "passed" then "✅"
+    when "failed" then "⚠️"
+    when "running" then nil  # Will show spinner
+    when "pending" then "🔄"
+    else "❓"
+  end %>
+  <% type_icon = task.debate_review? ? "🎭" : "🔍" %>
+  <% if has_current_user %>
+    <%= link_to review_output_modal_board_task_path(task.board, task),
+        data: { turbo_frame: "review_output_modal" },
+        class: "inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium #{review_badge_class} cursor-pointer hover:opacity-80",
+        title: "#{task.review_type&.capitalize} Review: #{task.review_status || 'pending'} - Click to view" do %>
+      <% if task.review_in_progress? %>
+        <span class="inline-block w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin"></span>
+      <% else %>
+        <%= review_icon %>
+      <% end %>
+      <%= type_icon %>
+    <% end %>
+  <% else %>
+    <span class="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium <%= review_badge_class %>" title="<%= task.review_type&.capitalize %> Review: <%= task.review_status || 'pending' %>">
+      <% if task.review_in_progress? %>
+        <span class="inline-block w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin"></span>
+      <% else %>
+        <%= review_icon %>
+      <% end %>
+      <%= type_icon %>
+    </span>
+  <% end %>
+<% end %>
+
+<%# Validation status badge (legacy) %>
+<% if task.validation_command.present? && !task.has_review? %>
+  <% validation_badge_class = case task.validation_status
+    when "passed" then "bg-green-500/20 text-green-400"
+    when "failed" then "bg-red-500/20 text-red-400"
+    when "pending" then "bg-yellow-500/20 text-yellow-400"
+    else "bg-gray-500/20 text-gray-400"
+  end %>
+  <% validation_icon = case task.validation_status
+    when "passed" then "✅"
+    when "failed" then "❌"
+    when "pending" then "⏳"
+    else "🔍"
+  end %>
+  <% if has_current_user && task.validation_output.present? %>
+    <%= link_to validation_output_modal_board_task_path(task.board, task),
+        data: { turbo_frame: "validation_output_modal" },
+        class: "inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium #{validation_badge_class} cursor-pointer hover:opacity-80",
+        title: "Validation: #{task.validation_status || 'not run'} - Click to view output" do %>
+      <%= validation_icon %>
+    <% end %>
+  <% else %>
+    <span class="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium <%= validation_badge_class %>" title="Validation: <%= task.validation_status || 'configured' %>">
+      <%= validation_icon %>
+    </span>
+  <% end %>
+<% end %>
+
+<%# Recurring icon %>
+<% if task.recurring? %>
+  <span class="text-[10px]" title="Recurring: <%= task.recurrence_rule %>">🔄</span>
+<% end %>
+
+<%# Nightly icon %>
+<% if task.nightly? %>
+  <span class="text-[10px]" title="Nightly task<%= task.nightly_delay_hours.present? ? " (+#{task.nightly_delay_hours}h)" : '' %>">🌙</span>
+<% end %>
+
+<%# Followup indicator %>
+<% if task.followup_task_id.present? %>
+  <span class="text-[10px]" title="Has follow-up task">↪️</span>
+<% end %>
+
+<%# Agent Assignment Badge %>
+<% if task.assigned_to_agent? %>
+  <span class="text-xs" title="Assigned to <%= task.user&.agent_name || 'Agent' %>"><%= (task.user&.agent_emoji || "🦞").to_s.encode('UTF-8', invalid: :replace, undef: :replace) %></span>
+<% end %>
