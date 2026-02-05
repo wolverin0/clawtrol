@@ -110,15 +110,11 @@ export default class extends Controller {
   }
 
   expand() {
-    // Use stored reference since target may disconnect when moved
+    // Use stored reference since target disconnects when moved out of controller scope
     const modal = this._fullscreenModal
     if (!modal || !this.hasPanelTarget) return
 
-    // Move modal to body to escape transform containing block
-    // (CSS transforms create new containing blocks that trap position:fixed)
-    document.body.appendChild(modal)
-
-    // Get the file name from the panel header
+    // Get the file name from the panel header BEFORE moving the modal
     const panelFrame = this.panelTarget.querySelector("turbo-frame")
     if (!panelFrame) return
 
@@ -129,17 +125,17 @@ export default class extends Controller {
     const contentSource = panelFrame.querySelector(".markdown-content") || panelFrame.querySelector("pre")
     if (!contentSource) return
 
-    // Set the file name in the fullscreen header
-    if (this.hasFullscreenFileNameTarget) {
-      this.fullscreenFileNameTarget.textContent = fileName
+    // Set the file name — use direct DOM query since Stimulus targets disconnect after move
+    const fileNameTarget = modal.querySelector("[data-file-viewer-target='fullscreenFileName']")
+    if (fileNameTarget) {
+      fileNameTarget.textContent = fileName
     }
 
-    // Clone the content into the fullscreen modal
-    if (this.hasFullscreenContentTarget) {
-      const container = this.fullscreenContentTarget.querySelector(".markdown-content")
+    // Clone the content — use direct DOM query
+    const contentTarget = modal.querySelector("[data-file-viewer-target='fullscreenContent']")
+    if (contentTarget) {
+      const container = contentTarget.querySelector(".markdown-content")
       if (container) {
-        // If source is a markdown-content div, copy its innerHTML
-        // If source is a pre block, wrap it appropriately
         if (contentSource.classList.contains("markdown-content")) {
           container.innerHTML = contentSource.innerHTML
         } else {
@@ -148,10 +144,13 @@ export default class extends Controller {
       }
     }
 
+    // Move modal to body AFTER populating content
+    // (CSS transforms on parent create containing blocks that trap position:fixed)
+    document.body.appendChild(modal)
+
     // Show the fullscreen modal with fade-in
     modal.classList.remove("hidden")
-    // Force reflow then animate
-    modal.offsetHeight
+    modal.offsetHeight // force reflow
     modal.style.opacity = "0"
     requestAnimationFrame(() => {
       modal.style.transition = "opacity 150ms ease-out"
