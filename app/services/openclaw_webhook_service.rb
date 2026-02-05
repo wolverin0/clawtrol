@@ -12,6 +12,18 @@ class OpenclawWebhookService
   def notify_task_assigned(task)
     return unless configured?
 
+    send_webhook(task, "🚀 Execute Now: #{task.name}")
+  end
+
+  def notify_auto_claimed(task)
+    return unless configured?
+
+    send_webhook(task, "🤖 Auto-claimed task ##{task.id}: #{task.name}")
+  end
+
+  private
+
+  def send_webhook(task, message)
     uri = URI.parse("#{@user.openclaw_gateway_url}/api/cron/wake")
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = uri.scheme == "https"
@@ -23,7 +35,7 @@ class OpenclawWebhookService
       "Authorization" => "Bearer #{@user.openclaw_gateway_token}"
     })
     request.body = {
-      text: "🚀 Execute Now: #{task.name}",
+      text: message,
       mode: "now"
     }.to_json
 

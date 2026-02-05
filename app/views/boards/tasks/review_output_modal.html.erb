@@ -1,0 +1,223 @@
+<%= turbo_frame_tag "review_output_modal" do %>
+  <div class="fixed inset-0 z-50 flex items-center justify-center" data-controller="modal tabs" data-action="keydown.esc->modal#close">
+    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+    <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+
+      <!-- Header -->
+      <div class="px-5 py-4 border-b border-border flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-semibold text-content font-display">Review Output</span>
+          <% review_badge_class = case @task.review_status
+            when "passed" then "bg-green-500/20 text-green-400"
+            when "failed" then "bg-red-500/20 text-red-400"
+            when "running" then "bg-yellow-500/20 text-yellow-400"
+            when "pending" then "bg-blue-500/20 text-blue-400"
+            else "bg-gray-500/20 text-gray-400"
+          end %>
+          <% review_icon = case @task.review_status
+            when "passed" then "✅"
+            when "failed" then "❌"
+            when "running" then "⏳"
+            when "pending" then "🔄"
+            else "❓"
+          end %>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium <%= review_badge_class %>">
+            <%= review_icon %> <%= @task.review_status&.capitalize || "Not run" %>
+          </span>
+          <% if @task.review_type.present? %>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-400">
+              <%= @task.debate_review? ? "🎭 Debate" : "🔍 Command" %>
+            </span>
+          <% end %>
+        </div>
+        <%= link_to board_path(@board), class: "p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors", data: { turbo_frame: "_top" } do %>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        <% end %>
+      </div>
+
+      <!-- Tabs -->
+      <div class="px-5 border-b border-border flex-shrink-0">
+        <nav class="flex gap-4">
+          <button type="button" 
+                  data-tabs-target="tab" 
+                  data-action="click->tabs#select"
+                  data-tab-id="summary"
+                  class="py-3 px-1 text-sm font-medium border-b-2 -mb-px transition-colors border-accent text-accent">
+            📊 Summary
+          </button>
+          <% if @task.debate_review? %>
+            <button type="button" 
+                    data-tabs-target="tab" 
+                    data-action="click->tabs#select"
+                    data-tab-id="debate"
+                    class="py-3 px-1 text-sm font-medium border-b-2 -mb-px transition-colors border-transparent text-content-muted hover:text-content">
+              🎭 Full Debate
+            </button>
+          <% end %>
+          <button type="button" 
+                  data-tabs-target="tab" 
+                  data-action="click->tabs#select"
+                  data-tab-id="raw"
+                  class="py-3 px-1 text-sm font-medium border-b-2 -mb-px transition-colors border-transparent text-content-muted hover:text-content">
+            📝 Raw Output
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="flex-1 overflow-y-auto">
+        <!-- Summary Tab -->
+        <div data-tabs-target="panel" data-tab-id="summary" class="px-5 py-4">
+          <!-- Task Reference -->
+          <div class="mb-4 p-3 bg-bg-elevated rounded-lg">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs text-content-muted block mb-1">Task:</span>
+                <span class="text-sm font-medium text-content"><%= @task.name.truncate(60) %></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Status Card -->
+          <div class="mb-4 p-4 rounded-lg <%= @task.review_passed? ? 'bg-green-500/10 border border-green-500/30' : @task.review_failed? ? 'bg-red-500/10 border border-red-500/30' : 'bg-blue-500/10 border border-blue-500/30' %>">
+            <div class="flex items-center gap-3 mb-2">
+              <span class="text-2xl"><%= review_icon %></span>
+              <span class="text-lg font-semibold <%= @task.review_passed? ? 'text-green-400' : @task.review_failed? ? 'text-red-400' : 'text-blue-400' %>">
+                Review <%= @task.review_status&.capitalize || 'Not Started' %>
+              </span>
+            </div>
+            <% if @task.review_result["completed_at"].present? %>
+              <p class="text-xs text-content-muted">
+                Completed: <%= Time.parse(@task.review_result["completed_at"]).strftime("%b %d, %Y at %H:%M") %>
+              </p>
+            <% end %>
+          </div>
+
+          <!-- Key Findings -->
+          <% if @task.review_result.present? %>
+            <div class="mb-4">
+              <h4 class="text-sm font-medium text-content-muted mb-2">Key Findings</h4>
+              <div class="p-3 bg-bg-elevated rounded-lg text-sm text-content-secondary">
+                <% if @task.review_result["error_summary"].present? %>
+                  <p class="text-red-400 mb-2">⚠️ <%= @task.review_result["error_summary"] %></p>
+                <% end %>
+                <% if @task.review_result["synthesis_preview"].present? %>
+                  <p class="whitespace-pre-wrap"><%= @task.review_result["synthesis_preview"].truncate(500) %></p>
+                <% elsif @task.review_result["output_preview"].present? %>
+                  <pre class="font-mono text-xs whitespace-pre-wrap"><%= @task.review_result["output_preview"] %></pre>
+                <% else %>
+                  <p class="text-content-muted italic">No detailed findings available.</p>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Config -->
+          <% if @task.review_config.present? %>
+            <div class="mb-4">
+              <h4 class="text-sm font-medium text-content-muted mb-2">Configuration</h4>
+              <div class="p-3 bg-bg-elevated rounded-lg text-xs">
+                <% if @task.command_review? && @task.review_config["command"].present? %>
+                  <p><span class="text-content-muted">Command:</span> <code class="bg-bg-surface px-1 rounded"><%= @task.review_config["command"] %></code></p>
+                <% end %>
+                <% if @task.debate_review? %>
+                  <p><span class="text-content-muted">Style:</span> <%= @task.review_config["style"]&.capitalize %></p>
+                  <p><span class="text-content-muted">Models:</span> <%= @task.review_config["models"]&.join(", ") %></p>
+                  <% if @task.review_config["focus"].present? %>
+                    <p><span class="text-content-muted">Focus:</span> <%= @task.review_config["focus"].truncate(100) %></p>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Follow-up Link -->
+          <% if @task.followup_task_id.present? %>
+            <div class="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-yellow-400">↪️</span>
+                  <span class="text-sm text-yellow-400">Follow-up task created</span>
+                </div>
+                <%= link_to board_task_path(@board, @task.followup_task_id), 
+                    data: { turbo_frame: "task_panel" },
+                    class: "px-3 py-1 text-xs font-medium bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded transition-colors" do %>
+                  View Follow-up →
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Debate Viewer Link -->
+          <% if @task.debate_review? && @task.review_result["debate_path"].present? %>
+            <div class="mt-4 text-center">
+              <% viewer_path = File.join(File.dirname(@task.review_result["debate_path"]), "viewer.html") %>
+              <% if File.exist?(viewer_path) %>
+                <a href="file://<%= viewer_path %>" target="_blank" class="text-sm text-accent hover:underline">
+                  🔗 Open Full Debate Viewer
+                </a>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <!-- Debate Tab (only for debate reviews) -->
+        <% if @task.debate_review? %>
+          <div data-tabs-target="panel" data-tab-id="debate" class="hidden px-5 py-4">
+            <% synthesis = @task.debate_synthesis_content %>
+            <% if synthesis.present? %>
+              <div class="prose prose-sm prose-invert max-w-none">
+                <pre class="whitespace-pre-wrap text-sm font-mono bg-bg-elevated p-4 rounded-lg overflow-x-auto"><%= h synthesis %></pre>
+              </div>
+            <% else %>
+              <div class="text-center py-8 text-content-muted">
+                <p>No synthesis document available yet.</p>
+                <% if @task.review_in_progress? %>
+                  <p class="mt-2 text-xs">Debate is still running...</p>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+
+        <!-- Raw Output Tab -->
+        <div data-tabs-target="panel" data-tab-id="raw" class="hidden px-5 py-4">
+          <% if @task.command_review? && @task.validation_output.present? %>
+            <label class="block text-xs font-medium text-content-muted mb-2">Command Output</label>
+            <pre class="w-full px-3 py-3 bg-bg-elevated rounded-lg text-xs font-mono text-content-secondary overflow-x-auto whitespace-pre-wrap max-h-96 overflow-y-auto"><%= h @task.validation_output %></pre>
+          <% elsif @task.review_result.present? %>
+            <label class="block text-xs font-medium text-content-muted mb-2">Review Result (JSON)</label>
+            <pre class="w-full px-3 py-3 bg-bg-elevated rounded-lg text-xs font-mono text-content-secondary overflow-x-auto whitespace-pre-wrap max-h-96 overflow-y-auto"><%= JSON.pretty_generate(@task.review_result) %></pre>
+          <% else %>
+            <div class="text-center py-8 text-content-muted">
+              <p>No raw output available.</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-5 py-4 border-t border-border flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <% if @task.command_review? %>
+            <%= button_to revalidate_board_task_path(@board, @task),
+                method: :post,
+                class: "inline-flex items-center gap-2 px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-lg transition-colors cursor-pointer" do %>
+              🔄 Re-run
+            <% end %>
+          <% end %>
+          <% if @task.debate_review? %>
+            <%= link_to debate_modal_board_task_path(@board, @task),
+                data: { turbo_frame: "debate_modal" },
+                class: "inline-flex items-center gap-2 px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-lg transition-colors" do %>
+              🎭 New Debate
+            <% end %>
+          <% end %>
+        </div>
+        <%= link_to "Close", board_path(@board), class: "px-4 py-2 text-sm font-medium text-content-muted hover:text-content transition-colors", data: { turbo_frame: "_top" } %>
+      </div>
+    </div>
+  </div>
+<% end %>

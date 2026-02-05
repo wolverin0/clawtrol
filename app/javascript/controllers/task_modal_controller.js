@@ -1,6 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 // Connects to data-controller="task-modal"
+// Handles both mobile slide-in panel and desktop full-screen modal
 export default class extends Controller {
   static targets = ["modal", "backdrop", "form", "nameField", "descriptionField", "submitButton", "priorityField", "priorityButton", "priorityGroup", "dueDateField", "dueDateDisplay", "recurringCheckbox", "recurringOptions", "nightlyCheckbox", "nightlyOptions"]
   static values = { taskId: Number }
@@ -9,6 +10,13 @@ export default class extends Controller {
     this.boundHandleKeydown = this.handleKeydown.bind(this)
     this.boundResizeDescription = this.resizeDescription.bind(this)
     this.autoSaveTimeout = null
+    this.isDesktop = window.matchMedia("(min-width: 1024px)").matches
+
+    // Listen for resize to update mode
+    this.resizeHandler = () => {
+      this.isDesktop = window.matchMedia("(min-width: 1024px)").matches
+    }
+    window.addEventListener("resize", this.resizeHandler)
 
     // Auto-open the modal when it's loaded
     setTimeout(() => {
@@ -20,6 +28,7 @@ export default class extends Controller {
 
   disconnect() {
     document.removeEventListener("keydown", this.boundHandleKeydown)
+    window.removeEventListener("resize", this.resizeHandler)
     // Clear any pending auto-save
     if (this.autoSaveTimeout) {
       clearTimeout(this.autoSaveTimeout)
@@ -27,7 +36,7 @@ export default class extends Controller {
   }
 
   open(event) {
-    // Prevent the click from bubbling up to the card (which would also trigger edit mode)
+    // Prevent the click from bubbling up to the card
     if (event) {
       event.stopPropagation()
     }
@@ -41,10 +50,16 @@ export default class extends Controller {
       this.backdropTarget.classList.remove("opacity-0")
     }, 10)
 
-    // Show panel (slide in from right)
+    // Show modal
     this.modalTarget.classList.remove("hidden")
     setTimeout(() => {
-      this.modalTarget.classList.remove("translate-x-full")
+      if (this.isDesktop) {
+        // Desktop: fade + scale in
+        this.modalTarget.classList.remove("lg:opacity-0", "lg:scale-95")
+      } else {
+        // Mobile: slide in from right
+        this.modalTarget.classList.remove("translate-x-full")
+      }
     }, 10)
   }
 
@@ -56,8 +71,13 @@ export default class extends Controller {
       this.save()
     }
 
-    // Hide panel (slide out to right)
-    this.modalTarget.classList.add("translate-x-full")
+    if (this.isDesktop) {
+      // Desktop: fade + scale out
+      this.modalTarget.classList.add("lg:opacity-0", "lg:scale-95")
+    } else {
+      // Mobile: slide out to right
+      this.modalTarget.classList.add("translate-x-full")
+    }
     this.backdropTarget.classList.add("opacity-0")
 
     setTimeout(() => {

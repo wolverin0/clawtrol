@@ -1,0 +1,113 @@
+<%= turbo_frame_tag "validate_modal" do %>
+  <div class="fixed inset-0 z-50 flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
+    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+    <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+
+      <!-- Header -->
+      <div class="px-5 py-4 border-b border-border flex items-center justify-between flex-shrink-0">
+        <span class="text-sm font-semibold text-content font-display">🔍 Validate Task</span>
+        <%= link_to board_path(@board), class: "p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors", data: { turbo_frame: "_top" } do %>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        <% end %>
+      </div>
+
+      <div class="overflow-y-auto flex-1">
+        <%= form_with url: run_validation_board_task_path(@board, @task), method: :post, class: "px-5 py-5 space-y-4", data: { controller: "review" } do |form| %>
+          <!-- Task Reference -->
+          <div class="p-3 bg-bg-elevated rounded-lg">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs text-content-muted block mb-1">Validating:</span>
+                <span class="text-sm font-medium text-content"><%= @task.name.truncate(50) %></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Command Templates -->
+          <div>
+            <label class="text-sm font-medium text-content-muted block mb-2">Quick Templates</label>
+            <div class="flex flex-wrap gap-2" data-review-target="templates">
+              <button type="button" 
+                      data-command="bundle exec rails test"
+                      data-action="click->review#selectTemplate"
+                      class="px-3 py-1.5 text-xs font-medium bg-bg-elevated hover:bg-bg-hover text-content-secondary rounded-lg transition-colors">
+                🛤️ Rails Test
+              </button>
+              <button type="button" 
+                      data-command="npm test"
+                      data-action="click->review#selectTemplate"
+                      class="px-3 py-1.5 text-xs font-medium bg-bg-elevated hover:bg-bg-hover text-content-secondary rounded-lg transition-colors">
+                📦 npm test
+              </button>
+              <button type="button" 
+                      data-command="bundle exec rubocop --format simple"
+                      data-action="click->review#selectTemplate"
+                      class="px-3 py-1.5 text-xs font-medium bg-bg-elevated hover:bg-bg-hover text-content-secondary rounded-lg transition-colors">
+                💎 Rubocop
+              </button>
+              <button type="button" 
+                      data-command="npm run lint"
+                      data-action="click->review#selectTemplate"
+                      class="px-3 py-1.5 text-xs font-medium bg-bg-elevated hover:bg-bg-hover text-content-secondary rounded-lg transition-colors">
+                ✨ ESLint
+              </button>
+              <button type="button" 
+                      data-command="python -m pytest"
+                      data-action="click->review#selectTemplate"
+                      class="px-3 py-1.5 text-xs font-medium bg-bg-elevated hover:bg-bg-hover text-content-secondary rounded-lg transition-colors">
+                🐍 pytest
+              </button>
+              <button type="button" 
+                      data-command="echo test && exit 0"
+                      data-action="click->review#selectTemplate"
+                      class="px-3 py-1.5 text-xs font-medium bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors">
+                ✅ Pass Test
+              </button>
+              <button type="button" 
+                      data-command="exit 1"
+                      data-action="click->review#selectTemplate"
+                      class="px-3 py-1.5 text-xs font-medium bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors">
+                ❌ Fail Test
+              </button>
+            </div>
+          </div>
+
+          <!-- Command Input -->
+          <div>
+            <label class="text-sm font-medium text-content-muted block mb-2">Validation Command</label>
+            <%= form.text_field :command,
+                value: @task.validation_command || "",
+                required: true,
+                placeholder: "Enter shell command to validate (exit 0 = pass)",
+                data: { review_target: "command" },
+                class: "w-full text-sm font-mono bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-content placeholder-content-muted px-3 py-2" %>
+            <p class="mt-1 text-xs text-content-muted">Command runs in the ClawDeck project root. Exit code 0 = passed.</p>
+          </div>
+
+          <!-- Info -->
+          <div class="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+            <div class="flex items-start gap-2">
+              <span class="text-blue-400">💡</span>
+              <div class="text-xs text-blue-300">
+                <p class="font-medium mb-1">How validation works:</p>
+                <ul class="list-disc list-inside space-y-0.5 text-blue-300/80">
+                  <li>Command runs in background (up to 2 minutes)</li>
+                  <li>Exit code 0 → <span class="text-green-400">passed</span> → moves to In Review</li>
+                  <li>Non-zero exit → <span class="text-red-400">failed</span> → creates follow-up task</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
+            <%= link_to "Cancel", board_path(@board), class: "px-4 py-2 text-sm font-medium text-content-secondary hover:text-content transition-colors", data: { turbo_frame: "_top" } %>
+            <%= form.submit "🚀 Run Validation", class: "px-4 py-2 text-sm font-semibold rounded-md bg-accent text-content hover:bg-accent-hover transition-colors cursor-pointer" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

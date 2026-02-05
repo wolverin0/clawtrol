@@ -16,9 +16,45 @@ class Board < ApplicationRecord
   # Available board icons (emojis)
   DEFAULT_ICONS = %w[📋 📝 🎯 🚀 💡 🔧 📊 🎨 📚 🏠 💼 🎮 🎵 📸 ✨ 🦞 🌐].freeze
 
+  # Auto-claim rate limit: 1 per minute per board
+  AUTO_CLAIM_RATE_LIMIT_SECONDS = 60
+
   # Check if this board aggregates tasks from all boards
   def aggregator?
     is_aggregator?
+  end
+
+  # Auto-claim methods
+  def auto_claim_enabled?
+    auto_claim_enabled
+  end
+
+  def can_auto_claim?
+    return false unless auto_claim_enabled?
+    return true if last_auto_claim_at.nil?
+
+    last_auto_claim_at < AUTO_CLAIM_RATE_LIMIT_SECONDS.seconds.ago
+  end
+
+  def task_matches_auto_claim?(task)
+    return false unless auto_claim_enabled?
+
+    has_tags_filter = auto_claim_tags.present?
+    has_prefix_filter = auto_claim_prefix.present?
+
+    # If neither filter is set, claim all tasks
+    return true unless has_tags_filter || has_prefix_filter
+
+    # Check each active filter
+    tags_match = has_tags_filter && (task.tags.to_a & auto_claim_tags).any?
+    prefix_match = has_prefix_filter && task.name.to_s.start_with?(auto_claim_prefix)
+
+    # At least one active filter must match
+    tags_match || prefix_match
+  end
+
+  def record_auto_claim!
+    update_column(:last_auto_claim_at, Time.current)
   end
 
   # Get all tasks for this user (for aggregator boards)

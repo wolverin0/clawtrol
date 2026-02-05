@@ -197,6 +197,31 @@
         Create Follow-up
       <% end %>
 
+      <%# Validation submenu %>
+      <div class="border-t border-border my-1"></div>
+      <%= link_to validate_modal_board_task_path(task.board, task),
+          data: { turbo_frame: "validate_modal", action: "click->dropdown#close" },
+          class: "w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" do %>
+        <span class="w-4 text-center">🔍</span>
+        Validate...
+      <% end %>
+
+      <%= link_to debate_modal_board_task_path(task.board, task),
+          data: { turbo_frame: "debate_modal", action: "click->dropdown#close" },
+          class: "w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" do %>
+        <span class="w-4 text-center">🎭</span>
+        Debate Review...
+      <% end %>
+
+      <% if task.has_review? %>
+        <%= link_to review_output_modal_board_task_path(task.board, task),
+            data: { turbo_frame: "review_output_modal", action: "click->dropdown#close" },
+            class: "w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" do %>
+          <span class="w-4 text-center">📊</span>
+          View Review Output
+        <% end %>
+      <% end %>
+
       <%# Re-run Validation (for tasks with validation_command) %>
       <% if task.validation_command.present? %>
         <%= button_to revalidate_board_task_path(task.board, task),
@@ -355,8 +380,48 @@
           <%= task.model.upcase %>
         </span>
       <% end %>
-      <%# Validation status badge %>
-      <% if task.validation_command.present? %>
+      <%# Review status badge (new review system) %>
+      <% if task.has_review? %>
+        <% review_badge_class = case task.review_status
+          when "passed" then "bg-green-500/20 text-green-400"
+          when "failed" then "bg-red-500/20 text-red-400"
+          when "running" then "bg-yellow-500/20 text-yellow-400"
+          when "pending" then "bg-blue-500/20 text-blue-400"
+          else "bg-gray-500/20 text-gray-400"
+        end %>
+        <% review_icon = case task.review_status
+          when "passed" then "✅"
+          when "failed" then "⚠️"
+          when "running" then nil  # Will show spinner
+          when "pending" then "🔄"
+          else "❓"
+        end %>
+        <% type_icon = task.debate_review? ? "🎭" : "🔍" %>
+        <% if has_current_user %>
+          <%= link_to review_output_modal_board_task_path(task.board, task),
+              data: { turbo_frame: "review_output_modal" },
+              class: "inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium #{review_badge_class} cursor-pointer hover:opacity-80",
+              title: "#{task.review_type&.capitalize} Review: #{task.review_status || 'pending'} - Click to view" do %>
+            <% if task.review_in_progress? %>
+              <span class="inline-block w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin"></span>
+            <% else %>
+              <%= review_icon %>
+            <% end %>
+            <%= type_icon %>
+          <% end %>
+        <% else %>
+          <span class="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium <%= review_badge_class %>" title="<%= task.review_type&.capitalize %> Review: <%= task.review_status || 'pending' %>">
+            <% if task.review_in_progress? %>
+              <span class="inline-block w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin"></span>
+            <% else %>
+              <%= review_icon %>
+            <% end %>
+            <%= type_icon %>
+          </span>
+        <% end %>
+      <% end %>
+      <%# Validation status badge (legacy) %>
+      <% if task.validation_command.present? && !task.has_review? %>
         <% validation_badge_class = case task.validation_status
           when "passed" then "bg-green-500/20 text-green-400"
           when "failed" then "bg-red-500/20 text-red-400"
@@ -393,7 +458,7 @@
       <% end %>
       <%# Agent Assignment Badge %>
       <% if task.assigned_to_agent? %>
-        <span class="text-xs" title="Assigned to <%= task.user.agent_name || 'Agent' %>"><%= task.user.agent_emoji || "🦞" %></span>
+        <span class="text-xs" title="Assigned to <%= task.user&.agent_name || 'Agent' %>"><%= (task.user&.agent_emoji || "🦞").to_s.encode('UTF-8', invalid: :replace, undef: :replace) %></span>
       <% end %>
 
       <%# Agent Activity Button (📟) - always visible when task has agent session %>

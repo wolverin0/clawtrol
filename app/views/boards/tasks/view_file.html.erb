@@ -1,0 +1,46 @@
+<%= turbo_frame_tag @frame_id do %>
+  <div class="h-full flex flex-col">
+    <!-- File Viewer Header -->
+    <div class="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="text-sm">📄</span>
+        <span class="text-sm font-medium text-content truncate" title="<%= @file_path %>">
+          <%= File.basename(@file_path) %>
+        </span>
+        <% if @file_extension.present? %>
+          <span class="text-[10px] text-content-muted font-mono bg-bg-elevated px-1.5 py-0.5 rounded"><%= @file_extension.upcase %></span>
+        <% end %>
+      </div>
+      <button type="button"
+              data-action="click->file-viewer#close"
+              class="cursor-pointer p-1.5 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors flex-shrink-0">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- File Content -->
+    <div class="flex-1 overflow-y-auto px-5 py-4">
+      <% if @file_error.present? %>
+        <div class="flex items-center justify-center py-12">
+          <div class="text-center">
+            <span class="text-3xl mb-3 block">⚠️</span>
+            <p class="text-sm text-red-400"><%= @file_error %></p>
+          </div>
+        </div>
+      <% elsif @rendered_html.present? %>
+        <div class="markdown-content">
+          <%= @rendered_html %>
+        </div>
+      <% elsif @file_content.present? %>
+        <pre class="text-xs font-mono text-content-secondary bg-bg-elevated rounded-lg p-4 overflow-x-auto whitespace-pre-wrap"><%= h @file_content %></pre>
+      <% end %>
+    </div>
+
+    <!-- File path footer -->
+    <div class="px-4 py-2 border-t border-border flex-shrink-0">
+      <span class="text-[10px] font-mono text-content-muted"><%= @file_path %></span>
+    </div>
+  </div>
+<% end %>

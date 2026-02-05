@@ -1,0 +1,96 @@
+<%= turbo_frame_tag "debate_modal" do %>
+  <div class="fixed inset-0 z-50 flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
+    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+    <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+
+      <!-- Header -->
+      <div class="px-5 py-4 border-b border-border flex items-center justify-between flex-shrink-0">
+        <span class="text-sm font-semibold text-content font-display">🎭 Debate Review</span>
+        <%= link_to board_path(@board), class: "p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors", data: { turbo_frame: "_top" } do %>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        <% end %>
+      </div>
+
+      <div class="overflow-y-auto flex-1">
+        <%= form_with url: run_debate_board_task_path(@board, @task), method: :post, class: "px-5 py-5 space-y-4" do |form| %>
+          <!-- Task Reference -->
+          <div class="p-3 bg-bg-elevated rounded-lg">
+            <div class="flex items-center justify-between">
+              <div>
+                <span class="text-xs text-content-muted block mb-1">Reviewing:</span>
+                <span class="text-sm font-medium text-content"><%= @task.name.truncate(50) %></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Debate Style -->
+          <div>
+            <label class="text-sm font-medium text-content-muted block mb-2">Debate Style</label>
+            <%= form.select :style,
+                options_for_select([
+                  ["⚡ Quick (1 round, fast)", "quick"],
+                  ["🔬 Thorough (3 rounds, deep analysis)", "thorough"],
+                  ["⚔️ Adversarial (find flaws, stress-test)", "adversarial"],
+                  ["🤝 Collaborative (build consensus)", "collaborative"]
+                ], "quick"),
+                {},
+                class: "w-full text-sm bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-content px-3 py-2" %>
+          </div>
+
+          <!-- Focus Areas -->
+          <div>
+            <label class="text-sm font-medium text-content-muted block mb-2">Focus Areas (optional)</label>
+            <%= form.text_area :focus,
+                placeholder: "What should the reviewers focus on?\nE.g., security concerns, performance, code quality, edge cases...",
+                rows: 3,
+                class: "w-full text-sm leading-snug bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-content-secondary placeholder-content-muted resize-none px-3 py-3" %>
+          </div>
+
+          <!-- Model Selection -->
+          <div>
+            <label class="text-sm font-medium text-content-muted block mb-2">Participants</label>
+            <div class="space-y-2">
+              <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-bg-elevated cursor-pointer">
+                <%= form.check_box :models, { multiple: true, checked: true }, "gemini", nil %>
+                <span class="text-sm text-content">🔵 Gemini</span>
+              </label>
+              <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-bg-elevated cursor-pointer">
+                <%= form.check_box :models, { multiple: true, checked: true }, "claude", nil %>
+                <span class="text-sm text-content">🟣 Claude</span>
+              </label>
+              <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-bg-elevated cursor-pointer">
+                <%= form.check_box :models, { multiple: true, checked: true }, "glm", nil %>
+                <span class="text-sm text-content">🟢 GLM (Zhipu)</span>
+              </label>
+            </div>
+            <p class="mt-2 text-xs text-content-muted">At least 2 participants recommended for meaningful debate.</p>
+          </div>
+
+          <!-- Info -->
+          <div class="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+            <div class="flex items-start gap-2">
+              <span class="text-purple-400">🎭</span>
+              <div class="text-xs text-purple-300">
+                <p class="font-medium mb-1">How debate review works:</p>
+                <ul class="list-disc list-inside space-y-0.5 text-purple-300/80">
+                  <li>Multiple AI models independently analyze the task output</li>
+                  <li>They debate and challenge each other's findings</li>
+                  <li>A synthesis document captures consensus and disputes</li>
+                  <li>Pass → moves to In Review; Fail → creates follow-up</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
+            <%= link_to "Cancel", board_path(@board), class: "px-4 py-2 text-sm font-medium text-content-secondary hover:text-content transition-colors", data: { turbo_frame: "_top" } %>
+            <%= form.submit "🎭 Start Debate", class: "px-4 py-2 text-sm font-semibold rounded-md bg-purple-600 text-white hover:bg-purple-500 transition-colors cursor-pointer" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

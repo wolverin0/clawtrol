@@ -41,6 +41,10 @@ Rails.application.routes.draw do
           post :link_session
           post :report_rate_limit
           post :revalidate
+          post :start_validation
+          post :run_debate
+          post :complete_review
+          get :file
         end
       end
     end
@@ -75,11 +79,17 @@ Rails.application.routes.draw do
         get :followup_modal
         get :handoff_modal
         get :validation_output_modal
+        get :validate_modal
+        get :debate_modal
+        get :review_output_modal
         post :generate_followup
         post :enhance_followup
         post :create_followup
         post :handoff
         post :revalidate
+        post :run_validation
+        post :run_debate
+        get :view_file
       end
     end
   end

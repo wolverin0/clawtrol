@@ -1,10 +1,19 @@
-# CLAUDE.md
+# AGENTS.md - ClawTrol Development Guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) and other AI coding assistants when working with this repository.
 
 ## Project Overview
 
-ClawDeck is a Rails 8.1 todo application with passwordless email authentication (6-digit verification codes via Resend). It's deployed to DigitalOcean VPS with automatic CI/CD via GitHub Actions.
+**ClawTrol** is a Rails 8.1 mission control dashboard for AI agents. It provides:
+- Task queue with agent assignment workflow
+- Multi-board kanban organization
+- Live agent transcript viewing
+- Model routing (opus, sonnet, codex, gemini, glm)
+- Validation system (command + debate)
+- Follow-up task chaining
+- Nightly/recurring task scheduling
+
+Previously known as ClawDeck. Rebranded to ClawTrol in February 2026.
 
 ## Development Commands
 
@@ -57,12 +66,12 @@ bin/importmap unpin <package>  # Unpin JavaScript package
 
 ### Deployment
 ```bash
-ssh root@YOUR_SERVER_IP  # SSH to production VPS
+ssh root@YOUR_SERVER_IP       # SSH to production VPS
 systemctl status puma         # Check Puma status
 systemctl status solid_queue  # Check Solid Queue status
 systemctl restart puma        # Restart web server
 systemctl restart solid_queue # Restart background jobs
-tail -f /var/log/clawdeck/puma.log  # View application logs
+tail -f /var/log/clawdeck/puma.log      # View application logs
 tail -f /var/log/clawdeck/solid_queue.log  # View job logs
 ```
 
@@ -81,151 +90,155 @@ tail -f /var/log/clawdeck/solid_queue.log  # View job logs
 - **Web Server**: Puma with Nginx reverse proxy
 
 ### Application Structure
-The application follows standard Rails 8 conventions with these key components:
-
-- **Module Name**: `ClawDeck` (config/application.rb:9)
+- **Module Name**: `ClawDeck` (config/application.rb) — module name retained for code compatibility
+- **Product Name**: ClawTrol — used in UI and documentation
 - **Solid Stack**: Uses solid_cache, solid_queue, and solid_cable instead of Redis
 - **Hotwire-first**: Built for Turbo Drive navigation with minimal JavaScript
 - **Asset Pipeline**: Propshaft for static assets, importmap-rails for JavaScript modules
 
-### Key Models and Relationships
-- **User**: Email-based authentication with 6-digit verification codes (15-minute expiry)
-  - `has_many :sessions` - User sessions with user_agent and IP tracking
-  - `has_many :projects` - User's todo projects
-  - `has_many :tasks` - User's tasks
-  - Creates welcome project with sample task lists on signup
+### Key Models
 
-- **Project**: Todo projects with optional image attachments
-  - `belongs_to :user`
-  - `has_many :tasks` (dependent: destroy)
-  - `has_many :task_lists` (dependent: destroy)
-  - `has_one_attached :image` - Project avatars (max 512KB, 256x256px, JPEG/PNG/WebP)
-  - Position-based ordering with `default_scope`
-  - Creates default "Tasks" task list on creation
+#### User
+- Email-based authentication with 6-digit verification codes (15-minute expiry)
+- `has_many :boards` - Multiple kanban boards
+- `has_many :tasks` - All user tasks
+- `has_many :model_limits` - Rate limit tracking per model
 
-- **TaskList**: Groupings of tasks within a project (Kanban-style columns)
-  - `belongs_to :project`
-  - `belongs_to :user`
-  - `has_many :tasks` (dependent: destroy)
-  - Position-based ordering with `default_scope`
-  - Color options: gray, red, blue, lime, purple, yellow
+#### Board
+- `belongs_to :user`
+- `has_many :tasks`
+- Fields: name, icon (emoji), color
+- Used for organizing tasks by project/context
 
-- **Task**: Individual todo items with position management and completion tracking
-  - `belongs_to :project`
-  - `belongs_to :user`
-  - `belongs_to :task_list`
-  - Priority enum: none, low, medium, high
-  - Position-based ordering (acts_as_list behavior without the gem)
-  - Tracks `completed_at` and `original_position` for completion/restoration
-  - Scopes: `incomplete` (ordered by position), `completed` (ordered by completed_at desc)
+#### Task
+- `belongs_to :user`
+- `belongs_to :board`
+- `belongs_to :parent_task, optional: true` - For follow-ups
+- **Statuses**: inbox, up_next, in_progress, in_review, done
+- **Priorities**: none, low, medium, high
+- **Models**: opus, sonnet, codex, gemini, glm
+- **Agent fields**: assigned_to_agent, agent_session_id, agent_session_key
+- **Validation fields**: validation_command, validation_status, validation_output
+- **Review fields**: review_type, review_status, review_config, review_result
+- **Nightly fields**: nightly, nightly_delay_hours
+- **Recurring fields**: recurring, recurrence_rule, recurrence_time
 
-- **Session**: User sessions with device/IP tracking
-  - `belongs_to :user`
-  - Stored in signed, permanent, httponly, lax same-site cookies
+#### ModelLimit
+- `belongs_to :user`
+- Tracks rate limits per model
+- Fields: name, limited, resets_at, error_message
+- Used for model fallback chain
 
-### Authentication System
-Passwordless email authentication using 6-digit verification codes:
-1. User enters email address
-2. System generates 6-digit code (valid for 15 minutes)
-3. Code sent via Resend API
-4. User verifies code to create session
-5. Session stored in signed cookie with user_agent and IP tracking
+### API Architecture
 
-Key concerns: `Authentication` module in app/controllers/concerns/authentication.rb provides:
-- `require_authentication` - Before action for protected routes
-- `allow_unauthenticated_access` - Class method to skip auth
-- `start_new_session_for(user)` - Creates session with cookie
-- `terminate_session` - Destroys session and cookie
+Base URL: `/api/v1`
 
-### Email Configuration
-- Development: Uses letter_opener gem (emails open in browser)
-- Production: SMTP (configure in production.rb)
-- Mailers:
-  - `PasswordsMailer` - Password reset emails
+#### Core Task Endpoints
+- `GET /tasks` - List tasks (filters: status, assigned, board_id, etc.)
+- `GET /tasks/:id` - Get single task
+- `POST /tasks` - Create task
+- `PATCH /tasks/:id` - Update task
+- `DELETE /tasks/:id` - Delete task
 
-### Database Configuration
-Development uses local PostgreSQL. Production uses multi-database setup:
-- `primary`: Main application data (users, projects, tasks, sessions)
-- `cache`: Solid Cache data (db/cache_migrate)
-- `queue`: Solid Queue jobs (db/queue_migrate)
-- `cable`: Solid Cable connections (db/cable_migrate)
+#### Agent Workflow Endpoints
+- `POST /tasks/spawn_ready` - Create task in_progress + assigned
+- `POST /tasks/:id/link_session` - Connect OpenClaw session
+- `POST /tasks/:id/agent_complete` - Complete task with output
+- `GET /tasks/:id/agent_log` - Get agent transcript
+- `POST /tasks/:id/handoff` - Hand off to different model
 
-Connection pooling uses `DB_POOL` env var or `RAILS_MAX_THREADS` (default: 5).
+#### Review Endpoints
+- `POST /tasks/:id/start_validation` - Start command validation
+- `POST /tasks/:id/run_debate` - Start debate review
+- `POST /tasks/:id/complete_review` - Complete review with result
 
-### Routes
-- Root: `pages#home` (unauthenticated landing page)
-- Sessions: `resource :session` with custom verify actions (GET/POST)
-- Passwords: `resources :passwords, param: :token`
-- Admin: `namespace :admin` with dashboard and users (requires admin)
-- Projects: `resources :projects` with `collection :reorder`
-  - Nested task_lists: `resources :task_lists` (create, update, destroy)
-    - Member: `delete_all_tasks`, `delete_completed_tasks`, `send_to`
-    - Collection: `post :reorder`
-  - Nested tasks: `resources :tasks` (create, edit, update, destroy)
-    - Member: `toggle_completed`, `move_to_list`, `send_to`
-    - Collection: `post :reorder`
-- Health: GET /up (rails/health#show)
+#### Model Limit Endpoints
+- `GET /models/status` - Get all model statuses
+- `POST /models/best` - Get best available model
+- `POST /models/:name/limit` - Record rate limit
+- `DELETE /models/:name/limit` - Clear rate limit
+
+#### Board Endpoints
+- `GET /boards` - List boards
+- `GET /boards/:id` - Get board (optionally with tasks)
+- `POST /boards` - Create board
+- `PATCH /boards/:id` - Update board
+- `DELETE /boards/:id` - Delete board
+
+### Authentication
+
+API authentication via Bearer token:
+```
+Authorization: Bearer YOUR_TOKEN
+```
+
+Agent identity via headers:
+```
+X-Agent-Name: Otacon
+X-Agent-Emoji: 📟
+```
+
+### Routes Structure
+```ruby
+namespace :api do
+  namespace :v1 do
+    resources :boards
+    resources :tasks do
+      collection do
+        post :spawn_ready
+        get :recurring
+      end
+      member do
+        post :agent_complete
+        post :link_session
+        get :agent_log
+        post :handoff
+        post :start_validation
+        post :run_debate
+      end
+    end
+  end
+end
+```
 
 ### CI Pipeline
 GitHub Actions runs on PR and push to main:
-1. **scan_ruby**: Brakeman (security) + bundler-audit (gem vulnerabilities)
-2. **scan_js**: importmap audit (JS vulnerabilities)
-3. **lint**: RuboCop style check
-4. **test**: Rails unit/integration tests with PostgreSQL service
-5. **system-test**: System tests with PostgreSQL service (screenshots on failure)
-
-Local CI command (`bin/ci`) runs:
-1. Setup (dependencies + database)
-2. RuboCop style check
-3. Security audits (bundler-audit, importmap audit, brakeman)
-4. Unit/integration tests
-5. System tests
-6. Database seed test
+1. **scan_ruby**: Brakeman + bundler-audit
+2. **scan_js**: importmap audit
+3. **lint**: RuboCop
+4. **test**: Rails tests with PostgreSQL
+5. **system-test**: Capybara tests
 
 ### Deployment Flow
-GitHub Actions auto-deploys on push to main:
-1. SSH to VPS (using VPS_HOST and VPS_SSH_KEY secrets)
-2. Pull latest code from main branch
-3. Install dependencies (`bundle install --deployment`)
-4. Backup all 4 databases to /var/backups/clawdeck
-5. Verify main database backup is valid SQL
-6. Run migrations with rollback on failure
-7. Precompile assets
-8. Restart Puma and Solid Queue services
-9. Verify services are running
+Auto-deploy on push to main:
+1. SSH to VPS
+2. Pull latest code
+3. Bundle install
+4. Backup databases
+5. Run migrations
+6. Precompile assets
+7. Restart Puma + Solid Queue
 
-Deployment scripts are in `.github/workflows/deploy.yml`.
+### Background Jobs
+- `RunValidationJob` - Execute validation commands
+- `RunDebateJob` - Run multi-model debate reviews
 
-### Production Environment
-- **Location**: DigitalOcean VPS at /var/www/clawdeck
-- **Services**:
-  - Puma (web server on port 3000)
-  - Solid Queue (background job processor)
-  - Nginx (reverse proxy on ports 80/443)
-  - PostgreSQL (4 databases: main, cache, queue, cable)
-- **Logs**: /var/log/clawdeck/puma.log and solid_queue.log
-- **Config**: Environment variables in /var/www/clawdeck/.env.production
-  - Required: RAILS_MASTER_KEY, DATABASE_PASSWORD, DATABASE_USERNAME, RESEND_API_KEY
-
-### Testing Configuration
-- Test parallelization enabled (uses all processor cores)
-- Fixtures loaded from test/fixtures/*.yml
-- Custom test helper: test/test_helpers/session_test_helper.rb
-- System tests use Capybara + Selenium WebDriver
-- GitHub Actions uses PostgreSQL 16 service container
-
-### Frontend Architecture
-- **Stimulus Controllers**: Located in app/javascript/controllers/
-  - Drag-and-drop: `sortable_controller.js`, `projects_sortable_controller.js`, `task_list_sortable_controller.js`
-  - Inline editing: `inline_task_controller.js`, `inline_task_list_controller.js`, `inline_project_controller.js`
-  - UI interactions: `dropdown_controller.js`, `task_modal_controller.js`, `flash_controller.js`
-  - Task management: `task_toggle_controller.js`, `task_edit_controller.js`, `completed_tasks_controller.js`
-  - Confirmations: `delete_confirm_controller.js`, `delete_confirm_all_tasks_controller.js`
-- **Turbo Streams**: Used extensively for real-time UI updates without full page reloads
-  - Task CRUD operations return turbo_stream responses
-  - Task list operations use turbo_stream for DOM updates
+### Frontend Controllers (Stimulus)
+- `sortable_controller.js` - Drag-and-drop task ordering
+- `task_modal_controller.js` - Task detail modals
+- `live_activity_controller.js` - Real-time transcript polling
+- `dropdown_controller.js` - UI dropdowns
+- `flash_controller.js` - Flash messages
 
 ### Development Guidelines
-- Never default to regular JS if you can use Turbo/Hotwire to accomplish the same thing
-- Always follow Rails conventions and use DRY principles
-- This project is deployed via Github actions by pushing to main branch
+1. Never default to regular JS if Turbo/Hotwire can accomplish the same thing
+2. Follow Rails conventions and DRY principles
+3. Deploy via GitHub Actions by pushing to main branch
+4. Use Solid Queue for background jobs, not Sidekiq
+5. Test with bin/rails test before pushing
+
+## Documentation
+
+- `docs/AGENT_INTEGRATION.md` - Complete agent integration guide
+- `docs/OPENCLAW_INTEGRATION.md` - OpenClaw-specific setup
+- `docs/API_REFERENCE.md` - Full API endpoint reference
