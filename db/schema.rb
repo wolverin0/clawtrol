@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_05_193542) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_05_210715) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -85,6 +85,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_193542) do
     t.index ["resets_at"], name: "index_model_limits_on_resets_at", where: "(limited = true)"
     t.index ["user_id", "name"], name: "index_model_limits_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_model_limits_on_user_id"
+  end
+
+  create_table "notifications", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "event_type", null: false
+    t.text "message", null: false
+    t.datetime "read_at"
+    t.bigint "task_id"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["event_type"], name: "index_notifications_on_event_type"
+    t.index ["task_id"], name: "index_notifications_on_task_id"
+    t.index ["user_id", "created_at"], name: "index_notifications_on_user_id_and_created_at", order: { created_at: :desc }
+    t.index ["user_id", "read_at"], name: "index_notifications_on_user_unread"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -225,6 +240,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_193542) do
   add_foreign_key "api_tokens", "users"
   add_foreign_key "boards", "users"
   add_foreign_key "model_limits", "users"
+  add_foreign_key "notifications", "tasks"
+  add_foreign_key "notifications", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "task_activities", "tasks"
   add_foreign_key "task_activities", "users"
