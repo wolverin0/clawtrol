@@ -755,12 +755,13 @@ module Api
         return nil if name.blank?
 
         case name.downcase
-        when /clawdeck|clawdk/i
+        when /clawtrol|clawdeck|clawdk/i
           user.boards.find_by(name: "ClawDeck")
         when /pedrito/i
           user.boards.find_by(name: "Pedrito")
         else
-          user.boards.find_by(name: "Misc")
+          # Default to ClawDeck, not Misc or aggregator
+          user.boards.find_by(name: "ClawDeck") || user.boards.where(is_aggregator: false).first
         end
       end
 
