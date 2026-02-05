@@ -1,5 +1,5 @@
 class BoardsController < ApplicationController
-  before_action :set_board, only: [:show, :update, :destroy, :update_task_status]
+  before_action :set_board, only: [:show, :update, :destroy, :update_task_status, :archived]
 
   def index
     # Redirect to the first board
@@ -24,7 +24,7 @@ class BoardsController < ApplicationController
       @current_tag = params[:tag]
     end
 
-    # Group tasks by status
+    # Group tasks by status (excluding archived - those have their own page)
     # Active columns: sort by position (drag order)
     # Completed columns: sort by most recently updated (newest first)
     # Note: reorder() is required to override the default_scope ordering
@@ -36,6 +36,9 @@ class BoardsController < ApplicationController
       done: @tasks.done.reorder(completed_at: :desc, updated_at: :desc)
     }
 
+    # Count of archived tasks for header link
+    @archived_count = @board.tasks.archived.count
+
     # Get all unique tags for the sidebar filter
     @all_tags = @board.tasks.where.not(tags: []).pluck(:tags).flatten.uniq.sort
 
@@ -44,6 +47,22 @@ class BoardsController < ApplicationController
 
     # Get API token for agent status display
     @api_token = current_user.api_token
+  end
+
+  def archived
+    @board_page = true
+    @boards = current_user.boards
+    @archived_count = @board.tasks.archived.count
+    
+    # Simple pagination without gem
+    @per_page = 25
+    @page = (params[:page] || 1).to_i
+    @page = 1 if @page < 1
+    @total_pages = (@archived_count.to_f / @per_page).ceil
+    @total_pages = 1 if @total_pages < 1
+    @page = @total_pages if @page > @total_pages && @total_pages > 0
+    
+    @archived_tasks = @board.tasks.archived.reorder(updated_at: :desc).offset((@page - 1) * @per_page).limit(@per_page)
   end
 
   def create

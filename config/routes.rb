@@ -62,6 +62,7 @@ Rails.application.routes.draw do
   # Boards (multi-board kanban views)
   resources :boards, only: [ :index, :show, :create, :update, :destroy ] do
     patch :update_task_status, on: :member
+    get :archived, on: :member
     resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "boards/tasks" do
       member do
         patch :assign
