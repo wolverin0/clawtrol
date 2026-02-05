@@ -186,6 +186,19 @@
       <% end %>
     <% end %>
 
+    <%# Archived link - shows count of archived tasks for current board %>
+    <% if @archived_count && @archived_count > 0 %>
+      <%= link_to archived_board_path(@board),
+          class: "flex items-center gap-1 px-2 py-1.5 rounded-md text-sm text-content-muted hover:text-content hover:bg-bg-surface transition-colors whitespace-nowrap",
+          data: { turbo_frame: "_top" } do %>
+        <span>📦</span>
+        <span class="hidden sm:inline">Archived</span>
+        <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-bg-surface text-content-muted">
+          <%= @archived_count %>
+        </span>
+      <% end %>
+    <% end %>
+
     <%# New Board button %>
     <button type="button"
             onclick="document.getElementById('new-board-modal').classList.remove('hidden')"

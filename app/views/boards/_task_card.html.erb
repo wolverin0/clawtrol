@@ -75,7 +75,8 @@
             ["up_next", "⏳ Up Next"],
             ["in_progress", "🔄 In Progress"],
             ["in_review", "👀 In Review"],
-            ["done", "✅ Done"]
+            ["done", "✅ Done"],
+            ["archived", "📦 Archived"]
           ].each do |status, label| %>
             <%= button_to move_board_task_path(task.board, task),
                 method: :patch,
@@ -299,8 +300,8 @@
 
     <%# Action Buttons + Model + Agent badges %>
     <div class="flex items-center gap-1 flex-wrap justify-end">
-      <%# NEXT button - always visible for non-done tasks %>
-      <% next_status = { 'inbox' => 'up_next', 'up_next' => 'in_progress', 'in_progress' => 'in_review', 'in_review' => 'done' }[task.status] %>
+      <%# NEXT button - always visible for non-archived tasks %>
+      <% next_status = { 'inbox' => 'up_next', 'up_next' => 'in_progress', 'in_progress' => 'in_review', 'in_review' => 'done', 'done' => 'archived' }[task.status] %>
       <% if next_status %>
         <%= link_to move_board_task_path(task.board, task, status: next_status),
             data: { turbo_method: :patch, turbo_frame: "_top" },

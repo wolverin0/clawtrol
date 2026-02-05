@@ -8,7 +8,7 @@ class Task < ApplicationRecord
   has_one :source_task, class_name: "Task", foreign_key: :followup_task_id
 
   enum :priority, { none: 0, low: 1, medium: 2, high: 3 }, default: :none, prefix: true
-  enum :status, { inbox: 0, up_next: 1, in_progress: 2, in_review: 3, done: 4 }, default: :inbox
+  enum :status, { inbox: 0, up_next: 1, in_progress: 2, in_review: 3, done: 4, archived: 5 }, default: :inbox
 
   # Model options for agent LLM selection
   MODELS = %w[opus codex gemini glm sonnet].freeze

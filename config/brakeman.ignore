@@ -1,0 +1,16 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "File Access",
+      "warning_code": 16,
+      "fingerprint": "5ca68f8397969852f0ee57f77a80220a57e422b1fb96a29d97c9607a3ae31ce3",
+      "check_name": "FileAccess",
+      "message": "Model attribute used in file name",
+      "file": "app/controllers/api/v1/tasks_controller.rb",
+      "line": 65,
+      "note": "Session ID is validated with regex /\\A[a-zA-Z0-9_\\-]+\\z/ before use to prevent path traversal"
+    }
+  ],
+  "updated": "2026-02-05",
+  "brakeman_version": "7.1.0"
+}

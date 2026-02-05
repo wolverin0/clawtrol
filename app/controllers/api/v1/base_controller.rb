@@ -4,7 +4,7 @@ module Api
       # Include session support for browser-based API calls (agent_log)
       include ActionController::Cookies
       include ActionController::RequestForgeryProtection
-      
+
       include Api::TokenAuthentication
 
       rescue_from ActiveRecord::RecordNotFound, with: :not_found
