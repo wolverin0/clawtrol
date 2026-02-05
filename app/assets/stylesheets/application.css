@@ -147,3 +147,109 @@ body.overflow-hidden {
 .animate-slide-out {
   animation: slide-out 0.2s ease-in forwards;
 }
+
+/* ============================================
+   Mobile Column Tabs & Bottom Nav
+   ============================================ */
+
+/* Mobile tab button states */
+.mobile-tab-active {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-content);
+  font-weight: 600;
+}
+
+.mobile-tab-inactive {
+  background-color: transparent;
+  color: var(--color-content-muted);
+}
+
+.mobile-tab-inactive:hover {
+  background-color: var(--color-bg-hover);
+  color: var(--color-content-secondary);
+}
+
+/* Mobile active column - full width */
+@media (max-width: 768px) {
+  .mobile-active-column {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    flex-shrink: 0;
+  }
+  
+  /* Disable horizontal scroll when in mobile column mode */
+  [data-controller*="mobile-columns"] .overflow-x-auto {
+    overflow-x: hidden;
+  }
+}
+
+/* Bottom nav safe area for iOS */
+.safe-area-bottom {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* Ensure main content doesn't overlap bottom nav */
+@media (max-width: 768px) {
+  [data-agent-terminal-aware] {
+    padding-bottom: 0;
+  }
+}
+
+/* Mobile responsive header adjustments */
+@media (max-width: 640px) {
+  /* Stack board header elements vertically */
+  .board-header-mobile-stack {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+}
+
+/* Mobile modal - full screen */
+@media (max-width: 768px) {
+  .mobile-fullscreen-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+  
+  .mobile-fullscreen-modal > div {
+    height: 100%;
+    border-radius: 0;
+  }
+}
+
+/* Task cards full width on mobile */
+@media (max-width: 768px) {
+  .task-card {
+    width: 100%;
+  }
+}
+
+/* Hide scrollbar on mobile tab bar */
+@media (max-width: 768px) {
+  [data-mobile-columns-target="tabs"]::-webkit-scrollbar {
+    display: none;
+  }
+  
+  [data-mobile-columns-target="tabs"] {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Swipe hint animation */
+@keyframes swipe-hint {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-10px); }
+}
+
+@media (max-width: 768px) {
+  .swipe-hint {
+    animation: swipe-hint 1s ease-in-out 2;
+  }
+}

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_05_211411) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_05_212047) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -140,6 +140,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_211411) do
     t.index ["user_id"], name: "index_task_activities_on_user_id"
   end
 
+  create_table "task_dependencies", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "depends_on_id", null: false
+    t.bigint "task_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["depends_on_id"], name: "index_task_dependencies_on_depends_on_id"
+    t.index ["task_id", "depends_on_id"], name: "index_task_dependencies_on_task_id_and_depends_on_id", unique: true
+    t.index ["task_id"], name: "index_task_dependencies_on_task_id"
+  end
+
   create_table "task_templates", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description_template"
@@ -263,6 +273,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_211411) do
   add_foreign_key "sessions", "users"
   add_foreign_key "task_activities", "tasks"
   add_foreign_key "task_activities", "users"
+  add_foreign_key "task_dependencies", "tasks"
+  add_foreign_key "task_dependencies", "tasks", column: "depends_on_id"
   add_foreign_key "task_templates", "users"
   add_foreign_key "tasks", "boards"
   add_foreign_key "tasks", "tasks", column: "followup_task_id", on_delete: :nullify

@@ -13,6 +13,9 @@
       <%= link_to dashboard_path, class: "text-sm text-content-muted hover:text-content transition-colors", title: "Dashboard Overview" do %>
         📊
       <% end %>
+      <%= link_to analytics_path, class: "text-sm text-content-muted hover:text-content transition-colors", title: "Analytics" do %>
+        📈
+      <% end %>
     <% else %>
       <%= link_to root_path, class: "flex items-center" do %>
         <%= image_tag "clawdecklogo.svg", alt: "ClawDeck Logo", class: "h-6 w-auto" %>

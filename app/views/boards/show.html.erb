@@ -1,11 +1,22 @@
 <% content_for :title, "#{@board.name} - clawdeck" %>
 <% @board_page = true %>
 
+<%# Column config for mobile tabs %>
+<%
+  column_labels = {
+    "inbox" => "📥 Inbox",
+    "up_next" => "⏭ Next",
+    "in_progress" => "🚀 Active",
+    "in_review" => "👀 Review",
+    "done" => "✅ Done"
+  }
+%>
+
 <%# Subscribe to real-time updates for this board %>
 <%= turbo_stream_from "board_#{@board.id}" %>
 
-<div class="h-full flex flex-col" 
-     data-controller="board kanban-refresh"
+<div class="h-full flex flex-col pb-16 md:pb-0" 
+     data-controller="board kanban-refresh mobile-columns"
      data-kanban-refresh-board-id-value="<%= @board.id %>"
      data-kanban-refresh-interval-value="15000"
      data-kanban-refresh-api-path-value="<%= status_api_v1_board_path(@board) %>">
@@ -14,7 +25,7 @@
 
   <%# Tag filter indicator %>
   <% if @current_tag.present? %>
-    <div class="flex items-center gap-2 px-6 py-2 bg-bg-surface border-b border-border">
+    <div class="flex items-center gap-2 px-4 md:px-6 py-2 bg-bg-surface border-b border-border">
       <span class="text-xs text-content-muted">Filtered by:</span>
       <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-bg-elevated text-content">
         <%= @current_tag %>
@@ -29,14 +40,29 @@
 
   <%# Aggregator notice %>
   <% if @is_aggregator %>
-    <div class="flex items-center gap-2 px-6 py-2 bg-accent/10 border-b border-accent/30">
+    <div class="flex items-center gap-2 px-4 md:px-6 py-2 bg-accent/10 border-b border-accent/30">
       <span class="text-xs text-accent">🌐 Viewing tasks from all boards (read-only aggregation)</span>
     </div>
   <% end %>
 
-  <%# Kanban Columns - horizontal scroll on mobile, variable height columns %>
-  <div class="flex-1 overflow-x-auto overflow-y-auto bg-bg-base">
-    <div class="flex gap-3 sm:gap-4 px-4 sm:px-6 py-4 items-start min-h-full min-w-max sm:min-w-0">
+  <%# Mobile Column Tabs - visible only on mobile %>
+  <div class="flex md:hidden overflow-x-auto border-b border-border bg-bg-surface gap-1 px-2 py-2"
+       data-mobile-columns-target="tabs">
+    <% (Task.statuses.keys - ["archived"]).each do |status| %>
+      <button data-action="click->mobile-columns#switch"
+              data-column="<%= status %>"
+              data-mobile-columns-target="tabButton"
+              class="mobile-tab-inactive px-3 py-2 text-xs whitespace-nowrap rounded-lg transition-colors">
+        <%= column_labels[status] %>
+        <span class="text-content-muted ml-1">(<%= @columns[status.to_sym]&.count || 0 %>)</span>
+      </button>
+    <% end %>
+  </div>
+
+  <%# Kanban Columns - horizontal scroll on desktop, single column on mobile %>
+  <div class="flex-1 overflow-x-auto overflow-y-auto bg-bg-base"
+       data-mobile-columns-target="columnsContainer">
+    <div class="flex gap-3 sm:gap-4 px-4 sm:px-6 py-4 items-start min-h-full md:min-w-max md:min-w-0">
       <% (Task.statuses.keys - ["archived"]).each do |status| %>
         <%= render "boards/column", status: status, tasks: @columns[status.to_sym] %>
       <% end %>

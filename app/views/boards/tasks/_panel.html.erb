@@ -247,6 +247,9 @@
           <!-- Agent Assignment (outside form to avoid nested forms) -->
           <%= render "boards/tasks/agent_assignment", task: task, board: @board %>
 
+          <!-- Dependencies Section -->
+          <%= render "boards/tasks/dependencies", task: task, board: @board %>
+
           <!-- Activity Section -->
           <div class="border-t border-border pt-4">
             <h3 class="text-sm font-semibold text-content mb-4 font-display">Activity</h3>

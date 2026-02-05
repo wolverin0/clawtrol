@@ -82,7 +82,32 @@ export default class extends Controller {
     if (event.related?.style?.display === 'none') {
       return false
     }
+    
+    // Check if dragged task is blocked
+    const draggedItem = event.dragged
+    const isBlocked = draggedItem?.dataset?.taskBlocked === 'true'
+    const targetStatus = event.to?.id?.replace('column-', '')
+    
+    // Prevent moving blocked tasks to in_progress
+    if (isBlocked && targetStatus === 'in_progress') {
+      const blockingIds = draggedItem?.dataset?.taskBlockingIds || ''
+      const firstBlockingId = blockingIds.split(',')[0]
+      this.showBlockedToast(firstBlockingId)
+      return false
+    }
+    
     return true
+  }
+  
+  showBlockedToast(blockingId) {
+    const message = blockingId 
+      ? `Task blocked by #${blockingId} — complete the dependency first`
+      : 'Task is blocked by dependencies'
+    
+    // Use existing toast system if available
+    document.dispatchEvent(new CustomEvent("toast:show", {
+      detail: { message, type: "warning" }
+    }))
   }
 
   // Handle reordering within the same column
@@ -119,6 +144,18 @@ export default class extends Controller {
     const taskName = event.item.querySelector(".text-content")?.textContent?.trim() || "Task"
     const newStatus = this.statusValue
     const oldStatus = event.from.id.replace("column-", "")
+    
+    // Check if blocked task is being moved to in_progress
+    const isBlocked = event.item.dataset.taskBlocked === 'true'
+    if (isBlocked && newStatus === 'in_progress') {
+      const blockingIds = event.item.dataset.taskBlockingIds || ''
+      const firstBlockingId = blockingIds.split(',')[0]
+      this.showBlockedToast(firstBlockingId)
+      
+      // Move the item back to its original column
+      event.from.appendChild(event.item)
+      return
+    }
 
     // Get all task IDs in their new order (including the newly added one)
     const taskIds = Array.from(this.element.querySelectorAll("[data-task-id]"))

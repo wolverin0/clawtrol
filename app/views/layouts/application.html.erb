@@ -36,6 +36,35 @@
           <%= yield %>
         </main>
       </div>
+
+      <%# Mobile Bottom Navigation - only visible on mobile %>
+      <nav class="fixed bottom-0 left-0 right-0 bg-bg-elevated border-t border-border flex justify-around py-2 md:hidden z-50 safe-area-bottom">
+        <%= link_to dashboard_path,
+            class: "flex flex-col items-center gap-0.5 text-xs px-3 py-1 rounded-lg transition-colors #{'text-content bg-bg-surface' if controller_name == 'dashboard'}  #{'text-content-muted hover:text-content' unless controller_name == 'dashboard'}" do %>
+          <span class="text-lg">📊</span>
+          <span>Dashboard</span>
+        <% end %>
+
+        <%= link_to (@board ? board_path(@board) : boards_path),
+            class: "flex flex-col items-center gap-0.5 text-xs px-3 py-1 rounded-lg transition-colors #{'text-content bg-bg-surface' if controller_name == 'boards'}  #{'text-content-muted hover:text-content' unless controller_name == 'boards'}" do %>
+          <span class="text-lg">📋</span>
+          <span>Board</span>
+        <% end %>
+
+        <button type="button"
+                data-action="click->mobile-columns#showTerminal"
+                class="flex flex-col items-center gap-0.5 text-xs text-content-muted hover:text-content px-3 py-1 rounded-lg transition-colors cursor-pointer">
+          <span class="text-lg">🖥</span>
+          <span>Terminal</span>
+        </button>
+
+        <%= link_to settings_path,
+            class: "flex flex-col items-center gap-0.5 text-xs px-3 py-1 rounded-lg transition-colors #{'text-content bg-bg-surface' if controller_name == 'profiles'}  #{'text-content-muted hover:text-content' unless controller_name == 'profiles'}" do %>
+          <span class="text-lg">⚙️</span>
+          <span>Settings</span>
+        <% end %>
+      </nav>
+
       <%# Agent Terminal Panel - only on board pages %>
       <%= render "layouts/agent_terminal" %>
     <% else %>

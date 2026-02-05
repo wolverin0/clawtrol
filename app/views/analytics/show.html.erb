@@ -1,0 +1,195 @@
+<% content_for :title, "Analytics - clawdeck" %>
+<% content_for :breadcrumb_standalone, "📈 Analytics" %>
+
+<div class="py-6 space-y-6">
+  <%# Period Selector %>
+  <div class="flex items-center justify-between">
+    <div class="flex gap-2">
+      <% %w[24h 7d 30d all].each do |p| %>
+        <%= link_to p, analytics_path(period: p),
+            class: "px-3 py-1 rounded-lg text-sm transition-colors #{@period == p ? 'bg-accent text-white' : 'bg-bg-elevated text-content-muted hover:text-content'}" %>
+      <% end %>
+    </div>
+    <span class="text-xs text-content-muted">
+      Since <%= @start_date.strftime("%b %d, %Y") %>
+    </span>
+  </div>
+
+  <%# Stats Cards Row %>
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <%# Total Tasks %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/50 transition-colors">
+      <div class="text-2xl font-bold text-content"><%= @total_tasks %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1">
+        <span>📋</span>
+        <span>Total Tasks</span>
+      </div>
+    </div>
+
+    <%# Completed %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-green-500/50 transition-colors">
+      <div class="text-2xl font-bold text-green-400"><%= @completed_tasks %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1">
+        <span>✅</span>
+        <span>Completed</span>
+      </div>
+    </div>
+
+    <%# In Progress %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/50 transition-colors">
+      <div class="text-2xl font-bold text-accent"><%= @in_progress_tasks %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1">
+        <span>🔴</span>
+        <span>In Progress</span>
+      </div>
+    </div>
+
+    <%# Errors %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-red-500/50 transition-colors <%= @error_tasks > 0 ? 'border-red-500/30' : '' %>">
+      <div class="text-2xl font-bold <%= @error_tasks > 0 ? 'text-red-400' : 'text-content' %>"><%= @error_tasks %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1">
+        <span>⚠️</span>
+        <span>Errors</span>
+      </div>
+    </div>
+
+    <%# Completion Rate %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-blue-500/50 transition-colors">
+      <div class="text-2xl font-bold text-blue-400"><%= @completion_rate %>%</div>
+      <div class="text-sm text-content-muted flex items-center gap-1">
+        <span>📊</span>
+        <span>Completion Rate</span>
+      </div>
+    </div>
+  </div>
+
+  <%# Daily Completions Chart %>
+  <div class="bg-bg-elevated border border-border rounded-xl p-4">
+    <h3 class="text-sm font-semibold text-content mb-4 flex items-center gap-2">
+      📈 Daily Completions
+    </h3>
+    <% if @daily_completions.any? %>
+      <div class="flex items-end gap-1 h-32">
+        <% @daily_completions.each do |date, count| %>
+          <% bar_height = @max_daily > 0 ? (count.to_f / @max_daily * 100).round : 0 %>
+          <div class="flex-1 group relative">
+            <div class="bg-accent/60 hover:bg-accent/80 rounded-t transition-colors cursor-default"
+                 style="height: <%= [bar_height, 5].max %>%"
+                 title="<%= date.strftime('%b %d') %>: <%= count %> tasks">
+            </div>
+            <%# Tooltip %>
+            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-bg-surface border border-border rounded text-xs text-content opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+              <%= date.strftime('%b %d') %>: <%= count %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <%# X-axis labels %>
+      <div class="flex justify-between mt-2 text-xs text-content-muted">
+        <span><%= @daily_completions.keys.first&.strftime('%b %d') %></span>
+        <span><%= @daily_completions.keys.last&.strftime('%b %d') %></span>
+      </div>
+    <% else %>
+      <div class="text-center py-8 text-content-muted">
+        <span class="text-2xl block mb-2">📭</span>
+        <span class="text-sm">No completed tasks in this period</span>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Bottom Row: Model Usage + Board Breakdown + Avg Time %>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <%# Model Usage %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-content mb-4 flex items-center gap-2">
+        🤖 Model Usage
+      </h3>
+      <% if @model_usage.any? %>
+        <div class="space-y-3">
+          <% @model_usage.sort_by { |_, v| -v }.each do |model, count| %>
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-content-secondary"><%= model.capitalize %></span>
+                <span class="text-content-muted"><%= count %></span>
+              </div>
+              <% bar_width = @max_model_usage > 0 ? (count.to_f / @max_model_usage * 100).round : 0 %>
+              <div class="w-full h-2 bg-bg-base rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all
+                           <%= case model
+                               when 'opus' then 'bg-purple-500'
+                               when 'sonnet' then 'bg-blue-500'
+                               when 'codex' then 'bg-green-500'
+                               when 'gemini' then 'bg-yellow-500'
+                               when 'glm' then 'bg-orange-500'
+                               else 'bg-accent'
+                               end %>"
+                     style="width: <%= bar_width %>%"></div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-6 text-content-muted text-sm">
+          No model data available
+        </div>
+      <% end %>
+    </div>
+
+    <%# Board Breakdown %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-content mb-4 flex items-center gap-2">
+        📁 Board Breakdown
+      </h3>
+      <% if @board_stats.any? %>
+        <div class="space-y-2 max-h-48 overflow-y-auto">
+          <% @board_stats.each do |board| %>
+            <div class="flex items-center justify-between py-1.5">
+              <%= link_to board_path(board.id), class: "flex items-center gap-2 text-sm text-content-secondary hover:text-accent transition-colors truncate" do %>
+                <span><%= board.icon %></span>
+                <span class="truncate"><%= board.name %></span>
+              <% end %>
+              <span class="text-sm font-medium text-content ml-2"><%= board.task_count %></span>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-6 text-content-muted text-sm">
+          No boards found
+        </div>
+      <% end %>
+    </div>
+
+    <%# Average Completion Time %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-content mb-4 flex items-center gap-2">
+        ⏱️ Performance
+      </h3>
+      <div class="space-y-4">
+        <%# Average Time %>
+        <div class="text-center py-4">
+          <div class="text-3xl font-bold text-content">
+            <%= @avg_completion_hours %>
+            <span class="text-lg font-normal text-content-muted">hrs</span>
+          </div>
+          <div class="text-sm text-content-muted mt-1">
+            Avg. time to complete
+          </div>
+        </div>
+
+        <%# Status Breakdown Mini %>
+        <div class="border-t border-border pt-4 space-y-2">
+          <% Task.statuses.keys.each do |status| %>
+            <% count = @status_counts[status] || 0 %>
+            <% next if count == 0 %>
+            <div class="flex items-center justify-between text-sm">
+              <span class="<%= status_badge_class(status) %> px-2 py-0.5 rounded text-xs">
+                <%= status.humanize %>
+              </span>
+              <span class="text-content-muted"><%= count %></span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

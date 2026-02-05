@@ -1,14 +1,50 @@
 <%# Board Header with Navbar Tabs %>
 <header class="relative flex-shrink-0 bg-bg-base">
   <%# Main header row %>
-  <div class="flex items-center justify-between px-6 py-3 border-b border-border">
-    <%# Left section: Logo/Brand + Dashboard %>
-    <div class="flex items-center gap-3">
-      <span class="text-lg font-semibold text-content font-display">🦞 ClawDeck</span>
+  <div class="flex items-center justify-between px-4 md:px-6 py-2 md:py-3 border-b border-border">
+    <%# Left section: Logo/Brand + Dashboard (dashboard hidden on mobile - in bottom nav) %>
+    <div class="flex items-center gap-2 md:gap-3">
+      <span class="hidden md:inline text-base md:text-lg font-semibold text-content font-display">🦞 ClawDeck</span>
+      <%# Mobile: Show current board with dropdown to switch %>
+      <div class="md:hidden relative" data-controller="dropdown">
+        <button type="button"
+                data-dropdown-target="button"
+                data-action="click->dropdown#toggle"
+                class="flex items-center gap-1.5 px-2 py-1 rounded-md text-sm font-semibold text-content bg-bg-elevated hover:bg-bg-hover transition-colors cursor-pointer">
+          <span><%= @board.icon %></span>
+          <span class="truncate max-w-[120px]"><%= @board.name %></span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-content-muted">
+            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <div data-dropdown-target="menu"
+             class="hidden absolute left-0 top-full mt-1 w-48 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
+          <div class="py-1 max-h-60 overflow-y-auto">
+            <% @boards.each do |board| %>
+              <% active = board.id == @board.id %>
+              <% task_count = board.tasks.where.not(status: :done).count %>
+              <%= link_to board_path(board),
+                  class: "flex items-center gap-2 px-3 py-2 text-sm transition-colors #{active ? 'bg-bg-elevated text-content' : 'text-content-secondary hover:bg-bg-hover hover:text-content'}",
+                  data: { turbo_frame: "_top" } do %>
+                <span><%= board.icon %></span>
+                <span class="flex-1 truncate"><%= board.name %></span>
+                <% if task_count > 0 %>
+                  <span class="text-xs text-content-muted"><%= task_count %></span>
+                <% end %>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      </div>
       <%= link_to dashboard_path,
-          class: "px-2 py-1 rounded-md text-sm text-content-muted hover:text-content hover:bg-bg-elevated transition-colors",
+          class: "hidden md:block px-2 py-1 rounded-md text-sm text-content-muted hover:text-content hover:bg-bg-elevated transition-colors",
           title: "Dashboard Overview" do %>
         📊
+      <% end %>
+      <%= link_to analytics_path,
+          class: "hidden md:block px-2 py-1 rounded-md text-sm text-content-muted hover:text-content hover:bg-bg-elevated transition-colors",
+          title: "Analytics" do %>
+        📈
       <% end %>
     </div>
 
@@ -215,8 +251,8 @@
     </div>
   </div>
 
-  <%# Board Tabs Navbar %>
-  <nav class="flex items-center gap-1 px-6 py-2 bg-bg-base border-b border-border overflow-x-auto">
+  <%# Board Tabs Navbar - hidden on mobile (single board view with bottom nav) %>
+  <nav class="hidden md:flex items-center gap-1 px-4 md:px-6 py-2 bg-bg-base border-b border-border overflow-x-auto">
     <% @boards.each do |board| %>
       <% active = board.id == @board.id %>
       <% task_count = board.tasks.where.not(status: :done).count %>

@@ -4,7 +4,7 @@ module Api
     class TasksController < BaseController
       # agent_log is public (no auth required) - secured by task lookup
       skip_before_action :authenticate_api_token, only: [ :agent_log, :session_health ]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :file ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :file, :add_dependency, :remove_dependency, :dependencies ]
       before_action :set_task_for_agent_log, only: [ :agent_log, :session_health ]
 
       private
@@ -715,6 +715,85 @@ module Api
         }
       end
 
+      # GET /api/v1/tasks/:id/dependencies
+      # Returns the task's dependencies and dependents
+      def dependencies
+        render json: {
+          dependencies: @task.dependencies.map { |t| dependency_json(t) },
+          dependents: @task.dependents.map { |t| dependency_json(t) },
+          blocked: @task.blocked?,
+          blocking_tasks: @task.blocking_tasks.map { |t| dependency_json(t) }
+        }
+      end
+
+      # POST /api/v1/tasks/:id/add_dependency
+      # Add a dependency to this task (this task depends on another)
+      def add_dependency
+        depends_on_id = params[:depends_on_id]
+        
+        unless depends_on_id.present?
+          render json: { error: "depends_on_id parameter required" }, status: :bad_request
+          return
+        end
+
+        depends_on = current_user.tasks.find_by(id: depends_on_id)
+        
+        unless depends_on
+          render json: { error: "Task #{depends_on_id} not found" }, status: :not_found
+          return
+        end
+
+        begin
+          dependency = @task.task_dependencies.create!(depends_on: depends_on)
+          set_task_activity_info(@task)
+          @task.activity_note = "Added dependency on ##{depends_on.id}: #{depends_on.name.truncate(30)}"
+          @task.touch  # Trigger activity recording
+
+          render json: {
+            success: true,
+            dependency: {
+              id: dependency.id,
+              task_id: @task.id,
+              depends_on_id: depends_on.id,
+              depends_on: dependency_json(depends_on)
+            },
+            blocked: @task.reload.blocked?
+          }
+        rescue ActiveRecord::RecordInvalid => e
+          render json: { error: e.message }, status: :unprocessable_entity
+        end
+      end
+
+      # DELETE /api/v1/tasks/:id/remove_dependency
+      # Remove a dependency from this task
+      def remove_dependency
+        depends_on_id = params[:depends_on_id]
+        
+        unless depends_on_id.present?
+          render json: { error: "depends_on_id parameter required" }, status: :bad_request
+          return
+        end
+
+        dependency = @task.task_dependencies.find_by(depends_on_id: depends_on_id)
+        
+        unless dependency
+          render json: { error: "Dependency not found" }, status: :not_found
+          return
+        end
+
+        depends_on = dependency.depends_on
+        dependency.destroy!
+        
+        set_task_activity_info(@task)
+        @task.activity_note = "Removed dependency on ##{depends_on.id}: #{depends_on.name.truncate(30)}"
+        @task.touch  # Trigger activity recording
+
+        render json: {
+          success: true,
+          blocked: @task.reload.blocked?
+        }
+      end
+
       # POST /api/v1/tasks/:id/report_rate_limit
       # Called when a task encounters a rate limit error for its model
       # Records the limit and optionally triggers auto-fallback
@@ -817,6 +896,16 @@ module Api
         simulated
       end
 
+      def dependency_json(task)
+        {
+          id: task.id,
+          name: task.name,
+          status: task.status,
+          done: task.status.in?(%w[done archived]),
+          blocked: task.blocked?
+        }
+      end
+
       def task_json(task)
         {
           id: task.id,
@@ -824,7 +913,7 @@ module Api
           description: task.description,
           priority: task.priority,
           status: task.status,
-          blocked: task.blocked,
+          blocked: task.blocked?,  # Use method instead of column
           tags: task.tags || [],
           completed: task.completed,
           completed_at: task.completed_at&.iso8601,
@@ -858,6 +947,9 @@ module Api
           review_config: task.review_config,
           review_result: task.review_result,
           output_files: task.output_files || [],
+          dependencies: task.dependencies.map { |t| dependency_json(t) },
+          dependents: task.dependents.map { |t| dependency_json(t) },
+          blocking_tasks: task.blocking_tasks.map { |t| dependency_json(t) },
           url: "https://clawdeck.io/boards/#{task.board_id}/tasks/#{task.id}",
           created_at: task.created_at.iso8601,
           updated_at: task.updated_at.iso8601

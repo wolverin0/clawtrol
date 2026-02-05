@@ -1,0 +1,96 @@
+<%# Task Dependencies Section %>
+<%# Shows tasks this task depends on and tasks that depend on this task %>
+
+<div class="border-t border-border pt-4 mt-4"
+     data-controller="task-dependencies"
+     data-task-dependencies-task-id-value="<%= task.id %>"
+     data-task-dependencies-board-id-value="<%= board.id %>">
+  
+  <h3 class="text-sm font-semibold text-content mb-3 font-display flex items-center gap-2">
+    🔗 Dependencies
+    <% if task.blocked? %>
+      <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
+        Blocked
+      </span>
+    <% end %>
+  </h3>
+
+  <%# Blocked by (dependencies that are not done) %>
+  <% blocking_tasks = task.blocking_tasks %>
+  <% if blocking_tasks.any? %>
+    <div class="mb-3">
+      <p class="text-[10px] font-medium text-yellow-400 uppercase tracking-wide mb-1.5">⚠️ Blocked by</p>
+      <div class="space-y-1.5" data-task-dependencies-target="blockingList">
+        <% blocking_tasks.each do |dep| %>
+          <div class="flex items-center gap-2 text-sm py-1 px-2 bg-yellow-500/10 rounded">
+            <span class="text-content font-mono text-xs">#<%= dep.id %></span>
+            <span class="text-content flex-1 truncate"><%= dep.name.truncate(35) %></span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-bg-elevated text-content-muted"><%= dep.status.humanize %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# All dependencies (including completed) %>
+  <div class="mb-3">
+    <p class="text-[10px] font-medium text-content-muted uppercase tracking-wide mb-1.5">Depends On</p>
+    <div class="space-y-1" data-task-dependencies-target="dependenciesList">
+      <% task.dependencies.each do |dep| %>
+        <div class="flex items-center gap-2 text-sm py-1 group" data-dependency-id="<%= dep.id %>">
+          <span class="text-content-muted font-mono text-xs">#<%= dep.id %></span>
+          <span class="<%= dep.status.in?(%w[done archived]) ? 'line-through text-content-muted' : 'text-content' %> flex-1 truncate">
+            <%= dep.name.truncate(35) %>
+          </span>
+          <% if dep.status.in?(%w[done archived]) %>
+            <span class="text-green-400 text-xs">✅</span>
+          <% end %>
+          <button type="button"
+                  data-action="click->task-dependencies#remove"
+                  data-dep-id="<%= dep.id %>"
+                  class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 text-xs p-1 cursor-pointer transition-opacity"
+                  title="Remove dependency">
+            ✕
+          </button>
+        </div>
+      <% end %>
+      <% if task.dependencies.empty? %>
+        <p class="text-xs text-content-muted italic">No dependencies</p>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Add dependency input %>
+  <div class="relative">
+    <input type="text"
+           placeholder="Add dependency (#id or search)..."
+           data-task-dependencies-target="searchInput"
+           data-action="input->task-dependencies#search focus->task-dependencies#showSuggestions"
+           class="w-full text-xs bg-bg-elevated border border-border focus:border-accent focus:outline-none text-content-secondary placeholder-content-muted rounded-lg px-3 py-2">
+    
+    <%# Search results dropdown %>
+    <div data-task-dependencies-target="suggestions"
+         class="hidden absolute z-10 mt-1 w-full bg-bg-surface border border-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+    </div>
+  </div>
+
+  <%# Dependents (tasks that depend on this task) %>
+  <% if task.dependents.any? %>
+    <div class="mt-4 pt-3 border-t border-border">
+      <p class="text-[10px] font-medium text-content-muted uppercase tracking-wide mb-1.5">Blocks</p>
+      <div class="space-y-1">
+        <% task.dependents.each do |dependent| %>
+          <div class="flex items-center gap-2 text-sm py-1">
+            <span class="text-content-muted font-mono text-xs">#<%= dependent.id %></span>
+            <span class="text-content-secondary truncate"><%= dependent.name.truncate(35) %></span>
+            <% if task.status.in?(%w[done archived]) %>
+              <span class="text-[10px] px-1 py-0.5 rounded bg-green-500/10 text-green-400">Unblocked</span>
+            <% else %>
+              <span class="text-[10px] px-1 py-0.5 rounded bg-yellow-500/10 text-yellow-400">Waiting</span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>

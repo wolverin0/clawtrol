@@ -1,6 +1,15 @@
-<%# Card Badges: Model, Review, Validation, Recurring, Nightly, Followup, Agent assignment %>
+<%# Card Badges: Blocked, Model, Review, Validation, Recurring, Nightly, Followup, Agent assignment %>
 <%# Required locals: task, has_current_user %>
 <%# These badges are shown on hover (desktop) via progressive disclosure %>
+
+<%# Blocked by dependencies badge %>
+<% if task.blocked? %>
+  <% blocking = task.blocking_tasks.first %>
+  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-yellow-500/20 text-yellow-400" 
+        title="Blocked by: <%= task.blocking_tasks.map { |t| "##{t.id} #{t.name.truncate(20)}" }.join(', ') %>">
+    🔒 <span class="hidden sm:inline">Blocked<% if blocking %> by #<%= blocking.id %><% end %></span>
+  </span>
+<% end %>
 
 <%# Board badge (for aggregator views) %>
 <% if defined?(@is_aggregator) && @is_aggregator && task.board.present? %>

@@ -62,6 +62,9 @@ Rails.application.routes.draw do
           post :run_debate
           post :complete_review
           get :file
+          post :add_dependency
+          delete :remove_dependency
+          get :dependencies
         end
       end
     end
@@ -83,6 +86,9 @@ Rails.application.routes.draw do
 
   # Dashboard overview page
   get "dashboard", to: "dashboard#show"
+
+  # Analytics page
+  get "analytics", to: "analytics#show"
 
   # Boards (multi-board kanban views)
   resources :boards, only: [ :index, :show, :create, :update, :destroy ] do

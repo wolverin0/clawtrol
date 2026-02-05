@@ -7,6 +7,12 @@ class Task < ApplicationRecord
   has_many :child_tasks, class_name: "Task", foreign_key: :parent_task_id, dependent: :nullify
   has_one :source_task, class_name: "Task", foreign_key: :followup_task_id
 
+  # Task dependencies (blocking relationships)
+  has_many :task_dependencies, dependent: :destroy
+  has_many :dependencies, through: :task_dependencies, source: :depends_on
+  has_many :inverse_dependencies, class_name: "TaskDependency", foreign_key: :depends_on_id, dependent: :destroy
+  has_many :dependents, through: :inverse_dependencies, source: :task
+
   enum :priority, { none: 0, low: 1, medium: 2, high: 3 }, default: :none, prefix: true
   enum :status, { inbox: 0, up_next: 1, in_progress: 2, in_review: 3, done: 4, archived: 5 }, default: :inbox
 
@@ -94,6 +100,23 @@ class Task < ApplicationRecord
 
   def unassign_from_agent!
     update!(assigned_to_agent: false, assigned_at: nil)
+  end
+
+  # Blocking/dependency state methods
+  def blocked?
+    dependencies.where.not(status: [:done, :archived]).exists?
+  end
+
+  def blocking_tasks
+    dependencies.where.not(status: [:done, :archived])
+  end
+
+  def add_dependency!(other_task)
+    task_dependencies.create!(depends_on: other_task)
+  end
+
+  def remove_dependency!(other_task)
+    task_dependencies.find_by(depends_on: other_task)&.destroy!
   end
 
   # Error state methods

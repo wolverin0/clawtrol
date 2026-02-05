@@ -33,7 +33,9 @@ end %>
     <% end %>
     data-task-id="<%= task.id %>"
     data-task-status="<%= task.status %>"
-    data-task-position="<%= task.position %>">
+    data-task-position="<%= task.position %>"
+    data-task-blocked="<%= task.blocked? %>"
+    data-task-blocking-ids="<%= task.blocking_tasks.pluck(:id).join(',') %>">
 
   <%# Context Menu (right-click) - only rendered when current_user is available (not during broadcasts) %>
   <% if has_current_user %>
