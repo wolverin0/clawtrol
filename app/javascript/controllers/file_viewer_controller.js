@@ -114,7 +114,7 @@ export default class extends Controller {
     const modal = this._fullscreenModal
     if (!modal || !this.hasPanelTarget) return
 
-    // Get the file name from the panel header BEFORE moving the modal
+    // Get the file name from the panel header
     const panelFrame = this.panelTarget.querySelector("turbo-frame")
     if (!panelFrame) return
 
@@ -125,13 +125,13 @@ export default class extends Controller {
     const contentSource = panelFrame.querySelector(".markdown-content") || panelFrame.querySelector("pre")
     if (!contentSource) return
 
-    // Set the file name — use direct DOM query since Stimulus targets disconnect after move
+    // Set the file name
     const fileNameTarget = modal.querySelector("[data-file-viewer-target='fullscreenFileName']")
     if (fileNameTarget) {
       fileNameTarget.textContent = fileName
     }
 
-    // Clone the content — use direct DOM query
+    // Clone the content
     const contentTarget = modal.querySelector("[data-file-viewer-target='fullscreenContent']")
     if (contentTarget) {
       const container = contentTarget.querySelector(".markdown-content")
@@ -144,11 +144,13 @@ export default class extends Controller {
       }
     }
 
-    // Move modal to body AFTER populating content
-    // (CSS transforms on parent create containing blocks that trap position:fixed)
+    // Move modal to body to escape transform containing block
     document.body.appendChild(modal)
 
-    // Show the fullscreen modal with fade-in
+    // Lock body scroll so the page doesn't scroll behind the modal
+    document.body.style.overflow = "hidden"
+
+    // Show the fullscreen modal
     modal.classList.remove("hidden")
     modal.offsetHeight // force reflow
     modal.style.opacity = "0"
@@ -162,9 +164,11 @@ export default class extends Controller {
   }
 
   collapse() {
-    // Use stored reference since target may disconnect when moved
     const modal = this._fullscreenModal
     if (!modal) return
+
+    // Restore body scroll
+    document.body.style.overflow = ""
 
     // Fade out then hide
     modal.style.transition = "opacity 150ms ease-in"
@@ -184,7 +188,7 @@ export default class extends Controller {
         }
       }
 
-      // Move modal back to its original parent so Stimulus targets still work
+      // Move modal back to original parent for Stimulus targets
       if (this._originalParent) {
         this._originalParent.appendChild(modal)
       }
