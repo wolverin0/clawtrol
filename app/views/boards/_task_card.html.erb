@@ -162,31 +162,32 @@
     <%= render "application/delete_modal", url: board_task_path(task.board, task) %>
   <% end %>
 
-  <%= link_to board_task_path(task.board, task), data: { turbo_frame: "task_panel" }, class: "block p-3" do %>
-
-  <%# Task ID + Name %>
-  <div class="flex items-start gap-2 min-w-0">
-    <span class="flex-1 text-sm font-medium text-content leading-tight overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; max-width: 100%;">
-      <span class="text-xs text-content-muted font-normal">#<%= task.id %></span> <%= task.name %>
-    </span>
-    <% if task.blocked? %>
-      <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-status-warning" title="Blocked"></span>
-    <% end %>
-  </div>
-
-  <%# Tags %>
-  <% if task.tags.present? && task.tags.any? %>
-    <div class="flex flex-wrap gap-1 mt-2">
-      <% task.tags.each do |tag| %>
-        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-bg-surface text-content-secondary">
-          <%= tag %>
-        </span>
+  <%# Main card content - clickable to open task panel %>
+  <%= link_to board_task_path(task.board, task), data: { turbo_frame: "task_panel" }, class: "block p-3 pb-1" do %>
+    <%# Task ID + Name %>
+    <div class="flex items-start gap-2 min-w-0">
+      <span class="flex-1 text-sm font-medium text-content leading-tight overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; max-width: 100%;">
+        <span class="text-xs text-content-muted font-normal">#<%= task.id %></span> <%= task.name %>
+      </span>
+      <% if task.blocked? %>
+        <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-status-warning" title="Blocked"></span>
       <% end %>
     </div>
+
+    <%# Tags %>
+    <% if task.tags.present? && task.tags.any? %>
+      <div class="flex flex-wrap gap-1 mt-2">
+        <% task.tags.each do |tag| %>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-bg-surface text-content-secondary">
+            <%= tag %>
+          </span>
+        <% end %>
+      </div>
+    <% end %>
   <% end %>
 
-  <%# Footer: Priority + Actions + Model + Agent %>
-  <div class="flex items-center justify-between mt-2 gap-1">
+  <%# Footer: Priority + Actions + Model + Agent - OUTSIDE the link %>
+  <div class="flex items-center justify-between px-3 pb-3 pt-1 gap-1">
     <%# Priority Indicator %>
     <div class="flex items-center flex-shrink-0">
       <% flame_count = case task.priority
@@ -260,7 +261,6 @@
       <% end %>
     </div>
   </div>
-  <% end %>
 
   <%# Agent Preview Popover (for in_progress tasks with agent) %>
   <% if show_agent_preview %>
