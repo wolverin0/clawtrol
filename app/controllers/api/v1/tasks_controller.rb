@@ -3,7 +3,7 @@ module Api
     class TasksController < BaseController
       # agent_log is public (no auth required) - secured by task lookup
       skip_before_action :authenticate_api_token, only: [ :agent_log ]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :claim, :unclaim, :assign, :unassign ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup ]
       before_action :set_task_for_agent_log, only: [ :agent_log ]
 
       private
@@ -183,6 +183,46 @@ module Api
         render json: task_json(@task)
       end
 
+      # POST /api/v1/tasks/:id/generate_followup - generate AI suggestion for followup
+      def generate_followup
+        suggestion = @task.generate_followup_suggestion
+        @task.update!(suggested_followup: suggestion)
+        render json: { suggested_followup: suggestion, task: task_json(@task) }
+      end
+
+      # POST /api/v1/tasks/:id/enhance_followup - enhance draft description with AI
+      def enhance_followup
+        draft = params[:draft]
+        enhanced = AiSuggestionService.new(@task.user).enhance_description(@task, draft)
+        render json: { enhanced: enhanced || draft }
+      end
+
+      # POST /api/v1/tasks/:id/create_followup - create a followup task
+      def create_followup
+        set_task_activity_info(@task)
+        followup_name = params[:followup_name] || params.dig(:task, :followup_name) || "Follow up: #{@task.name}"
+        followup_description = params[:followup_description] || params.dig(:task, :followup_description)
+
+        followup = @task.create_followup_task!(
+          followup_name: followup_name,
+          followup_description: followup_description
+        )
+        render json: { followup: task_json(followup), source_task: task_json(@task) }, status: :created
+      end
+
+      # PATCH /api/v1/tasks/:id/move - move task to a different status column
+      def move
+        new_status = params[:status]
+        unless Task.statuses.key?(new_status)
+          render json: { error: "Invalid status: #{new_status}" }, status: :unprocessable_entity
+          return
+        end
+
+        set_task_activity_info(@task)
+        @task.update!(status: new_status)
+        render json: task_json(@task)
+      end
+
       # GET /api/v1/tasks - all tasks for current user
       def index
         @tasks = current_user.tasks
@@ -296,7 +336,7 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, tags: [])
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :nightly, :nightly_delay_hours, tags: [])
       end
 
       def task_json(task)
@@ -323,6 +363,10 @@ module Api
           next_recurrence_at: task.next_recurrence_at&.iso8601,
           parent_task_id: task.parent_task_id,
           agent_session_id: task.agent_session_id,
+          nightly: task.nightly,
+          nightly_delay_hours: task.nightly_delay_hours,
+          suggested_followup: task.suggested_followup,
+          followup_task_id: task.followup_task_id,
           url: "https://clawdeck.io/boards/#{task.board_id}/tasks/#{task.id}",
           created_at: task.created_at.iso8601,
           updated_at: task.updated_at.iso8601

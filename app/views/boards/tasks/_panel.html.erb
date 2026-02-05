@@ -79,7 +79,17 @@
               </div>
 
               <!-- Recurring -->
-              <% unless task.recurring_instance? %>
+              <% if task.recurring_instance? %>
+                <div class="flex items-center gap-2 text-xs text-content-muted">
+                  <span>🔄</span>
+                  <span>Instance of recurring task</span>
+                </div>
+              <% elsif task.followup_task? %>
+                <div class="flex items-center gap-2 text-xs text-content-muted">
+                  <span>↪️</span>
+                  <span>Follow-up of: <%= task.parent_task&.name&.truncate(30) %></span>
+                </div>
+              <% else %>
                 <div class="space-y-2">
                   <div class="flex items-center justify-between">
                     <span class="text-sm text-content-muted">Recurring</span>
@@ -111,12 +121,30 @@
                     <% end %>
                   </div>
                 </div>
-              <% else %>
-                <div class="flex items-center gap-2 text-xs text-content-muted">
-                  <span>🔄</span>
-                  <span>Instance of recurring task</span>
-                </div>
               <% end %>
+
+              <!-- Nightly Task -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-content-muted">Nightly Task</span>
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <%= form.check_box :nightly, class: "sr-only peer", data: { task_modal_target: "nightlyCheckbox", action: "change->task-modal#toggleNightly change->task-modal#scheduleAutoSave" } %>
+                    <div class="w-9 h-5 bg-bg-elevated rounded-full peer peer-checked:bg-purple-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                  </label>
+                </div>
+                <div data-task-modal-target="nightlyOptions" class="<%= task.nightly? ? '' : 'hidden' %> space-y-2 pl-4 border-l-2 border-border">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs text-content-muted">Delay (hours)</span>
+                    <%= form.number_field :nightly_delay_hours,
+                        value: task.nightly_delay_hours || 0,
+                        min: 0,
+                        max: 24,
+                        class: "w-16 bg-bg-elevated border-none rounded-md text-xs text-content-secondary px-2 py-1 focus:ring-0 focus:outline-none",
+                        data: { action: "change->task-modal#scheduleAutoSave" } %>
+                  </div>
+                  <p class="text-[10px] text-content-muted">Hours after midnight to trigger</p>
+                </div>
+              </div>
 
               <!-- Priority -->
               <div class="flex items-center justify-between">

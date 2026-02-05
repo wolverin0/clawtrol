@@ -1,6 +1,6 @@
 class Boards::TasksController < ApplicationController
   before_action :set_board
-  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign]
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :followup_modal, :create_followup, :enhance_followup]
 
   def show
     @api_token = current_user.api_token
@@ -85,6 +85,59 @@ class Boards::TasksController < ApplicationController
     end
   end
 
+  def move
+    @old_status = @task.status
+    @task.activity_source = "web"
+    @task.update!(status: params[:status])
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to board_path(@board), notice: "Task moved." }
+    end
+  end
+
+  def followup_modal
+    @task.suggested_followup ||= @task.generate_followup_suggestion
+    render layout: false
+  end
+
+  def enhance_followup
+    draft = params[:draft]
+    @enhanced = AiSuggestionService.new(@task.user).enhance_description(@task, draft)
+    respond_to do |format|
+      format.turbo_stream
+      format.json { render json: { enhanced: @enhanced || draft } }
+    end
+  end
+
+  def create_followup
+    @task.activity_source = "web"
+    followup_name = params[:followup_name].presence || "Follow up: #{@task.name}"
+    followup_description = params[:followup_description]
+    destination = params[:destination] || "inbox"
+
+    @followup = @task.create_followup_task!(
+      followup_name: followup_name,
+      followup_description: followup_description
+    )
+
+    # Handle destination
+    case destination
+    when "up_next"
+      @followup.update!(status: :up_next, assigned_to_agent: true, assigned_at: Time.current)
+    when "in_progress"
+      @followup.update!(status: :in_progress, assigned_to_agent: true, assigned_at: Time.current)
+    when "nightly"
+      @followup.update!(status: :up_next, nightly: true, assigned_to_agent: true, assigned_at: Time.current)
+    end
+
+    @destination_status = @followup.status
+
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to board_path(@board), notice: "Follow-up task created." }
+    end
+  end
+
   private
 
   def set_board
@@ -96,7 +149,7 @@ class Boards::TasksController < ApplicationController
   end
 
   def task_params
-    permitted = params.require(:task).permit(:name, :title, :description, :priority, :status, :blocked, :due_date, :completed, :model, :recurring, :recurrence_rule, :recurrence_time, tags: [])
+    permitted = params.require(:task).permit(:name, :title, :description, :priority, :status, :blocked, :due_date, :completed, :model, :recurring, :recurrence_rule, :recurrence_time, :nightly, :nightly_delay_hours, tags: [])
     # Allow 'title' as alias for 'name'
     permitted[:name] = permitted.delete(:title) if permitted[:title].present? && permitted[:name].blank?
     permitted

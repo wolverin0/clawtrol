@@ -61,7 +61,54 @@
     <% end %>
   </div>
 
-  <!-- Section 2: OpenClaw Integration -->
+  <!-- Section 2: AI Settings -->
+  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">🤖</span>
+      <h3 class="text-sm font-semibold text-content font-display">AI Settings</h3>
+    </div>
+
+    <p class="text-xs text-content-secondary">
+      Configure AI-powered follow-up suggestions. The AI analyzes completed tasks and suggests specific next steps.
+    </p>
+
+    <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">AI Model</label>
+        <%= form.select :ai_suggestion_model,
+            [
+              ["GLM-4.7 Flash (z.ai)", "glm"],
+              ["Gemini (coming soon)", "gemini", { disabled: true }],
+              ["Claude Sonnet (coming soon)", "sonnet", { disabled: true }],
+              ["Claude Opus (coming soon)", "opus", { disabled: true }]
+            ],
+            {},
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">API Key</label>
+        <%= form.password_field :ai_api_key,
+            value: @user.ai_api_key,
+            placeholder: @user.ai_api_key.present? ? "••••••••" : "Enter your API key",
+            autocomplete: "off",
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+        <p class="text-xs text-content-muted mt-1">Get a GLM key from <a href="https://z.ai" target="_blank" class="text-accent hover:underline">z.ai</a></p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <%= form.submit "Save AI settings", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
+        <% if @user.ai_api_key.present? %>
+          <span class="flex items-center gap-1.5 text-xs text-green-500">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+            Configured
+          </span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Section 3: OpenClaw Integration -->
   <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
     <div class="flex items-center gap-2">
       <span class="text-lg">🦞</span>
@@ -83,107 +130,101 @@
           class="px-3 py-3 text-xs font-mono text-content-secondary whitespace-pre-wrap break-words leading-relaxed"
 ># ClawDeck — Your Task Dashboard
 
-ClawDeck is where your human manages your work queue. Think of it as your shared kanban board with live agent activity tracking.
-
-## How it works
-
-1. Your human creates tasks and organizes them on the board
-2. Your human explicitly assigns tasks to you when ready
-3. You poll for assigned tasks and work on them
-4. You update progress and mark things done
-5. Your human sees everything in real-time, including live agent activity
+ClawDeck is where your human manages your work queue. A shared kanban board with live agent activity tracking.
 
 ## Connection
 
 - **API URL:** <%= api_url %>
 - **Token:** <%= api_token %>
 - **Auth Header:** `Authorization: Bearer <%= api_token %>`
+- **Agent Headers:** `X-Agent-Name: <%= @user.agent_name.presence || "OpenClaw" %>` · `X-Agent-Emoji: <%= @user.agent_emoji.presence || "🦞" %>`
 
-## Identify yourself
+## Workflow (on heartbeat)
 
-Include these headers with every request so your human knows who's connected:
-- `X-Agent-Name`: Your name (e.g., "<%= @user.agent_name.presence || "OpenClaw" %>")
-- `X-Agent-Emoji`: Your emoji (e.g., "<%= @user.agent_emoji.presence || "🦞" %>")
+1. `GET /tasks?assigned=true` → get your assigned tasks
+2. Pick oldest task (first in list)
+3. `PATCH /tasks/:id` → set `status: "in_progress"`
+4. Spawn sub-agent with task's model (see Model Routing)
+5. **Critical:** Get REAL session ID (see below) → save to `agent_session_id`
+6. When complete → update description with output → set `status: "in_review"`
 
-## Your workflow
+## ⚠️ Critical: Session ID Mapping
 
-### Polling for assigned tasks (every 30s or on heartbeat):
-1. Call `GET /tasks?assigned=true` to get tasks assigned to you
-2. Pick the first task (oldest assignment)
-3. Move it to "in_progress" and start working
-4. If spawning a sub-agent, save the `agent_session_id` to enable live view
+When spawning a sub-agent:
+1. `sessions_spawn` returns `childSessionKey` (e.g., "agent:main:subagent:UUID-A")
+2. The transcript uses a DIFFERENT `sessionId`
+3. After spawn, call `sessions_list` to find the actual sessionId
+4. Save THAT sessionId to `agent_session_id` field
 
-### When working on a task:
-- **Need help:** Set `blocked: true` — your human will unblock you
-- **Finished:** Move to "in_review" (needs human review) or "done" (complete)
-- **Sub-agents:** Update `agent_session_id` with the OpenClaw session ID for live activity tracking
+Without this, live activity tracking won't work!
 
-### You can also:
-- Create new tasks (ideas, follow-ups, things you noticed)
-- Check task details and history
-- Set model preferences for task routing
+## Model Routing
+
+Task `model` field maps to spawn model parameter:
+- `opus` → `anthropic/claude-opus-4`
+- `sonnet` → `anthropic/claude-sonnet-4`
+- `codex` → `openai/codex-1`
+- `gemini` → `google/gemini-2.5-pro`
+- `glm` → `zhipu/glm-4.7`
 
 ## API Reference
 
-**Get assigned tasks (your work queue):**
-`GET /tasks?assigned=true`
-Returns tasks assigned to you, ordered by assignment time (oldest first).
+### Tasks
+- `GET /tasks` — List tasks (filters: `assigned=true`, `status=X`)
+- `GET /tasks/:id` — Get single task
+- `POST /tasks` — Create task
+- `PATCH /tasks/:id` — Update task
+- `DELETE /tasks/:id` — Delete task
+- `PATCH /tasks/:id/complete` — Mark complete
+- `PATCH /tasks/:id/claim` / `unclaim` — Self-assign
+- `PATCH /tasks/:id/assign` / `unassign` — Admin assign
 
-**List all tasks:**
-`GET /tasks` or `GET /tasks?status=in_progress`
-
-**Get task:**
-`GET /tasks/:id`
-
-**Update task:**
-`PATCH /tasks/:id`
-Body: `{ "status": "in_progress" }` or `{ "blocked": true }` or `{ "agent_session_id": "..." }`
-
-**Complete task:**
-`PATCH /tasks/:id/complete`
-
-**Create task:**
-`POST /tasks`
-Body: `{ "name": "Task title", "status": "inbox", "model": "opus" }`
-
-**Get agent activity log (live view):**
-`GET /tasks/:id/agent_log`
-Returns transcript messages from the agent working on this task.
-Supports `?since=N` for polling efficiency.
-
-**Get recurring task templates:**
-`GET /tasks/recurring`
+### Agent Features
+- `GET /tasks/:id/agent_log` — Get transcript (`?since=N` for polling)
+- `POST /tasks/:id/generate_followup` — AI-suggested follow-up
+- `POST /tasks/:id/create_followup` — Create follow-up task
+- `GET /tasks/recurring` — List recurring templates
 
 ## Task Fields
-- `name` — Task title
-- `description` — Task details/notes
+- `name` / `description` — Title and details
 - `status` — inbox, up_next, in_progress, in_review, done
 - `priority` — none, low, medium, high
-- `model` — Preferred model: opus, codex, gemini, glm, sonnet (or null for default)
-- `agent_session_id` — OpenClaw session ID for live activity tracking
-- `recurring` — Boolean, enables auto-recreation
-- `recurrence_rule` — daily, weekly, monthly
-- `recurrence_time` — HH:MM for scheduled tasks
+- `model` — opus, sonnet, codex, gemini, glm (or null)
+- `agent_session_id` — OpenClaw session ID for live view
+- `parent_task_id` — Links follow-up to original task
+- `nightly` — Boolean, runs on "good night" trigger
+- `nightly_delay_hours` — Optional delay before execution
+- `recurring` / `recurrence_rule` / `recurrence_time` — Auto-recreation
 
-## Model Routing
-When a task has a `model` field, use that model for the work:
-- `opus` → Complex reasoning, orchestration
-- `codex` → Code generation, refactoring
-- `gemini` → Research, analysis
-- `glm` → Simple tasks, bulk operations
-- `sonnet` → General purpose
+## Follow-up System
 
-## Live Activity Tracking
-To enable live view in the ClawDeck UI:
-1. When spawning a sub-agent, get its session ID
-2. Update the task: `PATCH /tasks/:id` with `{ "agent_session_id": "<session-id>" }`
-3. Your human can watch the agent work in real-time from the task modal
+After completing a task, propose follow-ups to your human:
+1. `POST /tasks/:id/generate_followup` → AI suggests next steps
+2. User approves via UI (context menu → Create Follow-up)
+3. Follow-ups inherit parent's model preference
+
+Destinations: inbox, up_next, in_progress, nightly
+
+## Nightly Tasks
+
+Tasks with `nightly: true` run when user triggers "good night":
+- Optional `nightly_delay_hours` for staggered execution
+- Use for backups, reports, cleanup tasks
+
+## Webhook Auto-Trigger (Execute Now)
+
+If configured in Settings → Gateway Webhook:
+- When task moves to `in_progress` + `assigned_to_agent`
+- ClawDeck POSTs to your gateway's `/api/cron/wake`
+- Your agent wakes immediately and should poll for urgent tasks
+- "Execute Now" = instant execution, not waiting for heartbeat
 
 ## Tips
-- Poll for assigned tasks frequently — your human assigns work explicitly
-- When stuck, mark blocked — your human will unblock you
-- Create tasks for things you notice but can't tackle now
-- Always set agent_session_id when spawning sub-agents for visibility</pre>
+- Poll on heartbeat, not constantly
+- When stuck, set `blocked: true` — human will help
+- Create tasks for ideas you can't tackle now
+- Always save the REAL sessionId (from sessions_list)
+- Configure webhook for "Execute Now" to work instantly</pre>
       </div>
       <div class="flex items-center gap-3 mt-2">
         <button
@@ -213,6 +254,41 @@ To enable live view in the ClawDeck UI:
         </div>
       <% else %>
         <p class="text-xs text-content-muted">No agent connected yet</p>
+      <% end %>
+    </div>
+
+    <!-- OpenClaw Gateway Webhook -->
+    <div class="pt-4 border-t border-border">
+      <p class="text-xs font-medium text-content-secondary mb-1">Gateway Webhook</p>
+      <p class="text-xs text-content-muted mb-3">Auto-wake your agent when tasks move to <span class="font-medium text-content-secondary">In Progress</span>.</p>
+
+      <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-3") do |form| %>
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Gateway URL</label>
+          <%= form.text_field :openclaw_gateway_url,
+              placeholder: "http://localhost:4000",
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Gateway Token</label>
+          <%= form.password_field :openclaw_gateway_token,
+              value: @user.openclaw_gateway_token,
+              placeholder: "••••••••",
+              autocomplete: "off",
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+          <p class="text-xs text-content-muted mt-1">Find in <code class="bg-bg-elevated px-1 rounded">~/.openclaw/config.yaml</code> → <code class="bg-bg-elevated px-1 rounded">gateway.token</code></p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <%= form.submit "Save webhook settings", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
+          <% if @user.openclaw_gateway_url.present? && @user.openclaw_gateway_token.present? %>
+            <span class="flex items-center gap-1.5 text-xs text-green-500">
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Configured
+            </span>
+          <% end %>
+        </div>
       <% end %>
     </div>
   </div>

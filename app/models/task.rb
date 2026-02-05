@@ -2,8 +2,10 @@ class Task < ApplicationRecord
   belongs_to :user
   belongs_to :board
   belongs_to :parent_task, class_name: "Task", optional: true
+  belongs_to :followup_task, class_name: "Task", optional: true
   has_many :activities, class_name: "TaskActivity", dependent: :destroy
   has_many :child_tasks, class_name: "Task", foreign_key: :parent_task_id, dependent: :nullify
+  has_one :source_task, class_name: "Task", foreign_key: :followup_task_id
 
   enum :priority, { none: 0, low: 1, medium: 2, high: 3 }, default: :none, prefix: true
   enum :status, { inbox: 0, up_next: 1, in_progress: 2, in_review: 3, done: 4 }, default: :inbox
@@ -31,6 +33,7 @@ class Task < ApplicationRecord
   after_create :record_creation_activity
   after_update :record_update_activities
   after_update :handle_recurring_completion, if: :saved_change_to_status?
+  after_update :notify_openclaw_if_urgent, if: :saved_change_to_status?
 
   # Position management - acts_as_list functionality without the gem
   before_create :set_position
@@ -45,6 +48,7 @@ class Task < ApplicationRecord
   scope :unassigned, -> { where(assigned_to_agent: false) }
   scope :recurring_templates, -> { where(recurring: true, parent_task_id: nil) }
   scope :due_for_recurrence, -> { recurring_templates.where("next_recurrence_at <= ?", Time.current) }
+  scope :nightly, -> { where(nightly: true) }
   default_scope { order(completed: :asc, position: :asc) }
 
   # Agent assignment methods
@@ -62,7 +66,11 @@ class Task < ApplicationRecord
   end
 
   def recurring_instance?
-    parent_task_id.present?
+    parent_task_id.present? && parent_task&.recurring?
+  end
+
+  def followup_task?
+    parent_task_id.present? && !parent_task&.recurring?
   end
 
   def schedule_next_recurrence!
@@ -110,6 +118,91 @@ class Task < ApplicationRecord
     end
 
     Time.zone.local(next_date.year, next_date.month, next_date.day, base_time.hour, base_time.min)
+  end
+
+  # Follow-up task methods
+  def generate_followup_suggestion
+    # Try AI-powered suggestion first
+    ai_suggestion = AiSuggestionService.new(user).generate_followup(self)
+    return ai_suggestion if ai_suggestion.present?
+
+    # Fallback to keyword-based suggestion
+    case status
+    when "in_review"
+      generate_review_followup
+    when "done"
+      generate_done_followup
+    else
+      generate_generic_followup
+    end
+  end
+
+  def generate_review_followup
+    suggestions = []
+    
+    # Check for common patterns in description
+    desc = description.to_s.downcase
+    
+    if desc.include?("bug") || desc.include?("issue") || desc.include?("error")
+      suggestions << "Fix the identified bugs/issues"
+    end
+    
+    if desc.include?("security") || desc.include?("exposed") || desc.include?("credential")
+      suggestions << "Rotate exposed credentials and implement fixes"
+    end
+    
+    if desc.include?("api") || desc.include?("endpoint")
+      suggestions << "Update API documentation"
+    end
+    
+    if desc.include?("test") || desc.include?("✅")
+      suggestions << "Write additional tests for edge cases"
+    end
+    
+    if desc.include?("ui") || desc.include?("modal") || desc.include?("menu")
+      suggestions << "Polish UI/UX based on testing feedback"
+    end
+    
+    # Default review suggestions
+    suggestions << "Test the implementation manually" if suggestions.empty?
+    suggestions << "Document changes for future reference"
+    
+    "## Suggested Next Steps\n\n#{suggestions.map { |s| "- #{s}" }.join("\n")}"
+  end
+
+  def generate_done_followup
+    suggestions = [
+      "Iterate based on user feedback",
+      "Add tests if not already covered",
+      "Update documentation",
+      "Consider performance optimizations"
+    ]
+    
+    "## Suggested Next Steps\n\n#{suggestions.map { |s| "- #{s}" }.join("\n")}"
+  end
+
+  def generate_generic_followup
+    "## Follow-up\n\nContinue work on: #{name}\n\nDescribe what you want to do next."
+  end
+
+  def create_followup_task!(followup_name:, followup_description: nil)
+    followup = board.tasks.new(
+      user: user,
+      name: followup_name,
+      description: followup_description,
+      parent_task_id: id,
+      status: :inbox,
+      priority: priority,
+      model: model  # Inherit model from parent
+    )
+    followup.activity_source = activity_source
+    followup.actor_name = actor_name
+    followup.actor_emoji = actor_emoji
+    followup.save!
+
+    # Link this task to the followup
+    update!(followup_task_id: followup.id)
+    followup
   end
 
   private
@@ -173,6 +266,14 @@ class Task < ApplicationRecord
 
     # When a recurring instance is completed, schedule the next one on the template
     parent_task.schedule_next_recurrence!
+  end
+
+  # Notify OpenClaw gateway when task is moved to in_progress and assigned to agent
+  def notify_openclaw_if_urgent
+    return unless status == "in_progress" && assigned_to_agent?
+    return unless user.openclaw_gateway_url.present?
+
+    OpenclawNotifyJob.perform_later(id)
   end
 
   # Turbo Streams broadcasts for real-time updates
