@@ -17,13 +17,16 @@ class BoardsController < ApplicationController
     @board_page = true
     session[:last_board_id] = @board.id
     
-    # For aggregator boards, show tasks from ALL boards (not archived)
+    # For aggregator boards, show tasks from ALL non-aggregator boards
     if @board.aggregator?
-      @tasks = current_user.boards.where(is_aggregator: false).flat_map(&:tasks).reject { |t| t.status == "archived" }
-      @tasks = Task.where(id: @tasks.map(&:id)).includes(:user, :board)
+      @tasks = current_user.tasks
+        .joins(:board)
+        .where(boards: { is_aggregator: false })
+        .not_archived
+        .includes(:user, :board, :parent_task, :followup_task)
       @is_aggregator = true
     else
-      @tasks = @board.tasks.not_archived.includes(:user)
+      @tasks = @board.tasks.not_archived.includes(:user, :parent_task, :followup_task)
       @is_aggregator = false
     end
 
@@ -140,6 +143,6 @@ class BoardsController < ApplicationController
   end
 
   def board_params
-    params.require(:board).permit(:name, :icon, :color)
+    params.require(:board).permit(:name, :icon, :color, :auto_claim_enabled, :auto_claim_prefix, auto_claim_tags: [])
   end
 end
