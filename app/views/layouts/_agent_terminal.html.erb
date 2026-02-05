@@ -9,6 +9,19 @@
   data-agent-terminal-poll-interval-value="2000"
   class="fixed bottom-0 left-0 right-0 z-50"
 >
+  <%# Floating Toggle Button (mobile-friendly) %>
+  <button
+    data-agent-terminal-target="floatingToggle"
+    data-action="click->agent-terminal#toggle"
+    class="hidden fixed bottom-4 right-4 z-[60] w-12 h-12 rounded-full bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-500/30 flex items-center justify-center transition-all duration-200 active:scale-95"
+    title="Toggle Terminal (Ctrl+`)"
+    aria-label="Toggle Agent Terminal"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z" />
+    </svg>
+    <span data-agent-terminal-target="floatingBadge" class="hidden absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
+  </button>
   <%# Main Panel Container %>
   <div 
     data-agent-terminal-target="panel"
@@ -85,19 +98,28 @@
 </div>
 
 <style>
-  /* Custom scrollbar for terminal */
+  /* Custom scrollbar for terminal - Green scheme */
   [data-agent-terminal-target="content"]::-webkit-scrollbar {
     width: 6px;
   }
   [data-agent-terminal-target="content"]::-webkit-scrollbar-track {
     background: transparent;
   }
-  [data-agent-terminal-target="content"]::-webkit-scrollbar-thumb {
+  [data-agent-terminal-target="panel"][data-color-scheme="green"] [data-agent-terminal-target="content"]::-webkit-scrollbar-thumb {
     background: rgba(34, 197, 94, 0.3);
     border-radius: 3px;
   }
-  [data-agent-terminal-target="content"]::-webkit-scrollbar-thumb:hover {
+  [data-agent-terminal-target="panel"][data-color-scheme="green"] [data-agent-terminal-target="content"]::-webkit-scrollbar-thumb:hover {
     background: rgba(34, 197, 94, 0.5);
+  }
+  
+  /* Custom scrollbar - Amber scheme */
+  [data-agent-terminal-target="panel"][data-color-scheme="amber"] [data-agent-terminal-target="content"]::-webkit-scrollbar-thumb {
+    background: rgba(245, 158, 11, 0.3);
+    border-radius: 3px;
+  }
+  [data-agent-terminal-target="panel"][data-color-scheme="amber"] [data-agent-terminal-target="content"]::-webkit-scrollbar-thumb:hover {
+    background: rgba(245, 158, 11, 0.5);
   }
 
   /* Hide horizontal scrollbar for tabs */
@@ -109,9 +131,22 @@
     display: none;
   }
 
-  /* Terminal text effects */
-  [data-agent-terminal-target="content"] {
+  /* Terminal text effects - Green */
+  [data-agent-terminal-target="panel"][data-color-scheme="green"] [data-agent-terminal-target="content"] {
     text-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+  }
+  
+  /* Terminal text effects - Amber */
+  [data-agent-terminal-target="panel"][data-color-scheme="amber"] [data-agent-terminal-target="content"] {
+    text-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+  }
+  
+  /* Border colors based on scheme */
+  [data-agent-terminal-target="panel"][data-color-scheme="green"] {
+    border-color: rgba(34, 197, 94, 0.2);
+  }
+  [data-agent-terminal-target="panel"][data-color-scheme="amber"] {
+    border-color: rgba(245, 158, 11, 0.2);
   }
 
   /* Scanline effect (subtle) */
@@ -132,5 +167,15 @@
     pointer-events: none;
     z-index: 10;
     opacity: 0.3;
+  }
+  
+  /* CRT flicker effect on the panel border */
+  @keyframes terminal-glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.95; }
+  }
+  
+  [data-agent-terminal-target="panel"] {
+    animation: terminal-glow 4s ease-in-out infinite;
   }
 </style>

@@ -3,7 +3,7 @@ module Api
     class TasksController < BaseController
       # agent_log is public (no auth required) - secured by task lookup
       skip_before_action :authenticate_api_token, only: [ :agent_log ]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :session_health ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :session_health, :handoff ]
       before_action :set_task_for_agent_log, only: [ :agent_log ]
 
       private
@@ -106,6 +106,12 @@ module Api
           has_session: true,
           task_status: @task.status
         }
+      end
+
+      # GET /api/v1/tasks/errored_count - count of errored tasks for badge
+      def errored_count
+        count = current_user.tasks.errored.count
+        render json: { count: count }
       end
 
       # GET /api/v1/tasks/recurring - list recurring task templates
@@ -228,6 +234,48 @@ module Api
         draft = params[:draft]
         enhanced = AiSuggestionService.new(@task.user).enhance_description(@task, draft)
         render json: { enhanced: enhanced || draft }
+      end
+
+      # POST /api/v1/tasks/:id/handoff - handoff task to a different model
+      def handoff
+        new_model = params[:model]
+        unless Task::MODELS.include?(new_model)
+          render json: { error: "Invalid model. Must be one of: #{Task::MODELS.join(', ')}" }, status: :unprocessable_entity
+          return
+        end
+
+        include_transcript = ActiveModel::Type::Boolean.new.cast(params[:include_transcript])
+        
+        # Build handoff context for orchestrator
+        context = {
+          task_id: @task.id,
+          task_name: @task.name,
+          task_description: @task.description,
+          previous_model: @task.model,
+          new_model: new_model,
+          error_message: @task.error_message,
+          error_at: @task.error_at&.iso8601,
+          include_transcript: include_transcript
+        }
+
+        # Fetch transcript snippet if requested
+        if include_transcript && @task.agent_session_id.present?
+          transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{@task.agent_session_id}.jsonl")
+          if File.exist?(transcript_path)
+            # Get last 50 lines of transcript for context
+            lines = File.readlines(transcript_path).last(50)
+            context[:transcript_preview] = lines.join
+          end
+        end
+
+        set_task_activity_info(@task)
+        @task.activity_note = "Handoff from #{@task.model || 'default'} to #{new_model}"
+        @task.handoff!(new_model: new_model, include_transcript: include_transcript)
+
+        render json: {
+          task: task_json(@task),
+          handoff_context: context
+        }
       end
 
       # POST /api/v1/tasks/:id/create_followup - create a followup task
@@ -369,7 +417,7 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, tags: [])
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, tags: [])
       end
 
       # Simulate context usage based on session age (mock for now)
@@ -412,6 +460,8 @@ module Api
           context_usage_percent: task.context_usage_percent,
           nightly: task.nightly,
           nightly_delay_hours: task.nightly_delay_hours,
+          error_message: task.error_message,
+          error_at: task.error_at&.iso8601,
           suggested_followup: task.suggested_followup,
           followup_task_id: task.followup_task_id,
           url: "https://clawdeck.io/boards/#{task.board_id}/tasks/#{task.id}",

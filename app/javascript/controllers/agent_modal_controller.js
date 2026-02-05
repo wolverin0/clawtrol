@@ -343,4 +343,23 @@ export default class extends Controller {
     const map = { inbox: 'up_next', up_next: 'in_progress', in_progress: 'in_review', in_review: 'done' }
     return map[current]
   }
+
+  // Pin to Terminal - dispatches event to agent-terminal controller
+  pinToTerminal(event) {
+    event.preventDefault()
+    const btn = event.currentTarget
+    const taskId = btn.dataset.taskId || this.taskIdValue
+    const taskName = btn.dataset.taskName || `Task #${taskId}`
+    
+    // Dispatch custom event for terminal panel to catch
+    window.dispatchEvent(new CustomEvent('agent-terminal:pin', {
+      detail: { taskId, taskName }
+    }))
+    
+    // Visual feedback
+    btn.textContent = '✅ Pinned!'
+    setTimeout(() => {
+      btn.textContent = '📌 Pin to Terminal'
+    }, 1500)
+  }
 }
