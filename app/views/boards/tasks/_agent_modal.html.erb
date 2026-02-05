@@ -1,0 +1,130 @@
+<%#
+  Agent Activity Modal (Bottom Sheet on Mobile, Centered Modal on Desktop)
+  
+  Usage: Include in task_card when task.agent_session_id.present?
+  Triggered by clicking the 📟 button
+  
+  Expected locals:
+    - task: Task object with agent_session_id
+    - board: Board object
+%>
+
+<%# Backdrop %>
+<div data-agent-modal-target="backdrop"
+     data-action="click->agent-modal#closeOnBackdrop"
+     class="agent-modal-backdrop hidden fixed inset-0 bg-black/60 z-[80] transition-opacity duration-300 opacity-0">
+</div>
+
+<%# Modal Container %>
+<div data-agent-modal-target="modal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="agent-modal-title-<%= task.id %>"
+     class="agent-modal hidden fixed z-[90] transition-all duration-300 ease-out
+            <%# Mobile: bottom sheet %>
+            inset-x-0 bottom-0 translate-y-full
+            <%# Desktop: centered %>
+            md:inset-0 md:flex md:items-center md:justify-center md:translate-y-0 md:opacity-0 md:scale-95">
+  
+  <div class="agent-modal-content bg-bg-surface border border-border shadow-2xl
+              <%# Mobile: full width, rounded top %>
+              w-full rounded-t-2xl max-h-[80vh]
+              <%# Desktop: max width, fully rounded %>
+              md:w-full md:max-w-lg md:mx-4 md:rounded-xl md:max-h-[70vh]
+              flex flex-col overflow-hidden">
+    
+    <%# Drag handle (mobile only) %>
+    <div class="md:hidden flex justify-center py-2 bg-bg-surface">
+      <div class="w-10 h-1 bg-content-muted/30 rounded-full"></div>
+    </div>
+
+    <%# Header %>
+    <div class="px-4 py-3 border-b border-border flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="text-lg">📟</span>
+        <h3 id="agent-modal-title-<%= task.id %>" class="text-sm font-semibold text-content truncate">
+          Task #<%= task.id %> Activity
+        </h3>
+        <span data-agent-modal-target="statusBadge" 
+              class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium 
+                     <%= task.status == 'in_progress' ? 'bg-green-500/20 text-green-400' : 'bg-bg-surface text-content-muted' %>">
+          <%= task.status == 'in_progress' ? '🔴 Live' : task.status.humanize %>
+        </span>
+      </div>
+      <button type="button"
+              data-action="click->agent-modal#close"
+              class="p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors
+                     <%# Touch target: min 44x44px %>
+                     min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Close modal">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <%# Task Name %>
+    <div class="px-4 py-2 bg-bg-elevated/50 border-b border-border">
+      <p class="text-xs text-content-secondary truncate">
+        <%= task.name.truncate(60) %>
+      </p>
+    </div>
+
+    <%# Activity Log (scrollable) %>
+    <div data-agent-modal-target="log" 
+         class="flex-1 overflow-y-auto px-4 py-3 min-h-[150px] max-h-[40vh]">
+      <div class="text-center py-4 text-content-muted text-sm">
+        Loading activity...
+      </div>
+    </div>
+
+    <%# Action Buttons %>
+    <div class="px-4 py-3 border-t border-border bg-bg-elevated/50 flex-shrink-0">
+      <div class="flex flex-wrap gap-2">
+        <%# NEXT button %>
+        <% next_status = { 'inbox' => 'up_next', 'up_next' => 'in_progress', 'in_progress' => 'in_review', 'in_review' => 'done' }[task.status] %>
+        <% if next_status %>
+          <%= link_to move_board_task_path(board, task, status: next_status),
+              data: { turbo_method: :patch, action: "click->agent-modal#close" },
+              class: "inline-flex items-center justify-center px-3 py-2 text-xs font-medium bg-accent hover:bg-accent-hover text-white rounded-lg transition-colors min-h-[44px] flex-1 md:flex-none" do %>
+            NEXT →
+          <% end %>
+        <% end %>
+
+        <%# Follow-up button %>
+        <%= link_to followup_modal_board_task_path(board, task),
+            class: "inline-flex items-center justify-center px-3 py-2 text-xs font-medium bg-bg-surface hover:bg-bg-hover text-content-secondary rounded-lg transition-colors border border-border min-h-[44px] flex-1 md:flex-none",
+            data: { turbo_frame: "followup_modal", action: "click->agent-modal#close" } do %>
+          ↪️ Follow-up
+        <% end %>
+
+        <%# Archive (move to done) %>
+        <% if task.status != 'done' %>
+          <%= link_to move_board_task_path(board, task, status: 'done'),
+              data: { turbo_method: :patch, action: "click->agent-modal#close" },
+              class: "inline-flex items-center justify-center px-3 py-2 text-xs font-medium bg-bg-surface hover:bg-bg-hover text-content-secondary rounded-lg transition-colors border border-border min-h-[44px]" do %>
+            ✅ Archive
+          <% end %>
+        <% end %>
+      </div>
+
+      <%# Secondary Actions %>
+      <div class="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+        <%# Full Transcript Link %>
+        <%= link_to board_task_path(board, task),
+            class: "text-xs text-accent hover:text-accent-hover transition-colors",
+            data: { turbo_frame: "task_panel", action: "click->agent-modal#close" } do %>
+          View full transcript →
+        <% end %>
+
+        <%# Pin to Terminal (placeholder for Task #30) %>
+        <button type="button" 
+                class="text-xs text-content-muted hover:text-content transition-colors opacity-50 cursor-not-allowed"
+                disabled
+                title="Coming soon: Task #30">
+          📌 Pin to Terminal
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

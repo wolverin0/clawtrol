@@ -99,6 +99,49 @@
                 class: "w-full text-sm leading-snug bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-content-secondary placeholder-content-muted resize-none px-3 py-3" %>
           </div>
 
+          <!-- Session Continuation -->
+          <% if @task.agent_session_key.present? %>
+            <div data-controller="session-health" 
+                 data-session-health-url-value="<%= session_health_api_v1_task_path(@task, format: :json) %>"
+                 data-session-health-threshold-value="<%= current_user.context_threshold_percent %>">
+              <label class="text-sm font-medium text-content-muted block mb-2">Session Continuation</label>
+              
+              <!-- Session Health Indicator -->
+              <div class="p-3 bg-bg-elevated rounded-lg mb-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-content-muted">Session health:</span>
+                    <span data-session-health-target="indicator" class="text-xs font-medium">
+                      Loading...
+                    </span>
+                  </div>
+                  <div data-session-health-target="badge" class="hidden">
+                    <!-- Status badge injected here -->
+                  </div>
+                </div>
+                <!-- Warning message -->
+                <div data-session-health-target="warning" class="hidden mt-2 p-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-xs text-yellow-400">
+                  ⚠️ <span data-session-health-target="warningText">High context usage</span> — recommend fresh start
+                </div>
+              </div>
+
+              <!-- Continue Session Toggle -->
+              <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-bg-elevated cursor-pointer border border-transparent has-[:checked]:border-accent/50 has-[:checked]:bg-accent/10 transition-colors">
+                <%= form.check_box :continue_session,
+                    checked: false,
+                    data: { session_health_target: "checkbox", action: "change->session-health#toggleContinue" },
+                    class: "rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
+                <div class="flex-1">
+                  <span class="text-sm text-content">Continue same session</span>
+                  <p class="text-xs text-content-muted mt-0.5">Inherit context from parent task's agent session</p>
+                </div>
+              </label>
+
+              <!-- Hidden field to pass session key if continuing -->
+              <%= form.hidden_field :inherit_session_key, value: @task.agent_session_key, data: { session_health_target: "sessionKeyField" }, disabled: true %>
+            </div>
+          <% end %>
+
           <!-- Model Selection -->
           <div>
             <label class="text-sm font-medium text-content-muted block mb-2">Model</label>

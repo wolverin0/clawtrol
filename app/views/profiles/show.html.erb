@@ -108,6 +108,58 @@
     <% end %>
   </div>
 
+  <!-- Section 2b: Session Continuation Settings -->
+  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">🔄</span>
+      <h3 class="text-sm font-semibold text-content font-display">Session Continuation</h3>
+    </div>
+
+    <p class="text-xs text-content-secondary">
+      Configure when follow-up tasks should recommend continuing an existing agent session vs starting fresh.
+    </p>
+
+    <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Context Usage Threshold</label>
+        <div class="flex items-center gap-3">
+          <%= form.number_field :context_threshold_percent,
+              value: @user.context_threshold_percent,
+              min: 30,
+              max: 95,
+              step: 5,
+              class: "w-24 bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+          <span class="text-sm text-content-muted">%</span>
+        </div>
+        <p class="text-xs text-content-muted mt-2">
+          When a session exceeds this threshold, ClawDeck will recommend starting fresh instead of continuing.
+          <br>Higher values allow more context reuse but may degrade quality. Default: <strong>70%</strong>
+        </p>
+      </div>
+
+      <!-- Visual indicator -->
+      <div class="p-3 bg-bg-elevated rounded-lg">
+        <div class="flex items-center justify-between text-xs mb-2">
+          <span class="text-content-muted">Context usage indicator</span>
+          <span class="text-content-secondary"><%= @user.context_threshold_percent %>% threshold</span>
+        </div>
+        <div class="h-2 bg-bg-base rounded-full overflow-hidden">
+          <div class="h-full rounded-full transition-all duration-300" 
+               style="width: <%= @user.context_threshold_percent %>%; background: linear-gradient(90deg, #22c55e 0%, #eab308 70%, #ef4444 100%);"></div>
+        </div>
+        <div class="flex justify-between text-[10px] text-content-muted mt-1">
+          <span>✅ Good</span>
+          <span>⚠️ Warning</span>
+          <span>🔴 Fresh recommended</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <%= form.submit "Save threshold", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
+      </div>
+    <% end %>
+  </div>
+
   <!-- Section 3: OpenClaw Integration -->
   <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
     <div class="flex items-center gap-2">

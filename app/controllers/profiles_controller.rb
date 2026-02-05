@@ -28,6 +28,6 @@ class ProfilesController < ApplicationController
   private
 
   def profile_params
-    params.expect(user: [ :email_address, :avatar, :openclaw_gateway_url, :openclaw_gateway_token, :ai_suggestion_model, :ai_api_key ])
+    params.expect(user: [ :email_address, :avatar, :openclaw_gateway_url, :openclaw_gateway_token, :ai_suggestion_model, :ai_api_key, :context_threshold_percent ])
   end
 end
