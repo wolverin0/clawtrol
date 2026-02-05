@@ -11,14 +11,104 @@ export default class extends Controller {
 
   connect() {
     this.toasts = []
+    this.pendingMoves = new Map() // Track pending NEXT button clicks
+
+    // Listen for custom status change events (from drag-drop)
     document.addEventListener("task:status-changed", this.handleStatusChange.bind(this))
+    
+    // Listen for NEXT button clicks (capture phase to get data before Turbo)
+    document.addEventListener("click", this.handleNextButtonClick.bind(this), true)
+    
+    // Listen for Turbo stream renders to know when move completed
+    document.addEventListener("turbo:before-stream-render", this.handleTurboStream.bind(this))
   }
 
   disconnect() {
     document.removeEventListener("task:status-changed", this.handleStatusChange.bind(this))
+    document.removeEventListener("click", this.handleNextButtonClick.bind(this), true)
+    document.removeEventListener("turbo:before-stream-render", this.handleTurboStream.bind(this))
+    
     // Clear all pending timers
     this.toasts.forEach(toast => {
       if (toast.timer) clearTimeout(toast.timer)
+    })
+  }
+
+  // Capture NEXT button clicks to store task info before Turbo handles it
+  handleNextButtonClick(event) {
+    const link = event.target.closest('a[href*="/move?status="]')
+    if (!link) return
+
+    // Extract info from the link and surrounding card
+    const card = link.closest('[data-task-id]')
+    if (!card) return
+
+    const taskId = card.dataset.taskId
+    const oldStatus = card.dataset.taskStatus
+    const href = link.getAttribute('href')
+    const newStatusMatch = href.match(/status=([a-z_]+)/)
+    const newStatus = newStatusMatch ? newStatusMatch[1] : null
+    const boardIdMatch = href.match(/\/boards\/(\d+)\//)
+    const boardId = boardIdMatch ? boardIdMatch[1] : null
+
+    // Get task name from the card
+    const nameEl = card.querySelector('.text-content.leading-tight')
+    let taskName = nameEl?.textContent?.trim() || "Task"
+    // Clean up task name (remove task ID prefix like "#123 ")
+    taskName = taskName.replace(/^#\d+\s*/, "").replace(/^⚠️\s*/, "").trim()
+
+    if (taskId && oldStatus && newStatus && oldStatus !== newStatus) {
+      // Store pending move info
+      this.pendingMoves.set(taskId, {
+        taskId,
+        taskName,
+        oldStatus,
+        newStatus,
+        boardId,
+        timestamp: Date.now()
+      })
+
+      // Clean up old pending moves (older than 5 seconds)
+      const now = Date.now()
+      this.pendingMoves.forEach((value, key) => {
+        if (now - value.timestamp > 5000) {
+          this.pendingMoves.delete(key)
+        }
+      })
+    }
+  }
+
+  // Handle Turbo stream renders to detect completed moves
+  handleTurboStream(event) {
+    // Check if this is a move operation by looking for task removal + prepend patterns
+    const fragment = event.target
+    if (!fragment) return
+
+    // Look for turbo-stream actions that indicate a move
+    const streams = fragment.querySelectorAll ? 
+      fragment.querySelectorAll('turbo-stream') : 
+      [fragment]
+
+    streams.forEach(stream => {
+      const action = stream.getAttribute('action')
+      const target = stream.getAttribute('target')
+
+      // If we see a remove action for a task we're tracking, dispatch the event
+      if (action === 'remove' && target?.startsWith('task_')) {
+        const taskId = target.replace('task_', '')
+        const pendingMove = this.pendingMoves.get(taskId)
+        
+        if (pendingMove) {
+          this.pendingMoves.delete(taskId)
+          
+          // Dispatch the event after a small delay to let Turbo finish
+          setTimeout(() => {
+            document.dispatchEvent(new CustomEvent("task:status-changed", {
+              detail: pendingMove
+            }))
+          }, 50)
+        }
+      }
     })
   }
 

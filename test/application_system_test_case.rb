@@ -70,22 +70,28 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
     end
   end
 
-  # Sign in helper for system tests
-  # Uses the session cookie approach like the integration tests
-  def sign_in_as(user)
+  # Sign in via the actual login form
+  # This works reliably with Selenium since we use the real auth flow
+  def sign_in_as(user, password: "password123")
+    visit new_session_path
+
+    fill_in "Email", with: user.email_address
+    fill_in "Password", with: password
+    click_button "Sign in"
+
+    # Wait for redirect to complete
+    assert_no_current_path new_session_path, wait: 5
+  end
+
+  # Alternative: Direct cookie-based sign in (for non-Selenium drivers)
+  def sign_in_via_cookie(user)
     session = user.sessions.create!
 
     if CHROME_AVAILABLE
-      # For Selenium, we need to visit a page first, then set the cookie
-      visit root_path
-      page.driver.browser.manage.add_cookie(
-        name: "session_id",
-        value: session.id.to_s,
-        path: "/",
-        domain: "127.0.0.1"
-      )
+      # For Selenium, use form-based login instead
+      sign_in_as(user)
     else
-      # For rack_test, use the Capybara rack_test driver's cookie jar
+      # For rack_test, set cookie directly
       page.driver.browser.set_cookie("session_id=#{session.id}")
     end
   end
