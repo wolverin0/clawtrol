@@ -9,6 +9,13 @@ export default class extends Controller {
 
   connect() {
     this._handleEscape = this._handleEscape.bind(this)
+    
+    // Save original parent for moving fullscreen modal back after collapse
+    // Store direct reference since Stimulus targets may disconnect when moved
+    if (this.hasFullscreenModalTarget) {
+      this._originalParent = this.fullscreenModalTarget.parentElement
+      this._fullscreenModal = this.fullscreenModalTarget
+    }
   }
 
   disconnect() {
@@ -103,7 +110,13 @@ export default class extends Controller {
   }
 
   expand() {
-    if (!this.hasFullscreenModalTarget || !this.hasPanelTarget) return
+    // Use stored reference since target may disconnect when moved
+    const modal = this._fullscreenModal
+    if (!modal || !this.hasPanelTarget) return
+
+    // Move modal to body to escape transform containing block
+    // (CSS transforms create new containing blocks that trap position:fixed)
+    document.body.appendChild(modal)
 
     // Get the file name from the panel header
     const panelFrame = this.panelTarget.querySelector("turbo-frame")
@@ -136,13 +149,13 @@ export default class extends Controller {
     }
 
     // Show the fullscreen modal with fade-in
-    this.fullscreenModalTarget.classList.remove("hidden")
+    modal.classList.remove("hidden")
     // Force reflow then animate
-    this.fullscreenModalTarget.offsetHeight
-    this.fullscreenModalTarget.style.opacity = "0"
+    modal.offsetHeight
+    modal.style.opacity = "0"
     requestAnimationFrame(() => {
-      this.fullscreenModalTarget.style.transition = "opacity 150ms ease-out"
-      this.fullscreenModalTarget.style.opacity = "1"
+      modal.style.transition = "opacity 150ms ease-out"
+      modal.style.opacity = "1"
     })
 
     // Listen for Escape key
@@ -150,23 +163,31 @@ export default class extends Controller {
   }
 
   collapse() {
-    if (!this.hasFullscreenModalTarget) return
+    // Use stored reference since target may disconnect when moved
+    const modal = this._fullscreenModal
+    if (!modal) return
 
     // Fade out then hide
-    this.fullscreenModalTarget.style.transition = "opacity 150ms ease-in"
-    this.fullscreenModalTarget.style.opacity = "0"
+    modal.style.transition = "opacity 150ms ease-in"
+    modal.style.opacity = "0"
 
     setTimeout(() => {
-      this.fullscreenModalTarget.classList.add("hidden")
-      this.fullscreenModalTarget.style.opacity = ""
-      this.fullscreenModalTarget.style.transition = ""
+      modal.classList.add("hidden")
+      modal.style.opacity = ""
+      modal.style.transition = ""
 
       // Clear the content
-      if (this.hasFullscreenContentTarget) {
-        const container = this.fullscreenContentTarget.querySelector(".markdown-content")
-        if (container) {
-          container.innerHTML = ""
+      const container = modal.querySelector("[data-file-viewer-target='fullscreenContent']")
+      if (container) {
+        const markdownDiv = container.querySelector(".markdown-content")
+        if (markdownDiv) {
+          markdownDiv.innerHTML = ""
         }
+      }
+
+      // Move modal back to its original parent so Stimulus targets still work
+      if (this._originalParent) {
+        this._originalParent.appendChild(modal)
       }
     }, 150)
 
