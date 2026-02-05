@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_05_193254) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_05_193542) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -46,10 +46,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_193254) do
     t.datetime "created_at", null: false
     t.datetime "last_used_at"
     t.string "name"
-    t.string "token", null: false
+    t.string "token_digest", null: false
+    t.string "token_prefix", limit: 8
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["token"], name: "index_api_tokens_on_token", unique: true
+    t.index ["token_digest"], name: "index_api_tokens_on_token_digest", unique: true
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
   end
 
@@ -175,6 +176,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_193254) do
     t.index ["archived_at"], name: "index_tasks_on_archived_at", where: "(archived_at IS NOT NULL)"
     t.index ["assigned_to_agent"], name: "index_tasks_on_assigned_to_agent"
     t.index ["blocked"], name: "index_tasks_on_blocked"
+    t.index ["board_id", "status", "position"], name: "index_tasks_on_board_status_position"
     t.index ["board_id"], name: "index_tasks_on_board_id"
     t.index ["error_at"], name: "index_tasks_on_error_at", where: "(error_at IS NOT NULL)"
     t.index ["followup_task_id"], name: "index_tasks_on_followup_task_id"
@@ -186,6 +188,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_193254) do
     t.index ["review_status"], name: "index_tasks_on_review_status", where: "(review_status IS NOT NULL)"
     t.index ["review_type"], name: "index_tasks_on_review_type", where: "(review_type IS NOT NULL)"
     t.index ["status"], name: "index_tasks_on_status"
+    t.index ["user_id", "assigned_to_agent", "status"], name: "index_tasks_on_user_agent_status"
+    t.index ["user_id", "status"], name: "index_tasks_on_user_status"
     t.index ["user_id"], name: "index_tasks_on_user_id"
     t.index ["validation_status"], name: "index_tasks_on_validation_status", where: "(validation_status IS NOT NULL)"
   end
