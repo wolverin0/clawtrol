@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_04_225556) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_05_005028) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -167,10 +167,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_04_225556) do
     t.text "description"
     t.date "due_date"
     t.integer "effort", default: 0, null: false
+    t.bigint "followup_task_id"
     t.integer "impact", default: 0, null: false
     t.string "model"
     t.string "name"
     t.datetime "next_recurrence_at"
+    t.boolean "nightly", default: false, null: false
+    t.integer "nightly_delay_hours"
     t.integer "original_position"
     t.bigint "parent_task_id"
     t.integer "position"
@@ -181,6 +184,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_04_225556) do
     t.time "recurrence_time"
     t.boolean "recurring", default: false, null: false
     t.integer "status", default: 0, null: false
+    t.text "suggested_followup"
     t.string "tags", default: [], array: true
     t.bigint "task_list_id"
     t.datetime "updated_at", null: false
@@ -188,7 +192,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_04_225556) do
     t.index ["assigned_to_agent"], name: "index_tasks_on_assigned_to_agent"
     t.index ["blocked"], name: "index_tasks_on_blocked"
     t.index ["board_id"], name: "index_tasks_on_board_id"
+    t.index ["followup_task_id"], name: "index_tasks_on_followup_task_id"
     t.index ["next_recurrence_at"], name: "index_tasks_on_next_recurrence_at"
+    t.index ["nightly"], name: "index_tasks_on_nightly"
     t.index ["parent_task_id"], name: "index_tasks_on_parent_task_id"
     t.index ["position"], name: "index_tasks_on_position"
     t.index ["project_id"], name: "index_tasks_on_project_id"
@@ -204,9 +210,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_04_225556) do
     t.string "agent_emoji"
     t.datetime "agent_last_active_at"
     t.string "agent_name"
+    t.string "ai_api_key"
+    t.string "ai_suggestion_model", default: "glm"
     t.string "avatar_url"
     t.datetime "created_at", null: false
     t.string "email_address", null: false
+    t.string "openclaw_gateway_token"
+    t.string "openclaw_gateway_url"
     t.string "password_digest"
     t.string "provider"
     t.string "uid"
@@ -232,6 +242,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_04_225556) do
   add_foreign_key "tasks", "boards"
   add_foreign_key "tasks", "projects"
   add_foreign_key "tasks", "task_lists"
+  add_foreign_key "tasks", "tasks", column: "followup_task_id", on_delete: :nullify
   add_foreign_key "tasks", "tasks", column: "parent_task_id", on_delete: :nullify
   add_foreign_key "tasks", "users"
 end

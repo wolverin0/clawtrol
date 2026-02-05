@@ -38,6 +38,9 @@
   <%# New Task Modal %>
   <%= turbo_frame_tag "new_task_modal" %>
 
+  <%# Follow-up Modal %>
+  <%= turbo_frame_tag "followup_modal" %>
+
   <%# Delete Drop Zone - appears when dragging a card %>
   <div data-controller="delete-zone"
        data-delete-zone-url-value="<%= board_tasks_path(@board) %>"

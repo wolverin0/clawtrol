@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 // Connects to data-controller="task-modal"
 export default class extends Controller {
-  static targets = ["modal", "backdrop", "form", "nameField", "descriptionField", "submitButton", "priorityField", "priorityButton", "priorityGroup", "dueDateField", "dueDateDisplay", "recurringCheckbox", "recurringOptions"]
+  static targets = ["modal", "backdrop", "form", "nameField", "descriptionField", "submitButton", "priorityField", "priorityButton", "priorityGroup", "dueDateField", "dueDateDisplay", "recurringCheckbox", "recurringOptions", "nightlyCheckbox", "nightlyOptions"]
   static values = { taskId: Number }
 
   connect() {
@@ -203,6 +203,16 @@ export default class extends Controller {
       this.recurringOptionsTarget.classList.remove('hidden')
     } else {
       this.recurringOptionsTarget.classList.add('hidden')
+    }
+  }
+
+  toggleNightly() {
+    if (!this.hasNightlyOptionsTarget) return
+    const checkbox = this.nightlyCheckboxTarget
+    if (checkbox.checked) {
+      this.nightlyOptionsTarget.classList.remove('hidden')
+    } else {
+      this.nightlyOptionsTarget.classList.add('hidden')
     }
   }
 }

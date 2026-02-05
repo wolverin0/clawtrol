@@ -1,0 +1,96 @@
+<%= turbo_frame_tag "followup_modal" do %>
+  <div class="fixed inset-0 z-50 flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
+    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+    <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+
+      <!-- Header -->
+      <div class="px-5 py-4 border-b border-border flex items-center justify-between">
+        <span class="text-sm font-semibold text-content font-display">Create Follow-up Task</span>
+        <%= link_to board_path(@board), class: "p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors", data: { turbo_frame: "_top" } do %>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        <% end %>
+      </div>
+
+      <%= form_with url: create_followup_board_task_path(@board, @task), method: :post, class: "px-5 py-6 space-y-6" do |form| %>
+        <!-- Original Task Reference -->
+        <div class="p-3 bg-bg-elevated rounded-lg">
+          <span class="text-xs text-content-muted block mb-1">Following up on:</span>
+          <span class="text-sm font-medium text-content"><%= @task.name %></span>
+        </div>
+
+        <!-- Follow-up Title -->
+        <div>
+          <label class="text-sm font-medium text-content-muted block mb-2">Follow-up Title</label>
+          <%= form.text_field :followup_name,
+              value: "Follow up: #{@task.name}",
+              required: true,
+              autofocus: true,
+              placeholder: "Follow-up task title",
+              class: "w-full text-base bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-content placeholder-content-muted px-3 py-2" %>
+        </div>
+
+        <!-- Suggested Follow-up / Description -->
+        <div data-controller="enhance-followup" data-enhance-followup-url-value="<%= enhance_followup_board_task_path(@board, @task, format: :json) %>">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-medium text-content-muted">Description (suggested)</label>
+            <% if current_user.ai_api_key.present? %>
+              <button
+                type="button"
+                data-enhance-followup-target="button"
+                data-action="click->enhance-followup#enhance"
+                class="flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-accent hover:text-accent-hover transition-colors"
+              >
+                <svg data-enhance-followup-target="spinner" class="hidden animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span data-enhance-followup-target="label">✨ Enhance</span>
+              </button>
+            <% end %>
+          </div>
+          <%= form.text_area :followup_description,
+              value: @task.suggested_followup,
+              placeholder: "Add notes for the follow-up task...",
+              rows: 4,
+              data: { enhance_followup_target: "textarea" },
+              class: "w-full text-sm leading-snug bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-content-secondary placeholder-content-muted resize-none px-3 py-3" %>
+        </div>
+
+        <!-- Destination -->
+        <div>
+          <label class="text-sm font-medium text-content-muted block mb-3">Send to</label>
+          <div class="space-y-2">
+            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-bg-elevated cursor-pointer">
+              <%= form.radio_button :destination, "inbox", checked: true, class: "text-accent focus:ring-accent" %>
+              <span class="text-sm text-content">📥 Inbox</span>
+              <span class="text-xs text-content-muted">— triage later</span>
+            </label>
+            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-bg-elevated cursor-pointer">
+              <%= form.radio_button :destination, "up_next", class: "text-accent focus:ring-accent" %>
+              <span class="text-sm text-content">⏳ Up Next</span>
+              <span class="text-xs text-content-muted">— next heartbeat picks it up</span>
+            </label>
+            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-bg-elevated cursor-pointer">
+              <%= form.radio_button :destination, "in_progress", class: "text-accent focus:ring-accent" %>
+              <span class="text-sm text-content">🚀 Execute Now</span>
+              <span class="text-xs text-content-muted">— assign & start immediately</span>
+            </label>
+            <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-bg-elevated cursor-pointer">
+              <%= form.radio_button :destination, "nightly", class: "text-accent focus:ring-accent" %>
+              <span class="text-sm text-content">🌙 Nightly</span>
+              <span class="text-xs text-content-muted">— runs tonight or on "good night"</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
+          <%= link_to "Cancel", board_path(@board), class: "px-4 py-2 text-sm font-medium text-content-secondary hover:text-content transition-colors", data: { turbo_frame: "_top" } %>
+          <%= form.submit "Create Follow-up", class: "px-4 py-2 text-sm font-semibold rounded-md bg-accent text-content hover:bg-accent-hover transition-colors cursor-pointer" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>

@@ -18,7 +18,11 @@ Rails.application.routes.draw do
           patch :unclaim
           patch :assign
           patch :unassign
+          patch :move
           get :agent_log
+          post :generate_followup
+          post :enhance_followup
+          post :create_followup
         end
       end
     end
@@ -45,6 +49,10 @@ Rails.application.routes.draw do
       member do
         patch :assign
         patch :unassign
+        patch :move
+        get :followup_modal
+        post :enhance_followup
+        post :create_followup
       end
     end
   end

@@ -46,4 +46,16 @@ export default class extends Controller {
       recurringOptions.classList.add('hidden')
     }
   }
+
+  toggleNightly(event) {
+    const checkbox = event.currentTarget
+    const nightlyOptions = document.getElementById('nightly-options')
+    if (!nightlyOptions) return
+
+    if (checkbox.checked) {
+      nightlyOptions.classList.remove('hidden')
+    } else {
+      nightlyOptions.classList.add('hidden')
+    }
+  }
 }
