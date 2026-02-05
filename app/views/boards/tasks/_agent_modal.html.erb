@@ -1,5 +1,5 @@
 <%#
-  Agent Activity Modal (Bottom Sheet on Mobile, Centered Modal on Desktop)
+  Agent Activity Modal (Centered, same style as followup_modal)
   
   Usage: Include in task_card when task.agent_session_id.present?
   Triggered by clicking the 📟 button
@@ -9,34 +9,20 @@
     - board: Board object
 %>
 
-<%# Backdrop %>
-<div data-agent-modal-target="backdrop"
-     data-action="click->agent-modal#closeOnBackdrop"
-     class="agent-modal-backdrop hidden fixed inset-0 bg-black/60 z-[80] transition-opacity duration-300 opacity-0">
-</div>
-
-<%# Modal Container %>
+<%# Modal Container - same pattern as followup_modal %>
 <div data-agent-modal-target="modal"
+     data-agent-modal-target="backdrop"
      role="dialog"
      aria-modal="true"
      aria-labelledby="agent-modal-title-<%= task.id %>"
-     class="agent-modal hidden fixed z-[90] transition-all duration-300 ease-out
-            <%# Mobile: bottom sheet - full screen container with content at bottom %>
-            inset-0 flex flex-col justify-end
-            <%# Desktop: centered %>
-            md:justify-center md:items-center">
+     class="agent-modal hidden fixed inset-0 z-50 flex items-center justify-center">
   
-  <div class="agent-modal-content bg-bg-surface border border-border shadow-2xl
-              <%# Mobile: full width, rounded top, slides up %>
-              w-full rounded-t-2xl max-h-[80vh] translate-y-full
-              <%# Desktop: max width, fully rounded, scales %>
-              md:w-full md:max-w-lg md:mx-4 md:rounded-xl md:max-h-[70vh] md:translate-y-0 md:scale-95 md:opacity-0
-              flex flex-col overflow-hidden transition-all duration-300 ease-out">
-    
-    <%# Drag handle (mobile only) %>
-    <div class="md:hidden flex justify-center py-2 bg-bg-surface">
-      <div class="w-10 h-1 bg-content-muted/30 rounded-full"></div>
-    </div>
+  <%# Backdrop %>
+  <div data-action="click->agent-modal#close" 
+       class="absolute inset-0 bg-black/60"></div>
+  
+  <%# Content %>
+  <div class="agent-modal-content relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden flex flex-col">
 
     <%# Header %>
     <div class="px-4 py-3 border-b border-border flex items-center justify-between flex-shrink-0">

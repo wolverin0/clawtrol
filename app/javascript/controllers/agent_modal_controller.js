@@ -9,7 +9,7 @@ import { Controller } from "@hotwired/stimulus"
  * - Accessible: focus trap, ESC key, aria-modal
  */
 export default class extends Controller {
-  static targets = ["modal", "backdrop", "content", "log", "statusBadge"]
+  static targets = ["modal", "log", "statusBadge"]
   static values = {
     taskId: Number,
     boardId: Number,
@@ -23,14 +23,9 @@ export default class extends Controller {
     this.isPolling = false
     this.pollTimer = null
     this.lastLine = 0
-    this.touchStartY = 0
-    this.touchCurrentY = 0
     
     // Bind ESC key handler
     this.boundKeyHandler = this.handleKeydown.bind(this)
-    this.boundTouchStart = this.handleTouchStart.bind(this)
-    this.boundTouchMove = this.handleTouchMove.bind(this)
-    this.boundTouchEnd = this.handleTouchEnd.bind(this)
   }
 
   disconnect() {
@@ -45,31 +40,16 @@ export default class extends Controller {
     if (this.isOpen) return
     this.isOpen = true
     
-    // Show modal
+    // Show modal (simple show/hide like followup_modal)
     if (this.hasModalTarget) {
       this.modalTarget.classList.remove("hidden")
-      // Force reflow for animation
-      void this.modalTarget.offsetHeight
-      this.modalTarget.classList.add("open")
-    }
-    if (this.hasBackdropTarget) {
-      this.backdropTarget.classList.remove("hidden")
-      void this.backdropTarget.offsetHeight
-      this.backdropTarget.classList.add("open")
     }
     
     // Prevent body scroll
     document.body.style.overflow = "hidden"
     
-    // Add event listeners
+    // Add ESC key listener
     document.addEventListener("keydown", this.boundKeyHandler)
-    
-    // Add swipe-to-dismiss on mobile
-    if (this.hasModalTarget) {
-      this.modalTarget.addEventListener("touchstart", this.boundTouchStart, { passive: true })
-      this.modalTarget.addEventListener("touchmove", this.boundTouchMove, { passive: false })
-      this.modalTarget.addEventListener("touchend", this.boundTouchEnd)
-    }
     
     // Focus trap - focus first focusable element
     this.trapFocus()
@@ -82,40 +62,19 @@ export default class extends Controller {
     if (!this.isOpen) return
     this.isOpen = false
     
-    // Hide modal with animation
+    // Hide modal (simple show/hide)
     if (this.hasModalTarget) {
-      this.modalTarget.classList.remove("open")
-      this.modalTarget.style.transform = ""
+      this.modalTarget.classList.add("hidden")
     }
-    if (this.hasBackdropTarget) {
-      this.backdropTarget.classList.remove("open")
-    }
-    
-    // Wait for animation then hide
-    setTimeout(() => {
-      if (this.hasModalTarget) this.modalTarget.classList.add("hidden")
-      if (this.hasBackdropTarget) this.backdropTarget.classList.add("hidden")
-    }, 300)
     
     // Restore body scroll
     document.body.style.overflow = ""
     
-    // Remove event listeners
+    // Remove ESC key listener
     document.removeEventListener("keydown", this.boundKeyHandler)
-    if (this.hasModalTarget) {
-      this.modalTarget.removeEventListener("touchstart", this.boundTouchStart)
-      this.modalTarget.removeEventListener("touchmove", this.boundTouchMove)
-      this.modalTarget.removeEventListener("touchend", this.boundTouchEnd)
-    }
     
     // Stop polling
     this.stopPolling()
-  }
-
-  closeOnBackdrop(event) {
-    if (event.target === this.backdropTarget) {
-      this.close()
-    }
   }
 
   handleKeydown(event) {
@@ -125,37 +84,6 @@ export default class extends Controller {
     // Focus trap: Tab key
     if (event.key === "Tab") {
       this.handleTabKey(event)
-    }
-  }
-
-  // Swipe-to-dismiss handling for mobile
-  handleTouchStart(event) {
-    this.touchStartY = event.touches[0].clientY
-    this.touchCurrentY = this.touchStartY
-  }
-
-  handleTouchMove(event) {
-    this.touchCurrentY = event.touches[0].clientY
-    const diff = this.touchCurrentY - this.touchStartY
-    
-    // Only allow downward swipe
-    if (diff > 0) {
-      event.preventDefault()
-      // Move modal down with touch
-      const translateY = Math.min(diff, 200)
-      this.modalTarget.style.transform = `translateY(${translateY}px)`
-    }
-  }
-
-  handleTouchEnd() {
-    const diff = this.touchCurrentY - this.touchStartY
-    
-    // If swiped down more than 100px, close
-    if (diff > 100) {
-      this.close()
-    } else {
-      // Snap back
-      this.modalTarget.style.transform = ""
     }
   }
 
