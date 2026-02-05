@@ -123,3 +123,13 @@
     </div>
   </div>
 </div>
+
+<% if params[:task].present? %>
+  <script>
+    document.addEventListener("turbo:load", function() {
+      const taskId = "<%= params[:task] %>";
+      const card = document.querySelector(`[data-task-id="${taskId}"] a, a[href*="/tasks/${taskId}"]`);
+      if (card) { card.click(); }
+    }, { once: true });
+  </script>
+<% end %>

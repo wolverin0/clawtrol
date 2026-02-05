@@ -7,7 +7,8 @@ class Boards::TasksController < ApplicationController
     if turbo_frame_request?
       render layout: false
     else
-      render # full layout for direct visits
+      # Direct visits (e.g. from phone, shared link) → redirect to board with task open
+      redirect_to board_path(@board, task: @task.id)
     end
   end
 
