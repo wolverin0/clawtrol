@@ -100,7 +100,7 @@
           </div>
 
           <!-- Session Continuation -->
-          <% if @task.agent_session_key.present? %>
+          <% if @task.agent_session_id.present? %>
             <div data-controller="session-health" 
                  data-session-health-url-value="<%= session_health_api_v1_task_path(@task, format: :json) %>"
                  data-session-health-threshold-value="<%= current_user.context_threshold_percent %>">
@@ -126,14 +126,20 @@
               </div>
 
               <!-- Continue Session Toggle -->
-              <label class="flex items-center gap-3 p-3 rounded-lg hover:bg-bg-elevated cursor-pointer border border-transparent has-[:checked]:border-accent/50 has-[:checked]:bg-accent/10 transition-colors">
+              <% has_session_key = @task.agent_session_key.present? %>
+              <label class="flex items-center gap-3 p-3 rounded-lg <%= has_session_key ? 'hover:bg-bg-elevated cursor-pointer' : 'opacity-50 cursor-not-allowed' %> border border-transparent has-[:checked]:border-accent/50 has-[:checked]:bg-accent/10 transition-colors">
                 <%= form.check_box :continue_session,
                     checked: false,
+                    disabled: !has_session_key,
                     data: { session_health_target: "checkbox", action: "change->session-health#toggleContinue" },
                     class: "rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
                 <div class="flex-1">
                   <span class="text-sm text-content">Continue same session</span>
-                  <p class="text-xs text-content-muted mt-0.5">Inherit context from parent task's agent session</p>
+                  <% if has_session_key %>
+                    <p class="text-xs text-content-muted mt-0.5">Inherit context from parent task's agent session</p>
+                  <% else %>
+                    <p class="text-xs text-yellow-500 mt-0.5">⚠️ Session key not saved — must start fresh</p>
+                  <% end %>
                 </div>
               </label>
 
