@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  task: one
+  event_type: MyString
+  message: MyText
+  read_at: 2026-02-05 18:07:15
+
+two:
+  user: two
+  task: two
+  event_type: MyString
+  message: MyText
+  read_at: 2026-02-05 18:07:15

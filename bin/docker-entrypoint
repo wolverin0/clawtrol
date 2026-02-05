@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+# If running the rails server, prepare the database
+if [ "${1}" == "bundle" ] && [ "${2}" == "exec" ] && [ "${3}" == "puma" ]; then
+  echo "Preparing database..."
+  bundle exec rails db:prepare
+fi
+
+exec "$@"

@@ -46,6 +46,8 @@
 # Ignore development files
 /.devcontainer
 
-# Ignore Docker-related files
+# Ignore Docker-related files (keep Dockerfile for context)
 /.dockerignore
-/Dockerfile*
+/docker-compose*.yml
+/.env*
+!/.env.example
