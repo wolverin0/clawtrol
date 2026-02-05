@@ -72,7 +72,8 @@ class AiSuggestionService
     request.body = {
       model: config[:model],
       messages: [ { role: "user", content: prompt } ],
-      max_tokens: 500
+      max_tokens: 500,
+      thinking: { type: "disabled" }
     }.to_json
 
     response = http.request(request)
