@@ -218,6 +218,7 @@ class Boards::TasksController < ApplicationController
     unless File.exist?(full_path) && File.file?(full_path)
       @file_error = "File not found: #{path}"
       @file_path = path
+      @frame_id = request.headers["Turbo-Frame"] || "file_viewer"
       render layout: false
       return
     end
@@ -225,6 +226,9 @@ class Boards::TasksController < ApplicationController
     @file_path = path
     @file_content = File.read(full_path, encoding: "UTF-8")
     @file_extension = File.extname(full_path).delete(".")
+
+    # Detect which turbo frame is requesting (desktop vs mobile)
+    @frame_id = request.headers["Turbo-Frame"] || "file_viewer"
 
     # Render markdown if applicable
     if %w[md markdown].include?(@file_extension)
@@ -342,7 +346,7 @@ class Boards::TasksController < ApplicationController
   end
 
   def set_task
-    @task = @board.tasks.includes(:activities).find(params[:id])
+    @task = @board.tasks.includes(:activities, :parent_task, :followup_task).find(params[:id])
   end
 
   def task_params
