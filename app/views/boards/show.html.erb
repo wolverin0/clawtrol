@@ -126,10 +126,19 @@
 
 <% if params[:task].present? %>
   <script>
-    document.addEventListener("turbo:load", function() {
+    // Auto-open task panel from ?task=ID (e.g. direct link, phone)
+    requestAnimationFrame(function() {
       const taskId = "<%= params[:task] %>";
-      const card = document.querySelector(`[data-task-id="${taskId}"] a, a[href*="/tasks/${taskId}"]`);
-      if (card) { card.click(); }
-    }, { once: true });
+      const link = document.querySelector(`a[href$="/tasks/${taskId}"][data-turbo-frame="task_panel"]`);
+      if (link) {
+        link.click();
+      } else {
+        // Fallback: load directly into the turbo frame
+        const frame = document.querySelector('turbo-frame#task_panel');
+        if (frame) {
+          frame.src = "/boards/<%= @board.id %>/tasks/" + taskId;
+        }
+      }
+    });
   </script>
 <% end %>
