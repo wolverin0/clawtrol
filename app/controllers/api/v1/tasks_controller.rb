@@ -3,7 +3,7 @@ module Api
     class TasksController < BaseController
       # agent_log is public (no auth required) - secured by task lookup
       skip_before_action :authenticate_api_token, only: [ :agent_log ]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :session_health, :handoff ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :session_health, :handoff ]
       before_action :set_task_for_agent_log, only: [ :agent_log ]
 
       private
@@ -414,6 +414,34 @@ module Api
         set_task_activity_info(@task)
         new_status = @task.status == "done" ? "inbox" : "done"
         @task.update!(status: new_status)
+        render json: task_json(@task)
+      end
+
+      # POST /api/v1/tasks/:id/agent_complete
+      # Called by OpenClaw when agent finishes working on a task
+      # Appends agent output to description, moves to in_review
+      def agent_complete
+        set_task_activity_info(@task)
+        output = params[:output]
+
+        updates = { status: :in_review }
+
+        if output.present?
+          # Append agent output to description (avoid duplicating if already present)
+          new_description = @task.description.to_s
+          unless new_description.include?("## Agent Output")
+            new_description += "\n\n## Agent Output\n#{output}"
+            updates[:description] = new_description
+          end
+        end
+
+        # Set completed_at if not already set
+        updates[:completed_at] = Time.current unless @task.completed_at.present?
+
+        # Clear agent claim since work is done
+        updates[:agent_claimed_at] = nil
+
+        @task.update!(updates)
         render json: task_json(@task)
       end
 

@@ -15,6 +15,7 @@ Rails.application.routes.draw do
         end
         member do
           patch :complete
+          post :agent_complete
           patch :claim
           patch :unclaim
           patch :assign
