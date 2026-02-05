@@ -9,7 +9,7 @@ module Api
           .left_joins(:tasks)
           .select("boards.*, COUNT(tasks.id) as tasks_count_cache")
           .group("boards.id")
-          .reorder(:created_at)
+          .order(:created_at)
         render json: @boards.map { |board| board_json(board, use_cached_count: true) }
       end
 
@@ -21,7 +21,7 @@ module Api
       # GET /api/v1/boards/:id/status
       # Lightweight endpoint for polling - returns a fingerprint based on task state
       def status
-        tasks = @board.tasks.unscope(:order)
+        tasks = @board.tasks
 
         # Build a fingerprint from task count and latest modification
         task_count = tasks.count
@@ -79,7 +79,7 @@ module Api
       end
 
       def board_params
-        params.permit(:name, :icon, :color)
+        params.permit(:name, :icon, :color, :auto_claim_enabled, :auto_claim_prefix, auto_claim_tags: [])
       end
 
       def board_json(board, include_tasks: false, use_cached_count: false)
@@ -89,6 +89,10 @@ module Api
           icon: board.icon,
           color: board.color,
           tasks_count: use_cached_count ? (board.tasks_count_cache || 0) : board.tasks.count,
+          auto_claim_enabled: board.auto_claim_enabled,
+          auto_claim_tags: board.auto_claim_tags || [],
+          auto_claim_prefix: board.auto_claim_prefix,
+          last_auto_claim_at: board.last_auto_claim_at&.iso8601,
           created_at: board.created_at.iso8601,
           updated_at: board.updated_at.iso8601
         }

@@ -39,13 +39,12 @@ class BoardsController < ApplicationController
     # Group tasks by status
     # Active columns: sort by position (drag order)
     # Completed columns: sort by most recently updated (newest first)
-    # Note: reorder() is required to override the default_scope ordering
     @columns = {
-      inbox: @tasks.inbox.reorder(position: :asc),
-      up_next: @tasks.up_next.reorder(position: :asc),
-      in_progress: @tasks.in_progress.reorder(position: :asc),
-      in_review: @tasks.in_review.reorder(updated_at: :desc),
-      done: @tasks.done.reorder(completed_at: :desc, updated_at: :desc)
+      inbox: @tasks.inbox.order(position: :asc),
+      up_next: @tasks.up_next.order(position: :asc),
+      in_progress: @tasks.in_progress.order(position: :asc),
+      in_review: @tasks.in_review.order(updated_at: :desc),
+      done: @tasks.done.order(completed_at: :desc, updated_at: :desc)
     }
 
     # Get all unique tags for the sidebar filter
@@ -67,7 +66,7 @@ class BoardsController < ApplicationController
     @boards = current_user.boards
     # Set empty columns for header partial (it expects @columns to exist)
     @columns = { inbox: [], in_progress: [] }
-    tasks = @board.tasks.archived.reorder(archived_at: :desc, completed_at: :desc)
+    tasks = @board.tasks.archived.order(archived_at: :desc, completed_at: :desc)
     @pagy, @tasks = pagy(tasks, items: 20)
 
     # Handle AJAX requests for infinite scroll pagination

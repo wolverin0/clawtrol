@@ -140,7 +140,7 @@ module Api
       def recurring
         @tasks = current_user.tasks
           .recurring_templates
-          .reorder(created_at: :desc)
+          .order(created_at: :desc)
 
         render json: @tasks.map { |task| task_json(task) }
       end
@@ -157,7 +157,7 @@ module Api
 
         @task = current_user.tasks
           .where(status: :up_next, blocked: false, agent_claimed_at: nil)
-          .reorder(priority: :desc, position: :asc)
+          .order(priority: :desc, position: :asc)
           .first
 
         if @task
@@ -426,9 +426,9 @@ module Api
 
         # Order by assigned_at for assigned tasks, otherwise by status then position
         if params[:assigned].present? && ActiveModel::Type::Boolean.new.cast(params[:assigned])
-          @tasks = @tasks.reorder(assigned_at: :asc)
+          @tasks = @tasks.order(assigned_at: :asc)
         else
-          @tasks = @tasks.reorder(status: :asc, position: :asc)
+          @tasks = @tasks.order(status: :asc, position: :asc)
         end
 
         render json: @tasks.map { |task| task_json(task) }

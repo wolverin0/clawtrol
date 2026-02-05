@@ -13,11 +13,39 @@ class Task < ApplicationRecord
   # Model options for agent LLM selection
   MODELS = %w[opus codex gemini glm sonnet].freeze
 
+  # Review types
+  REVIEW_TYPES = %w[command debate].freeze
+  REVIEW_STATUSES = %w[pending running passed failed].freeze
+
+  # Debate styles for review
+  DEBATE_STYLES = %w[quick thorough adversarial collaborative].freeze
+  DEBATE_MODELS = %w[gemini claude glm].freeze
+
+  # Security: allowed validation command prefixes to prevent arbitrary command execution
+  ALLOWED_VALIDATION_PREFIXES = %w[
+    bin/rails
+    bundle\ exec
+    npm
+    yarn
+    make
+    pytest
+    rspec
+    ruby
+    node
+    bash\ bin/
+    sh\ bin/
+    ./bin/
+  ].freeze
+
+  # Security: pattern to reject shell metacharacters in validation commands
+  UNSAFE_COMMAND_PATTERN = /[;|&$`\\!\(\)\{\}<>]|(\$\()|(\|\|)|(&&)/
+
   validates :name, presence: true
   validates :priority, inclusion: { in: priorities.keys }
   validates :status, inclusion: { in: statuses.keys }
   validates :model, inclusion: { in: MODELS }, allow_nil: true, allow_blank: true
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
+  validate :validation_command_is_safe, if: -> { validation_command.present? }
 
   # Activity tracking - must be declared before callbacks that use it
   attr_accessor :activity_source, :actor_name, :actor_emoji, :activity_note
@@ -31,6 +59,7 @@ class Task < ApplicationRecord
   after_update_commit :broadcast_update
   after_destroy_commit :broadcast_destroy
   after_create :record_creation_activity
+  after_create :try_auto_claim
   after_update :record_update_activities
   after_update :handle_recurring_completion, if: :saved_change_to_status?
   after_update :notify_openclaw_if_urgent, if: :saved_change_to_status?
@@ -42,9 +71,9 @@ class Task < ApplicationRecord
   before_update :track_completion_time, if: :will_save_change_to_status?
 
   # Order incomplete tasks by position, completed tasks by completion time (most recent first)
-  scope :incomplete, -> { where(completed: false).reorder(position: :asc) }
-  scope :completed, -> { where(completed: true).reorder(completed_at: :desc) }
-  scope :assigned_to_agent, -> { where(assigned_to_agent: true).reorder(assigned_at: :asc) }
+  scope :incomplete, -> { where(completed: false).order(position: :asc) }
+  scope :completed, -> { where(completed: true).order(completed_at: :desc) }
+  scope :assigned_to_agent, -> { where(assigned_to_agent: true).order(assigned_at: :asc) }
   scope :unassigned, -> { where(assigned_to_agent: false) }
   scope :recurring_templates, -> { where(recurring: true, parent_task_id: nil) }
   scope :due_for_recurrence, -> { recurring_templates.where("next_recurrence_at <= ?", Time.current) }
@@ -53,7 +82,8 @@ class Task < ApplicationRecord
   scope :not_errored, -> { where(error_at: nil) }
   scope :archived, -> { where(status: :archived) }
   scope :not_archived, -> { where.not(status: :archived) }
-  default_scope { order(completed: :asc, position: :asc) }
+  # NOTE: default_scope was removed intentionally to avoid implicit ordering
+  # surprises. All queries that need ordering must specify it explicitly.
 
   # Agent assignment methods
   def assign_to_agent!
@@ -234,6 +264,74 @@ class Task < ApplicationRecord
     "## Follow-up\n\nContinue work on: #{name}\n\nDescribe what you want to do next."
   end
 
+  # Review methods
+  def review_in_progress?
+    review_status == "running"
+  end
+
+  def review_passed?
+    review_status == "passed"
+  end
+
+  def review_failed?
+    review_status == "failed"
+  end
+
+  def has_review?
+    review_type.present?
+  end
+
+  def debate_review?
+    review_type == "debate"
+  end
+
+  def command_review?
+    review_type == "command"
+  end
+
+  def debate_storage_path
+    File.expand_path("~/clawdeck/storage/debates/task_#{id}")
+  end
+
+  def debate_synthesis_path
+    File.join(debate_storage_path, "synthesis.md")
+  end
+
+  def debate_synthesis_content
+    return nil unless File.exist?(debate_synthesis_path)
+    File.read(debate_synthesis_path)
+  end
+
+  def start_review!(type:, config: {})
+    update!(
+      review_type: type,
+      review_config: config,
+      review_status: "pending",
+      review_result: {}
+    )
+  end
+
+  def complete_review!(status:, result: {})
+    updates = {
+      review_status: status,
+      review_result: result.merge(completed_at: Time.current.iso8601)
+    }
+
+    if status == "passed"
+      updates[:status] = "in_review"
+    end
+
+    update!(updates)
+
+    # Create follow-up task if failed
+    if status == "failed" && result[:error_summary].present?
+      create_followup_task!(
+        followup_name: "Fix: #{name.truncate(40)}",
+        followup_description: "## Review Failed\n\n#{result[:error_summary]}\n\n---\n\n### Original Task\n#{description}"
+      )
+    end
+  end
+
   def create_followup_task!(followup_name:, followup_description: nil)
     followup = board.tasks.new(
       user: user,
@@ -255,6 +353,22 @@ class Task < ApplicationRecord
   end
 
   private
+
+  # Security: validate that validation_command is safe to execute
+  def validation_command_is_safe
+    cmd = validation_command.to_s.strip
+
+    # Reject shell metacharacters
+    if cmd.match?(UNSAFE_COMMAND_PATTERN)
+      errors.add(:validation_command, "contains unsafe shell metacharacters (no ;, |, &, $, backticks allowed)")
+      return
+    end
+
+    # Must start with an allowed prefix
+    unless ALLOWED_VALIDATION_PREFIXES.any? { |prefix| cmd.start_with?(prefix) }
+      errors.add(:validation_command, "must start with an allowed prefix: #{ALLOWED_VALIDATION_PREFIXES.join(', ')}")
+    end
+  end
 
   def set_position
     return if position.present?
@@ -325,6 +439,39 @@ class Task < ApplicationRecord
     return unless user.openclaw_gateway_url.present?
 
     OpenclawNotifyJob.perform_later(id)
+  end
+
+  # Try to auto-claim this task based on board settings
+  def try_auto_claim
+    return unless status == "inbox"
+    return unless board.can_auto_claim?
+    return unless board.task_matches_auto_claim?(self)
+
+    # Auto-claim: assign to agent and move to in_progress
+    update_columns(
+      assigned_to_agent: true,
+      assigned_at: Time.current,
+      status: Task.statuses[:in_progress]
+    )
+
+    # Record the auto-claim time on the board (rate limiting)
+    board.record_auto_claim!
+
+    # Record activity
+    TaskActivity.create!(
+      task: self,
+      user: user,
+      action: "auto_claimed",
+      source: "system",
+      actor_name: "Auto-Claim",
+      actor_emoji: "🤖",
+      note: "Task auto-claimed based on board settings"
+    )
+
+    # Trigger webhook to wake the agent
+    if user.openclaw_gateway_url.present?
+      AutoClaimNotifyJob.perform_later(id)
+    end
   end
 
   # Turbo Streams broadcasts for real-time updates
