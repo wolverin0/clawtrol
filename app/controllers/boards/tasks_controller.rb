@@ -169,6 +169,9 @@ class Boards::TasksController < ApplicationController
       followup_description: followup_description
     )
 
+    # Auto-complete parent task when follow-up is created
+    @task.update!(status: 'done', completed: true, completed_at: Time.current)
+
     # Override model if specified (otherwise inherits from parent)
     if selected_model.present?
       @followup.update!(model: selected_model)
