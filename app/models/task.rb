@@ -49,6 +49,8 @@ class Task < ApplicationRecord
   scope :recurring_templates, -> { where(recurring: true, parent_task_id: nil) }
   scope :due_for_recurrence, -> { recurring_templates.where("next_recurrence_at <= ?", Time.current) }
   scope :nightly, -> { where(nightly: true) }
+  scope :errored, -> { where.not(error_at: nil) }
+  scope :not_errored, -> { where(error_at: nil) }
   default_scope { order(completed: :asc, position: :asc) }
 
   # Agent assignment methods
@@ -58,6 +60,39 @@ class Task < ApplicationRecord
 
   def unassign_from_agent!
     update!(assigned_to_agent: false, assigned_at: nil)
+  end
+
+  # Error state methods
+  def errored?
+    error_at.present?
+  end
+
+  def clear_error!
+    update!(error_message: nil, error_at: nil)
+  end
+
+  def set_error!(message)
+    update!(error_message: message, error_at: Time.current)
+  end
+
+  # Handoff to a different model - clears error and resets for retry
+  def handoff!(new_model:, include_transcript: false)
+    updates = {
+      error_message: nil,
+      error_at: nil,
+      status: :in_progress,
+      model: new_model,
+      agent_claimed_at: nil  # Allow re-claim by agent
+    }
+    
+    # Optionally preserve session for context continuity
+    unless include_transcript
+      updates[:agent_session_id] = nil
+      updates[:agent_session_key] = nil
+      updates[:context_usage_percent] = nil
+    end
+    
+    update!(updates)
   end
 
   # Recurring task methods

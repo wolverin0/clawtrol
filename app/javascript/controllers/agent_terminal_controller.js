@@ -18,7 +18,9 @@ export default class extends Controller {
     "content",
     "resizeHandle",
     "emptyState",
-    "toggleButton"
+    "toggleButton",
+    "floatingToggle",
+    "floatingBadge"
   ]
 
   static values = {
@@ -344,12 +346,18 @@ export default class extends Controller {
     
     const hasTabs = this.pinnedTasks.size > 0
     
+    // Update floating toggle button visibility
+    this.updateFloatingButton(hasTabs)
+    
     if (!hasTabs) {
       this.panelTarget.classList.add('hidden')
       return
     }
     
     this.panelTarget.classList.remove('hidden')
+    
+    // Set color scheme data attribute
+    this.panelTarget.dataset.colorScheme = this.colorScheme
     
     if (this.isCollapsed) {
       this.panelTarget.style.height = '40px'
@@ -368,11 +376,14 @@ export default class extends Controller {
   renderTabs() {
     if (!this.hasTabListTarget) return
     
+    const isAmber = this.colorScheme === 'amber'
+    const accentColor = isAmber ? 'amber' : 'green'
+    
     let html = ''
     this.pinnedTasks.forEach((task, taskId) => {
       const isActive = taskId === this.activeTabId
       const statusDot = task.status === 'in_progress' 
-        ? '<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>'
+        ? `<span class="w-2 h-2 rounded-full bg-${accentColor}-500 animate-pulse"></span>`
         : '<span class="w-2 h-2 rounded-full bg-content-muted"></span>'
       
       html += `
@@ -381,7 +392,7 @@ export default class extends Controller {
           data-action="click->agent-terminal#switchTab"
           class="group flex items-center gap-2 px-3 py-1.5 text-xs font-mono transition-colors ${
             isActive 
-              ? 'bg-bg-elevated text-green-400 border-t border-x border-green-500/30 rounded-t' 
+              ? `bg-bg-elevated text-${accentColor}-400 border-t border-x border-${accentColor}-500/30 rounded-t` 
               : 'text-content-muted hover:text-content-secondary hover:bg-bg-surface/50'
           }"
         >
@@ -396,6 +407,17 @@ export default class extends Controller {
         </button>
       `
     })
+    
+    // Add color scheme toggle button
+    html += `
+      <button 
+        data-action="click->agent-terminal#toggleColorScheme"
+        class="ml-2 px-2 py-1 text-[10px] font-mono text-content-muted hover:text-${accentColor}-400 transition-colors"
+        title="Toggle color scheme (green/amber)"
+      >
+        ${isAmber ? '🟠' : '🟢'}
+      </button>
+    `
     
     this.tabListTarget.innerHTML = html
   }
@@ -419,9 +441,12 @@ export default class extends Controller {
   }
 
   renderMessage(msg) {
+    const isAmber = this.colorScheme === 'amber'
+    const primaryColor = isAmber ? 'text-amber-400' : 'text-green-400'
+    
     let icon = '📝'
     let borderColor = 'border-content-muted/30'
-    let textColor = 'text-green-400'
+    let textColor = primaryColor
     
     if (msg.role === 'user') {
       icon = '👤'
@@ -430,13 +455,13 @@ export default class extends Controller {
     }
     if (msg.role === 'assistant') {
       icon = '🤖'
-      borderColor = 'border-purple-500/30'
-      textColor = 'text-green-400'
+      borderColor = isAmber ? 'border-amber-500/30' : 'border-purple-500/30'
+      textColor = primaryColor
     }
     if (msg.role === 'toolResult') {
       icon = '⚙️'
-      borderColor = 'border-amber-500/30'
-      textColor = 'text-amber-400'
+      borderColor = isAmber ? 'border-orange-500/30' : 'border-amber-500/30'
+      textColor = isAmber ? 'text-orange-400' : 'text-amber-400'
     }
     
     let contentHtml = ''
@@ -448,14 +473,14 @@ export default class extends Controller {
         }
         if (item.type === 'thinking' && item.text) {
           const thinking = item.text.length > 150 ? item.text.substring(0, 150) + '...' : item.text
-          contentHtml += `<div class="text-purple-400/70 italic text-xs mt-1">💭 ${this.escapeHtml(thinking)}</div>`
+          contentHtml += `<div class="${isAmber ? 'text-yellow-400/70' : 'text-purple-400/70'} italic text-xs mt-1">💭 ${this.escapeHtml(thinking)}</div>`
         }
         if (item.type === 'tool_call') {
-          contentHtml += `<div class="text-amber-400 text-xs mt-1">🔧 ${this.escapeHtml(item.name || 'tool')}</div>`
+          contentHtml += `<div class="${isAmber ? 'text-orange-400' : 'text-amber-400'} text-xs mt-1">🔧 ${this.escapeHtml(item.name || 'tool')}</div>`
         }
         if (item.type === 'tool_result' && item.text) {
           const result = item.text.length > 200 ? item.text.substring(0, 200) + '...' : item.text
-          contentHtml += `<div class="text-amber-300/60 text-xs mt-1 font-mono bg-black/30 px-2 py-1 rounded max-h-16 overflow-y-auto">${this.escapeHtml(result)}</div>`
+          contentHtml += `<div class="${isAmber ? 'text-orange-300/60' : 'text-amber-300/60'} text-xs mt-1 font-mono bg-black/30 px-2 py-1 rounded max-h-16 overflow-y-auto">${this.escapeHtml(result)}</div>`
         }
       })
     }
@@ -482,5 +507,45 @@ export default class extends Controller {
     const div = document.createElement('div')
     div.textContent = text
     return div.innerHTML
+  }
+
+  // ========================================
+  // FLOATING TOGGLE BUTTON (mobile-friendly)
+  // ========================================
+
+  updateFloatingButton(hasTabs) {
+    if (!this.hasFloatingToggleTarget) return
+    
+    if (hasTabs) {
+      // Show floating button when there are pinned tabs
+      this.floatingToggleTarget.classList.remove('hidden')
+      this.floatingToggleTarget.classList.add('flex')
+      
+      // Update badge with tab count
+      if (this.hasFloatingBadgeTarget) {
+        const count = this.pinnedTasks.size
+        this.floatingBadgeTarget.textContent = count
+        if (count > 0) {
+          this.floatingBadgeTarget.classList.remove('hidden')
+          this.floatingBadgeTarget.classList.add('flex')
+        } else {
+          this.floatingBadgeTarget.classList.add('hidden')
+          this.floatingBadgeTarget.classList.remove('flex')
+        }
+      }
+      
+      // Change color based on scheme
+      const isAmber = this.colorScheme === 'amber'
+      this.floatingToggleTarget.classList.toggle('bg-green-600', !isAmber)
+      this.floatingToggleTarget.classList.toggle('hover:bg-green-500', !isAmber)
+      this.floatingToggleTarget.classList.toggle('shadow-green-500/30', !isAmber)
+      this.floatingToggleTarget.classList.toggle('bg-amber-600', isAmber)
+      this.floatingToggleTarget.classList.toggle('hover:bg-amber-500', isAmber)
+      this.floatingToggleTarget.classList.toggle('shadow-amber-500/30', isAmber)
+    } else {
+      // Hide when no tabs
+      this.floatingToggleTarget.classList.add('hidden')
+      this.floatingToggleTarget.classList.remove('flex')
+    }
   }
 }

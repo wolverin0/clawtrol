@@ -1,6 +1,6 @@
 class Boards::TasksController < ApplicationController
   before_action :set_board
-  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :followup_modal, :create_followup, :enhance_followup]
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :followup_modal, :create_followup, :enhance_followup, :handoff_modal, :handoff]
 
   def show
     @api_token = current_user.api_token
@@ -99,6 +99,29 @@ class Boards::TasksController < ApplicationController
     # Don't generate suggestion here - let it load async via JS
     # @task.suggested_followup will be fetched by Stimulus controller
     render layout: false
+  end
+
+  def handoff_modal
+    render layout: false
+  end
+
+  def handoff
+    new_model = params[:model]
+    unless Task::MODELS.include?(new_model)
+      redirect_to board_path(@board), alert: "Invalid model selected"
+      return
+    end
+
+    include_transcript = params[:include_transcript] == "1"
+    
+    @task.activity_source = "web"
+    @task.activity_note = "Handoff from #{@task.model || 'default'} to #{new_model}"
+    @task.handoff!(new_model: new_model, include_transcript: include_transcript)
+
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to board_path(@board), notice: "Task handed off to #{new_model.upcase}" }
+    end
   end
 
   def enhance_followup

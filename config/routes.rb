@@ -11,6 +11,7 @@ Rails.application.routes.draw do
           get :next
           get :pending_attention
           get :recurring
+          get :errored_count
         end
         member do
           patch :complete
@@ -24,6 +25,7 @@ Rails.application.routes.draw do
           post :generate_followup
           post :enhance_followup
           post :create_followup
+          post :handoff
         end
       end
     end
@@ -52,8 +54,10 @@ Rails.application.routes.draw do
         patch :unassign
         patch :move
         get :followup_modal
+        get :handoff_modal
         post :enhance_followup
         post :create_followup
+        post :handoff
       end
     end
   end
