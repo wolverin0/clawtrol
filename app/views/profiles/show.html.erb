@@ -1,250 +1,270 @@
 <% content_for :title, "Settings" %>
 <% content_for :breadcrumb_standalone, "Settings" %>
 
-<div class="space-y-6 mt-12">
-  <!-- Section 1: Profile -->
-  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
-    <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">Profile</h3>
+<div class="mt-12" data-controller="tabs">
+  <!-- Tab Navigation -->
+  <div class="flex border-b border-border mb-6">
+    <button data-action="click->tabs#switch" data-tabs-target="tab" data-tab="profile"
+            class="px-4 py-2 text-sm font-medium border-b-2 border-accent text-content">Profile</button>
+    <button data-action="click->tabs#switch" data-tabs-target="tab" data-tab="agent"
+            class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-content-muted hover:text-content">Agent</button>
+    <button data-action="click->tabs#switch" data-tabs-target="tab" data-tab="ai"
+            class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-content-muted hover:text-content">AI</button>
+    <button data-action="click->tabs#switch" data-tabs-target="tab" data-tab="integration"
+            class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-content-muted hover:text-content">Integration</button>
+  </div>
 
-    <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
-      <!-- Avatar -->
-      <div>
-        <label class="block text-xs font-medium text-content-secondary mb-2">Avatar</label>
-        <div class="flex items-center gap-4">
-          <% if @user.has_avatar? %>
-            <%= image_tag @user.avatar_source, class: "w-14 h-14 object-cover rounded-full" %>
-          <% else %>
-            <div class="w-14 h-14 rounded-full bg-bg-elevated flex items-center justify-center">
-              <svg class="w-7 h-7 text-content-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
+  <!-- Profile Tab -->
+  <div data-tabs-target="panel" data-tab="profile" class="space-y-6">
+    <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+      <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">Profile</h3>
+
+      <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
+        <!-- Avatar -->
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-2">Avatar</label>
+          <div class="flex items-center gap-4">
+            <% if @user.has_avatar? %>
+              <%= image_tag @user.avatar_source, class: "w-14 h-14 object-cover rounded-full" %>
+            <% else %>
+              <div class="w-14 h-14 rounded-full bg-bg-elevated flex items-center justify-center">
+                <svg class="w-7 h-7 text-content-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+            <% end %>
+            <div class="flex-1">
+              <%= form.file_field :avatar, accept: "image/jpeg,image/jpg,image/png,image/webp", class: "block w-full text-xs text-content-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-bg-elevated file:text-content-secondary hover:file:bg-bg-hover file:cursor-pointer file:transition-colors" %>
+              <p class="text-xs text-content-muted mt-1">Max 512KB, 256x256px. JPEG, PNG, or WebP.</p>
+            </div>
+          </div>
+          <% if @user.avatar.attached? || @user.avatar_url.present? %>
+            <div class="mt-3">
+              <label class="flex items-center text-xs text-content-secondary cursor-pointer">
+                <%= form.check_box :remove_avatar, class: "mr-2 rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
+                Remove avatar
+              </label>
             </div>
           <% end %>
-          <div class="flex-1">
-            <%= form.file_field :avatar, accept: "image/jpeg,image/jpg,image/png,image/webp", class: "block w-full text-xs text-content-secondary file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-bg-elevated file:text-content-secondary hover:file:bg-bg-hover file:cursor-pointer file:transition-colors" %>
-            <p class="text-xs text-content-muted mt-1">Max 512KB, 256x256px. JPEG, PNG, or WebP.</p>
-          </div>
+          <% if @user.errors[:avatar].any? %>
+            <div class="mt-2">
+              <% @user.errors[:avatar].each do |error| %>
+                <p class="text-status-error text-xs">Avatar <%= error %></p>
+              <% end %>
+            </div>
+          <% end %>
         </div>
-        <% if @user.avatar.attached? || @user.avatar_url.present? %>
-          <div class="mt-3">
-            <label class="flex items-center text-xs text-content-secondary cursor-pointer">
-              <%= form.check_box :remove_avatar, class: "mr-2 rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
-              Remove avatar
-            </label>
-          </div>
-        <% end %>
-        <% if @user.errors[:avatar].any? %>
-          <div class="mt-2">
-            <% @user.errors[:avatar].each do |error| %>
-              <p class="text-status-error text-xs">Avatar <%= error %></p>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
 
-      <!-- Email -->
-      <div class="pt-4 border-t border-border">
-        <label class="block text-xs font-medium text-content-secondary mb-1.5">Email Address</label>
-        <%= form.email_field :email_address, placeholder: "your@email.com", class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
-        <% if @user.errors[:email_address].any? %>
-          <div class="mt-1">
-            <% @user.errors[:email_address].each do |error| %>
-              <p class="text-status-error text-xs">Email <%= error %></p>
-            <% end %>
-          </div>
-        <% end %>
-      </div>
+        <!-- Email -->
+        <div class="pt-4 border-t border-border">
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Email Address</label>
+          <%= form.email_field :email_address, placeholder: "your@email.com", class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+          <% if @user.errors[:email_address].any? %>
+            <div class="mt-1">
+              <% @user.errors[:email_address].each do |error| %>
+                <p class="text-status-error text-xs">Email <%= error %></p>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
 
-      <div class="pt-2">
-        <%= form.submit "Save profile", class: "cursor-pointer px-4 py-2 bg-accent text-content hover:bg-accent-hover text-xs font-semibold rounded-md transition-colors duration-200" %>
-      </div>
-    <% end %>
+        <div class="pt-2">
+          <%= form.submit "Save profile", class: "cursor-pointer px-4 py-2 bg-accent text-content hover:bg-accent-hover text-xs font-semibold rounded-md transition-colors duration-200" %>
+        </div>
+      <% end %>
+    </div>
   </div>
 
-  <!-- Section 2: AI Settings -->
-  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
-    <div class="flex items-center gap-2">
-      <span class="text-lg">🤖</span>
-      <h3 class="text-sm font-semibold text-content font-display">AI Settings</h3>
-    </div>
-
-    <p class="text-xs text-content-secondary">
-      Configure AI-powered follow-up suggestions. The AI analyzes completed tasks and suggests specific next steps.
-    </p>
-
-    <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
-      <div>
-        <label class="block text-xs font-medium text-content-secondary mb-1.5">AI Model</label>
-        <%= form.select :ai_suggestion_model,
-            [
-              ["GLM-4.7 Flash (z.ai)", "glm"],
-              ["Gemini (coming soon)", "gemini", { disabled: true }],
-              ["Claude Sonnet (coming soon)", "sonnet", { disabled: true }],
-              ["Claude Opus (coming soon)", "opus", { disabled: true }]
-            ],
-            {},
-            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+  <!-- Agent Tab -->
+  <div data-tabs-target="panel" data-tab="agent" class="hidden space-y-6">
+    <!-- Session Continuation Settings -->
+    <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🔄</span>
+        <h3 class="text-sm font-semibold text-content font-display">Session Continuation</h3>
       </div>
 
-      <div>
-        <label class="block text-xs font-medium text-content-secondary mb-1.5">API Key</label>
-        <%= form.password_field :ai_api_key,
-            value: @user.ai_api_key,
-            placeholder: @user.ai_api_key.present? ? "••••••••" : "Enter your API key",
-            autocomplete: "off",
-            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
-        <p class="text-xs text-content-muted mt-1">Get a GLM key from <a href="https://z.ai" target="_blank" class="text-accent hover:underline">z.ai</a></p>
-      </div>
+      <p class="text-xs text-content-secondary">
+        Configure when follow-up tasks should recommend continuing an existing agent session vs starting fresh.
+      </p>
 
-      <div class="flex items-center gap-3">
-        <%= form.submit "Save AI settings", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
-        <% if @user.ai_api_key.present? %>
-          <span class="flex items-center gap-1.5 text-xs text-green-500">
-            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-            Configured
-          </span>
-        <% end %>
-      </div>
-    <% end %>
-  </div>
-
-  <!-- Section 2b: Session Continuation Settings -->
-  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
-    <div class="flex items-center gap-2">
-      <span class="text-lg">🔄</span>
-      <h3 class="text-sm font-semibold text-content font-display">Session Continuation</h3>
-    </div>
-
-    <p class="text-xs text-content-secondary">
-      Configure when follow-up tasks should recommend continuing an existing agent session vs starting fresh.
-    </p>
-
-    <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
-      <div>
-        <label class="block text-xs font-medium text-content-secondary mb-1.5">Context Usage Threshold</label>
-        <div class="flex items-center gap-3">
-          <%= form.number_field :context_threshold_percent,
-              value: @user.context_threshold_percent,
-              min: 30,
-              max: 95,
-              step: 5,
-              class: "w-24 bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
-          <span class="text-sm text-content-muted">%</span>
-        </div>
-        <p class="text-xs text-content-muted mt-2">
-          When a session exceeds this threshold, ClawDeck will recommend starting fresh instead of continuing.
-          <br>Higher values allow more context reuse but may degrade quality. Default: <strong>70%</strong>
-        </p>
-      </div>
-
-      <!-- Visual indicator -->
-      <div class="p-3 bg-bg-elevated rounded-lg">
-        <div class="flex items-center justify-between text-xs mb-2">
-          <span class="text-content-muted">Context usage indicator</span>
-          <span class="text-content-secondary"><%= @user.context_threshold_percent %>% threshold</span>
-        </div>
-        <div class="h-2 bg-bg-base rounded-full overflow-hidden">
-          <div class="h-full rounded-full transition-all duration-300" 
-               style="width: <%= @user.context_threshold_percent %>%; background: linear-gradient(90deg, #22c55e 0%, #eab308 70%, #ef4444 100%);"></div>
-        </div>
-        <div class="flex justify-between text-[10px] text-content-muted mt-1">
-          <span>✅ Good</span>
-          <span>⚠️ Warning</span>
-          <span>🔴 Fresh recommended</span>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <%= form.submit "Save threshold", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
-      </div>
-    <% end %>
-  </div>
-
-  <!-- Section 3: Error Handling & Handoff -->
-  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
-    <div class="flex items-center gap-2">
-      <span class="text-lg">⚠️</span>
-      <h3 class="text-sm font-semibold text-content font-display">Error Handling & Handoff</h3>
-    </div>
-
-    <p class="text-xs text-content-secondary">
-      Configure how ClawDeck handles agent errors and automatic retries.
-    </p>
-
-    <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
-      <!-- Auto-retry toggle -->
-      <div class="flex items-center justify-between p-3 bg-bg-elevated rounded-lg">
+      <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
         <div>
-          <label class="text-sm font-medium text-content">Auto-retry on failure</label>
-          <p class="text-xs text-content-muted mt-0.5">Automatically retry failed tasks with the same or fallback model</p>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Context Usage Threshold</label>
+          <div class="flex items-center gap-3">
+            <%= form.number_field :context_threshold_percent,
+                value: @user.context_threshold_percent,
+                min: 30,
+                max: 95,
+                step: 5,
+                class: "w-24 bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+            <span class="text-sm text-content-muted">%</span>
+          </div>
+          <p class="text-xs text-content-muted mt-2">
+            When a session exceeds this threshold, ClawDeck will recommend starting fresh instead of continuing.
+            <br>Higher values allow more context reuse but may degrade quality. Default: <strong>70%</strong>
+          </p>
         </div>
-        <%= form.check_box :auto_retry_enabled,
-            class: "rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
-      </div>
 
-      <!-- Max retries -->
-      <div>
-        <label class="block text-xs font-medium text-content-secondary mb-1.5">Maximum retries</label>
-        <%= form.select :auto_retry_max,
-            [["1 retry", 1], ["2 retries", 2], ["3 retries", 3], ["4 retries", 4], ["5 retries", 5]],
-            { selected: @user.auto_retry_max || 3 },
-            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
-      </div>
+        <!-- Visual indicator -->
+        <div class="p-3 bg-bg-elevated rounded-lg">
+          <div class="flex items-center justify-between text-xs mb-2">
+            <span class="text-content-muted">Context usage indicator</span>
+            <span class="text-content-secondary"><%= @user.context_threshold_percent %>% threshold</span>
+          </div>
+          <div class="h-2 bg-bg-base rounded-full overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-300" 
+                 style="width: <%= @user.context_threshold_percent %>%; background: linear-gradient(90deg, #22c55e 0%, #eab308 70%, #ef4444 100%);"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-content-muted mt-1">
+            <span>✅ Good</span>
+            <span>⚠️ Warning</span>
+            <span>🔴 Fresh recommended</span>
+          </div>
+        </div>
 
-      <!-- Retry backoff -->
-      <div>
-        <label class="block text-xs font-medium text-content-secondary mb-1.5">Retry backoff delay</label>
-        <%= form.select :auto_retry_backoff,
-            [["30 seconds", "30s"], ["1 minute", "1min"], ["5 minutes", "5min"]],
-            { selected: @user.auto_retry_backoff || "1min" },
-            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
-        <p class="text-xs text-content-muted mt-1">How long to wait before each retry attempt</p>
-      </div>
-
-      <!-- Fallback model chain -->
-      <div>
-        <label class="block text-xs font-medium text-content-secondary mb-1.5">Fallback model chain</label>
-        <%= form.text_field :fallback_model_chain,
-            value: @user.fallback_model_chain,
-            placeholder: "opus → sonnet → gemini",
-            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
-        <p class="text-xs text-content-muted mt-1">Models to try in order if the primary fails. Use → or , to separate. Available: opus, sonnet, codex, gemini, glm</p>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <%= form.submit "Save error handling settings", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
-        <% if @user.auto_retry_enabled? %>
-          <span class="flex items-center gap-1.5 text-xs text-yellow-500">
-            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-            Auto-retry enabled
-          </span>
-        <% end %>
-      </div>
-    <% end %>
-  </div>
-
-  <!-- Section 4: OpenClaw Integration -->
-  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
-    <div class="flex items-center gap-2">
-      <span class="text-lg">🦞</span>
-      <h3 class="text-sm font-semibold text-content font-display">OpenClaw Integration</h3>
+        <div class="flex items-center gap-3">
+          <%= form.submit "Save threshold", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
+        </div>
+      <% end %>
     </div>
 
-    <p class="text-xs text-content-secondary">
-      Connect your OpenClaw agent to ClawDeck. Copy the prompt below and add it to your agent's configuration.
-    </p>
+    <!-- Error Handling & Handoff -->
+    <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">⚠️</span>
+        <h3 class="text-sm font-semibold text-content font-display">Error Handling & Handoff</h3>
+      </div>
 
-    <% api_url = "#{request.base_url}/api/v1" %>
-    <% # Security: raw token is only available right after creation/regeneration
-       # Otherwise show masked version. User should copy from the flash message.
-       api_token = @api_token.raw_token.presence || @api_token.masked_token %>
+      <p class="text-xs text-content-secondary">
+        Configure how ClawDeck handles agent errors and automatic retries.
+      </p>
 
-    <!-- Comprehensive agent prompt -->
-    <div data-controller="clipboard">
-      <div class="bg-bg-elevated rounded-md max-h-96 overflow-y-auto">
-        <pre
-          data-clipboard-target="source"
-          class="px-3 py-3 text-xs font-mono text-content-secondary whitespace-pre-wrap break-words leading-relaxed"
+      <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
+        <!-- Auto-retry toggle -->
+        <div class="flex items-center justify-between p-3 bg-bg-elevated rounded-lg">
+          <div>
+            <label class="text-sm font-medium text-content">Auto-retry on failure</label>
+            <p class="text-xs text-content-muted mt-0.5">Automatically retry failed tasks with the same or fallback model</p>
+          </div>
+          <%= form.check_box :auto_retry_enabled,
+              class: "rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
+        </div>
+
+        <!-- Max retries -->
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Maximum retries</label>
+          <%= form.select :auto_retry_max,
+              [["1 retry", 1], ["2 retries", 2], ["3 retries", 3], ["4 retries", 4], ["5 retries", 5]],
+              { selected: @user.auto_retry_max || 3 },
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+        </div>
+
+        <!-- Retry backoff -->
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Retry backoff delay</label>
+          <%= form.select :auto_retry_backoff,
+              [["30 seconds", "30s"], ["1 minute", "1min"], ["5 minutes", "5min"]],
+              { selected: @user.auto_retry_backoff || "1min" },
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+          <p class="text-xs text-content-muted mt-1">How long to wait before each retry attempt</p>
+        </div>
+
+        <!-- Fallback model chain -->
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Fallback model chain</label>
+          <%= form.text_field :fallback_model_chain,
+              value: @user.fallback_model_chain,
+              placeholder: "opus → sonnet → gemini",
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+          <p class="text-xs text-content-muted mt-1">Models to try in order if the primary fails. Use → or , to separate. Available: opus, sonnet, codex, gemini, glm</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <%= form.submit "Save error handling settings", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
+          <% if @user.auto_retry_enabled? %>
+            <span class="flex items-center gap-1.5 text-xs text-yellow-500">
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+              Auto-retry enabled
+            </span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- AI Tab -->
+  <div data-tabs-target="panel" data-tab="ai" class="hidden space-y-6">
+    <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🤖</span>
+        <h3 class="text-sm font-semibold text-content font-display">AI Settings</h3>
+      </div>
+
+      <p class="text-xs text-content-secondary">
+        Configure AI-powered follow-up suggestions. The AI analyzes completed tasks and suggests specific next steps.
+      </p>
+
+      <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">AI Model</label>
+          <%= form.select :ai_suggestion_model,
+              [
+                ["GLM-4.7 Flash (z.ai)", "glm"],
+                ["Gemini (coming soon)", "gemini", { disabled: true }],
+                ["Claude Sonnet (coming soon)", "sonnet", { disabled: true }],
+                ["Claude Opus (coming soon)", "opus", { disabled: true }]
+              ],
+              {},
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">API Key</label>
+          <%= form.password_field :ai_api_key,
+              value: @user.ai_api_key,
+              placeholder: @user.ai_api_key.present? ? "••••••••" : "Enter your API key",
+              autocomplete: "off",
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+          <p class="text-xs text-content-muted mt-1">Get a GLM key from <a href="https://z.ai" target="_blank" class="text-accent hover:underline">z.ai</a></p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <%= form.submit "Save AI settings", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
+          <% if @user.ai_api_key.present? %>
+            <span class="flex items-center gap-1.5 text-xs text-green-500">
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Configured
+            </span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Integration Tab -->
+  <div data-tabs-target="panel" data-tab="integration" class="hidden space-y-6">
+    <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🦞</span>
+        <h3 class="text-sm font-semibold text-content font-display">OpenClaw Integration</h3>
+      </div>
+
+      <p class="text-xs text-content-secondary">
+        Connect your OpenClaw agent to ClawDeck. Copy the prompt below and add it to your agent's configuration.
+      </p>
+
+      <% api_url = "#{request.base_url}/api/v1" %>
+      <% # Security: raw token is only available right after creation/regeneration
+         # Otherwise show masked version. User should copy from the flash message.
+         api_token = @api_token.raw_token.presence || @api_token.masked_token %>
+
+      <!-- Comprehensive agent prompt -->
+      <div data-controller="clipboard">
+        <div class="bg-bg-elevated rounded-md max-h-96 overflow-y-auto">
+          <pre
+            data-clipboard-target="source"
+            class="px-3 py-3 text-xs font-mono text-content-secondary whitespace-pre-wrap break-words leading-relaxed"
 ># ClawDeck — Your Task Dashboard
 
 ClawDeck is where your human manages your work queue. A shared kanban board with live agent activity tracking.
@@ -361,71 +381,72 @@ If configured in Settings → Gateway Webhook:
 - Create tasks for ideas you can't tackle now
 - Always save the REAL sessionId (from sessions_list)
 - Configure webhook for "Execute Now" to work instantly</pre>
+        </div>
+        <div class="flex items-center gap-3 mt-2">
+          <button
+            type="button"
+            data-action="click->clipboard#copy"
+            class="cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors"
+          >
+            <span data-clipboard-target="label">Copy</span>
+          </button>
+          <%= button_to "Regenerate token", regenerate_api_token_settings_path,
+              method: :post,
+              data: { turbo_confirm: "This will invalidate your current token. Continue?" },
+              class: "cursor-pointer text-xs text-content-muted hover:text-content-secondary transition-colors" %>
+        </div>
       </div>
-      <div class="flex items-center gap-3 mt-2">
-        <button
-          type="button"
-          data-action="click->clipboard#copy"
-          class="cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors"
-        >
-          <span data-clipboard-target="label">Copy</span>
-        </button>
-        <%= button_to "Regenerate token", regenerate_api_token_settings_path,
-            method: :post,
-            data: { turbo_confirm: "This will invalidate your current token. Continue?" },
-            class: "cursor-pointer text-xs text-content-muted hover:text-content-secondary transition-colors" %>
+
+      <!-- Connected Agent (within same box) -->
+      <div class="pt-4 border-t border-border">
+        <p class="text-xs font-medium text-content-secondary mb-3">Connected Agent</p>
+
+        <% if @user.agent_last_active_at.present? %>
+          <div class="flex items-center gap-3">
+            <span class="text-xl"><%= @user.agent_emoji || "🦞" %></span>
+            <span class="text-sm text-content"><%= @user.agent_name || "Agent" %></span>
+            <span class="text-xs text-content-muted">•</span>
+            <span class="text-xs text-content-muted">Last active: <%= time_ago_in_words(@user.agent_last_active_at) %> ago</span>
+          </div>
+        <% else %>
+          <p class="text-xs text-content-muted">No agent connected yet</p>
+        <% end %>
       </div>
-    </div>
 
-    <!-- Connected Agent (within same box) -->
-    <div class="pt-4 border-t border-border">
-      <p class="text-xs font-medium text-content-secondary mb-3">Connected Agent</p>
+      <!-- OpenClaw Gateway Webhook -->
+      <div class="pt-4 border-t border-border">
+        <p class="text-xs font-medium text-content-secondary mb-1">Gateway Webhook</p>
+        <p class="text-xs text-content-muted mb-3">Auto-wake your agent when tasks move to <span class="font-medium text-content-secondary">In Progress</span>.</p>
 
-      <% if @user.agent_last_active_at.present? %>
-        <div class="flex items-center gap-3">
-          <span class="text-xl"><%= @user.agent_emoji || "🦞" %></span>
-          <span class="text-sm text-content"><%= @user.agent_name || "Agent" %></span>
-          <span class="text-xs text-content-muted">•</span>
-          <span class="text-xs text-content-muted">Last active: <%= time_ago_in_words(@user.agent_last_active_at) %> ago</span>
-        </div>
-      <% else %>
-        <p class="text-xs text-content-muted">No agent connected yet</p>
-      <% end %>
-    </div>
+        <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-3") do |form| %>
+          <div>
+            <label class="block text-xs font-medium text-content-secondary mb-1.5">Gateway URL</label>
+            <%= form.text_field :openclaw_gateway_url,
+                placeholder: "http://localhost:4000",
+                class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+          </div>
 
-    <!-- OpenClaw Gateway Webhook -->
-    <div class="pt-4 border-t border-border">
-      <p class="text-xs font-medium text-content-secondary mb-1">Gateway Webhook</p>
-      <p class="text-xs text-content-muted mb-3">Auto-wake your agent when tasks move to <span class="font-medium text-content-secondary">In Progress</span>.</p>
+          <div>
+            <label class="block text-xs font-medium text-content-secondary mb-1.5">Gateway Token</label>
+            <%= form.password_field :openclaw_gateway_token,
+                value: @user.openclaw_gateway_token,
+                placeholder: "••••••••",
+                autocomplete: "off",
+                class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+            <p class="text-xs text-content-muted mt-1">Find in <code class="bg-bg-elevated px-1 rounded">~/.openclaw/config.yaml</code> → <code class="bg-bg-elevated px-1 rounded">gateway.token</code></p>
+          </div>
 
-      <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-3") do |form| %>
-        <div>
-          <label class="block text-xs font-medium text-content-secondary mb-1.5">Gateway URL</label>
-          <%= form.text_field :openclaw_gateway_url,
-              placeholder: "http://localhost:4000",
-              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
-        </div>
-
-        <div>
-          <label class="block text-xs font-medium text-content-secondary mb-1.5">Gateway Token</label>
-          <%= form.password_field :openclaw_gateway_token,
-              value: @user.openclaw_gateway_token,
-              placeholder: "••••••••",
-              autocomplete: "off",
-              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
-          <p class="text-xs text-content-muted mt-1">Find in <code class="bg-bg-elevated px-1 rounded">~/.openclaw/config.yaml</code> → <code class="bg-bg-elevated px-1 rounded">gateway.token</code></p>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <%= form.submit "Save webhook settings", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
-          <% if @user.openclaw_gateway_url.present? && @user.openclaw_gateway_token.present? %>
-            <span class="flex items-center gap-1.5 text-xs text-green-500">
-              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-              Configured
-            </span>
-          <% end %>
-        </div>
-      <% end %>
+          <div class="flex items-center gap-3">
+            <%= form.submit "Save webhook settings", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
+            <% if @user.openclaw_gateway_url.present? && @user.openclaw_gateway_token.present? %>
+              <span class="flex items-center gap-1.5 text-xs text-green-500">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                Configured
+              </span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
     </div>
   </div>
 </div>

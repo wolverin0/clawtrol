@@ -2,8 +2,17 @@
 <% show_agent_preview = %w[in_progress in_review].include?(task.status) && task.agent_session_id.present? %>
 <% show_agent_modal_btn = task.agent_session_id.present? %>
 <% show_error_state = task.errored? %>
+<%# Model-based left border color %>
+<% model_border_class = case task.model.to_s.downcase
+  when /opus/ then "border-l-[3px] border-l-purple-500"
+  when /sonnet/ then "border-l-[3px] border-l-blue-500"
+  when /gemini/ then "border-l-[3px] border-l-green-500"
+  when /glm/ then "border-l-[3px] border-l-yellow-500"
+  when /codex/ then "border-l-[3px] border-l-orange-500"
+  else ""
+end %>
 <li id="task_<%= task.id %>"
-    class="group relative w-full bg-bg-elevated border border-border rounded-md cursor-pointer transition-all hover:bg-bg-hover overflow-visible <%= 'border-l-4 border-l-status-warning' if task.blocked? %> <%= 'border-l-4 border-l-red-500' if show_error_state %>"
+    class="group relative w-full bg-bg-elevated border border-border rounded-md cursor-pointer transition-all hover:bg-bg-hover overflow-visible <%= model_border_class %> <%= 'border-l-4 border-l-status-warning' if task.blocked? %> <%= 'border-l-4 border-l-red-500' if show_error_state %>"
     <% if has_current_user %>
       data-controller="dropdown delete-confirm<%= ' agent-preview' if show_agent_preview %><%= ' agent-modal' if show_agent_modal_btn %>"
       data-action="contextmenu->dropdown#openAtCursor<%= ' mouseenter->agent-preview#show mouseleave->agent-preview#hide' if show_agent_preview %>"
@@ -264,57 +273,12 @@
     <%= render "application/delete_modal", url: board_task_path(task.board, task) %>
   <% end %>
 
-  <%# Error banner - shown when task has error %>
-  <% if show_error_state && has_current_user %>
-    <div class="px-3 py-2 bg-red-500/10 border-b border-red-500/30">
-      <div class="flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2 min-w-0 flex-1">
-          <span class="text-red-400 flex-shrink-0">⚠️</span>
-          <span class="text-xs text-red-400 truncate"><%= task.error_message&.truncate(60) || "Error occurred" %></span>
-        </div>
-        <%= link_to handoff_modal_board_task_path(task.board, task),
-            data: { turbo_frame: "handoff_modal" },
-            class: "flex-shrink-0 px-2 py-1 text-[10px] font-medium bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded transition-colors" do %>
-          🔄 Handoff
-        <% end %>
-      </div>
-    </div>
-  <% end %>
-
-  <%# Main card content - clickable to open task panel %>
-  <%= link_to board_task_path(task.board, task), data: { turbo_frame: "task_panel" }, class: "block p-3 pb-1" do %>
-    <%# Parent task link for follow-ups %>
-    <% if task.parent_task_id.present? %>
-      <div class="mb-1">
-        <span class="text-[10px] text-content-muted">↪ follow-up of #<%= task.parent_task_id %></span>
-      </div>
-    <% end %>
-
-    <%# Task ID + Name %>
-    <div class="flex items-start gap-2 min-w-0">
-      <span class="flex-1 text-sm font-medium text-content leading-tight overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; max-width: 100%;">
-        <% if show_error_state %><span class="text-red-400">⚠️</span> <% end %><span class="text-xs text-content-muted font-normal">#<%= task.id %></span><% if task.status == 'in_progress' && task.assigned_to_agent? && task.agent_session_id.present? %><span class="inline-block align-middle ml-1"><span class="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin"></span></span><% end %> <%= task.name %>
-      </span>
-      <% if task.blocked? %>
-        <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-status-warning" title="Blocked"></span>
-      <% end %>
-    </div>
-
-    <%# Tags %>
-    <% if task.tags.present? && task.tags.any? %>
-      <div class="flex flex-wrap gap-1 mt-2">
-        <% task.tags.each do |tag| %>
-          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-bg-surface text-content-secondary">
-            <%= tag %>
-          </span>
-        <% end %>
-      </div>
-    <% end %>
-  <% end %>
+  <%# === CARD HEADER: Error banner, Title, ID, Spinner === %>
+  <%= render "boards/tasks/card_header", task: task, show_error_state: show_error_state, has_current_user: has_current_user %>
 
   <%# Footer: Priority + Actions + Model + Agent - OUTSIDE the link %>
   <div class="flex items-center justify-between px-3 pb-3 pt-1 gap-1">
-    <%# Priority Indicator %>
+    <%# Priority Indicator - ALWAYS VISIBLE %>
     <div class="flex items-center flex-shrink-0">
       <% flame_count = case task.priority
         when "high" then 3
@@ -345,141 +309,13 @@
 
     <%# Action Buttons + Model + Agent badges %>
     <div class="flex items-center gap-1 flex-wrap justify-end">
-      <%# NEXT button - visible for all active statuses, Archive for done %>
-      <% next_status = { 'inbox' => 'up_next', 'up_next' => 'in_progress', 'in_progress' => 'in_review', 'in_review' => 'done', 'done' => 'archived' }[task.status] %>
-      <% if next_status %>
-        <% if task.status == 'done' %>
-          <%= link_to move_board_task_path(task.board, task, status: next_status),
-              data: { turbo_method: :patch, turbo_frame: "_top" },
-              class: "inline-flex items-center px-1.5 py-0.5 text-[10px] bg-content-muted/20 hover:bg-content-muted/30 text-content-muted rounded transition-colors",
-              title: "Archive this task" do %>
-            📦
-          <% end %>
-        <% else %>
-          <%= link_to move_board_task_path(task.board, task, status: next_status),
-              data: { turbo_method: :patch, turbo_frame: "_top" },
-              class: "inline-flex items-center px-1.5 py-0.5 text-[10px] bg-accent/80 hover:bg-accent text-white rounded transition-colors",
-              title: "Move to #{next_status.humanize}" do %>
-            NEXT →
-          <% end %>
-        <% end %>
-      <% end %>
-
-      <%# Follow-up button - show for in_review and done %>
-      <% if task.status.in?(['in_review', 'done']) %>
-        <%= link_to followup_modal_board_task_path(task.board, task),
-            class: "px-1.5 py-0.5 text-[10px] bg-bg-surface hover:bg-bg-hover text-content-muted rounded transition-colors",
-            data: { turbo_frame: "followup_modal" },
-            title: "Create follow-up" do %>
-          ↪️
-        <% end %>
-      <% end %>
-
-      <%# Board badge (for aggregator views) %>
-      <% if defined?(@is_aggregator) && @is_aggregator && task.board.present? %>
-        <span class="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium bg-bg-surface text-content-muted" title="Board: <%= task.board.name %>">
-          <%= task.board.icon %>
-        </span>
-      <% end %>
-      <%# Model badge %>
-      <% if task.model.present? %>
-        <span class="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium bg-purple-500/20 text-purple-400" title="Model: <%= task.model %>">
-          <%= task.model.upcase %>
-        </span>
-      <% end %>
-      <%# Review status badge (new review system) %>
-      <% if task.has_review? %>
-        <% review_badge_class = case task.review_status
-          when "passed" then "bg-green-500/20 text-green-400"
-          when "failed" then "bg-red-500/20 text-red-400"
-          when "running" then "bg-yellow-500/20 text-yellow-400"
-          when "pending" then "bg-blue-500/20 text-blue-400"
-          else "bg-gray-500/20 text-gray-400"
-        end %>
-        <% review_icon = case task.review_status
-          when "passed" then "✅"
-          when "failed" then "⚠️"
-          when "running" then nil  # Will show spinner
-          when "pending" then "🔄"
-          else "❓"
-        end %>
-        <% type_icon = task.debate_review? ? "🎭" : "🔍" %>
-        <% if has_current_user %>
-          <%= link_to review_output_modal_board_task_path(task.board, task),
-              data: { turbo_frame: "review_output_modal" },
-              class: "inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium #{review_badge_class} cursor-pointer hover:opacity-80",
-              title: "#{task.review_type&.capitalize} Review: #{task.review_status || 'pending'} - Click to view" do %>
-            <% if task.review_in_progress? %>
-              <span class="inline-block w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin"></span>
-            <% else %>
-              <%= review_icon %>
-            <% end %>
-            <%= type_icon %>
-          <% end %>
-        <% else %>
-          <span class="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-medium <%= review_badge_class %>" title="<%= task.review_type&.capitalize %> Review: <%= task.review_status || 'pending' %>">
-            <% if task.review_in_progress? %>
-              <span class="inline-block w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin"></span>
-            <% else %>
-              <%= review_icon %>
-            <% end %>
-            <%= type_icon %>
-          </span>
-        <% end %>
-      <% end %>
-      <%# Validation status badge (legacy) %>
-      <% if task.validation_command.present? && !task.has_review? %>
-        <% validation_badge_class = case task.validation_status
-          when "passed" then "bg-green-500/20 text-green-400"
-          when "failed" then "bg-red-500/20 text-red-400"
-          when "pending" then "bg-yellow-500/20 text-yellow-400"
-          else "bg-gray-500/20 text-gray-400"
-        end %>
-        <% validation_icon = case task.validation_status
-          when "passed" then "✅"
-          when "failed" then "❌"
-          when "pending" then "⏳"
-          else "🔍"
-        end %>
-        <% if has_current_user && task.validation_output.present? %>
-          <%= link_to validation_output_modal_board_task_path(task.board, task),
-              data: { turbo_frame: "validation_output_modal" },
-              class: "inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium #{validation_badge_class} cursor-pointer hover:opacity-80",
-              title: "Validation: #{task.validation_status || 'not run'} - Click to view output" do %>
-            <%= validation_icon %>
-          <% end %>
-        <% else %>
-          <span class="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium <%= validation_badge_class %>" title="Validation: <%= task.validation_status || 'configured' %>">
-            <%= validation_icon %>
-          </span>
-        <% end %>
-      <% end %>
-      <% if task.recurring? %>
-        <span class="text-[10px]" title="Recurring: <%= task.recurrence_rule %>">🔄</span>
-      <% end %>
-      <% if task.nightly? %>
-        <span class="text-[10px]" title="Nightly task<%= task.nightly_delay_hours.present? ? " (+#{task.nightly_delay_hours}h)" : '' %>">🌙</span>
-      <% end %>
-      <% if task.followup_task_id.present? %>
-        <span class="text-[10px]" title="Has follow-up task">↪️</span>
-      <% end %>
-      <%# Agent Assignment Badge %>
-      <% if task.assigned_to_agent? %>
-        <span class="text-xs" title="Assigned to <%= task.user&.agent_name || 'Agent' %>"><%= (task.user&.agent_emoji || "🦞").to_s.encode('UTF-8', invalid: :replace, undef: :replace) %></span>
-      <% end %>
-
-      <%# Agent Activity Button (📟) - always visible when task has agent session %>
-      <% if show_agent_modal_btn && has_current_user %>
-        <button type="button"
-                data-action="click->agent-modal#open"
-                class="agent-preview-btn inline-flex items-center justify-center w-8 h-8 text-sm rounded-md 
-                       <%= task.status == 'in_progress' ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-bg-surface text-content-muted hover:bg-bg-hover' %>
-                       transition-colors"
-                aria-label="View agent activity"
-                title="Agent activity<%= task.status == 'in_progress' ? ' (Live)' : '' %>">
-          📟
-        </button>
-      <% end %>
+      <%# === CARD ACTIONS: NEXT, Follow-up, Agent button === %>
+      <%= render "boards/tasks/card_actions", task: task, has_current_user: has_current_user, show_agent_modal_btn: show_agent_modal_btn %>
+      
+      <%# === CARD BADGES: Model, Review, Validation, Recurring, Nightly - SHOW ON HOVER === %>
+      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+        <%= render "boards/tasks/card_badges", task: task, has_current_user: has_current_user %>
+      </div>
     </div>
   </div>
 
