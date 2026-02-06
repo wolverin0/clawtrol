@@ -63,6 +63,8 @@ export default class extends Controller {
         onReceived: (data) => {
           // Trigger refresh when we get a message
           if (data.type === "refresh" || data.type === "create" || data.type === "update" || data.type === "destroy") {
+            // Play codec sounds for agent-related status transitions
+            this.playStatusSound(data)
             this.refresh()
           }
         }
@@ -187,5 +189,31 @@ export default class extends Controller {
   // Manual refresh action (can be triggered by button)
   manualRefresh() {
     this.refresh()
+  }
+
+  /**
+   * Play codec sounds based on task status transitions (MGS Easter egg)
+   * agent_spawn: task moves to in_progress (agent started working)
+   * agent_complete: task moves to in_review or done (agent finished)
+   * agent_error: task gets errored status
+   */
+  playStatusSound(data) {
+    if (!data.old_status || !data.new_status) return
+
+    const { old_status, new_status } = data
+
+    let sound = null
+
+    if (new_status === "in_progress" && old_status !== "in_progress") {
+      sound = "agent_spawn"
+    } else if ((new_status === "in_review" || new_status === "done") && old_status === "in_progress") {
+      sound = "agent_complete"
+    } else if (new_status === "errored" || (old_status === "in_progress" && new_status === "inbox")) {
+      sound = "agent_error"
+    }
+
+    if (sound) {
+      document.dispatchEvent(new CustomEvent("codec:play", { detail: { sound } }))
+    }
   }
 }

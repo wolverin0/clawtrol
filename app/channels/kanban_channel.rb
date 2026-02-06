@@ -23,12 +23,15 @@ class KanbanChannel < ApplicationCable::Channel
 
   # Class method to broadcast a board update
   # Call this when tasks are created, updated, or destroyed
-  def self.broadcast_refresh(board_id, task_id: nil, action: "refresh")
+  # Optional old_status/new_status for sound effects (agent transitions)
+  def self.broadcast_refresh(board_id, task_id: nil, action: "refresh", old_status: nil, new_status: nil)
     ActionCable.server.broadcast(
       "kanban_board_#{board_id}",
       {
         type: action,
         task_id: task_id,
+        old_status: old_status,
+        new_status: new_status,
         timestamp: Time.current.to_i
       }
     )

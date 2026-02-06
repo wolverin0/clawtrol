@@ -16,6 +16,9 @@ import SearchController from "controllers/search_controller"
 import FilterController from "controllers/filter_controller"
 import BulkOperationsController from "controllers/bulk_operations_controller"
 import WizardController from "controllers/wizard_controller"
+import DragAssignController from "controllers/drag_assign_controller"
+import SoundController from "controllers/sound_controller"
+import SoundToggleController from "controllers/sound_toggle_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -28,3 +31,6 @@ application.register("search", SearchController)
 application.register("filter", FilterController)
 application.register("bulk-operations", BulkOperationsController)
 application.register("wizard", WizardController)
+application.register("drag-assign", DragAssignController)
+application.register("sound", SoundController)
+application.register("sound-toggle", SoundToggleController)

@@ -78,6 +78,9 @@ export default class extends Controller {
       return
     }
 
+    // Play codec call sound on context menu open
+    document.dispatchEvent(new CustomEvent("codec:play", { detail: { sound: "codec_call" } }))
+
     // Boost card z-index so dropdown menu appears above sibling cards
     this.element.classList.add("z-[100]")
 
@@ -136,6 +139,9 @@ export default class extends Controller {
   }
 
   close() {
+    // Play codec close sound
+    document.dispatchEvent(new CustomEvent("codec:play", { detail: { sound: "codec_close" } }))
+
     this.menuTarget.classList.add("hidden")
     const triggerEl = this.hasTriggerTarget ? this.triggerTarget : this.buttonTarget
     triggerEl.setAttribute("aria-expanded", "false")

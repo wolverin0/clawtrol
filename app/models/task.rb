@@ -1,11 +1,13 @@
 class Task < ApplicationRecord
   belongs_to :user
   belongs_to :board
+  belongs_to :agent_persona, optional: true
   belongs_to :parent_task, class_name: "Task", optional: true
   belongs_to :followup_task, class_name: "Task", optional: true
   has_many :activities, class_name: "TaskActivity", dependent: :destroy
   has_many :child_tasks, class_name: "Task", foreign_key: :parent_task_id, dependent: :nullify
   has_one :source_task, class_name: "Task", foreign_key: :followup_task_id
+  has_many :token_usages, dependent: :destroy
 
   # Task dependencies (blocking relationships)
   has_many :task_dependencies, dependent: :destroy
@@ -518,7 +520,7 @@ class Task < ApplicationRecord
     return if skip_broadcast?
 
     # Reload with associations to avoid N+1 when rendering the partial
-    task_with_associations = Task.includes(:board, :user).find(id)
+    task_with_associations = Task.includes(:board, :user, :agent_persona).find(id)
 
     broadcast_to_board(
       action: :prepend,
@@ -536,7 +538,7 @@ class Task < ApplicationRecord
     return if skip_broadcast?
 
     # Reload with associations to avoid N+1 when rendering the partial
-    task_with_associations = Task.includes(:board, :user).find(id)
+    task_with_associations = Task.includes(:board, :user, :agent_persona).find(id)
 
     # If status changed, handle move between columns
     if saved_change_to_status?
@@ -565,7 +567,13 @@ class Task < ApplicationRecord
     end
 
     # Also broadcast via ActionCable KanbanChannel for WebSocket clients
-    KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "update")
+    # Include status transition for sound effects
+    if saved_change_to_status?
+      old_s, new_s = saved_change_to_status
+      KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "update", old_status: old_s, new_status: new_s)
+    else
+      KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "update")
+    end
 
     # Broadcast agent activity updates when agent-related fields change
     if saved_change_to_agent_session_id? || saved_change_to_status? || saved_change_to_agent_claimed_at?

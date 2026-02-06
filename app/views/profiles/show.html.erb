@@ -77,6 +77,56 @@
 
   <!-- Agent Tab -->
   <div data-tabs-target="panel" data-tab="agent" class="hidden space-y-6">
+    <!-- Codec Sound Effects (Easter Egg) -->
+    <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4" data-controller="sound-toggle">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🔊</span>
+        <h3 class="text-sm font-semibold text-content font-display">Codec Sounds</h3>
+        <span class="text-[10px] text-content-muted bg-bg-elevated px-1.5 py-0.5 rounded-full uppercase tracking-wider">Easter Egg</span>
+      </div>
+
+      <p class="text-xs text-content-secondary">
+        MGS-inspired codec sound effects for agent events. Short beeps play when tasks change status, context menus open, and agents complete work.
+      </p>
+
+      <div class="flex items-center justify-between p-3 bg-bg-elevated rounded-lg">
+        <div>
+          <label class="text-sm font-medium text-content">Enable Codec Sounds</label>
+          <p class="text-xs text-content-muted mt-0.5">Beep-boop when things happen ☎️</p>
+        </div>
+        <button type="button"
+                data-action="click->sound#toggle"
+                data-sound-toggle-target="button"
+                class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg-surface"
+                role="switch"
+                id="codec-sounds-toggle">
+          <span class="sr-only">Toggle codec sounds</span>
+          <span aria-hidden="true"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+        </button>
+      </div>
+
+      <!-- Sound preview buttons -->
+      <div class="flex flex-wrap gap-2">
+        <button type="button" data-action="click->sound#play" data-sound-sound-param="codec_call"
+                class="text-xs px-2 py-1 bg-bg-elevated hover:bg-bg-hover text-content-secondary rounded transition-colors cursor-pointer">
+          📞 Codec Call
+        </button>
+        <button type="button" data-action="click->sound#play" data-sound-sound-param="agent_spawn"
+                class="text-xs px-2 py-1 bg-bg-elevated hover:bg-bg-hover text-content-secondary rounded transition-colors cursor-pointer">
+          🚀 Agent Spawn
+        </button>
+        <button type="button" data-action="click->sound#play" data-sound-sound-param="agent_complete"
+                class="text-xs px-2 py-1 bg-bg-elevated hover:bg-bg-hover text-content-secondary rounded transition-colors cursor-pointer">
+          ✅ Complete
+        </button>
+        <button type="button" data-action="click->sound#play" data-sound-sound-param="agent_error"
+                class="text-xs px-2 py-1 bg-bg-elevated hover:bg-bg-hover text-content-secondary rounded transition-colors cursor-pointer">
+          ❌ Error
+        </button>
+      </div>
+    </div>
+
     <!-- Session Continuation Settings -->
     <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
       <div class="flex items-center gap-2">
