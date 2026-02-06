@@ -1,65 +1,54 @@
-<%# Board Header - Simplified single-row design %>
+<%# Board Header - Redesigned with tabs + expanded filters per Snake's specs %>
 <header class="flex-shrink-0 bg-bg-base border-b border-border">
-  <%# Main header row %>
-  <div class="flex items-center justify-between px-4 md:px-6 py-2.5">
-    <%# Left section: Logo + Boards dropdown %>
-    <div class="flex items-center gap-3">
+  <%# Row 1: Logo + Board Tabs (responsive wrap) + Controls %>
+  <div class="flex items-start justify-between px-4 md:px-6 py-2.5 gap-4">
+    <%# Left section: Logo + Board Tabs %>
+    <div class="flex items-center gap-4 flex-wrap min-w-0">
       <%# Logo %>
-      <span class="text-base md:text-lg font-semibold text-content font-display whitespace-nowrap">🦞 ClawTrol</span>
+      <span class="text-base md:text-lg font-semibold text-content font-display whitespace-nowrap flex-shrink-0">🦞 ClawTrol</span>
 
-      <%# Boards Dropdown %>
-      <div class="relative" data-controller="dropdown">
+      <%# Board Tabs - visible, wrapping, no scrolling %>
+      <div class="flex items-center gap-1 flex-wrap">
+        <% @boards.each do |board| %>
+          <% active = board.id == @board.id %>
+          <% task_count = board.tasks.where.not(status: :done).count %>
+          <%= link_to board_path(board),
+              class: "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap #{active ? 'bg-accent text-content' : 'bg-bg-elevated text-content-secondary hover:bg-bg-hover hover:text-content'}",
+              data: { turbo_frame: "_top" } do %>
+            <span><%= board.icon %></span>
+            <span class="max-w-[100px] truncate"><%= board.name %></span>
+            <% if task_count > 0 %>
+              <span class="text-[10px] <%= active ? 'opacity-75' : 'text-content-muted' %>">(<%= task_count %>)</span>
+            <% end %>
+          <% end %>
+        <% end %>
+
+        <%# Archived link %>
+        <% archived_count = @board.tasks.archived.count %>
+        <%= link_to archived_board_path(@board),
+            class: "inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-content-muted hover:text-content hover:bg-bg-elevated transition-colors whitespace-nowrap" do %>
+          📦
+          <% if archived_count > 0 %>
+            <span class="text-[10px]">(<%= archived_count %>)</span>
+          <% end %>
+        <% end %>
+
+        <%# New Board button %>
         <button type="button"
-                data-dropdown-target="button"
-                data-action="click->dropdown#toggle"
-                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium text-content bg-bg-elevated hover:bg-bg-hover transition-colors cursor-pointer">
-          <span><%= @board.icon %></span>
-          <span class="truncate max-w-[120px] md:max-w-[160px]"><%= @board.name %></span>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-content-muted">
-            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                data-action="click->board-modal#open"
+                data-board-modal-target="newBoardTrigger"
+                class="inline-flex items-center justify-center w-7 h-7 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer"
+                title="New Board">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
           </svg>
         </button>
-        <div data-dropdown-target="menu"
-             class="hidden absolute left-0 top-full mt-1 w-56 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
-          <div class="py-1 max-h-72 overflow-y-auto">
-            <% @boards.each do |board| %>
-              <% active = board.id == @board.id %>
-              <% task_count = board.tasks.where.not(status: :done).count %>
-              <%= link_to board_path(board),
-                  class: "flex items-center gap-2 px-3 py-2 text-sm transition-colors #{active ? 'bg-bg-elevated text-content font-medium' : 'text-content-secondary hover:bg-bg-hover hover:text-content'}",
-                  data: { turbo_frame: "_top" } do %>
-                <span><%= board.icon %></span>
-                <span class="flex-1 truncate"><%= board.name %></span>
-                <% if task_count > 0 %>
-                  <span class="text-xs <%= active ? 'text-accent' : 'text-content-muted' %>"><%= task_count %></span>
-                <% end %>
-              <% end %>
-            <% end %>
-          </div>
-          <div class="border-t border-border py-1">
-            <% archived_count = @board.tasks.archived.count %>
-            <%= link_to archived_board_path(@board),
-                class: "flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" do %>
-              <span>📦</span>
-              <span class="flex-1">Archived</span>
-              <% if archived_count > 0 %>
-                <span class="text-xs text-content-muted"><%= archived_count %></span>
-              <% end %>
-            <% end %>
-            <button type="button"
-                    data-action="click->board-modal#open"
-                    data-board-modal-target="newBoardTrigger"
-                    class="w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors cursor-pointer">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
-              </svg>
-              <span>New Board</span>
-            </button>
-          </div>
-        </div>
       </div>
+    </div>
 
-      <%# Quick Nav Icons %>
+    <%# Right section: Quick nav + Controls %>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <%# Quick Nav Icons - Dashboard, Analytics, Personas, Roster %>
       <%= link_to dashboard_path,
           class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
           title: "Dashboard" do %>
@@ -70,110 +59,17 @@
           title: "Analytics" do %>
         📈
       <% end %>
+      <%= link_to agent_personas_path,
+          class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+          title: "Agent Personas" do %>
+        🧠
+      <% end %>
+      <%= link_to roster_agent_personas_path,
+          class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+          title: "Roster" do %>
+        📋
+      <% end %>
 
-      <%# Agent Personas dropdown %>
-      <div class="hidden md:block relative" data-controller="dropdown">
-        <button type="button"
-                data-dropdown-target="button"
-                data-action="click->dropdown#toggle"
-                class="flex items-center gap-1 w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated justify-center transition-colors cursor-pointer"
-                title="Agent Personas">
-          🤖
-        </button>
-        <div data-dropdown-target="menu"
-             class="hidden absolute left-0 top-full mt-1 w-44 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
-          <div class="py-1">
-            <%= link_to agent_personas_path,
-                class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-              🧠 Agent Personas
-            <% end %>
-            <%= link_to roster_agent_personas_path,
-                class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-              📋 Roster
-            <% end %>
-          </div>
-        </div>
-      </div>
-
-      <%# Filters Dropdown %>
-      <div class="relative hidden md:block" data-controller="dropdown">
-        <button type="button"
-                data-dropdown-target="button"
-                data-action="click->dropdown#toggle"
-                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm text-content-secondary hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-            <path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd" />
-          </svg>
-          <span>Filters</span>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
-            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-          </svg>
-        </button>
-        <div data-dropdown-target="menu"
-             data-controller="filter"
-             data-filter-board-id-value="<%= @board.id %>"
-             class="hidden absolute left-0 top-full mt-1 w-64 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
-          <div class="p-3 space-y-3">
-            <div>
-              <label class="block text-xs font-medium text-content-muted mb-1">Status</label>
-              <select data-filter-target="status"
-                      data-action="change->filter#filterByStatus"
-                      class="w-full px-2 py-1.5 text-sm bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
-                <option value="">All statuses</option>
-                <option value="inbox">📥 Inbox</option>
-                <option value="up_next">⏭ Up Next</option>
-                <option value="in_progress">🚀 In Progress</option>
-                <option value="in_review">👀 In Review</option>
-                <option value="done">✅ Done</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-content-muted mb-1">Model</label>
-              <select data-filter-target="model"
-                      data-action="change->filter#filterByModel"
-                      class="w-full px-2 py-1.5 text-sm bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
-                <option value="">All models</option>
-                <% Task::MODELS.each do |model| %>
-                  <option value="<%= model %>"><%= model.capitalize %></option>
-                <% end %>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-content-muted mb-1">Priority</label>
-              <select data-filter-target="priority"
-                      data-action="change->filter#filterByPriority"
-                      class="w-full px-2 py-1.5 text-sm bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
-                <option value="">All priorities</option>
-                <option value="none">None</option>
-                <option value="low">🟢 Low</option>
-                <option value="medium">🟡 Medium</option>
-                <option value="high">🔴 High</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-content-muted mb-1">Agent</label>
-              <select data-filter-target="agent"
-                      data-action="change->filter#filterByAgent"
-                      class="w-full px-2 py-1.5 text-sm bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
-                <option value="">Any</option>
-                <option value="true">🦞 Has agent</option>
-                <option value="false">No agent</option>
-              </select>
-            </div>
-            <div class="pt-2 border-t border-border">
-              <button type="button"
-                      data-action="click->filter#clearAll"
-                      class="w-full text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer text-center py-1">
-                Clear all filters
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <%# Right section: Search + Controls %>
-    <div class="flex items-center gap-2">
       <%# Search %>
       <div data-controller="search" data-search-url-value="<%= search_path %>" class="relative">
         <form action="<%= search_path %>" method="get" class="hidden md:block" data-turbo-frame="_top">
@@ -302,6 +198,12 @@
             <%= link_to analytics_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
               📈 Analytics
             <% end %>
+            <%= link_to agent_personas_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+              🧠 Agent Personas
+            <% end %>
+            <%= link_to roster_agent_personas_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+              📋 Roster
+            <% end %>
             <%= link_to settings_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -325,15 +227,84 @@
     </div>
   </div>
 
-  <%# Stats bar %>
-  <div class="flex items-center justify-between px-4 md:px-6 py-1.5 bg-bg-surface/50 border-t border-border/50">
+  <%# Row 2: Expanded Filters Bar (always visible) %>
+  <div data-controller="filter" 
+       data-filter-board-id-value="<%= @board.id %>"
+       class="hidden md:flex items-center gap-3 px-4 md:px-6 py-2 bg-bg-surface/50 border-t border-border/50 flex-wrap">
+    <span class="text-xs text-content-muted font-medium flex-shrink-0">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5 inline mr-1">
+        <path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd" />
+      </svg>
+      Filters:
+    </span>
+
+    <%# Status %>
+    <select data-filter-target="status"
+            data-action="change->filter#filterByStatus"
+            class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+      <option value="">All statuses</option>
+      <option value="inbox">📥 Inbox</option>
+      <option value="up_next">⏭ Up Next</option>
+      <option value="in_progress">🚀 In Progress</option>
+      <option value="in_review">👀 In Review</option>
+      <option value="done">✅ Done</option>
+    </select>
+
+    <%# Model %>
+    <select data-filter-target="model"
+            data-action="change->filter#filterByModel"
+            class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+      <option value="">All models</option>
+      <% Task::MODELS.each do |model| %>
+        <option value="<%= model %>"><%= model.capitalize %></option>
+      <% end %>
+    </select>
+
+    <%# Priority %>
+    <select data-filter-target="priority"
+            data-action="change->filter#filterByPriority"
+            class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+      <option value="">All priorities</option>
+      <option value="none">None</option>
+      <option value="low">🟢 Low</option>
+      <option value="medium">🟡 Medium</option>
+      <option value="high">🔴 High</option>
+    </select>
+
+    <%# Agent %>
+    <select data-filter-target="agent"
+            data-action="change->filter#filterByAgent"
+            class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+      <option value="">Agent: Any</option>
+      <option value="true">🦞 Has agent</option>
+      <option value="false">No agent</option>
+    </select>
+
+    <%# Active filter chips %>
+    <div data-filter-target="chips" class="flex items-center gap-1.5 flex-wrap">
+      <%# Chips will be dynamically inserted here %>
+    </div>
+
+    <%# Clear all %>
+    <button type="button"
+            data-action="click->filter#clearAll"
+            class="hidden text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
+            data-filter-target="clearButton">
+      Clear all
+    </button>
+
+    <%# Spacer %>
+    <div class="flex-1"></div>
+
+    <%# Quick stats %>
     <div class="flex items-center gap-3 text-xs text-content-muted">
       <span>📊 <span id="header-inbox-count" class="font-medium text-content"><%= @columns[:inbox]&.count || 0 %></span> inbox</span>
       <span class="text-border">·</span>
-      <span><span id="header-in_progress-count" class="font-medium text-content"><%= @columns[:in_progress]&.count || 0 %></span> in progress</span>
+      <span><span id="header-in_progress-count" class="font-medium text-content"><%= @columns[:in_progress]&.count || 0 %></span> active</span>
       <span class="text-border">·</span>
-      <span>✅ <span id="header-done_today-count" class="font-medium text-content"><%= current_user.tasks.where("completed_at >= ?", Time.zone.now.beginning_of_day).count %></span> done today</span>
+      <span>✅ <span id="header-done_today-count" class="font-medium text-content"><%= current_user.tasks.where("completed_at >= ?", Time.zone.now.beginning_of_day).count %></span> today</span>
     </div>
+
     <%# Auto-refresh indicator %>
     <span data-kanban-refresh-target="indicator" 
           class="opacity-0 transition-opacity duration-200 flex items-center gap-1 text-xs text-accent">
@@ -343,6 +314,64 @@
       </svg>
       <span>syncing</span>
     </span>
+  </div>
+
+  <%# Mobile: Compact filter toggle (show filters on tap) %>
+  <div class="md:hidden px-4 py-2 bg-bg-surface/50 border-t border-border/50">
+    <div data-controller="mobile-filter">
+      <button type="button"
+              data-action="click->mobile-filter#toggle"
+              data-mobile-filter-target="toggle"
+              class="flex items-center gap-2 text-xs text-content-muted">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
+          <path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd" />
+        </svg>
+        <span>Filters</span>
+        <svg data-mobile-filter-target="chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 transition-transform">
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+        </svg>
+      </button>
+
+      <div data-mobile-filter-target="panel"
+           data-controller="filter"
+           data-filter-board-id-value="<%= @board.id %>"
+           class="hidden mt-2 flex flex-wrap gap-2">
+        <select data-filter-target="status"
+                data-action="change->filter#filterByStatus"
+                class="px-2 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content">
+          <option value="">All statuses</option>
+          <option value="inbox">📥 Inbox</option>
+          <option value="up_next">⏭ Up Next</option>
+          <option value="in_progress">🚀 In Progress</option>
+          <option value="in_review">👀 In Review</option>
+          <option value="done">✅ Done</option>
+        </select>
+
+        <select data-filter-target="priority"
+                data-action="change->filter#filterByPriority"
+                class="px-2 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content">
+          <option value="">All priorities</option>
+          <option value="low">🟢 Low</option>
+          <option value="medium">🟡 Medium</option>
+          <option value="high">🔴 High</option>
+        </select>
+
+        <select data-filter-target="agent"
+                data-action="change->filter#filterByAgent"
+                class="px-2 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content">
+          <option value="">Agent: Any</option>
+          <option value="true">🦞 Has agent</option>
+          <option value="false">No agent</option>
+        </select>
+
+        <button type="button"
+                data-action="click->filter#clearAll"
+                class="hidden px-2 py-1.5 text-xs text-accent"
+                data-filter-target="clearButton">
+          Clear
+        </button>
+      </div>
+    </div>
   </div>
 </header>
 

@@ -20,6 +20,7 @@ import DragAssignController from "controllers/drag_assign_controller"
 import SoundController from "controllers/sound_controller"
 import SoundToggleController from "controllers/sound_toggle_controller"
 import AgentCategoriesController from "controllers/agent_categories_controller"
+import MobileFilterController from "controllers/mobile_filter_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -36,3 +37,4 @@ application.register("drag-assign", DragAssignController)
 application.register("sound", SoundController)
 application.register("sound-toggle", SoundToggleController)
 application.register("agent-categories", AgentCategoriesController)
+application.register("mobile-filter", MobileFilterController)
