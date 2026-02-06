@@ -82,6 +82,7 @@ Rails.application.routes.draw do
   resources :passwords, param: :token
   resource :settings, only: [ :show, :update ], controller: "profiles" do
     post :regenerate_api_token
+    post :test_connection
   end
 
   # Dashboard overview page

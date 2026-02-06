@@ -9,6 +9,11 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
+/* Filter hidden tasks */
+.filter-hidden {
+  display: none !important;
+}
+
 /* SortableJS drag styles */
 .sortable-ghost {
   opacity: 0.4;

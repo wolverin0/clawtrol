@@ -1,0 +1,254 @@
+<%# OpenClaw Integration Wizard - 5-step guided setup %>
+<div data-controller="wizard" 
+     data-wizard-current-step-value="1"
+     data-wizard-total-steps-value="5"
+     data-wizard-test-url-value="<%= test_connection_settings_path %>"
+     class="space-y-6">
+
+  <%# Progress bar and step indicators %>
+  <div class="bg-bg-surface border border-border rounded-lg p-5">
+    <%# Step indicator circles %>
+    <div class="flex items-center justify-between mb-4">
+      <% steps = [
+        { num: 1, label: "Detection" },
+        { num: 2, label: "Auth" },
+        { num: 3, label: "Config" },
+        { num: 4, label: "Test" },
+        { num: 5, label: "Done" }
+      ] %>
+      <% steps.each_with_index do |step, index| %>
+        <div class="flex flex-col items-center gap-1">
+          <button type="button"
+                  data-wizard-target="stepIndicator"
+                  data-action="click->wizard#goToStep"
+                  data-step="<%= step[:num] %>"
+                  class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-semibold transition-all cursor-pointer <%= step[:num] == 1 ? 'bg-accent text-content border-accent' : 'bg-bg-elevated text-content-muted border-border' %>">
+            <%= step[:num] %>
+          </button>
+          <span class="text-[10px] text-content-muted hidden sm:block"><%= step[:label] %></span>
+        </div>
+        <% if index < steps.length - 1 %>
+          <div class="flex-1 h-0.5 bg-bg-elevated mx-2 relative">
+            <div data-wizard-target="progressBar" class="absolute inset-y-0 left-0 bg-accent transition-all duration-300" style="width: 0%"></div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Step 1: Detection %>
+  <div data-wizard-target="step" class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">🔍</span>
+      <h3 class="text-sm font-semibold text-content font-display">Step 1: Detect Gateway</h3>
+    </div>
+
+    <p class="text-xs text-content-secondary">
+      Enter your OpenClaw Gateway URL. We'll verify it's running and reachable.
+    </p>
+
+    <%= form_with(model: @user, url: settings_path, method: :patch, local: true, class: "space-y-4") do |form| %>
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Gateway URL</label>
+        <div class="flex gap-2">
+          <%= form.text_field :openclaw_gateway_url,
+              data: { wizard_target: "gatewayUrl" },
+              placeholder: "http://localhost:18789",
+              class: "flex-1 bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+          <button type="button"
+                  data-wizard-target="detectButton"
+                  data-action="click->wizard#autoDetect"
+                  class="px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer whitespace-nowrap">
+            Auto-detect
+          </button>
+        </div>
+        <p class="text-xs text-content-muted mt-1">
+          Default: <code class="bg-bg-elevated px-1 rounded">http://localhost:18789</code>
+        </p>
+      </div>
+
+      <div data-wizard-target="detectStatus" class="hidden text-sm font-medium"></div>
+
+      <div class="flex items-center justify-between pt-2">
+        <button type="button" data-wizard-target="prevButton" data-action="click->wizard#prev" class="hidden px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+          ← Back
+        </button>
+        <div class="flex gap-2 ml-auto">
+          <%= form.submit "Save & Continue →", class: "px-4 py-2 bg-accent hover:bg-accent-hover text-content text-xs font-medium rounded-md transition-colors cursor-pointer", data: { action: "click->wizard#next" } %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Step 2: Authentication %>
+  <div data-wizard-target="step" class="hidden bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">🔐</span>
+      <h3 class="text-sm font-semibold text-content font-display">Step 2: Authentication</h3>
+    </div>
+
+    <p class="text-xs text-content-secondary">
+      Enter your Gateway Token to authenticate requests.
+    </p>
+
+    <%= form_with(model: @user, url: settings_path, method: :patch, local: true, class: "space-y-4") do |form| %>
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Gateway Token</label>
+        <%= form.password_field :openclaw_gateway_token,
+            data: { wizard_target: "gatewayToken" },
+            value: @user.openclaw_gateway_token,
+            placeholder: "••••••••",
+            autocomplete: "off",
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+        <p class="text-xs text-content-muted mt-1">
+          Find in <code class="bg-bg-elevated px-1 rounded">~/.openclaw/config.yaml</code> → <code class="bg-bg-elevated px-1 rounded">gateway.token</code>
+        </p>
+      </div>
+
+      <div class="flex items-center justify-between pt-2">
+        <button type="button" data-wizard-target="prevButton" data-action="click->wizard#prev" class="px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+          ← Back
+        </button>
+        <%= form.submit "Save & Continue →", class: "px-4 py-2 bg-accent hover:bg-accent-hover text-content text-xs font-medium rounded-md transition-colors cursor-pointer", data: { action: "click->wizard#next" } %>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Step 3: Agent Config %>
+  <div data-wizard-target="step" class="hidden bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">🤖</span>
+      <h3 class="text-sm font-semibold text-content font-display">Step 3: Agent Configuration</h3>
+    </div>
+
+    <p class="text-xs text-content-secondary">
+      Configure how your agent appears in ClawDeck.
+    </p>
+
+    <%= form_with(model: @user, url: settings_path, method: :patch, local: true, class: "space-y-4") do |form| %>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Agent Name</label>
+          <%= form.text_field :agent_name,
+              data: { wizard_target: "agentName" },
+              placeholder: "My Agent",
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Agent Emoji</label>
+          <%= form.text_field :agent_emoji,
+              data: { wizard_target: "agentEmoji" },
+              placeholder: "🦞",
+              maxlength: 4,
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none text-center text-xl" %>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Preferred Model</label>
+        <%= form.select :ai_suggestion_model,
+            [
+              ["GLM-4.7 Flash (z.ai)", "glm"],
+              ["Claude Sonnet", "sonnet"],
+              ["Claude Opus", "opus"],
+              ["Gemini Pro", "gemini"],
+              ["Codex", "codex"]
+            ],
+            {},
+            data: { wizard_target: "preferredModel" },
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+        <p class="text-xs text-content-muted mt-1">Default model for AI suggestions</p>
+      </div>
+
+      <div class="flex items-center justify-between pt-2">
+        <button type="button" data-wizard-target="prevButton" data-action="click->wizard#prev" class="px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+          ← Back
+        </button>
+        <%= form.submit "Save & Continue →", class: "px-4 py-2 bg-accent hover:bg-accent-hover text-content text-xs font-medium rounded-md transition-colors cursor-pointer", data: { action: "click->wizard#next" } %>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Step 4: Test Connection %>
+  <div data-wizard-target="step" class="hidden bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">🧪</span>
+      <h3 class="text-sm font-semibold text-content font-display">Step 4: Test Connection</h3>
+    </div>
+
+    <p class="text-xs text-content-secondary">
+      Let's verify everything is set up correctly.
+    </p>
+
+    <div class="p-4 bg-bg-elevated rounded-lg">
+      <button type="button"
+              data-wizard-target="testButton"
+              data-action="click->wizard#testConnection"
+              class="w-full px-4 py-3 bg-accent hover:bg-accent-hover text-content text-sm font-medium rounded-md transition-colors cursor-pointer">
+        🔌 Test Connection
+      </button>
+    </div>
+
+    <div data-wizard-target="testResults" class="min-h-[100px]">
+      <p class="text-xs text-content-muted text-center py-4">Click the button above to run connection tests</p>
+    </div>
+
+    <div class="flex items-center justify-between pt-2">
+      <button type="button" data-wizard-target="prevButton" data-action="click->wizard#prev" class="px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+        ← Back
+      </button>
+      <button type="button" data-wizard-target="nextButton" data-action="click->wizard#next" class="px-4 py-2 bg-accent hover:bg-accent-hover text-content text-xs font-medium rounded-md transition-colors cursor-pointer">
+        Continue →
+      </button>
+    </div>
+  </div>
+
+  <%# Step 5: Complete %>
+  <div data-wizard-target="step" class="hidden bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <div class="text-center py-4">
+      <span class="text-5xl block mb-4">🎉</span>
+      <h3 class="text-lg font-semibold text-content font-display mb-2">You're All Set!</h3>
+      <p class="text-sm text-content-secondary">
+        Your OpenClaw integration is configured and ready to go.
+      </p>
+    </div>
+
+    <div data-wizard-target="summary" class="space-y-3">
+      <%# Summary will be populated by JS %>
+    </div>
+
+    <%# Copy agent prompt section %>
+    <div class="pt-4 border-t border-border">
+      <p class="text-xs font-medium text-content-secondary mb-2">📋 Agent Prompt</p>
+      <p class="text-xs text-content-muted mb-3">Copy this configuration to your agent's system prompt:</p>
+
+      <% api_url = "#{request.base_url}/api/v1" %>
+      <% api_token = @api_token.raw_token.presence || @api_token.masked_token %>
+
+      <div data-controller="clipboard">
+        <div class="bg-bg-elevated rounded-md max-h-48 overflow-y-auto">
+          <pre data-clipboard-target="source" class="px-3 py-3 text-[10px] font-mono text-content-secondary whitespace-pre-wrap break-words leading-relaxed"># ClawDeck Connection
+API_URL: <%= api_url %>
+TOKEN: <%= api_token %>
+AGENT: <%= @user.agent_emoji.presence || "🦞" %> <%= @user.agent_name.presence || "Agent" %>
+
+# Auth Header
+Authorization: Bearer <%= api_token %></pre>
+        </div>
+        <button type="button"
+                data-action="click->clipboard#copy"
+                class="mt-2 px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+          <span data-clipboard-target="label">Copy to clipboard</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between pt-4">
+      <button type="button" data-wizard-target="prevButton" data-action="click->wizard#prev" class="px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+        ← Back
+      </button>
+      <%= link_to "Go to Dashboard →", dashboard_path, class: "px-4 py-2 bg-accent hover:bg-accent-hover text-content text-xs font-medium rounded-md transition-colors" %>
+    </div>
+  </div>
+</div>

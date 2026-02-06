@@ -20,12 +20,22 @@
      data-inline-add-status-value="<%= status %>"
      data-inline-add-url-value="<%= board_tasks_path(@board) %>"
      data-status="<%= status %>"
+     data-column-status="<%= status %>"
      data-mobile-columns-target="column">
   <%# Column Header %>
   <div class="flex items-center gap-2 px-3 py-3">
     <div class="w-2 h-2 rounded-full <%= column_colors[status] %>"></div>
     <h2 class="text-sm font-semibold text-content font-display"><%= column_labels[status] %></h2>
     <span id="column-<%= status %>-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded"><%= tasks.count %></span>
+    <% if status == "done" && tasks.any? %>
+      <button type="button"
+              data-archive-done-btn
+              data-action="click->bulk-operations#archiveAllDone"
+              class="hidden text-xs text-content-muted hover:text-accent transition-colors cursor-pointer"
+              title="Archive all done tasks">
+        📦
+      </button>
+    <% end %>
   </div>
 
   <%# Tasks List - no overflow, grows with content, min height for empty drop target %>

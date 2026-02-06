@@ -279,6 +279,21 @@ end %>
     <%= render "application/delete_modal", url: board_task_path(task.board, task) %>
   <% end %>
 
+  <%# Bulk Selection Checkbox - hidden by default, shown when in selection mode %>
+  <div data-bulk-checkbox class="hidden absolute top-2 left-2 z-10">
+    <label class="flex items-center justify-center w-5 h-5 rounded bg-bg-surface border border-border cursor-pointer hover:border-accent transition-colors"
+           onclick="event.stopPropagation()">
+      <input type="checkbox"
+             data-bulk-operations-target="checkbox"
+             data-action="change->bulk-operations#checkboxChanged"
+             class="sr-only peer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" 
+           class="w-4 h-4 text-accent hidden peer-checked:block">
+        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd" />
+      </svg>
+    </label>
+  </div>
+
   <%# === CARD HEADER: Error banner, Title, ID, Spinner === %>
   <%= render "boards/tasks/card_header", task: task, show_error_state: show_error_state, has_current_user: has_current_user %>
 

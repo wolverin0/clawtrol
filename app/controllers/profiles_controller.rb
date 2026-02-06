@@ -4,6 +4,51 @@ class ProfilesController < ApplicationController
     @api_token = current_user.api_token
   end
 
+  def test_connection
+    @user = current_user
+    results = {
+      gateway_reachable: false,
+      token_valid: false,
+      webhook_configured: false
+    }
+
+    gateway_url = @user.openclaw_gateway_url
+    gateway_token = @user.openclaw_gateway_token
+
+    # Check if gateway URL and token are configured
+    results[:webhook_configured] = gateway_url.present? && gateway_token.present?
+
+    if gateway_url.present?
+      begin
+        uri = URI.parse("#{gateway_url}/health")
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.open_timeout = 5
+        http.read_timeout = 5
+        http.use_ssl = uri.scheme == "https"
+
+        request = Net::HTTP::Get.new(uri)
+        response = http.request(request)
+
+        results[:gateway_reachable] = response.code.to_i == 200
+
+        # If gateway is reachable and we have a token, try to validate it
+        if results[:gateway_reachable] && gateway_token.present?
+          # Try the sessions endpoint to validate token
+          sessions_uri = URI.parse("#{gateway_url}/api/sessions")
+          sessions_request = Net::HTTP::Get.new(sessions_uri)
+          sessions_request["Authorization"] = "Bearer #{gateway_token}"
+
+          sessions_response = http.request(sessions_request)
+          results[:token_valid] = [ 200, 401 ].exclude?(sessions_response.code.to_i) || sessions_response.code.to_i == 200
+        end
+      rescue StandardError => e
+        results[:error] = e.message
+      end
+    end
+
+    render json: results
+  end
+
   def update
     @user = current_user
 
