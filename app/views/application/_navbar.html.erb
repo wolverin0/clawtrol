@@ -1,7 +1,7 @@
 <%# Navbar for non-board pages (settings, etc.) - simplified design %>
 <header class="flex-shrink-0 bg-bg-base border-b border-border">
   <div class="flex items-center justify-between px-4 md:px-6 py-2.5">
-    <%# Left section: Logo + Back to board %>
+    <%# Left section: Logo + Back to board + Nav icons %>
     <div class="flex items-center gap-3">
       <% if authenticated? %>
         <% last_board = session[:last_board_id] && current_user.boards.find_by(id: session[:last_board_id]) %>
@@ -11,6 +11,42 @@
           </svg>
         <% end %>
         <span class="text-base md:text-lg font-semibold text-content font-display">🦞 ClawTrol</span>
+
+        <%# Quick Nav Icons %>
+        <%= link_to dashboard_path,
+            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+            title: "Dashboard" do %>
+          📊
+        <% end %>
+        <%= link_to analytics_path,
+            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+            title: "Analytics" do %>
+          📈
+        <% end %>
+
+        <%# Agent Personas dropdown %>
+        <div class="hidden md:block relative" data-controller="dropdown">
+          <button type="button"
+                  data-dropdown-target="button"
+                  data-action="click->dropdown#toggle"
+                  class="flex items-center gap-1 w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated justify-center transition-colors cursor-pointer"
+                  title="Agent Personas">
+            🤖
+          </button>
+          <div data-dropdown-target="menu"
+               class="hidden absolute left-0 top-full mt-1 w-44 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
+            <div class="py-1">
+              <%= link_to agent_personas_path,
+                  class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+                🧠 Agent Personas
+              <% end %>
+              <%= link_to roster_agent_personas_path,
+                  class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+                📋 Roster
+              <% end %>
+            </div>
+          </div>
+        </div>
       <% else %>
         <%= link_to root_path, class: "flex items-center gap-2" do %>
           <span class="text-base md:text-lg font-semibold text-content font-display">🦞 ClawTrol</span>
