@@ -21,19 +21,31 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 ### Core
 - **Kanban Boards** — Organize tasks across multiple boards with tabs in navbar
 - **Agent Assignment** — Assign tasks to your agent, track progress
-- **Real-time Updates** — Hotwire-powered live UI with 15s auto-refresh
+- **Real-time Updates** — WebSocket via ActionCable (KanbanChannel + AgentActivityChannel) with polling fallback
 - **API Access** — Full REST API for agent integrations
+- **Dashboard** — Overview page (`/dashboard`) with status cards, active agents, recent tasks, model status
+- **Analytics** — Analytics page (`/analytics`) with CSS bar charts, period filtering (24h/7d/30d/all), model usage, board breakdown
 
 ### 🤖 Agent Integration
-- **Live Activity View** — Watch agent work in real-time via `/api/v1/tasks/:id/agent_log`
+- **Live Activity View** — Watch agent work in real-time via WebSocket or `/api/v1/tasks/:id/agent_log`
 - **Model Selection** — Choose model per task (opus, codex, gemini, glm, sonnet)
-- **Session Tracking** — Link agent sessions with `agent_session_id` and `agent_session_key`
+- **Auto Session Linking** — `agent_complete`, `claim`, and task create/update accept session params directly
 - **Spinner Indicator** — Visual indicator on cards with active agents
+- **Agent Terminal** — Full session transcript viewer with tabbed interface, hover preview, pin-to-terminal
 
 ### 📊 Multi-Board System
 - **Multiple Boards** — Create multiple boards per user (displayed as tabs)
-- **Auto-Routing** — `spawn_ready` endpoint auto-detects project from task name
+- **ALL Aggregator** — Read-only view across all boards
+- **Auto-Routing** — `spawn_ready` endpoint auto-detects project from task name prefix
 - **Board Context Menu** — Move tasks between boards easily
+- **Archived Status** — Archive completed tasks to reduce board clutter
+
+### ✅ Validation System
+- **Validation Commands** — Run shell commands to validate agent output (exit 0 = pass)
+- **Quick Templates** — One-click Rails Test, npm test, Rubocop, ESLint, pytest
+- **Background Execution** — Validation runs async (up to 2 minutes)
+- **Auto-Status** — Pass → `in_review`, Fail → stays `in_progress`
+- **Command Sandboxing** — Shellwords + allowlist prevents injection attacks
 
 ### 🔄 Model Rate Limiting
 - **Model Status** — Check which models are available
@@ -42,17 +54,56 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Auto-Fallback** — Seamlessly switch to backup models when limited
 
 ### 🔗 Follow-up Tasks
-- **Parent Linking** — Chain related tasks together
+- **Parent Linking** — Chain related tasks together with visual parent links
 - **AI Suggestions** — Generate follow-up task suggestions with AI
-- **Create Follow-ups** — One-click follow-up task creation
+- **Create Follow-ups** — One-click follow-up creation with model/session inheritance
+- **Auto-Done** — Parent auto-completes when follow-up is created
+
+### 🔒 Task Dependencies
+- **Blocking System** — Tasks can block other tasks with `blocked_by`
+- **Circular Detection** — Prevents infinite dependency loops
+- **🔒 Badge** — Blocked tasks show badge with blocker info
+- **Drag Prevention** — Can't move blocked tasks to `in_progress`
+
+### 🔔 Notifications
+- **Bell Icon** — Notification center in navbar with unread count badge
+- **Event Types** — Agent claimed, task completed, validation results
+- **Browser Notifications** — Optional browser notification API integration
+- **Mark All Read** — One-click clear all notifications
+
+### ⌨️ Keyboard Shortcuts
+- `n` — New task
+- `Ctrl+/` — Toggle terminal
+- `?` — Help modal with all shortcuts
+
+### 📱 Mobile Responsive
+- **Column Switcher** — Swipeable tab bar for kanban columns on mobile
+- **Bottom Nav** — Fixed navigation (Dashboard/Board/Terminal/Settings)
+- **Slide-in Panel** — Task modal slides from right on mobile, centered overlay on desktop
+
+### 🎨 UI Polish
+- **Card Progressive Disclosure** — Model-colored left borders (purple=Opus, green=Gemini, etc), hover badges
+- **Undo Toast** — 5-second countdown on status changes with undo revert
+- **Dark Theme** — WCAG-compliant contrast, column tints, done card dimming
+- **File Viewer** — Browse agent output files in-modal with fullscreen expand + markdown rendering
+- **Task Templates** — Slash commands in add-card: `/review`, `/bug`, `/doc`, `/test`, `/research`
+- **Done Counter** — Today's completed tasks in header
+- **Copy URL** — One-click copy task URL for sharing
+- **Confetti** — Celebration animation on task completion 🎉
 
 ### ⏰ Scheduling
 - **Nightly Tasks** — Delay execution until night hours
-- **Recurring Tasks** — Templates for repeating work
+- **Recurring Tasks** — Daily/weekly/monthly templates with time picker
 
 ### 🪝 Webhook Integration
 - **OpenClaw Gateway** — Instant wake via webhook when tasks are assigned
 - **Real-time Triggers** — No polling delay for agent activation
+
+### 🔐 Security
+- **Command Injection Prevention** — Validation commands sandboxed with Shellwords + allowlist
+- **API Token Hashing** — Tokens stored as SHA-256 hashes, never plaintext
+- **AI Key Encryption** — `ai_api_key` encrypted at rest with Rails credentials
+- **Settings Page** — Tabbed layout (Profile / Agent / AI / Integration)
 
 ---
 
@@ -71,8 +122,12 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - **Ruby** 3.3.1 / **Rails** 8.1
 - **PostgreSQL** with Solid Queue, Cache, and Cable
-- **Hotwire** (Turbo + Stimulus) + **Tailwind CSS**
+- **ActionCable** — WebSocket for real-time kanban + agent activity
+- **Hotwire** (Turbo + Stimulus) + **Tailwind CSS v4**
+- **Propshaft** — Asset pipeline with importmap-rails
+- **41 Stimulus Controllers** — Full client-side interactivity
 - **Authentication** via GitHub OAuth or email/password
+- **Docker Compose** — Production-ready setup with `install.sh`
 
 ---
 
@@ -83,7 +138,17 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - PostgreSQL
 - Bundler
 
-### Setup
+### Option A: Docker Compose (recommended)
+```bash
+git clone https://github.com/wolverin0/clawtrol.git
+cd clawtrol
+chmod +x install.sh
+./install.sh
+```
+
+Visit `http://localhost:4001`
+
+### Option B: Manual Setup
 ```bash
 git clone https://github.com/wolverin0/clawtrol.git
 cd clawtrol
@@ -289,13 +354,24 @@ GET /api/v1/tasks/recurring
 - **Tabbed Interface** — Multiple agent sessions in tabs
 - **Hover Preview** — Quick preview on card hover
 - **Pin to Terminal** — Lock a task's output in view
-- **Live Streaming** — Real-time agent activity updates
+- **Live Streaming** — Real-time agent activity via WebSocket
+- **Session Transcript** — Full conversation log with role icons and tool calls
 
 ### Kanban Board
-- **Auto-Refresh** — 15-second polling for updates
+- **WebSocket Updates** — Real-time via ActionCable (polling fallback)
 - **Spinner Indicator** — Shows active agent on card
-- **Context Menu** — Right-click to move between boards
+- **Context Menu** — Right-click to move between boards/statuses
 - **Board Tabs** — Quick navigation between projects
+- **Drag & Drop** — SortableJS with delete drop zone
+- **Dependency Blocking** — 🔒 badge prevents moving blocked tasks
+
+### Task Modal
+- **Two-Column Layout** — Details left, agent activity + files right (desktop)
+- **Auto-Save** — Debounced 500ms save on field changes
+- **File Viewer** — Browse output files with syntax highlighting + fullscreen
+- **Agent Activity** — Live session log with WebSocket updates
+- **Priority Selector** — Visual fire icon buttons
+- **Validation Output** — View command results inline
 
 ---
 
