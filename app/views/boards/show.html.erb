@@ -253,8 +253,9 @@
   </div>
 
   <%# Delete Drop Zone - appears when dragging a card %>
+  <div data-controller="delete-zone"
        data-delete-zone-url-value="<%= board_tasks_path(@board) %>"
-       class="fixed bottom-0 left-0 right-0 z-40 translate-y-full opacity-0 transition-all duration-200 ease-out pointer-events-none">
+       class="fixed bottom-0 left-0 right-0 z-40 translate-y-full opacity-0 transition-all duration-200 ease-out pointer-events-none hidden">
     <div data-delete-zone-target="droparea"
          class="pointer-events-auto mx-4 mb-4 py-8 px-6 bg-red-500/20 backdrop-blur-sm rounded-lg flex items-center justify-center gap-2 text-red-400 transition-all duration-150">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
