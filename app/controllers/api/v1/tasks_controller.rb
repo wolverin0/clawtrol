@@ -39,7 +39,13 @@ module Api
         # Build path to the transcript file
         transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl")
 
+        # Fallback: look for archived transcript (.jsonl.deleted.*)
         unless File.exist?(transcript_path)
+          archived = Dir.glob(File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl.deleted.*")).first
+          transcript_path = archived if archived
+        end
+
+        unless File.exist?(transcript_path.to_s)
           # Fallback: extract "## Agent Output" from task description if present
           if @task.description.present? && @task.description.include?("## Agent Output")
             output_match = @task.description.match(/## Agent Output.*?\n(.*)/m)
