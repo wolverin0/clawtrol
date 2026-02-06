@@ -1,5 +1,5 @@
 <%= turbo_frame_tag "handoff_modal" do %>
-  <div class="fixed inset-0 z-50 flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
+  <div class="fixed inset-0 z-[80] flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
     <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
     <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden flex flex-col">
 
