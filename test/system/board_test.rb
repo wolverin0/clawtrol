@@ -89,8 +89,8 @@ class BoardTest < ApplicationSystemTestCase
     within "[data-status='inbox']" do
       click_button "Add a card"
 
-      # Form should appear
-      assert_selector "textarea[placeholder='Enter a title for this card...']", wait: 3
+      # Form should appear (placeholder includes slash command hints)
+      assert_selector "textarea[placeholder*='Enter a title']", wait: 3
       assert_button "Add card"
     end
   end
