@@ -54,7 +54,7 @@
       <span class="text-content-muted/50">|</span>
       <span><span id="header-in_progress-count"><%= @columns[:in_progress]&.count || 0 %></span> in progress</span>
       <span class="text-content-muted/50">|</span>
-      <span>✅ <span id="header-done_today-count"><%= @board.tasks.where(status: :done).where("updated_at >= ?", Time.zone.now.beginning_of_day).count %></span> done today</span>
+      <span>✅ <span id="header-done_today-count"><%= current_user.tasks.where("completed_at >= ?", Time.zone.now.beginning_of_day).count %></span> done today</span>
       <%# Auto-refresh indicator %>
       <span data-kanban-refresh-target="indicator" 
             class="opacity-0 transition-opacity duration-200 flex items-center gap-1 text-accent">
@@ -85,7 +85,7 @@
             <input type="text"
                    data-search-target="input"
                    data-action="keydown->search#submit input->search#search"
-                   placeholder="Search... (/)"
+                   placeholder="Search... (/ or Enter)"
                    class="w-40 lg:w-52 pl-8 pr-3 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent focus:w-64 text-content placeholder-content-muted transition-all">
           </div>
         </div>

@@ -211,9 +211,9 @@
           <%= form.select :ai_suggestion_model,
               [
                 ["GLM-4.7 Flash (z.ai)", "glm"],
-                ["Gemini (coming soon)", "gemini", { disabled: true }],
-                ["Claude Sonnet (coming soon)", "sonnet", { disabled: true }],
-                ["Claude Opus (coming soon)", "opus", { disabled: true }]
+                ["Gemini 2.5 Pro", "gemini"],
+                ["Claude Sonnet 4", "sonnet"],
+                ["Claude Opus 4", "opus"]
               ],
               {},
               class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
@@ -226,7 +226,7 @@
               placeholder: @user.ai_api_key.present? ? "••••••••" : "Enter your API key",
               autocomplete: "off",
               class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
-          <p class="text-xs text-content-muted mt-1">Get a GLM key from <a href="https://z.ai" target="_blank" class="text-accent hover:underline">z.ai</a></p>
+          <p class="text-xs text-content-muted mt-1">API key for AI suggestions. GLM: <a href="https://z.ai" target="_blank" class="text-accent hover:underline">z.ai</a> • Claude/Gemini: uses your provider's API key</p>
         </div>
 
         <div class="flex items-center gap-3">
