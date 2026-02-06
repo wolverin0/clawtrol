@@ -1,0 +1,2 @@
+  # Add after MODELS = %w[...]
+  DEFAULT_MODEL = 'opus'.freeze

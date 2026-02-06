@@ -63,6 +63,99 @@
     </div>
   </div>
 
+  <%# ═══════════════════════════════════════════════════ %>
+  <%# 🦊 FOXHOUND: Token Usage & Cost Section %>
+  <%# ═══════════════════════════════════════════════════ %>
+
+  <%# Token Quick Stats %>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-purple-500/50 transition-colors">
+      <div class="text-2xl font-bold text-purple-400"><%= number_with_delimiter(@today_tokens) %></div>
+      <div class="text-xs text-content-muted">$<%= number_with_precision(@today_cost, precision: 4) %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1 mt-1">
+        <span>🔤</span>
+        <span>Tokens Today</span>
+      </div>
+    </div>
+
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-purple-500/50 transition-colors">
+      <div class="text-2xl font-bold text-purple-400"><%= number_with_delimiter(@week_tokens) %></div>
+      <div class="text-xs text-content-muted">$<%= number_with_precision(@week_cost, precision: 4) %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1 mt-1">
+        <span>📅</span>
+        <span>This Week</span>
+      </div>
+    </div>
+
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-purple-500/50 transition-colors">
+      <div class="text-2xl font-bold text-purple-400"><%= number_with_delimiter(@month_tokens) %></div>
+      <div class="text-xs text-content-muted">$<%= number_with_precision(@month_cost, precision: 4) %></div>
+      <div class="text-sm text-content-muted flex items-center gap-1 mt-1">
+        <span>📆</span>
+        <span>This Month</span>
+      </div>
+    </div>
+
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-yellow-500/50 transition-colors">
+      <div class="text-2xl font-bold text-yellow-400">$<%= number_with_precision(@total_cost, precision: 2) %></div>
+      <div class="text-xs text-content-muted"><%= number_with_delimiter(@total_tokens) %> tokens</div>
+      <div class="text-sm text-content-muted flex items-center gap-1 mt-1">
+        <span>💰</span>
+        <span>Period Cost</span>
+      </div>
+    </div>
+  </div>
+
+  <%# Daily Token Usage Chart %>
+  <div class="bg-bg-elevated border border-border rounded-xl p-4">
+    <h3 class="text-sm font-semibold text-content mb-4 flex items-center gap-2">
+      🦊 Token Usage Over Time
+    </h3>
+    <% if @daily_token_usage.any? && @max_daily_tokens > 0 %>
+      <div class="flex items-end gap-1 h-40">
+        <% @daily_token_usage.each do |date, data| %>
+          <% total = data[:input] + data[:output] %>
+          <% bar_height = @max_daily_tokens > 0 ? (total.to_f / @max_daily_tokens * 100).round : 0 %>
+          <% input_pct = total > 0 ? (data[:input].to_f / total * 100).round : 50 %>
+          <div class="flex-1 group relative flex flex-col justify-end" style="height: 100%">
+            <div class="w-full rounded-t overflow-hidden cursor-default"
+                 style="height: <%= [bar_height, 3].max %>%"
+                 title="<%= date.strftime('%b %d') %>: <%= number_with_delimiter(total) %> tokens ($<%= number_with_precision(data[:cost], precision: 4) %>)">
+              <%# Stacked bar: input (bottom) + output (top) %>
+              <div class="w-full h-full flex flex-col">
+                <div class="bg-purple-500/70 hover:bg-purple-500/90 transition-colors" style="flex: <%= 100 - input_pct %>"></div>
+                <div class="bg-blue-500/70 hover:bg-blue-500/90 transition-colors" style="flex: <%= input_pct %>"></div>
+              </div>
+            </div>
+            <%# Tooltip %>
+            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-bg-surface border border-border rounded text-xs text-content opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+              <div class="font-semibold"><%= date.strftime('%b %d') %></div>
+              <div class="text-blue-400">In: <%= number_with_delimiter(data[:input]) %></div>
+              <div class="text-purple-400">Out: <%= number_with_delimiter(data[:output]) %></div>
+              <div class="text-yellow-400">$<%= number_with_precision(data[:cost], precision: 4) %></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <%# Legend + X-axis %>
+      <div class="flex items-center justify-between mt-2">
+        <div class="flex gap-3 text-xs text-content-muted">
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span> Input</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500 inline-block"></span> Output</span>
+        </div>
+        <div class="flex gap-4 text-xs text-content-muted">
+          <span><%= @daily_token_usage.keys.first&.strftime('%b %d') %></span>
+          <span><%= @daily_token_usage.keys.last&.strftime('%b %d') %></span>
+        </div>
+      </div>
+    <% else %>
+      <div class="text-center py-8 text-content-muted">
+        <span class="text-2xl block mb-2">🦊</span>
+        <span class="text-sm">No token usage recorded yet</span>
+      </div>
+    <% end %>
+  </div>
+
   <%# Daily Completions Chart %>
   <div class="bg-bg-elevated border border-border rounded-xl p-4">
     <h3 class="text-sm font-semibold text-content mb-4 flex items-center gap-2">
@@ -97,12 +190,91 @@
     <% end %>
   </div>
 
-  <%# Bottom Row: Model Usage + Board Breakdown + Avg Time %>
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-    <%# Model Usage %>
+  <%# Bottom Row: Cost by Model + Board Tokens + Model Usage + Performance %>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    <%# Cost Breakdown by Model (Donut-style bars) %>
     <div class="bg-bg-elevated border border-border rounded-xl p-4">
       <h3 class="text-sm font-semibold text-content mb-4 flex items-center gap-2">
-        🤖 Model Usage
+        💰 Cost by Model
+      </h3>
+      <% if @tokens_by_model.any? %>
+        <div class="space-y-3">
+          <% @tokens_by_model.sort_by { |r| -r.total_cost.to_f }.each do |row| %>
+            <% model_color = TokenUsage::MODEL_COLORS[row.model] || "gray" %>
+            <% bar_width = @max_model_cost > 0 ? (row.total_cost.to_f / @max_model_cost * 100).round : 0 %>
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-content-secondary flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-<%= model_color %>-500 inline-block"></span>
+                  <%= row.model.capitalize %>
+                </span>
+                <span class="text-content-muted flex items-center gap-3">
+                  <span class="text-xs"><%= number_with_delimiter(row.total_input.to_i + row.total_output.to_i) %> tok</span>
+                  <span class="font-medium text-yellow-400">$<%= number_with_precision(row.total_cost, precision: 4) %></span>
+                </span>
+              </div>
+              <div class="w-full h-2 bg-bg-base rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all bg-<%= model_color %>-500"
+                     style="width: <%= [bar_width, 2].max %>%"></div>
+              </div>
+              <div class="flex justify-between text-xs text-content-muted">
+                <span>↓ <%= number_with_delimiter(row.total_input.to_i) %> in</span>
+                <span>↑ <%= number_with_delimiter(row.total_output.to_i) %> out</span>
+                <span><%= row.usage_count %> calls</span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-6 text-content-muted text-sm">
+          No token data yet
+        </div>
+      <% end %>
+    </div>
+
+    <%# Board Token Breakdown %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-content mb-4 flex items-center gap-2">
+        📁 Token Cost by Board
+      </h3>
+      <% if @board_token_stats.any? %>
+        <div class="space-y-2 max-h-64 overflow-y-auto">
+          <% max_board_cost = @board_token_stats.map { |b| b.total_cost.to_f }.max || 1 %>
+          <% @board_token_stats.each do |board| %>
+            <div class="space-y-1">
+              <div class="flex items-center justify-between py-1">
+                <%= link_to board_path(board.board_id), class: "flex items-center gap-2 text-sm text-content-secondary hover:text-accent transition-colors truncate" do %>
+                  <span><%= board.board_icon %></span>
+                  <span class="truncate"><%= board.board_name %></span>
+                <% end %>
+                <span class="text-sm font-medium text-yellow-400 ml-2">$<%= number_with_precision(board.total_cost, precision: 4) %></span>
+              </div>
+              <div class="w-full h-1.5 bg-bg-base rounded-full overflow-hidden">
+                <% bar_w = (board.total_cost.to_f / max_board_cost * 100).round %>
+                <div class="h-full rounded-full bg-accent/60" style="width: <%= [bar_w, 2].max %>%"></div>
+              </div>
+              <div class="flex justify-between text-xs text-content-muted">
+                <span><%= number_with_delimiter(board.total_input.to_i + board.total_output.to_i) %> tokens</span>
+                <span><%= board.usage_count %> calls</span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-6 text-content-muted text-sm">
+          No board token data yet
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Original bottom row %>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <%# Model Usage (task count) %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-content mb-4 flex items-center gap-2">
+        🤖 Model Usage (Tasks)
       </h3>
       <% if @model_usage.any? %>
         <div class="space-y-3">
@@ -135,10 +307,10 @@
       <% end %>
     </div>
 
-    <%# Board Breakdown %>
+    <%# Board Breakdown (task count) %>
     <div class="bg-bg-elevated border border-border rounded-xl p-4">
       <h3 class="text-sm font-semibold text-content mb-4 flex items-center gap-2">
-        📁 Board Breakdown
+        📁 Board Breakdown (Tasks)
       </h3>
       <% if @board_stats.any? %>
         <div class="space-y-2 max-h-48 overflow-y-auto">

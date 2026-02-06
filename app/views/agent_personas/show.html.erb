@@ -1,0 +1,117 @@
+<% content_for :title, @agent_persona.name.titleize %>
+<% content_for :breadcrumb_standalone, @agent_persona.name.titleize %>
+
+<div class="mt-8">
+  <!-- Header -->
+  <div class="flex items-start justify-between mb-6">
+    <div class="flex items-center gap-4">
+      <span class="text-4xl"><%= @agent_persona.emoji %></span>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-semibold text-content font-display"><%= @agent_persona.name.titleize %></h1>
+          <% unless @agent_persona.active? %>
+            <span class="px-2 py-0.5 text-xs font-medium bg-gray-500/20 text-gray-400 rounded">Inactive</span>
+          <% end %>
+        </div>
+        <p class="text-sm text-content-muted mt-1"><%= @agent_persona.description %></p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= link_to edit_agent_persona_path(@agent_persona), class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-surface border border-border rounded-md hover:bg-bg-elevated transition-colors" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+        Edit
+      <% end %>
+      <%= button_to agent_persona_path(@agent_persona), method: :delete, data: { turbo_confirm: "Delete this persona?" }, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-md hover:bg-red-500/20 transition-colors cursor-pointer" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        Delete
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Info Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <!-- Model -->
+    <div class="bg-bg-surface border border-border rounded-lg p-4">
+      <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider mb-2">Model</h3>
+      <div class="flex items-center gap-2">
+        <span class="px-2 py-1 text-sm font-medium rounded bg-<%= @agent_persona.model_color %>-500/20 text-<%= @agent_persona.model_color %>-400">
+          <%= @agent_persona.model || 'Not set' %>
+        </span>
+        <% if @agent_persona.fallback_model.present? %>
+          <span class="text-content-muted">→</span>
+          <span class="px-2 py-1 text-sm font-medium rounded bg-gray-500/20 text-gray-400">
+            <%= @agent_persona.fallback_model %>
+          </span>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Tier -->
+    <div class="bg-bg-surface border border-border rounded-lg p-4">
+      <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider mb-2">Tier</h3>
+      <% if @agent_persona.tier.present? %>
+        <span class="px-2 py-1 text-sm font-medium rounded bg-<%= @agent_persona.tier_color %>-500/20 text-<%= @agent_persona.tier_color %>-400">
+          <%= @agent_persona.tier %>
+        </span>
+      <% else %>
+        <span class="text-sm text-content-muted">Not set</span>
+      <% end %>
+    </div>
+
+    <!-- Project -->
+    <div class="bg-bg-surface border border-border rounded-lg p-4">
+      <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider mb-2">Project</h3>
+      <% if @agent_persona.project.present? %>
+        <span class="px-2 py-1 text-sm font-medium rounded bg-cyan-500/20 text-cyan-400">
+          <%= @agent_persona.project %>
+        </span>
+      <% else %>
+        <span class="text-sm text-content-muted">Global</span>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Tools -->
+  <% if @agent_persona.tools_list.any? %>
+    <div class="bg-bg-surface border border-border rounded-lg p-4 mb-6">
+      <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider mb-3">Available Tools</h3>
+      <div class="flex flex-wrap gap-2">
+        <% @agent_persona.tools_list.each do |tool| %>
+          <span class="px-2 py-1 text-xs font-mono bg-bg-elevated text-content-secondary rounded-md border border-border">
+            <%= tool %>
+          </span>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- System Prompt -->
+  <% if @agent_persona.system_prompt.present? %>
+    <div class="bg-bg-surface border border-border rounded-lg p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider">System Prompt</h3>
+        <button type="button" 
+                data-controller="clipboard" 
+                data-action="click->clipboard#copy"
+                data-clipboard-text-value="<%= j @agent_persona.system_prompt %>"
+                class="text-xs text-content-muted hover:text-content transition-colors">
+          Copy
+        </button>
+      </div>
+      <div class="prose prose-sm prose-invert max-w-none">
+        <pre class="text-xs text-content-secondary bg-bg-base p-4 rounded-md overflow-x-auto whitespace-pre-wrap"><%= @agent_persona.system_prompt %></pre>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Back link -->
+  <div class="mt-6">
+    <%= link_to agent_personas_path, class: "text-xs text-content-muted hover:text-content transition-colors" do %>
+      ← Back to Personas
+    <% end %>
+  </div>
+</div>

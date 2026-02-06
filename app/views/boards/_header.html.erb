@@ -1,159 +1,169 @@
-<%# Board Header with Navbar Tabs %>
-<header class="relative flex-shrink-0 bg-bg-base">
+<%# Board Header - Simplified single-row design %>
+<header class="flex-shrink-0 bg-bg-base border-b border-border">
   <%# Main header row %>
-  <div class="flex items-center justify-between px-4 md:px-6 py-2 md:py-3 border-b border-border">
-    <%# Left section: Logo/Brand + Dashboard (dashboard hidden on mobile - in bottom nav) %>
-    <div class="flex items-center gap-2 md:gap-3">
-      <span class="hidden md:inline text-base md:text-lg font-semibold text-content font-display">🦞 ClawDeck</span>
-      <%# Mobile: Show current board with dropdown to switch %>
-      <div class="md:hidden relative" data-controller="dropdown">
+  <div class="flex items-center justify-between px-4 md:px-6 py-2.5">
+    <%# Left section: Logo + Boards dropdown %>
+    <div class="flex items-center gap-3">
+      <%# Logo %>
+      <span class="text-base md:text-lg font-semibold text-content font-display whitespace-nowrap">🦞 ClawTrol</span>
+
+      <%# Boards Dropdown %>
+      <div class="relative" data-controller="dropdown">
         <button type="button"
                 data-dropdown-target="button"
                 data-action="click->dropdown#toggle"
-                class="flex items-center gap-1.5 px-2 py-1 rounded-md text-sm font-semibold text-content bg-bg-elevated hover:bg-bg-hover transition-colors cursor-pointer">
+                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium text-content bg-bg-elevated hover:bg-bg-hover transition-colors cursor-pointer">
           <span><%= @board.icon %></span>
-          <span class="truncate max-w-[120px]"><%= @board.name %></span>
+          <span class="truncate max-w-[120px] md:max-w-[160px]"><%= @board.name %></span>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-content-muted">
             <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
           </svg>
         </button>
         <div data-dropdown-target="menu"
-             class="hidden absolute left-0 top-full mt-1 w-48 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
-          <div class="py-1 max-h-60 overflow-y-auto">
+             class="hidden absolute left-0 top-full mt-1 w-56 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
+          <div class="py-1 max-h-72 overflow-y-auto">
             <% @boards.each do |board| %>
               <% active = board.id == @board.id %>
               <% task_count = board.tasks.where.not(status: :done).count %>
               <%= link_to board_path(board),
-                  class: "flex items-center gap-2 px-3 py-2 text-sm transition-colors #{active ? 'bg-bg-elevated text-content' : 'text-content-secondary hover:bg-bg-hover hover:text-content'}",
+                  class: "flex items-center gap-2 px-3 py-2 text-sm transition-colors #{active ? 'bg-bg-elevated text-content font-medium' : 'text-content-secondary hover:bg-bg-hover hover:text-content'}",
                   data: { turbo_frame: "_top" } do %>
                 <span><%= board.icon %></span>
                 <span class="flex-1 truncate"><%= board.name %></span>
                 <% if task_count > 0 %>
-                  <span class="text-xs text-content-muted"><%= task_count %></span>
+                  <span class="text-xs <%= active ? 'text-accent' : 'text-content-muted' %>"><%= task_count %></span>
                 <% end %>
               <% end %>
             <% end %>
           </div>
+          <div class="border-t border-border py-1">
+            <% archived_count = @board.tasks.archived.count %>
+            <%= link_to archived_board_path(@board),
+                class: "flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" do %>
+              <span>📦</span>
+              <span class="flex-1">Archived</span>
+              <% if archived_count > 0 %>
+                <span class="text-xs text-content-muted"><%= archived_count %></span>
+              <% end %>
+            <% end %>
+            <button type="button"
+                    data-action="click->board-modal#open"
+                    data-board-modal-target="newBoardTrigger"
+                    class="w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors cursor-pointer">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+              </svg>
+              <span>New Board</span>
+            </button>
+          </div>
         </div>
       </div>
-      <%= link_to dashboard_path,
-          class: "hidden md:block px-2 py-1 rounded-md text-sm text-content-muted hover:text-content hover:bg-bg-elevated transition-colors",
-          title: "Dashboard Overview" do %>
-        📊
-      <% end %>
-      <%= link_to analytics_path,
-          class: "hidden md:block px-2 py-1 rounded-md text-sm text-content-muted hover:text-content hover:bg-bg-elevated transition-colors",
-          title: "Analytics" do %>
-        📈
-      <% end %>
-      <%# Agent Personas dropdown %>
-      <div class="hidden md:block relative" data-controller="dropdown">
+
+      <%# Filters Dropdown %>
+      <div class="relative hidden md:block" data-controller="dropdown">
         <button type="button"
                 data-dropdown-target="button"
                 data-action="click->dropdown#toggle"
-                class="flex items-center gap-1 px-2 py-1 rounded-md text-sm text-content-muted hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer"
-                title="Agent Personas">
-          🤖
+                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm text-content-secondary hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+            <path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd" />
+          </svg>
+          <span>Filters</span>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3">
             <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
           </svg>
         </button>
         <div data-dropdown-target="menu"
-             class="hidden absolute left-0 top-full mt-1 w-44 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
-          <div class="py-1">
-            <%= link_to agent_personas_path,
-                class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-              🧠 Agent Personas
-            <% end %>
-            <%= link_to roster_agent_personas_path,
-                class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-              📋 Roster
-            <% end %>
+             data-controller="filter"
+             data-filter-board-id-value="<%= @board.id %>"
+             class="hidden absolute left-0 top-full mt-1 w-64 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
+          <div class="p-3 space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-content-muted mb-1">Status</label>
+              <select data-filter-target="status"
+                      data-action="change->filter#filterByStatus"
+                      class="w-full px-2 py-1.5 text-sm bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+                <option value="">All statuses</option>
+                <option value="inbox">📥 Inbox</option>
+                <option value="up_next">⏭ Up Next</option>
+                <option value="in_progress">🚀 In Progress</option>
+                <option value="in_review">👀 In Review</option>
+                <option value="done">✅ Done</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-content-muted mb-1">Model</label>
+              <select data-filter-target="model"
+                      data-action="change->filter#filterByModel"
+                      class="w-full px-2 py-1.5 text-sm bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+                <option value="">All models</option>
+                <% Task::MODELS.each do |model| %>
+                  <option value="<%= model %>"><%= model.capitalize %></option>
+                <% end %>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-content-muted mb-1">Priority</label>
+              <select data-filter-target="priority"
+                      data-action="change->filter#filterByPriority"
+                      class="w-full px-2 py-1.5 text-sm bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+                <option value="">All priorities</option>
+                <option value="none">None</option>
+                <option value="low">🟢 Low</option>
+                <option value="medium">🟡 Medium</option>
+                <option value="high">🔴 High</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-content-muted mb-1">Agent</label>
+              <select data-filter-target="agent"
+                      data-action="change->filter#filterByAgent"
+                      class="w-full px-2 py-1.5 text-sm bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+                <option value="">Any</option>
+                <option value="true">🦞 Has agent</option>
+                <option value="false">No agent</option>
+              </select>
+            </div>
+            <div class="pt-2 border-t border-border">
+              <button type="button"
+                      data-action="click->filter#clearAll"
+                      class="w-full text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer text-center py-1">
+                Clear all filters
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <%# Center section: Task counts (hidden on mobile) %>
-    <div class="hidden sm:flex items-center gap-2 text-xs text-content-muted">
-      <span><span id="header-inbox-count"><%= @columns[:inbox]&.count || 0 %></span> inbox</span>
-      <span class="text-content-muted/50">|</span>
-      <span><span id="header-in_progress-count"><%= @columns[:in_progress]&.count || 0 %></span> in progress</span>
-      <span class="text-content-muted/50">|</span>
-      <span>✅ <span id="header-done_today-count"><%= current_user.tasks.where("completed_at >= ?", Time.zone.now.beginning_of_day).count %></span> done today</span>
-      <%# Auto-refresh indicator %>
-      <span data-kanban-refresh-target="indicator" 
-            class="opacity-0 transition-opacity duration-200 flex items-center gap-1 text-accent">
-        <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span>syncing</span>
-      </span>
-    </div>
-
-    <%# Right section: Search + Controls and user dropdown %>
+    <%# Right section: Search + Controls %>
     <div class="flex items-center gap-2">
-      <%# Search bar (collapsible) %>
+      <%# Search %>
       <div data-controller="search" data-search-url-value="<%= search_path %>" class="relative">
-        <%# Search form — plain HTML form, always works %>
         <form action="<%= search_path %>" method="get" class="hidden md:block" data-turbo-frame="_top">
           <div class="relative">
             <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-content-muted text-xs">🔍</span>
             <input type="text" name="q" value="<%= params[:q] %>"
                    data-search-target="input"
-                   placeholder="Search... (Enter)"
-                   class="w-40 lg:w-52 pl-8 pr-3 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent focus:w-64 text-content placeholder-content-muted transition-all">
+                   placeholder="Search..."
+                   class="w-36 lg:w-44 pl-8 pr-3 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent focus:w-52 text-content placeholder-content-muted transition-all">
           </div>
         </form>
-        <%# Mobile: just the icon that links to search page %>
         <a href="<%= search_path %>"
            class="md:hidden w-8 h-8 rounded-md bg-bg-elevated hover:bg-bg-hover flex items-center justify-center text-sm transition-colors"
            title="Search">
           🔍
         </a>
       </div>
+
       <%# Flash messages (compact) %>
       <% if notice.present? %>
-        <div data-controller="flash" class="py-1 px-2.5 bg-status-success/20 text-status-success text-xs font-medium rounded-md">
+        <div data-controller="flash" class="hidden md:block py-1 px-2.5 bg-status-success/20 text-status-success text-xs font-medium rounded-md">
           <%= notice %>
         </div>
       <% end %>
-      <% if alert.present? %>
-        <div data-controller="flash" class="py-1 px-2.5 bg-status-error/20 text-status-error text-xs font-medium rounded-md">
-          <%= alert %>
-        </div>
-      <% end %>
 
-      <%# Board Settings Button %>
-      <button type="button"
-              data-action="click->board-modal#open"
-              data-board-modal-target="trigger"
-              class="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-content-secondary bg-bg-elevated hover:bg-bg-hover transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-        </svg>
-        <span class="hidden sm:inline">Board settings</span>
-      </button>
-
-      <%# Model Status Widget - shows rate limit status %>
-      <div class="relative"
-           data-controller="model-status" 
-           data-model-status-url-value="<%= api_v1_models_status_path(format: :json) %>"
-           data-model-status-interval-value="60000">
-        <div data-model-status-target="badge"
-             class="hidden px-2 py-1 rounded-md bg-bg-elevated hover:bg-bg-hover text-xs font-medium transition-colors"
-             title="Model availability">
-          <%# Content populated by JavaScript %>
-        </div>
-        <div data-model-status-target="dropdown"
-             class="hidden absolute right-0 top-full mt-1 w-56 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
-          <%# Content populated by JavaScript %>
-        </div>
-      </div>
-
-      <%# Error Badge - shows count of errored tasks %>
+      <%# Error Badge %>
       <div data-controller="error-badge" 
            data-error-badge-url-value="<%= errored_count_api_v1_tasks_path(format: :json) %>"
            data-error-badge-board-id-value="<%= @board.id %>"
@@ -161,13 +171,23 @@
         <button type="button"
                 data-error-badge-target="button"
                 data-action="click->error-badge#filterErrors"
-                class="hidden relative px-2 py-1 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium transition-colors"
+                class="hidden relative px-2 py-1 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium transition-colors cursor-pointer"
                 title="Click to show errored tasks">
-          <span class="flex items-center gap-1">
-            ⚠️ <span data-error-badge-target="count">0</span>
-          </span>
+          ⚠️ <span data-error-badge-target="count">0</span>
         </button>
       </div>
+
+      <%# Board Settings %>
+      <button type="button"
+              data-action="click->board-modal#open"
+              data-board-modal-target="trigger"
+              class="w-8 h-8 rounded-md bg-bg-elevated hover:bg-bg-hover flex items-center justify-center transition-colors cursor-pointer"
+              title="Board settings">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-content-secondary">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        </svg>
+      </button>
 
       <%# Notifications Bell %>
       <div data-controller="notifications" 
@@ -189,7 +209,6 @@
         <%# Notifications Panel %>
         <div data-notifications-target="panel" 
              class="hidden absolute right-0 mt-2 w-80 bg-bg-surface border border-border rounded-lg shadow-xl z-[100] overflow-hidden">
-          <%# Header %>
           <div class="flex items-center justify-between px-4 py-3 border-b border-border bg-bg-elevated">
             <span class="text-sm font-semibold text-content">Notifications</span>
             <button type="button" 
@@ -198,7 +217,6 @@
               Mark all read
             </button>
           </div>
-          <%# Notification List %>
           <div data-notifications-target="list" class="max-h-80 overflow-y-auto">
             <div class="px-4 py-8 text-center text-content-muted text-sm">
               <span class="text-2xl block mb-2">🔔</span>
@@ -208,27 +226,15 @@
         </div>
       </div>
 
-      <%# Agent indicator (links to settings) %>
-      <% agent_connected = current_user.agent_last_active_at.present? %>
-      <%= link_to settings_path,
-          class: "relative w-7 h-7 rounded-md bg-bg-elevated hover:bg-bg-hover flex items-center justify-center text-sm transition-colors",
-          title: agent_connected ? "#{current_user.agent_name || 'Agent'} • Last active: #{time_ago_in_words(current_user.agent_last_active_at)} ago" : "Configure agent" do %>
-        <%= agent_connected ? (current_user.agent_emoji || "🦞") : "🦞" %>
-        <% if agent_connected && current_user.agent_last_active_at > 5.minutes.ago %>
-          <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-bg-base"></span>
-        <% end %>
-      <% end %>
-
       <%# User avatar dropdown %>
       <div class="relative" data-controller="dropdown">
-        <button
-          type="button"
-          data-dropdown-target="button"
-          data-action="click->dropdown#toggle"
-          class="flex items-center cursor-pointer"
-          aria-expanded="false"
-          aria-haspopup="true">
-          <div class="w-7 h-7 rounded-md overflow-hidden bg-bg-surface flex items-center justify-center">
+        <button type="button"
+                data-dropdown-target="button"
+                data-action="click->dropdown#toggle"
+                class="flex items-center cursor-pointer"
+                aria-expanded="false"
+                aria-haspopup="true">
+          <div class="w-8 h-8 rounded-md overflow-hidden bg-bg-surface flex items-center justify-center">
             <% if current_user.has_avatar? %>
               <%= image_tag current_user.avatar_source, class: "w-full h-full object-cover", alt: "Your avatar" %>
             <% else %>
@@ -239,46 +245,33 @@
           </div>
         </button>
 
-        <%# Dropdown menu %>
-        <div
-          data-dropdown-target="menu"
-          class="hidden absolute right-0 top-full mt-1 w-48 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
-          <%# User info %>
+        <div data-dropdown-target="menu"
+             class="hidden absolute right-0 top-full mt-1 w-48 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
           <div class="px-3 py-2.5 bg-bg-elevated border-b border-border">
-            <p class="text-xs font-medium text-content truncate">
-              <%= current_user.email_address.split('@').first %>
-            </p>
-            <p class="text-xs text-content-muted truncate">
-              <%= current_user.email_address %>
-            </p>
+            <p class="text-xs font-medium text-content truncate"><%= current_user.email_address.split('@').first %></p>
+            <% if current_user.agent_last_active_at.present? %>
+              <p class="text-xs text-content-muted flex items-center gap-1">
+                <%= current_user.agent_emoji || "🦞" %>
+                <span><%= current_user.agent_name || 'Agent' %></span>
+                <% if current_user.agent_last_active_at > 5.minutes.ago %>
+                  <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                <% end %>
+              </p>
+            <% end %>
           </div>
-          <%# Menu items %>
           <div class="py-1">
-            <%= link_to settings_path,
-                class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+            <%= link_to dashboard_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+              📊 Dashboard
+            <% end %>
+            <%= link_to analytics_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+              📈 Analytics
+            <% end %>
+            <%= link_to settings_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               Settings
-            <% end %>
-            <%= link_to "https://github.com/clawdeckio/clawdeck",
-                target: "_blank",
-                rel: "noopener noreferrer",
-                class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
-              </svg>
-              GitHub
-            <% end %>
-            <%= link_to "https://discord.gg/pqffNjdY",
-                target: "_blank",
-                rel: "noopener noreferrer",
-                class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-              </svg>
-              Discord
             <% end %>
             <div class="border-t border-border my-1"></div>
             <%= link_to session_path,
@@ -296,110 +289,25 @@
     </div>
   </div>
 
-  <%# Board Tabs Navbar - hidden on mobile (single board view with bottom nav) %>
-  <%#
-    Overflow logic: show up to 5 visible board tabs.
-    If there are more than 6 boards, show the first 5 (ensuring the current board
-    is always among the visible ones) and put the rest in a "More ▼" dropdown.
-  %>
-  <%
-    max_visible = 5
-    all_boards = @boards.to_a
-    if all_boards.size > max_visible + 1
-      # Build visible list: first 5, but ensure current board is included
-      visible_boards = all_boards.first(max_visible)
-      current_in_visible = visible_boards.any? { |b| b.id == @board.id }
-      unless current_in_visible
-        # Replace the last visible board with the current one
-        visible_boards[max_visible - 1] = @board
-      end
-      overflow_boards = all_boards.reject { |b| visible_boards.any? { |vb| vb.id == b.id } }
-    else
-      visible_boards = all_boards
-      overflow_boards = []
-    end
-  %>
-  <nav class="hidden md:flex items-center gap-1 px-4 md:px-6 py-2 bg-bg-base border-b border-border">
-    <%# Visible board tabs %>
-    <% visible_boards.each do |board| %>
-      <% active = board.id == @board.id %>
-      <% task_count = board.tasks.where.not(status: :done).count %>
-      <%= link_to board_path(board),
-          class: "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap #{active ? 'bg-bg-elevated text-content' : 'text-content-secondary hover:bg-bg-surface hover:text-content'}",
-          data: { turbo_frame: "_top" } do %>
-        <span><%= board.icon %></span>
-        <span><%= board.name %></span>
-        <% if task_count > 0 %>
-          <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full <%= active ? 'bg-accent/20 text-accent' : 'bg-bg-surface text-content-muted' %>">
-            <%= task_count %>
-          </span>
-        <% end %>
-      <% end %>
-    <% end %>
-
-    <%# "More" dropdown for overflow boards %>
-    <% if overflow_boards.any? %>
-      <div class="relative" data-controller="dropdown">
-        <button type="button"
-                data-dropdown-target="button"
-                data-action="click->dropdown#toggle"
-                class="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium text-content-secondary hover:bg-bg-surface hover:text-content transition-colors cursor-pointer whitespace-nowrap">
-          More
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
-            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-          </svg>
-          <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-bg-surface text-content-muted">
-            <%= overflow_boards.size %>
-          </span>
-        </button>
-        <div data-dropdown-target="menu"
-             class="hidden absolute left-0 top-full mt-1 w-56 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
-          <div class="py-1 max-h-60 overflow-y-auto">
-            <% overflow_boards.each do |board| %>
-              <% active = board.id == @board.id %>
-              <% task_count = board.tasks.where.not(status: :done).count %>
-              <%= link_to board_path(board),
-                  class: "flex items-center gap-2 px-3 py-2 text-sm transition-colors #{active ? 'bg-bg-elevated text-content' : 'text-content-secondary hover:bg-bg-hover hover:text-content'}",
-                  data: { turbo_frame: "_top" } do %>
-                <span><%= board.icon %></span>
-                <span class="flex-1 truncate"><%= board.name %></span>
-                <% if task_count > 0 %>
-                  <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full <%= active ? 'bg-accent/20 text-accent' : 'bg-bg-surface text-content-muted' %>">
-                    <%= task_count %>
-                  </span>
-                <% end %>
-              <% end %>
-            <% end %>
-          </div>
-        </div>
-      </div>
-    <% end %>
-
-    <%# Archived link %>
-    <% archived_count = @board.tasks.archived.count %>
-    <%= link_to archived_board_path(@board),
-        class: "flex items-center gap-1.5 px-2 py-1.5 rounded-md text-sm text-content-muted hover:text-content hover:bg-bg-surface transition-colors whitespace-nowrap",
-        title: "View archived tasks" do %>
-      <span>📦</span>
-      <span class="hidden sm:inline">Archived</span>
-      <% if archived_count > 0 %>
-        <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-bg-surface text-content-muted">
-          <%= archived_count %>
-        </span>
-      <% end %>
-    <% end %>
-
-    <%# New Board button %>
-    <button type="button"
-            data-action="click->board-modal#open"
-            data-board-modal-target="newBoardTrigger"
-            class="flex items-center gap-1 px-2 py-1.5 rounded-md text-sm text-content-muted hover:text-content hover:bg-bg-surface transition-colors cursor-pointer whitespace-nowrap">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-        <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+  <%# Stats bar %>
+  <div class="flex items-center justify-between px-4 md:px-6 py-1.5 bg-bg-surface/50 border-t border-border/50">
+    <div class="flex items-center gap-3 text-xs text-content-muted">
+      <span>📊 <span id="header-inbox-count" class="font-medium text-content"><%= @columns[:inbox]&.count || 0 %></span> inbox</span>
+      <span class="text-border">·</span>
+      <span><span id="header-in_progress-count" class="font-medium text-content"><%= @columns[:in_progress]&.count || 0 %></span> in progress</span>
+      <span class="text-border">·</span>
+      <span>✅ <span id="header-done_today-count" class="font-medium text-content"><%= current_user.tasks.where("completed_at >= ?", Time.zone.now.beginning_of_day).count %></span> done today</span>
+    </div>
+    <%# Auto-refresh indicator %>
+    <span data-kanban-refresh-target="indicator" 
+          class="opacity-0 transition-opacity duration-200 flex items-center gap-1 text-xs text-accent">
+      <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
-      <span class="hidden sm:inline">New</span>
-    </button>
-  </nav>
+      <span>syncing</span>
+    </span>
+  </div>
 </header>
 
 <%# New Board Modal %>
@@ -495,7 +403,6 @@
           <% if current_user.agent_last_active_at.present? && current_user.agent_emoji.present? && !edit_icons.include?(current_user.agent_emoji) %>
             <% edit_icons << current_user.agent_emoji %>
           <% end %>
-          <%# Also include the current board's icon if it's custom %>
           <% if @board.icon.present? && !edit_icons.include?(@board.icon) %>
             <% edit_icons << @board.icon %>
           <% end %>

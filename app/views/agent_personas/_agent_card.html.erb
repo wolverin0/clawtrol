@@ -1,0 +1,77 @@
+<%
+  active_count = active_task_counts[persona.id] || 0
+  status = agent_status(persona, active_count, rate_limited_models)
+  status_cls = agent_status_class(status)
+  s_icon = agent_status_icon(status)
+  s_text = agent_status_text(status)
+  dot_cls = agent_status_dot_class(status)
+%>
+
+<div class="agent-card group relative bg-bg-surface border border-border rounded-xl p-5 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5 transition-all duration-200"
+     data-persona-id="<%= persona.id %>">
+  <%# Status indicator dot %>
+  <div class="absolute top-3 right-3">
+    <span class="flex h-2.5 w-2.5 relative">
+      <% if status == :working %>
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+      <% end %>
+      <span class="relative inline-flex rounded-full h-2.5 w-2.5 <%= dot_cls %>"></span>
+    </span>
+  </div>
+
+  <%# Avatar %>
+  <div class="flex flex-col items-center text-center">
+    <div class="text-4xl mb-3 group-hover:scale-110 transition-transform duration-200">
+      <%= persona.emoji %>
+    </div>
+
+    <%# Name %>
+    <h3 class="text-sm font-semibold text-content font-display truncate w-full">
+      <%= persona.name.titleize %>
+    </h3>
+
+    <%# Model badge %>
+    <div class="flex items-center gap-1.5 mt-2">
+      <span class="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-<%= persona.model_color %>-500/20 text-<%= persona.model_color %>-400">
+        <%= persona.model || "—" %>
+      </span>
+      <% if persona.fallback_model.present? %>
+        <span class="text-[10px] text-content-muted">→</span>
+        <span class="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-gray-500/15 text-gray-500">
+          <%= persona.fallback_model %>
+        </span>
+      <% end %>
+    </div>
+
+    <%# Tier badge %>
+    <% if persona.tier.present? %>
+      <span class="mt-1.5 px-2 py-0.5 text-[10px] font-medium rounded-full bg-<%= persona.tier_color %>-500/10 text-<%= persona.tier_color %>-400/80">
+        <%= persona.tier.titleize %>
+      </span>
+    <% end %>
+
+    <%# Status pill %>
+    <div class="mt-3 px-3 py-1 text-[11px] font-medium rounded-full border <%= status_cls %>">
+      <%= s_icon %> <%= s_text %>
+    </div>
+
+    <%# Active tasks %>
+    <div class="mt-2 text-xs">
+      <% if active_count > 0 %>
+        <span class="text-accent font-medium">🔄 <%= active_count %> active task<%= active_count == 1 ? "" : "s" %></span>
+      <% else %>
+        <span class="text-content-muted">No active tasks</span>
+      <% end %>
+    </div>
+
+    <%# Project tag %>
+    <% if persona.project.present? && persona.project != "global" %>
+      <span class="mt-2 px-1.5 py-0.5 text-[9px] font-medium rounded bg-cyan-500/15 text-cyan-400/80">
+        📁 <%= persona.project %>
+      </span>
+    <% end %>
+  </div>
+
+  <%# Hover link to detail %>
+  <%= link_to agent_persona_path(persona), class: "absolute inset-0 rounded-xl", "aria-label": persona.name %>
+</div>

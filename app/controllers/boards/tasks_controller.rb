@@ -215,17 +215,36 @@ class Boards::TasksController < ApplicationController
       return
     end
 
-    # Resolve file path - allow absolute paths in output_files or relative to Rails root
+    # Resolve file path - try multiple locations for relative paths
+    workspace_root = File.expand_path("~/.openclaw/workspace")
+    project_root = Rails.root.to_s
+
     if Pathname.new(path).absolute?
       full_path = File.expand_path(path)
     else
-      full_path = File.expand_path(File.join(Rails.root.to_s, path))
+      # Try multiple candidate locations for relative paths
+      candidates = [
+        File.expand_path(File.join(workspace_root, path)),
+        File.expand_path(File.join(project_root, path)),
+      ]
+      # Also try task's board project path if the board has one
+      board_project_path = @task.board.try(:project_path)
+      if board_project_path.present?
+        candidates.unshift(File.expand_path(File.join(board_project_path, path)))
+      end
+
+      full_path = candidates.find { |p| File.exist?(p) && File.file?(p) }
+      full_path ||= candidates.first # fallback for error message
     end
 
-    # Security: must be in output_files list OR within project root
-    allowed = (@task.output_files || []).include?(path) || full_path.start_with?(Rails.root.to_s)
+    # Security: must be in output_files list OR within allowed directories
+    allowed_dirs = [project_root, workspace_root]
+    board_project_path ||= @task.board.try(:project_path)
+    allowed_dirs << board_project_path if board_project_path.present?
+    in_output_files = (@task.output_files || []).include?(path)
+    in_allowed_dir = allowed_dirs.any? { |dir| full_path.start_with?(dir) }
 
-    unless allowed
+    unless in_output_files || in_allowed_dir
       render plain: "Access denied", status: :forbidden
       return
     end
@@ -454,7 +473,7 @@ class Boards::TasksController < ApplicationController
   end
 
   def task_params
-    permitted = params.require(:task).permit(:name, :title, :description, :priority, :status, :blocked, :due_date, :completed, :model, :recurring, :recurrence_rule, :recurrence_time, :nightly, :nightly_delay_hours, :validation_command, tags: [])
+    permitted = params.require(:task).permit(:name, :title, :description, :priority, :status, :blocked, :due_date, :completed, :model, :recurring, :recurrence_rule, :recurrence_time, :nightly, :nightly_delay_hours, :validation_command, :agent_persona_id, tags: [])
     # Allow 'title' as alias for 'name'
     permitted[:name] = permitted.delete(:title) if permitted[:title].present? && permitted[:name].blank?
     permitted

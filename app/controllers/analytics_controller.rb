@@ -66,5 +66,60 @@ class AnalyticsController < ApplicationController
     # Max daily for scaling bars
     @max_daily = @daily_completions.values.max || 1
     @max_model_usage = @model_usage.values.max || 1
+
+    # === Token Usage Analytics (Foxhound) ===
+    @token_usages = TokenUsage.for_user(current_user).by_date_range(@start_date)
+
+    # Summary stats
+    @total_input_tokens = @token_usages.total_input
+    @total_output_tokens = @token_usages.total_output
+    @total_tokens = @total_input_tokens + @total_output_tokens
+    @total_cost = @token_usages.total_cost
+
+    # Cost by model (for pie-like display)
+    @cost_by_model = @token_usages.cost_by_model
+    @max_model_cost = @cost_by_model.values.max || 0
+
+    # Tokens by model (detailed)
+    @tokens_by_model = @token_usages.tokens_by_model.to_a
+
+    # Daily token usage (for line-like chart)
+    daily_raw = @token_usages.daily_usage(@start_date)
+    @daily_token_usage = {}
+    daily_raw.each do |row|
+      @daily_token_usage[row.date.to_date] = {
+        input: row.total_input.to_i,
+        output: row.total_output.to_i,
+        cost: row.total_cost.to_f
+      }
+    end
+
+    # Fill missing dates
+    if @start_date.present?
+      (@start_date.to_date..Date.current).each do |date|
+        @daily_token_usage[date] ||= { input: 0, output: 0, cost: 0 }
+      end
+      @daily_token_usage = @daily_token_usage.sort.to_h
+    end
+
+    @max_daily_tokens = @daily_token_usage.values.map { |v| v[:input] + v[:output] }.max || 1
+
+    # Per-board token breakdown
+    @board_token_stats = @token_usages.by_board_breakdown.to_a
+
+    # Today's stats (quick glance)
+    today_usages = TokenUsage.for_user(current_user).by_date_range(Time.current.beginning_of_day)
+    @today_tokens = today_usages.total_tokens_count
+    @today_cost = today_usages.total_cost
+
+    # This week
+    week_usages = TokenUsage.for_user(current_user).by_date_range(Time.current.beginning_of_week)
+    @week_tokens = week_usages.total_tokens_count
+    @week_cost = week_usages.total_cost
+
+    # This month
+    month_usages = TokenUsage.for_user(current_user).by_date_range(Time.current.beginning_of_month)
+    @month_tokens = month_usages.total_tokens_count
+    @month_cost = month_usages.total_cost
   end
 end

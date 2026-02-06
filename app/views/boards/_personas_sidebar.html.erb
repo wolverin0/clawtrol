@@ -1,0 +1,44 @@
+<%# Agent Personas Sidebar for drag-to-assign %>
+<%# Required: @agent_personas %>
+<% if @agent_personas.present? %>
+  <div class="flex items-center gap-2 px-4 md:px-6 py-2 bg-bg-surface border-b border-border"
+       data-controller="drag-assign"
+       data-drag-assign-api-base-value="/api/v1">
+
+    <%# Toggle Button %>
+    <button type="button"
+            data-drag-assign-target="toggle"
+            data-action="click->drag-assign#toggleSidebar"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors cursor-pointer flex-shrink-0"
+            title="Show Agent Personas">
+      <span>🤖</span>
+      <span class="hidden sm:inline">Agents</span>
+      <span class="text-content-muted">(<%= @agent_personas.count %>)</span>
+      <svg data-chevron xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 transition-transform">
+        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+      </svg>
+    </button>
+
+    <%# Persona Badges (collapsible, horizontal scroll) %>
+    <div data-drag-assign-target="sidebar" class="hidden flex-1 min-w-0 overflow-x-auto scrollbar-thin">
+      <div class="flex items-center gap-1.5 py-0.5">
+        <% @agent_personas.each do |persona| %>
+          <div draggable="true"
+               data-drag-assign-target="badge"
+               data-persona-id="<%= persona.id %>"
+               data-persona-name="<%= persona.name %>"
+               data-persona-emoji="<%= persona.emoji || '🤖' %>"
+               data-action="dragstart->drag-assign#dragStart dragend->drag-assign#dragEnd"
+               class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium whitespace-nowrap flex-shrink-0
+                      bg-<%= persona.model_color %>-500/15 text-<%= persona.model_color %>-400 
+                      border border-<%= persona.model_color %>-500/25
+                      cursor-grab active:cursor-grabbing hover:scale-105 transition-transform select-none"
+               title="<%= persona.name %> (<%= persona.model_chain %>) — Drag onto a task to assign">
+            <span><%= persona.emoji || '🤖' %></span>
+            <span class="max-w-[70px] truncate"><%= persona.name %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

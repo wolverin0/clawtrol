@@ -1,0 +1,143 @@
+<% content_for :title, "Agent Roster" %>
+<% content_for :breadcrumb_standalone, "Agent Roster" %>
+
+<div class="mt-8" data-controller="roster" data-roster-refresh-url="<%= roster_agent_personas_path(format: :html, tier: params[:tier], status: params[:status], sort: params[:sort]) %>">
+  <%# Header %>
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-lg font-semibold text-content font-display">🐺 Agent Roster</h1>
+      <p class="text-xs text-content-muted mt-1">
+        Live status of all <%= @stats[:total] %> agent personas
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-[10px] text-content-muted" data-roster-target="timer">Auto-refresh: 30s</span>
+      <%= link_to agent_personas_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-surface border border-border rounded-md hover:bg-bg-elevated transition-colors" do %>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+        </svg>
+        List View
+      <% end %>
+    </div>
+  </div>
+
+  <%# Stats bar %>
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+    <div class="bg-bg-surface border border-border rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-content font-display"><%= @stats[:total] %></div>
+      <div class="text-[10px] text-content-muted uppercase tracking-wider mt-0.5">Total</div>
+    </div>
+    <div class="bg-bg-surface border border-green-500/20 rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-green-400 font-display"><%= @stats[:working] %></div>
+      <div class="text-[10px] text-green-400/70 uppercase tracking-wider mt-0.5">⚡ Working</div>
+    </div>
+    <div class="bg-bg-surface border border-red-500/20 rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-red-400 font-display"><%= @stats[:rate_limited] %></div>
+      <div class="text-[10px] text-red-400/70 uppercase tracking-wider mt-0.5">🚫 Rate Limited</div>
+    </div>
+    <div class="bg-bg-surface border border-border rounded-lg px-4 py-3 text-center">
+      <div class="text-xl font-bold text-content-muted font-display"><%= @stats[:idle] %></div>
+      <div class="text-[10px] text-content-muted uppercase tracking-wider mt-0.5">💤 Idle</div>
+    </div>
+    <div class="bg-bg-surface border border-accent/20 rounded-lg px-4 py-3 text-center col-span-2 sm:col-span-1">
+      <div class="text-xl font-bold text-accent font-display"><%= @stats[:total_active_tasks] %></div>
+      <div class="text-[10px] text-accent/70 uppercase tracking-wider mt-0.5">🔄 Active Tasks</div>
+    </div>
+  </div>
+
+  <%# Filter tabs %>
+  <div class="flex flex-wrap items-center gap-2 mb-6">
+    <%# Tier filters %>
+    <div class="flex flex-wrap gap-1.5">
+      <%= link_to "All",
+          roster_agent_personas_path(status: params[:status], sort: params[:sort]),
+          class: "px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors #{params[:tier].blank? ? 'bg-accent text-content' : 'bg-bg-surface text-content-secondary hover:bg-bg-elevated border border-border'}" %>
+      <% AgentPersona::TIERS.each do |tier| %>
+        <%= link_to tier.titleize,
+            roster_agent_personas_path(tier: tier, status: params[:status], sort: params[:sort]),
+            class: "px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors #{params[:tier] == tier ? 'bg-accent text-content' : 'bg-bg-surface text-content-secondary hover:bg-bg-elevated border border-border'}" %>
+      <% end %>
+    </div>
+
+    <span class="text-content-muted text-xs">|</span>
+
+    <%# Status filters %>
+    <div class="flex flex-wrap gap-1.5">
+      <%= link_to "All Status",
+          roster_agent_personas_path(tier: params[:tier], sort: params[:sort]),
+          class: "px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors #{params[:status].blank? ? 'bg-accent text-content' : 'bg-bg-surface text-content-secondary hover:bg-bg-elevated border border-border'}" %>
+      <% [["working", "⚡ Working", "green"], ["rate_limited", "🚫 Limited", "red"], ["idle", "💤 Idle", "gray"]].each do |val, label, _color| %>
+        <%= link_to label,
+            roster_agent_personas_path(tier: params[:tier], status: val, sort: params[:sort]),
+            class: "px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors #{params[:status] == val ? 'bg-accent text-content' : 'bg-bg-surface text-content-secondary hover:bg-bg-elevated border border-border'}" %>
+      <% end %>
+    </div>
+
+    <span class="text-content-muted text-xs">|</span>
+
+    <%# Sort %>
+    <div class="flex gap-1.5">
+      <%= link_to "Name",
+          roster_agent_personas_path(tier: params[:tier], status: params[:status]),
+          class: "px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors #{params[:sort].blank? ? 'bg-accent text-content' : 'bg-bg-surface text-content-secondary hover:bg-bg-elevated border border-border'}" %>
+      <%= link_to "Activity ↓",
+          roster_agent_personas_path(tier: params[:tier], status: params[:status], sort: "activity"),
+          class: "px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors #{params[:sort] == 'activity' ? 'bg-accent text-content' : 'bg-bg-surface text-content-secondary hover:bg-bg-elevated border border-border'}" %>
+    </div>
+  </div>
+
+  <%# Agent Grid %>
+  <div id="agent-roster-grid" data-roster-target="grid">
+    <% if @agent_personas.any? %>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <% @agent_personas.each do |persona| %>
+          <%= render "agent_personas/agent_card",
+                     persona: persona,
+                     active_task_counts: @active_task_counts,
+                     rate_limited_models: @rate_limited_models %>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="bg-bg-surface border border-border rounded-lg p-12 text-center">
+        <span class="text-4xl mb-4 block">🔍</span>
+        <h3 class="text-sm font-semibold text-content mb-2">No agents match filters</h3>
+        <p class="text-xs text-content-muted">Try adjusting your tier or status filters.</p>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Footer %>
+  <div class="mt-6 flex items-center justify-between">
+    <%= link_to agent_personas_path, class: "text-xs text-content-muted hover:text-content transition-colors" do %>
+      ← Back to Personas List
+    <% end %>
+    <span class="text-[10px] text-content-muted">
+      Last updated: <%= Time.current.strftime("%H:%M:%S") %>
+    </span>
+  </div>
+</div>
+
+<script>
+  // Auto-refresh every 30s
+  document.addEventListener("DOMContentLoaded", function() {
+    const container = document.querySelector("[data-controller='roster']");
+    if (!container) return;
+
+    let countdown = 30;
+    const timerEl = container.querySelector("[data-roster-target='timer']");
+
+    setInterval(function() {
+      countdown--;
+      if (timerEl) timerEl.textContent = "Auto-refresh: " + countdown + "s";
+      if (countdown <= 0) {
+        countdown = 30;
+        // Use Turbo to refresh the page preserving scroll
+        if (window.Turbo) {
+          Turbo.visit(window.location.href, { action: "replace" });
+        } else {
+          window.location.reload();
+        }
+      }
+    }, 1000);
+  });
+</script>

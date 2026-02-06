@@ -1,0 +1,16 @@
+<% content_for :title, "Edit #{@agent_persona.name.titleize}" %>
+<% content_for :breadcrumb_standalone, "Edit Persona" %>
+
+<div class="mt-8">
+  <div class="mb-6">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl"><%= @agent_persona.emoji %></span>
+      <div>
+        <h1 class="text-lg font-semibold text-content font-display">Edit <%= @agent_persona.name.titleize %></h1>
+        <p class="text-xs text-content-muted mt-1">Update agent personality and configuration</p>
+      </div>
+    </div>
+  </div>
+
+  <%= render "form", agent_persona: @agent_persona %>
+</div>

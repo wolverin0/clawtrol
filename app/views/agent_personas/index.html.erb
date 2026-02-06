@@ -1,0 +1,114 @@
+<% content_for :title, "Agent Personas" %>
+<% content_for :breadcrumb_standalone, "Agent Personas" %>
+
+<div class="mt-8">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-lg font-semibold text-content font-display">Agent Personas</h1>
+      <p class="text-xs text-content-muted mt-1">Configure AI agent personalities and capabilities</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= link_to roster_agent_personas_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-surface border border-border rounded-md hover:bg-bg-elevated transition-colors" do %>
+        🐺 Roster
+      <% end %>
+      <%= button_to import_agent_personas_path, method: :post, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-surface border border-border rounded-md hover:bg-bg-elevated transition-colors cursor-pointer" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+        Import from YAML
+      <% end %>
+      <%= link_to new_agent_persona_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content bg-accent hover:bg-accent-hover rounded-md transition-colors" do %>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        New Persona
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="flex flex-wrap gap-2 mb-6">
+    <%= link_to "All", agent_personas_path, class: "px-3 py-1 text-xs font-medium rounded-md transition-colors #{params[:tier].blank? ? 'bg-accent text-content' : 'bg-bg-surface text-content-secondary hover:bg-bg-elevated'}" %>
+    <% AgentPersona::TIERS.each do |tier| %>
+      <%= link_to tier.titleize, agent_personas_path(tier: tier), class: "px-3 py-1 text-xs font-medium rounded-md transition-colors #{params[:tier] == tier ? 'bg-accent text-content' : 'bg-bg-surface text-content-secondary hover:bg-bg-elevated'}" %>
+    <% end %>
+  </div>
+
+  <!-- Personas Grid -->
+  <% if @agent_personas.any? %>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+      <% @agent_personas.each do |persona| %>
+        <%= link_to agent_persona_path(persona), class: "group block bg-bg-surface border border-border rounded-lg p-4 hover:border-accent/50 hover:bg-bg-elevated transition-all" do %>
+          <div class="flex items-start gap-3">
+            <!-- Emoji -->
+            <span class="text-2xl"><%= persona.emoji %></span>
+            
+            <div class="flex-1 min-w-0">
+              <!-- Name + Active Badge -->
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-semibold text-content truncate font-display"><%= persona.name.titleize %></h3>
+                <% unless persona.active? %>
+                  <span class="px-1.5 py-0.5 text-[10px] font-medium bg-gray-500/20 text-gray-400 rounded">Inactive</span>
+                <% end %>
+              </div>
+              
+              <!-- Description -->
+              <p class="text-xs text-content-muted mt-1 line-clamp-2"><%= persona.description %></p>
+              
+              <!-- Model + Tier badges -->
+              <div class="flex flex-wrap items-center gap-1.5 mt-3">
+                <% if persona.model.present? %>
+                  <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-<%= persona.model_color %>-500/20 text-<%= persona.model_color %>-400">
+                    <%= persona.model %>
+                  </span>
+                <% end %>
+                <% if persona.fallback_model.present? %>
+                  <span class="text-[10px] text-content-muted">→</span>
+                  <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-500/20 text-gray-400">
+                    <%= persona.fallback_model %>
+                  </span>
+                <% end %>
+                <% if persona.tier.present? %>
+                  <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-<%= persona.tier_color %>-500/20 text-<%= persona.tier_color %>-400">
+                    <%= persona.tier %>
+                  </span>
+                <% end %>
+                <% if persona.project.present? && persona.project != 'global' %>
+                  <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-cyan-500/20 text-cyan-400">
+                    <%= persona.project %>
+                  </span>
+                <% end %>
+              </div>
+              
+              <!-- Tools preview -->
+              <% if persona.tools_list.any? %>
+                <div class="flex flex-wrap items-center gap-1 mt-2">
+                  <% persona.tools_list.first(4).each do |tool| %>
+                    <span class="px-1 py-0.5 text-[9px] font-mono bg-bg-base text-content-muted rounded"><%= tool %></span>
+                  <% end %>
+                  <% if persona.tools_list.count > 4 %>
+                    <span class="text-[9px] text-content-muted">+<%= persona.tools_list.count - 4 %></span>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <!-- Empty state -->
+    <div class="bg-bg-surface border border-border rounded-lg p-8 text-center">
+      <span class="text-4xl mb-4 block">🤖</span>
+      <h3 class="text-sm font-semibold text-content mb-2">No personas yet</h3>
+      <p class="text-xs text-content-muted mb-4">Create your first agent persona or import from YAML files.</p>
+      <div class="flex justify-center gap-2">
+        <%= button_to import_agent_personas_path, method: :post, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-elevated border border-border rounded-md hover:bg-bg-hover transition-colors cursor-pointer" do %>
+          Import from YAML
+        <% end %>
+        <%= link_to "Create Persona", new_agent_persona_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content bg-accent hover:bg-accent-hover rounded-md transition-colors" %>
+      </div>
+    </div>
+  <% end %>
+</div>

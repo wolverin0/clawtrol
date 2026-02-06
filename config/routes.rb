@@ -4,6 +4,13 @@ Rails.application.routes.draw do
     namespace :v1 do
       resource :settings, only: [ :show, :update ]
 
+      # Agent Personas
+      resources :agent_personas, only: [ :index, :show, :create, :update, :destroy ] do
+        collection do
+          post :import
+        end
+      end
+
       # Notifications
       resources :notifications, only: [:index] do
         collection do
@@ -19,6 +26,11 @@ Rails.application.routes.draw do
       post "models/best", to: "model_limits#best"
       post "models/:model_name/limit", to: "model_limits#record_limit"
       delete "models/:model_name/limit", to: "model_limits#clear_limit"
+
+      # Analytics
+      namespace :analytics do
+        get :tokens
+      end
 
       resources :boards, only: [ :index, :show, :create, :update, :destroy ] do
         member do
@@ -93,6 +105,14 @@ Rails.application.routes.draw do
 
   # Analytics page
   get "analytics", to: "analytics#show"
+
+  # Agent Personas
+  resources :agent_personas do
+    collection do
+      post :import
+      get :roster
+    end
+  end
 
   # Boards (multi-board kanban views)
   resources :boards, only: [ :index, :show, :create, :update, :destroy ] do

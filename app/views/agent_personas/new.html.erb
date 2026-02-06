@@ -1,0 +1,11 @@
+<% content_for :title, "New Persona" %>
+<% content_for :breadcrumb_standalone, "New Persona" %>
+
+<div class="mt-8">
+  <div class="mb-6">
+    <h1 class="text-lg font-semibold text-content font-display">New Agent Persona</h1>
+    <p class="text-xs text-content-muted mt-1">Create a new AI agent personality and configuration</p>
+  </div>
+
+  <%= render "form", agent_persona: @agent_persona %>
+</div>

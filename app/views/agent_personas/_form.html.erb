@@ -1,0 +1,141 @@
+<%= form_with(model: agent_persona, class: "space-y-6") do |form| %>
+  <% if agent_persona.errors.any? %>
+    <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+      <h3 class="text-sm font-medium text-red-400 mb-2">Please fix the following errors:</h3>
+      <ul class="list-disc list-inside text-xs text-red-400 space-y-1">
+        <% agent_persona.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <!-- Basic Info -->
+  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">Basic Info</h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- Emoji -->
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Emoji</label>
+        <%= form.text_field :emoji, 
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-xl text-center text-content focus:ring-1 focus:ring-accent focus:outline-none",
+            maxlength: 4 %>
+      </div>
+
+      <!-- Name -->
+      <div class="md:col-span-3">
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Name *</label>
+        <%= form.text_field :name, 
+            required: true,
+            placeholder: "security-auditor",
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div>
+      <label class="block text-xs font-medium text-content-secondary mb-1.5">Description</label>
+      <%= form.text_area :description, 
+          rows: 2,
+          placeholder: "Brief description of what this agent does...",
+          class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none resize-none" %>
+    </div>
+
+    <!-- Role -->
+    <div>
+      <label class="block text-xs font-medium text-content-secondary mb-1.5">Role</label>
+      <%= form.text_field :role, 
+          placeholder: "e.g., Code Reviewer, Security Specialist",
+          class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+    </div>
+
+    <!-- Active -->
+    <div class="flex items-center gap-2">
+      <%= form.check_box :active, class: "rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
+      <label class="text-sm text-content-secondary">Active</label>
+    </div>
+  </div>
+
+  <!-- Model Configuration -->
+  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">Model Configuration</h3>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Primary Model -->
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Primary Model</label>
+        <%= form.select :model, 
+            AgentPersona::MODELS.map { |m| [m.titleize, m] },
+            { include_blank: "Select model..." },
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+      </div>
+
+      <!-- Fallback Model -->
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Fallback Model</label>
+        <%= form.select :fallback_model, 
+            AgentPersona::MODELS.map { |m| [m.titleize, m] },
+            { include_blank: "No fallback" },
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Tier -->
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Tier</label>
+        <%= form.select :tier, 
+            AgentPersona::TIERS.map { |t| [t.titleize, t] },
+            { include_blank: "Select tier..." },
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+        <p class="text-xs text-content-muted mt-1">strategic-reasoning, fast-coding, research, operations</p>
+      </div>
+
+      <!-- Project -->
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Project</label>
+        <%= form.text_field :project, 
+            placeholder: "global",
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+        <p class="text-xs text-content-muted mt-1">"global" for shared, or project code (e.g., WAPP, DASH)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tools -->
+  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">Tools</h3>
+
+    <div>
+      <label class="block text-xs font-medium text-content-secondary mb-1.5">Available Tools</label>
+      <%= form.text_field :tools_string, 
+          value: agent_persona.tools_list.join(", "),
+          placeholder: "Read, Write, Edit, exec, web_search, web_fetch",
+          class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+      <p class="text-xs text-content-muted mt-1">Comma-separated list of tools. Available: <%= AgentPersona::DEFAULT_TOOLS.join(", ") %></p>
+    </div>
+  </div>
+
+  <!-- System Prompt -->
+  <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+    <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">System Prompt</h3>
+
+    <div>
+      <%= form.text_area :system_prompt, 
+          rows: 15,
+          placeholder: "# Agent Name\n\nYou are a specialist in...\n\n## Capabilities\n- ...\n\n## Rules\n- ...",
+          class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content font-mono placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none resize-y" %>
+      <p class="text-xs text-content-muted mt-1">Markdown format. This is the persona's system prompt when spawned.</p>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="flex items-center justify-between">
+    <%= link_to agent_persona.persisted? ? agent_persona_path(agent_persona) : agent_personas_path, class: "text-xs text-content-muted hover:text-content transition-colors" do %>
+      Cancel
+    <% end %>
+    <%= form.submit agent_persona.persisted? ? "Update Persona" : "Create Persona", 
+        class: "cursor-pointer px-4 py-2 bg-accent text-content hover:bg-accent-hover text-xs font-semibold rounded-md transition-colors duration-200" %>
+  </div>
+<% end %>

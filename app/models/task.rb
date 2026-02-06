@@ -7,6 +7,7 @@ class Task < ApplicationRecord
   has_many :activities, class_name: "TaskActivity", dependent: :destroy
   has_many :child_tasks, class_name: "Task", foreign_key: :parent_task_id, dependent: :nullify
   has_one :source_task, class_name: "Task", foreign_key: :followup_task_id
+  has_many :notifications, dependent: :destroy
   has_many :token_usages, dependent: :destroy
 
   # Task dependencies (blocking relationships)
@@ -20,6 +21,7 @@ class Task < ApplicationRecord
 
   # Model options for agent LLM selection
   MODELS = %w[opus codex gemini glm sonnet].freeze
+  DEFAULT_MODEL = "opus".freeze
 
   # Review types
   REVIEW_TYPES = %w[command debate].freeze
@@ -73,6 +75,7 @@ class Task < ApplicationRecord
   after_update :notify_openclaw_if_urgent, if: :saved_change_to_status?
   after_update :warn_if_review_without_session, if: :saved_change_to_status?
   after_update :create_status_notification, if: :saved_change_to_status?
+  after_update :try_transcript_capture, if: :saved_change_to_status?
 
   # Position management - acts_as_list functionality without the gem
   before_create :set_position
@@ -464,6 +467,16 @@ class Task < ApplicationRecord
   def warn_if_review_without_session
     return unless status == "in_review" && agent_session_id.blank?
     Rails.logger.warn("[Task##{id}] Task '#{name}' moved to in_review WITHOUT agent_session_id — agent output may be lost!")
+  end
+
+  # Auto-capture agent output from transcripts when task completes without proper agent_complete
+  def try_transcript_capture
+    return unless %w[in_review done].include?(status)
+    # Only capture if there's no agent output yet
+    return if description.to_s.include?("## Agent Output")
+    return if output_files.present? && output_files.any?
+
+    TranscriptCaptureJob.perform_later(id)
   end
 
   # Notify OpenClaw gateway when task is moved to in_progress and assigned to agent

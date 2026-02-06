@@ -52,7 +52,9 @@ export default class extends Controller {
       this.connectWebSocket()
       this.startPolling()
     } else {
-      this.showEmptyState()
+      // Even without a session ID, try one poll - the API may return
+      // fallback content from task description or output_files
+      this.pollOnce()
     }
   }
 
@@ -442,6 +444,34 @@ export default class extends Controller {
       this.pollTimer = null
     }
     console.log("[AgentActivity] Polling stopped")
+  }
+
+  // Single poll attempt for tasks without session ID (fallback content)
+  async pollOnce() {
+    try {
+      const response = await fetch(`/api/v1/tasks/${this.taskIdValue}/agent_log?since=0`)
+      if (!response.ok) {
+        this.showEmptyState()
+        return
+      }
+      const data = await response.json()
+      if (data.messages && data.messages.length > 0) {
+        this.hideEmptyState()
+        this.hideLoadingState()
+        data.messages.forEach(msg => {
+          this.allMessages.push(msg)
+          this.renderMessage(msg)
+        })
+        this.lastLine = data.total_lines
+        this.scrollToBottom()
+        this.parseTimelineSteps()
+      } else {
+        this.showEmptyState()
+      }
+    } catch (error) {
+      console.warn("[AgentActivity] pollOnce failed:", error)
+      this.showEmptyState()
+    }
   }
 
   async poll() {

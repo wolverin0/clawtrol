@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_05_212047) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_06_125855) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,6 +40,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_212047) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "agent_personas", force: :cascade do |t|
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "emoji", default: "🤖"
+    t.string "fallback_model"
+    t.string "model", default: "sonnet"
+    t.string "name", null: false
+    t.string "project"
+    t.string "role"
+    t.text "system_prompt"
+    t.string "tier"
+    t.text "tools", default: [], array: true
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["user_id", "name"], name: "index_agent_personas_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_agent_personas_on_user_id"
   end
 
   create_table "api_tokens", force: :cascade do |t|
@@ -170,6 +189,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_212047) do
 
   create_table "tasks", force: :cascade do |t|
     t.datetime "agent_claimed_at"
+    t.bigint "agent_persona_id"
     t.string "agent_session_id"
     t.string "agent_session_key"
     t.datetime "archived_at"
@@ -216,6 +236,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_212047) do
     t.string "validation_command"
     t.text "validation_output"
     t.string "validation_status"
+    t.index ["agent_persona_id"], name: "index_tasks_on_agent_persona_id"
     t.index ["archived_at"], name: "index_tasks_on_archived_at", where: "(archived_at IS NOT NULL)"
     t.index ["assigned_to_agent"], name: "index_tasks_on_assigned_to_agent"
     t.index ["blocked"], name: "index_tasks_on_blocked"
@@ -235,6 +256,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_212047) do
     t.index ["user_id", "status"], name: "index_tasks_on_user_status"
     t.index ["user_id"], name: "index_tasks_on_user_id"
     t.index ["validation_status"], name: "index_tasks_on_validation_status", where: "(validation_status IS NOT NULL)"
+  end
+
+  create_table "token_usages", force: :cascade do |t|
+    t.bigint "agent_persona_id"
+    t.decimal "cost", precision: 10, scale: 6, default: "0.0"
+    t.datetime "created_at", null: false
+    t.integer "input_tokens", default: 0
+    t.string "model"
+    t.integer "output_tokens", default: 0
+    t.string "session_key"
+    t.bigint "task_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["agent_persona_id"], name: "index_token_usages_on_agent_persona_id"
+    t.index ["created_at"], name: "index_token_usages_on_created_at"
+    t.index ["model"], name: "index_token_usages_on_model"
+    t.index ["session_key"], name: "index_token_usages_on_session_key"
+    t.index ["task_id"], name: "index_token_usages_on_task_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -265,6 +303,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_212047) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "agent_personas", "users"
   add_foreign_key "api_tokens", "users"
   add_foreign_key "boards", "users"
   add_foreign_key "model_limits", "users"
@@ -276,8 +315,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_05_212047) do
   add_foreign_key "task_dependencies", "tasks"
   add_foreign_key "task_dependencies", "tasks", column: "depends_on_id"
   add_foreign_key "task_templates", "users"
+  add_foreign_key "tasks", "agent_personas"
   add_foreign_key "tasks", "boards"
   add_foreign_key "tasks", "tasks", column: "followup_task_id", on_delete: :nullify
   add_foreign_key "tasks", "tasks", column: "parent_task_id", on_delete: :nullify
   add_foreign_key "tasks", "users"
+  add_foreign_key "token_usages", "agent_personas"
+  add_foreign_key "token_usages", "tasks"
 end

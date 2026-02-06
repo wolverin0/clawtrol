@@ -23,10 +23,10 @@ class BoardsController < ApplicationController
         .joins(:board)
         .where(boards: { is_aggregator: false })
         .not_archived
-        .includes(:user, :board, :parent_task, :followup_task)
+        .includes(:user, :board, :parent_task, :followup_task, :agent_persona)
       @is_aggregator = true
     else
-      @tasks = @board.tasks.not_archived.includes(:user, :parent_task, :followup_task)
+      @tasks = @board.tasks.not_archived.includes(:user, :parent_task, :followup_task, :agent_persona)
       @is_aggregator = false
     end
 
@@ -59,6 +59,9 @@ class BoardsController < ApplicationController
 
     # Get API token for agent status display
     @api_token = current_user.api_token
+
+    # Load agent personas for drag-assign sidebar
+    @agent_personas = AgentPersona.for_user(current_user).active.order(:name)
   end
 
   def archived

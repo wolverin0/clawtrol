@@ -25,7 +25,34 @@ module Api
       # Supports ?since=N param to get only messages after line N (for polling efficiency)
       def agent_log
         unless @task.agent_session_id.present?
-          render json: { messages: [], total_lines: 0, has_session: false }
+          # No session ID, but check for agent output in description as fallback
+          if @task.description.present? && @task.description.include?("## Agent Output")
+            output_match = @task.description.match(/## Agent Output.*?\n(.*)/m)
+            if output_match
+              extracted_output = output_match[1].strip
+              render json: {
+                messages: [{ role: "assistant", content: [{ type: "text", text: extracted_output }] }],
+                total_lines: 1,
+                has_session: true,
+                fallback: true,
+                task_status: @task.status
+              }
+              return
+            end
+          end
+          # Also check for output_files - synthesize a summary message
+          if @task.output_files.present? && @task.output_files.any?
+            file_list = @task.output_files.map { |f| "📄 #{f}" }.join("\n")
+            render json: {
+              messages: [{ role: "assistant", content: [{ type: "text", text: "Agent produced #{@task.output_files.size} file(s):\n#{file_list}" }] }],
+              total_lines: 1,
+              has_session: true,
+              fallback: true,
+              task_status: @task.status
+            }
+            return
+          end
+          render json: { messages: [], total_lines: 0, has_session: false, task_status: @task.status }
           return
         end
 
@@ -338,6 +365,8 @@ module Api
         set_task_activity_info(@task)
 
         # Auto-fallback: check if requested model is available, otherwise use fallback
+        # Set default model if not specified
+        @task.model ||= Task::DEFAULT_MODEL
         requested_model = @task.model
         fallback_note = nil
 
@@ -552,23 +581,39 @@ module Api
         @task.agent_session_id = sid if sid.present? && @task.agent_session_id.blank?
         @task.agent_session_key = skey if skey.present? && @task.agent_session_key.blank?
 
-        output = params[:output]
+        # Accept ANY reasonable field name for output text
+        output_text = params[:output].presence || params[:description].presence ||
+                      params[:summary].presence || params[:result].presence ||
+                      params[:text].presence || params[:message].presence ||
+                      params[:content].presence
 
-        updates = { status: :in_review }
+        # Accept ANY reasonable field name for files
+        raw_files = params[:output_files].presence || params[:files].presence ||
+                    params[:created_files].presence || params[:changed_files].presence ||
+                    params[:modified_files].presence
 
-        if output.present?
+        Rails.logger.info("agent_complete for task #{@task.id}: output=#{output_text.present?} (#{output_text&.length || 0} chars), files=#{Array(raw_files).size}, params_keys=#{params.keys.join(',')}")
+
+        if output_text.blank? && raw_files.blank?
+          Rails.logger.warn("agent_complete called with no output for task #{@task.id}, params: #{params.except(:controller, :action, :id).to_unsafe_h}")
+        end
+
+        updates = { status: params[:status].presence || :in_review }
+
+        if output_text.present?
           # Append agent output to description (avoid duplicating if already present)
           new_description = @task.description.to_s
           unless new_description.include?("## Agent Output")
-            new_description += "\n\n## Agent Output\n#{output}"
-            updates[:description] = new_description
+            new_description += "\n\n## Agent Output\n"
           end
+          new_description += output_text
+          updates[:description] = new_description
         end
 
-        # Store output files if provided
-        if params[:files].present?
-          files = Array(params[:files]).map(&:to_s).reject(&:blank?)
-          updates[:output_files] = (@task.output_files || []) + files
+        # Store output files if provided (already extracted above from multiple field names)
+        if raw_files.present?
+          files = Array(raw_files).map(&:to_s).reject(&:blank?)
+          updates[:output_files] = ((@task.output_files || []) + files).uniq
         end
 
         # Set completed_at if not already set
@@ -579,9 +624,12 @@ module Api
 
         @task.update!(updates)
 
+        # Record token usage if provided (Foxhound analytics)
+        record_token_usage(@task, params)
+
         # Broadcast agent activity completion via WebSocket
         AgentActivityChannel.broadcast_status(@task.id, "in_review", {
-          output_present: output.present?,
+          output_present: output_text.present?,
           files_count: (@task.output_files || []).size
         })
 
@@ -606,18 +654,34 @@ module Api
           return
         end
 
-        # Determine project root from board or use Rails root
+        # Determine roots for path resolution
         project_root = Rails.root.to_s
+        workspace_root = File.expand_path("~/.openclaw/workspace")
 
-        # Resolve the file path
+        # Resolve the file path - try multiple locations for relative paths
         if Pathname.new(path).absolute?
           full_path = File.expand_path(path)
         else
-          full_path = File.expand_path(File.join(project_root, path))
+          candidates = [
+            File.expand_path(File.join(workspace_root, path)),
+            File.expand_path(File.join(project_root, path)),
+          ]
+          board_project_path = @task.board.try(:project_path)
+          if board_project_path.present?
+            candidates.unshift(File.expand_path(File.join(board_project_path, path)))
+          end
+          full_path = candidates.find { |p| File.exist?(p) && File.file?(p) }
+          full_path ||= candidates.first
         end
 
-        # Security: prevent directory traversal - file must exist and be readable
-        unless full_path.start_with?(project_root) || (@task.output_files || []).include?(path)
+        # Security: prevent directory traversal - must be in allowed dirs or output_files
+        allowed_dirs = [project_root, workspace_root]
+        board_project_path ||= @task.board.try(:project_path)
+        allowed_dirs << board_project_path if board_project_path.present?
+        in_output_files = (@task.output_files || []).include?(path)
+        in_allowed_dir = allowed_dirs.any? { |dir| full_path.start_with?(dir) }
+
+        unless in_output_files || in_allowed_dir
           render json: { error: "Access denied: path outside project directory" }, status: :forbidden
           return
         end
@@ -865,6 +929,76 @@ module Api
         @task = current_user.tasks.find(params[:id])
       end
 
+      # Record token usage from agent_complete params (Foxhound analytics)
+      # Accepts tokens directly in params OR extracts from session transcript
+      def record_token_usage(task, params)
+        input_tokens = params[:input_tokens].to_i
+        output_tokens = params[:output_tokens].to_i
+        model = params[:token_model] || task.model
+
+        # If tokens not provided directly, try to extract from session transcript
+        if input_tokens == 0 && output_tokens == 0
+          session_tokens = extract_tokens_from_session(task)
+          if session_tokens
+            input_tokens = session_tokens[:input_tokens]
+            output_tokens = session_tokens[:output_tokens]
+            model ||= session_tokens[:model]
+          end
+        end
+
+        # Only record if we have meaningful data
+        return if input_tokens == 0 && output_tokens == 0
+
+        TokenUsage.record_from_session(
+          task: task,
+          session_data: {
+            input_tokens: input_tokens,
+            output_tokens: output_tokens,
+            model: model
+          },
+          session_key: task.agent_session_key
+        )
+      rescue => e
+        Rails.logger.error("[Foxhound] Failed to record token usage for task #{task.id}: #{e.message}")
+      end
+
+      # Extract token counts from an OpenClaw session transcript
+      def extract_tokens_from_session(task)
+        return nil unless task.agent_session_id.present?
+
+        session_id = task.agent_session_id.to_s
+        return nil unless session_id.match?(/\A[a-zA-Z0-9_\-]+\z/)
+
+        transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl")
+        return nil unless File.exist?(transcript_path)
+
+        input_tokens = 0
+        output_tokens = 0
+        model = nil
+
+        File.foreach(transcript_path) do |line|
+          next if line.blank?
+          begin
+            entry = JSON.parse(line)
+            if entry["usage"].is_a?(Hash)
+              input_tokens += entry["usage"]["input_tokens"].to_i
+              output_tokens += entry["usage"]["output_tokens"].to_i
+            end
+            # Try to capture model from entries
+            model ||= entry["model"] if entry["model"].present?
+          rescue JSON::ParserError
+            next
+          end
+        end
+
+        return nil if input_tokens == 0 && output_tokens == 0
+
+        { input_tokens: input_tokens, output_tokens: output_tokens, model: model }
+      rescue => e
+        Rails.logger.error("[Foxhound] Failed to extract tokens from session: #{e.message}")
+        nil
+      end
+
       # Resolve session_id (UUID) from session_key by scanning transcript files
       # The OpenClaw gateway stores transcripts as {sessionId}.jsonl
       # and the sessions index maps keys to sessionIds
@@ -914,7 +1048,7 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, tags: [], output_files: [], review_config: {}, review_result: {})
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, tags: [], output_files: [], review_config: {}, review_result: {})
       end
 
       # Validation command execution delegated to ValidationRunnerService
@@ -1002,6 +1136,8 @@ module Api
           review_status: task.review_status,
           review_config: task.review_config,
           review_result: task.review_result,
+          agent_persona_id: task.agent_persona_id,
+          agent_persona: task.agent_persona ? { id: task.agent_persona.id, name: task.agent_persona.name, emoji: task.agent_persona.emoji } : nil,
           output_files: task.output_files || [],
           dependencies: task.dependencies.map { |t| dependency_json(t) },
           dependents: task.dependents.map { |t| dependency_json(t) },
