@@ -1,6 +1,7 @@
 class Boards::TasksController < ApplicationController
   before_action :set_board
   before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file, :generate_validation_suggestion]
+  skip_before_action :verify_authenticity_token, only: [:bulk_update], if: -> { request.content_type == "application/json" }
 
   def show
     @api_token = current_user.api_token
@@ -313,6 +314,90 @@ class Boards::TasksController < ApplicationController
     suggestion = ValidationSuggestionService.new(current_user).generate_suggestion(@task)
     respond_to do |format|
       format.json { render json: { command: suggestion || "bin/rails test" } }
+    end
+  end
+
+  # POST /boards/:board_id/tasks/bulk_update
+  # Accepts: { task_ids: [...], action: "move_status|change_model|archive|delete", value: "done" }
+  def bulk_update
+    task_ids = params[:task_ids] || []
+    bulk_action = params[:action_type] || params[:action]
+    value = params[:value]
+
+    # Handle JSON body parsing
+    if request.content_type == "application/json"
+      body = JSON.parse(request.body.read) rescue {}
+      task_ids = body["task_ids"] || task_ids
+      bulk_action = body["action"] || bulk_action
+      value = body["value"] || value
+    end
+
+    tasks = @board.tasks.where(id: task_ids)
+    
+    if tasks.empty?
+      respond_to do |format|
+        format.turbo_stream { head :unprocessable_entity }
+        format.html { redirect_to board_path(@board), alert: "No tasks found." }
+        format.json { render json: { error: "No tasks found" }, status: :unprocessable_entity }
+      end
+      return
+    end
+
+    streams = []
+    affected_statuses = tasks.pluck(:status).uniq
+
+    case bulk_action
+    when "move_status"
+      tasks.each do |task|
+        old_status = task.status
+        task.activity_source = "web"
+        task.update!(status: value)
+        streams << turbo_stream.remove("task_#{task.id}")
+      end
+      # Prepend all moved tasks to new column
+      new_column_tasks = @board.tasks.where(status: value).order(position: :asc)
+      streams << turbo_stream.replace("column-#{value}", partial: "boards/column_content", locals: { status: value, tasks: new_column_tasks })
+      affected_statuses << value
+
+    when "change_model"
+      tasks.update_all(model: value)
+      tasks.each do |task|
+        streams << turbo_stream.replace("task_#{task.id}", partial: "boards/task_card", locals: { task: task.reload })
+      end
+
+    when "archive"
+      tasks.each do |task|
+        task.activity_source = "web"
+        task.update!(status: :archived)
+        streams << turbo_stream.remove("task_#{task.id}")
+      end
+
+    when "delete"
+      tasks.each do |task|
+        task.activity_source = "web"
+        task.destroy
+        streams << turbo_stream.remove("task_#{task.id}")
+      end
+
+    else
+      respond_to do |format|
+        format.turbo_stream { head :unprocessable_entity }
+        format.html { redirect_to board_path(@board), alert: "Unknown action." }
+        format.json { render json: { error: "Unknown action" }, status: :unprocessable_entity }
+      end
+      return
+    end
+
+    # Update column counts
+    affected_statuses.each do |status|
+      count = @board.tasks.where(status: status).count
+      streams << turbo_stream.update("column-#{status}-count", count.to_s)
+    end
+
+    respond_to do |format|
+      format.turbo_stream { render turbo_stream: streams }
+      format.html { redirect_to board_path(@board), notice: "#{tasks.count} task(s) updated." }
+      format.json { render json: { success: true, count: tasks.count } }
     end
   end
 

@@ -1,0 +1,137 @@
+<%# Search Results Page %>
+<div class="min-h-screen bg-bg-base">
+  <%# Header %>
+  <header class="flex-shrink-0 bg-bg-base border-b border-border">
+    <div class="flex items-center justify-between px-4 md:px-6 py-3">
+      <div class="flex items-center gap-3">
+        <%= link_to boards_path, class: "text-lg font-semibold text-content font-display hover:text-accent transition-colors" do %>
+          🦞 ClawDeck
+        <% end %>
+        <span class="text-content-muted">/</span>
+        <span class="text-content-secondary">Search</span>
+      </div>
+
+      <%# Search form in header %>
+      <div class="flex-1 max-w-xl mx-4">
+        <%= form_with url: search_path, method: :get, local: true, class: "relative", data: { turbo_frame: "_top" } do %>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-content-muted">🔍</span>
+            <input type="text"
+                   name="q"
+                   value="<%= @query %>"
+                   placeholder="Search tasks..."
+                   autofocus
+                   class="w-full pl-10 pr-4 py-2 text-sm bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent text-content placeholder-content-muted">
+          </div>
+        <% end %>
+      </div>
+
+      <%= link_to boards_path, class: "px-3 py-1.5 text-sm rounded-md bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors" do %>
+        ← Back
+      <% end %>
+    </div>
+  </header>
+
+  <%# Results %>
+  <main class="max-w-4xl mx-auto px-4 py-6">
+    <% if @query.blank? %>
+      <div class="text-center py-12">
+        <div class="text-4xl mb-4">🔍</div>
+        <h2 class="text-lg font-medium text-content mb-2">Search across all boards</h2>
+        <p class="text-content-muted">Enter a keyword to find tasks by name or description</p>
+        <div class="mt-4 text-xs text-content-muted">
+          💡 Tip: Press <kbd class="px-1.5 py-0.5 bg-bg-elevated rounded text-content-secondary">/</kbd> anywhere to open search
+        </div>
+      </div>
+    <% elsif @tasks.empty? %>
+      <div class="text-center py-12">
+        <div class="text-4xl mb-4">😕</div>
+        <h2 class="text-lg font-medium text-content mb-2">No results found</h2>
+        <p class="text-content-muted">No tasks match "<%= @query %>"</p>
+      </div>
+    <% else %>
+      <div class="mb-4">
+        <h1 class="text-lg font-semibold text-content">
+          <%= pluralize(@tasks.count, 'result') %> for "<%= @query %>"
+        </h1>
+      </div>
+
+      <% @tasks_by_board.each do |board, tasks| %>
+        <div class="mb-6">
+          <h2 class="flex items-center gap-2 text-sm font-medium text-content-secondary mb-3 px-1">
+            <span><%= board.icon %></span>
+            <span><%= board.name %></span>
+            <span class="text-content-muted">(<%= tasks.count %>)</span>
+          </h2>
+
+          <div class="space-y-2">
+            <% tasks.each do |task| %>
+              <%= link_to board_task_path(task.board, task),
+                  class: "block bg-bg-surface border border-border rounded-lg p-4 hover:border-accent/50 hover:bg-bg-elevated transition-colors",
+                  data: { turbo_frame: "_top" } do %>
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex-1 min-w-0">
+                    <%# Task name with match highlighting %>
+                    <h3 class="text-sm font-medium text-content mb-1 truncate">
+                      <%= highlight(task.name, @query, highlighter: '<mark class="bg-accent/30 text-content rounded px-0.5">\1</mark>') %>
+                    </h3>
+
+                    <%# Description snippet %>
+                    <% if task.description.present? %>
+                      <% snippet = task.description.to_s.truncate(150) %>
+                      <p class="text-xs text-content-muted line-clamp-2">
+                        <%= highlight(snippet, @query, highlighter: '<mark class="bg-accent/30 text-content-secondary rounded px-0.5">\1</mark>') %>
+                      </p>
+                    <% end %>
+                  </div>
+
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <%# Status badge %>
+                    <% status_colors = {
+                      'inbox' => 'bg-gray-500/20 text-gray-400',
+                      'up_next' => 'bg-blue-500/20 text-blue-400',
+                      'in_progress' => 'bg-yellow-500/20 text-yellow-400',
+                      'in_review' => 'bg-purple-500/20 text-purple-400',
+                      'done' => 'bg-green-500/20 text-green-400'
+                    } %>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded-full <%= status_colors[task.status] || 'bg-bg-elevated text-content-muted' %>">
+                      <%= task.status.humanize %>
+                    </span>
+
+                    <%# Model badge %>
+                    <% if task.model.present? %>
+                      <% model_icons = { 'opus' => '🎭', 'codex' => '🤖', 'gemini' => '♊', 'glm' => '🧠', 'sonnet' => '🎵' } %>
+                      <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-bg-elevated text-content-muted" title="<%= task.model.capitalize %>">
+                        <%= model_icons[task.model] || '🤖' %> <%= task.model %>
+                      </span>
+                    <% end %>
+
+                    <%# Agent assigned indicator %>
+                    <% if task.assigned_to_agent? %>
+                      <span class="text-xs" title="Assigned to agent">🦞</span>
+                    <% end %>
+                  </div>
+                </div>
+
+                <%# Meta info %>
+                <div class="flex items-center gap-3 mt-2 text-xs text-content-muted">
+                  <span>Updated <%= time_ago_in_words(task.updated_at) %> ago</span>
+                  <% if task.tags.present? %>
+                    <span class="flex items-center gap-1">
+                      <% task.tags.first(3).each do |tag| %>
+                        <span class="px-1.5 py-0.5 bg-bg-elevated rounded-full"><%= tag %></span>
+                      <% end %>
+                      <% if task.tags.count > 3 %>
+                        <span>+<%= task.tags.count - 3 %></span>
+                      <% end %>
+                    </span>
+                  <% end %>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </main>
+</div>

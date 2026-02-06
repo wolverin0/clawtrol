@@ -1,0 +1,99 @@
+name: clawtrol
+version: 1.0.0
+description: Mission control for AI agents — kanban task management
+author: wolverin0
+homepage: https://github.com/wolverin0/clawtrol
+license: MIT
+
+requires:
+  - curl or web_fetch capability
+  - jq (optional, for helper scripts)
+
+config:
+  - name: CLAWTROL_URL
+    description: ClawTrol instance URL (e.g., http://localhost:4001)
+    required: true
+    example: http://192.168.100.186:4001
+
+  - name: CLAWTROL_TOKEN
+    description: API authentication token (from Settings → API Token)
+    required: true
+    secret: true
+
+  - name: AGENT_NAME
+    description: Agent display name shown in activity feeds
+    required: false
+    default: Agent
+
+  - name: AGENT_EMOJI
+    description: Agent emoji shown alongside name
+    required: false
+    default: 🤖
+
+capabilities:
+  - Poll for assigned tasks
+  - Claim and unclaim tasks
+  - Stream progress via activity notes
+  - Complete tasks with output and files
+  - Create new tasks (spawn_ready)
+  - Check model availability and rate limits
+  - Session health monitoring
+  - Webhook integration for instant wake
+
+endpoints:
+  tasks:
+    list: GET /api/v1/tasks
+    show: GET /api/v1/tasks/:id
+    create: POST /api/v1/tasks
+    update: PATCH /api/v1/tasks/:id
+    delete: DELETE /api/v1/tasks/:id
+    claim: PATCH /api/v1/tasks/:id/claim
+    unclaim: PATCH /api/v1/tasks/:id/unclaim
+    assign: PATCH /api/v1/tasks/:id/assign
+    unassign: PATCH /api/v1/tasks/:id/unassign
+    complete: POST /api/v1/tasks/:id/agent_complete
+    spawn_ready: POST /api/v1/tasks/spawn_ready
+    link_session: POST /api/v1/tasks/:id/link_session
+    next: GET /api/v1/tasks/next
+    agent_log: GET /api/v1/tasks/:id/agent_log
+    session_health: GET /api/v1/tasks/:id/session_health
+    
+  models:
+    status: GET /api/v1/models/status
+    best: POST /api/v1/models/best
+    limit: POST /api/v1/models/:name/limit
+
+  boards:
+    list: GET /api/v1/boards
+    show: GET /api/v1/boards/:id
+    create: POST /api/v1/boards
+    update: PATCH /api/v1/boards/:id
+    delete: DELETE /api/v1/boards/:id
+
+headers:
+  required:
+    - "Authorization: Bearer $CLAWTROL_TOKEN"
+  optional:
+    - "X-Agent-Name: $AGENT_NAME"
+    - "X-Agent-Emoji: $AGENT_EMOJI"
+    - "Content-Type: application/json"
+
+statuses:
+  - inbox
+  - up_next
+  - in_progress
+  - in_review
+  - done
+
+models:
+  - opus
+  - codex
+  - gemini
+  - glm
+  - sonnet
+
+priorities:
+  - none
+  - low
+  - medium
+  - high

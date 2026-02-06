@@ -1,0 +1,64 @@
+<%# Filter Bar - displays below board tabs %>
+<div data-controller="filter" 
+     data-filter-board-id-value="<%= @board.id %>"
+     class="px-4 md:px-6 py-2 bg-bg-base border-b border-border">
+  <div class="flex items-center gap-3 flex-wrap">
+    <%# Filter label %>
+    <span class="text-xs text-content-muted font-medium">Filters:</span>
+
+    <%# Status dropdown %>
+    <select data-filter-target="status"
+            data-action="change->filter#filterByStatus"
+            class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+      <option value="">All statuses</option>
+      <option value="inbox">Inbox</option>
+      <option value="up_next">Up Next</option>
+      <option value="in_progress">In Progress</option>
+      <option value="in_review">In Review</option>
+      <option value="done">Done</option>
+    </select>
+
+    <%# Model dropdown %>
+    <select data-filter-target="model"
+            data-action="change->filter#filterByModel"
+            class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+      <option value="">All models</option>
+      <% Task::MODELS.each do |model| %>
+        <option value="<%= model %>"><%= model.capitalize %></option>
+      <% end %>
+    </select>
+
+    <%# Priority dropdown %>
+    <select data-filter-target="priority"
+            data-action="change->filter#filterByPriority"
+            class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+      <option value="">All priorities</option>
+      <option value="none">None</option>
+      <option value="low">Low</option>
+      <option value="medium">Medium</option>
+      <option value="high">High</option>
+    </select>
+
+    <%# Has agent dropdown %>
+    <select data-filter-target="agent"
+            data-action="change->filter#filterByAgent"
+            class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
+      <option value="">Agent: Any</option>
+      <option value="true">Has agent 🦞</option>
+      <option value="false">No agent</option>
+    </select>
+
+    <%# Active filter chips %>
+    <div data-filter-target="chips" class="flex items-center gap-1.5 flex-wrap">
+      <%# Chips will be dynamically inserted here %>
+    </div>
+
+    <%# Clear all button (shown when filters are active via JS) %>
+    <button type="button"
+            data-action="click->filter#clearAll"
+            class="hidden text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
+            data-filter-target="clearButton">
+      Clear all
+    </button>
+  </div>
+</div>

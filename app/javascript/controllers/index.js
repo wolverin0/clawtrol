@@ -12,6 +12,8 @@ import CopyUrlController from "controllers/copy_url_controller"
 import IconSelectorController from "controllers/icon_selector_controller"
 import MobileColumnsController from "controllers/mobile_columns_controller"
 import TaskDependenciesController from "controllers/task_dependencies_controller"
+import SearchController from "controllers/search_controller"
+import FilterController from "controllers/filter_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -20,3 +22,5 @@ application.register("copy-url", CopyUrlController)
 application.register("icon-selector", IconSelectorController)
 application.register("mobile-columns", MobileColumnsController)
 application.register("task-dependencies", TaskDependenciesController)
+application.register("search", SearchController)
+application.register("filter", FilterController)

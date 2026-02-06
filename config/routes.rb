@@ -87,6 +87,9 @@ Rails.application.routes.draw do
   # Dashboard overview page
   get "dashboard", to: "dashboard#show"
 
+  # Global search
+  get "search", to: "search#index"
+
   # Analytics page
   get "analytics", to: "analytics#show"
 
@@ -97,6 +100,9 @@ Rails.application.routes.draw do
       get :archived
     end
     resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "boards/tasks" do
+      collection do
+        post :bulk_update
+      end
       member do
         patch :assign
         patch :unassign
