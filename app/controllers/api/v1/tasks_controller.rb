@@ -573,9 +573,12 @@ module Api
           files_count: (@task.output_files || []).size
         })
 
-        # Run validation command if present (legacy method)
+        # Run validation command if present (legacy method for pre-set commands)
         if @task.validation_command.present?
           ValidationRunnerService.new(@task).call
+        else
+          # Enqueue auto-validation job (generates command from output_files, runs async)
+          AutoValidationJob.perform_later(@task.id)
         end
 
         render json: task_json(@task)

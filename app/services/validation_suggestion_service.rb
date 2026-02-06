@@ -29,25 +29,98 @@ class ValidationSuggestionService
     ".yaml" => "bin/rails test"
   }.freeze
 
+  # Class method for rule-based suggestion (no AI, no user required)
+  # Used by AutoValidationJob for background auto-validation
+  def self.generate_rule_based(task)
+    new(nil).generate_rule_based_suggestion(task)
+  end
+
   def initialize(user)
     @user = user
   end
 
-  def generate_suggestion(task)
-    # Try AI-powered suggestion first if configured
-    if configured?
-      ai_suggestion = generate_ai_suggestion(task)
-      return ai_suggestion if ai_suggestion.present?
+  def generate_suggestion(task, rule_based_only: false)
+    # Skip AI if rule_based_only is true
+    unless rule_based_only
+      # Try AI-powered suggestion first if configured
+      if configured?
+        ai_suggestion = generate_ai_suggestion(task)
+        return ai_suggestion if ai_suggestion.present?
+      end
     end
 
     # Fallback to rule-based suggestion
     generate_rule_based_suggestion(task)
   end
 
+  # Public method for rule-based suggestion (called by class method and instance)
+  def generate_rule_based_suggestion(task)
+    output_files = task.output_files || []
+    
+    return nil if output_files.empty?
+
+    # Analyze file types
+    extensions = output_files.map { |f| File.extname(f).downcase }.uniq
+    
+    # Check for test files first - run those directly
+    test_files = output_files.select { |f| f.include?("_test.rb") || f.include?("_spec.rb") }
+    if test_files.any?
+      if test_files.all? { |f| f.include?("_spec.rb") }
+        return "bundle exec rspec #{test_files.take(5).join(' ')}"
+      else
+        return "bin/rails test #{test_files.take(5).join(' ')}"
+      end
+    end
+
+    # Check for system test indicators
+    if extensions.include?(".erb") || output_files.any? { |f| f.include?("views/") }
+      return "bin/rails test:system"
+    end
+
+    # Check for JS files
+    if (extensions & [".js", ".ts", ".jsx", ".tsx"]).any?
+      if extensions.include?(".rb")
+        return "npm test"  # Can't chain with && due to safety rules
+      end
+      return "npm test"
+    end
+
+    # Default to Rails test for Ruby files
+    if extensions.include?(".rb")
+      # Try to find corresponding test files
+      impl_files = output_files.select { |f| f.end_with?(".rb") && !f.include?("test/") && !f.include?("spec/") }
+      
+      if impl_files.any?
+        # Generate test path guesses
+        test_paths = impl_files.map do |f|
+          if f.start_with?("app/")
+            f.sub("app/", "test/").sub(".rb", "_test.rb")
+          else
+            nil
+          end
+        end.compact
+
+        if test_paths.any?
+          return "bin/rails test #{test_paths.take(3).join(' ')}"
+        end
+      end
+      
+      return "bin/rails test"
+    end
+
+    # Python files
+    if extensions.include?(".py")
+      return "python -m pytest"
+    end
+
+    # No known file types — return nil (human will review)
+    nil
+  end
+
   private
 
   def configured?
-    @user.ai_api_key.present?
+    @user&.ai_api_key.present?
   end
 
   def generate_ai_suggestion(task)
@@ -119,68 +192,5 @@ class ValidationSuggestionService
     return nil unless Task::ALLOWED_VALIDATION_PREFIXES.any? { |prefix| command.start_with?(prefix) }
     
     command
-  end
-
-  def generate_rule_based_suggestion(task)
-    output_files = task.output_files || []
-    
-    return "bin/rails test" if output_files.empty?
-
-    # Analyze file types
-    extensions = output_files.map { |f| File.extname(f).downcase }.uniq
-    
-    # Check for test files first - run those directly
-    test_files = output_files.select { |f| f.include?("_test.rb") || f.include?("_spec.rb") }
-    if test_files.any?
-      if test_files.all? { |f| f.include?("_spec.rb") }
-        return "bundle exec rspec #{test_files.take(5).join(' ')}"
-      else
-        return "bin/rails test #{test_files.take(5).join(' ')}"
-      end
-    end
-
-    # Check for system test indicators
-    if extensions.include?(".erb") || output_files.any? { |f| f.include?("views/") }
-      return "bin/rails test:system"
-    end
-
-    # Check for JS files
-    if (extensions & [".js", ".ts", ".jsx", ".tsx"]).any?
-      if extensions.include?(".rb")
-        return "npm test"  # Can't chain with && due to safety rules
-      end
-      return "npm test"
-    end
-
-    # Default to Rails test for Ruby files
-    if extensions.include?(".rb")
-      # Try to find corresponding test files
-      impl_files = output_files.select { |f| f.end_with?(".rb") && !f.include?("test/") && !f.include?("spec/") }
-      
-      if impl_files.any?
-        # Generate test path guesses
-        test_paths = impl_files.map do |f|
-          if f.start_with?("app/")
-            f.sub("app/", "test/").sub(".rb", "_test.rb")
-          else
-            nil
-          end
-        end.compact
-
-        if test_paths.any?
-          return "bin/rails test #{test_paths.take(3).join(' ')}"
-        end
-      end
-      
-      return "bin/rails test"
-    end
-
-    # Python files
-    if extensions.include?(".py")
-      return "python -m pytest"
-    end
-
-    # Default fallback
-    "bin/rails test"
   end
 end

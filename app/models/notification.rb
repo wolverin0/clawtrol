@@ -9,6 +9,8 @@ class Notification < ApplicationRecord
     review_passed
     review_failed
     agent_claimed
+    validation_passed
+    validation_failed
   ].freeze
 
   validates :event_type, presence: true, inclusion: { in: EVENT_TYPES }
@@ -36,9 +38,9 @@ class Notification < ApplicationRecord
   # Icon based on event type
   def icon
     case event_type
-    when "task_completed"
+    when "task_completed", "validation_passed"
       "✅"
-    when "task_errored"
+    when "task_errored", "validation_failed"
       "❌"
     when "review_passed"
       "🎉"
@@ -54,9 +56,9 @@ class Notification < ApplicationRecord
   # Color class based on event type
   def color_class
     case event_type
-    when "task_completed", "review_passed"
+    when "task_completed", "review_passed", "validation_passed"
       "text-status-success"
-    when "task_errored", "review_failed"
+    when "task_errored", "review_failed", "validation_failed"
       "text-status-error"
     when "agent_claimed"
       "text-accent"
