@@ -70,25 +70,22 @@
     <div class="flex items-center gap-2">
       <%# Search bar (collapsible) %>
       <div data-controller="search" data-search-url-value="<%= search_path %>" class="relative">
-        <%# Collapsed state: just the search icon %>
-        <button type="button"
-                data-action="click->search#open"
-                class="md:hidden w-8 h-8 rounded-md bg-bg-elevated hover:bg-bg-hover flex items-center justify-center text-sm transition-colors cursor-pointer"
-                title="Search (/)">
-          🔍
-        </button>
-
-        <%# Expanded search input (always visible on desktop, toggleable on mobile) %>
-        <div data-search-target="container" class="hidden md:block">
+        <%# Search form — plain HTML form, always works %>
+        <form action="<%= search_path %>" method="get" class="hidden md:block" data-turbo-frame="_top">
           <div class="relative">
             <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-content-muted text-xs">🔍</span>
-            <input type="text"
+            <input type="text" name="q" value="<%= params[:q] %>"
                    data-search-target="input"
-                   data-action="keydown->search#submit input->search#search"
-                   placeholder="Search... (/ or Enter)"
+                   placeholder="Search... (Enter)"
                    class="w-40 lg:w-52 pl-8 pr-3 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent focus:w-64 text-content placeholder-content-muted transition-all">
           </div>
-        </div>
+        </form>
+        <%# Mobile: just the icon that links to search page %>
+        <a href="<%= search_path %>"
+           class="md:hidden w-8 h-8 rounded-md bg-bg-elevated hover:bg-bg-hover flex items-center justify-center text-sm transition-colors"
+           title="Search">
+          🔍
+        </a>
       </div>
       <%# Flash messages (compact) %>
       <% if notice.present? %>
