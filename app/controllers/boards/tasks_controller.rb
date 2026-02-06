@@ -1,7 +1,6 @@
 class Boards::TasksController < ApplicationController
   before_action :set_board
   before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file, :generate_validation_suggestion]
-  skip_before_action :verify_authenticity_token, only: [:bulk_update], if: -> { request.content_type == "application/json" }
 
   def show
     @api_token = current_user.api_token
@@ -353,10 +352,8 @@ class Boards::TasksController < ApplicationController
         task.activity_source = "web"
         task.update!(status: value)
         streams << turbo_stream.remove("task_#{task.id}")
+        streams << turbo_stream.prepend("column-#{value}", partial: "boards/task_card", locals: { task: task.reload })
       end
-      # Prepend all moved tasks to new column
-      new_column_tasks = @board.tasks.where(status: value).order(position: :asc)
-      streams << turbo_stream.replace("column-#{value}", partial: "boards/column_content", locals: { status: value, tasks: new_column_tasks })
       affected_statuses << value
 
     when "change_model"

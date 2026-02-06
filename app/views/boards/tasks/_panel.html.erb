@@ -337,14 +337,17 @@
             </div>
           </div>
 
-          <%# Agent Activity Section %>
+          <%# Agent Activity Section - Enhanced with filtering, search, timeline %>
           <% if task.agent_session_id.present? || task.status == "in_progress" %>
             <div class="flex-1 min-h-0 overflow-hidden flex flex-col px-5 py-4"
                  data-controller="agent-activity"
                  data-agent-activity-task-id-value="<%= task.id %>"
                  data-agent-activity-session-id-value="<%= task.agent_session_id %>"
-                 data-agent-activity-task-status-value="<%= task.status %>">
-              <div class="flex items-center justify-between mb-4 flex-shrink-0">
+                 data-agent-activity-task-status-value="<%= task.status %>"
+                 data-agent-activity-compact-mode-value="true">
+              
+              <%# Header with title, status, and controls %>
+              <div class="flex items-center justify-between mb-2 flex-shrink-0">
                 <div class="flex items-center gap-2">
                   <h3 class="text-sm font-semibold text-content font-display">Agent Activity</h3>
                   <span data-agent-activity-target="statusBadge"
@@ -352,14 +355,74 @@
                     <%= task.status == 'in_progress' ? 'Live' : task.status.humanize %>
                   </span>
                 </div>
-                <button type="button"
-                        data-action="click->agent-activity#refresh"
-                        class="cursor-pointer p-1.5 rounded text-content-muted hover:text-content hover:bg-bg-elevated transition-colors"
-                        title="Refresh">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                <div class="flex items-center gap-1">
+                  <%# Filter toggle button %>
+                  <button type="button"
+                          data-agent-activity-target="filterToggle"
+                          data-action="click->agent-activity#toggleCompactMode"
+                          class="cursor-pointer px-2 py-1 rounded text-[10px] font-medium text-content-muted hover:text-content hover:bg-bg-elevated transition-colors"
+                          title="Toggle compact/expanded view">
+                    📋 Compact
+                  </button>
+                  <%# Search toggle button %>
+                  <button type="button"
+                          data-action="click->agent-activity#toggleSearch"
+                          class="cursor-pointer p-1.5 rounded text-content-muted hover:text-content hover:bg-bg-elevated transition-colors"
+                          title="Search (Ctrl+F)">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                  </button>
+                  <%# Refresh button %>
+                  <button type="button"
+                          data-action="click->agent-activity#refresh"
+                          class="cursor-pointer p-1.5 rounded text-content-muted hover:text-content hover:bg-bg-elevated transition-colors"
+                          title="Refresh">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <%# Search bar (hidden by default) %>
+              <div data-agent-activity-target="searchContainer" class="hidden mb-2 flex-shrink-0">
+                <div class="flex items-center gap-2 bg-bg-elevated rounded-lg px-3 py-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-content-muted flex-shrink-0">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                   </svg>
-                </button>
+                  <input type="text"
+                         data-agent-activity-target="searchInput"
+                         data-action="input->agent-activity#performSearch"
+                         placeholder="Search in terminal..."
+                         class="flex-1 bg-transparent text-sm text-content placeholder-content-muted focus:outline-none">
+                  <span data-agent-activity-target="searchCount" class="text-[10px] text-content-muted"></span>
+                  <div class="flex items-center gap-1 border-l border-border pl-2">
+                    <button type="button" data-action="click->agent-activity#prevMatch" class="p-1 hover:bg-bg-surface rounded" title="Previous (Shift+Enter)">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-content-muted">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" />
+                      </svg>
+                    </button>
+                    <button type="button" data-action="click->agent-activity#nextMatch" class="p-1 hover:bg-bg-surface rounded" title="Next (Enter)">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-content-muted">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                      </svg>
+                    </button>
+                    <button type="button" data-action="click->agent-activity#closeSearch" class="p-1 hover:bg-bg-surface rounded" title="Close (Esc)">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-content-muted">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <%# Mini Timeline (progress bar) %>
+              <div data-agent-activity-target="timelineContainer" class="hidden mb-3 flex-shrink-0">
+                <div data-agent-activity-target="timeline" 
+                     class="flex items-center gap-1 overflow-x-auto scrollbar-hide py-1 px-1 bg-bg-elevated/50 rounded-lg">
+                  <%# Timeline steps rendered by JS %>
+                </div>
               </div>
 
               <!-- Loading State -->
@@ -428,13 +491,16 @@
             </div>
           <% end %>
 
-          <%# Mobile Agent Activity %>
+          <%# Mobile Agent Activity - Enhanced %>
           <% if task.agent_session_id.present? || task.status == "in_progress" %>
             <div data-controller="agent-activity"
                  data-agent-activity-task-id-value="<%= task.id %>"
                  data-agent-activity-session-id-value="<%= task.agent_session_id %>"
-                 data-agent-activity-task-status-value="<%= task.status %>">
-              <div class="flex items-center justify-between mb-4">
+                 data-agent-activity-task-status-value="<%= task.status %>"
+                 data-agent-activity-compact-mode-value="true">
+              
+              <%# Header %>
+              <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center gap-2">
                   <h3 class="text-sm font-semibold text-content font-display">Agent Activity</h3>
                   <span data-agent-activity-target="statusBadge"
@@ -442,14 +508,58 @@
                     <%= task.status == 'in_progress' ? 'Live' : task.status.humanize %>
                   </span>
                 </div>
-                <button type="button"
-                        data-action="click->agent-activity#refresh"
-                        class="cursor-pointer p-1.5 rounded text-content-muted hover:text-content hover:bg-bg-elevated transition-colors"
-                        title="Refresh">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                <div class="flex items-center gap-1">
+                  <button type="button"
+                          data-agent-activity-target="filterToggle"
+                          data-action="click->agent-activity#toggleCompactMode"
+                          class="cursor-pointer px-2 py-1 rounded text-[10px] font-medium text-content-muted hover:text-content hover:bg-bg-elevated transition-colors"
+                          title="Toggle view">
+                    📋 Compact
+                  </button>
+                  <button type="button"
+                          data-action="click->agent-activity#toggleSearch"
+                          class="cursor-pointer p-1.5 rounded text-content-muted hover:text-content hover:bg-bg-elevated transition-colors"
+                          title="Search">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                  </button>
+                  <button type="button"
+                          data-action="click->agent-activity#refresh"
+                          class="cursor-pointer p-1.5 rounded text-content-muted hover:text-content hover:bg-bg-elevated transition-colors"
+                          title="Refresh">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <%# Search bar (hidden) %>
+              <div data-agent-activity-target="searchContainer" class="hidden mb-2">
+                <div class="flex items-center gap-2 bg-bg-elevated rounded-lg px-3 py-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-content-muted">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                   </svg>
-                </button>
+                  <input type="text"
+                         data-agent-activity-target="searchInput"
+                         data-action="input->agent-activity#performSearch"
+                         placeholder="Search..."
+                         class="flex-1 bg-transparent text-sm text-content placeholder-content-muted focus:outline-none">
+                  <span data-agent-activity-target="searchCount" class="text-[10px] text-content-muted"></span>
+                  <button type="button" data-action="click->agent-activity#closeSearch" class="p-1 hover:bg-bg-surface rounded">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 text-content-muted">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <%# Mini Timeline %>
+              <div data-agent-activity-target="timelineContainer" class="hidden mb-2">
+                <div data-agent-activity-target="timeline" 
+                     class="flex items-center gap-1 overflow-x-auto scrollbar-hide py-1 px-1 bg-bg-elevated/50 rounded-lg text-xs">
+                </div>
               </div>
 
               <div data-agent-activity-target="loadingState" class="flex items-center justify-center py-8">

@@ -14,6 +14,7 @@ import MobileColumnsController from "controllers/mobile_columns_controller"
 import TaskDependenciesController from "controllers/task_dependencies_controller"
 import SearchController from "controllers/search_controller"
 import FilterController from "controllers/filter_controller"
+import BulkOperationsController from "controllers/bulk_operations_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -24,3 +25,4 @@ application.register("mobile-columns", MobileColumnsController)
 application.register("task-dependencies", TaskDependenciesController)
 application.register("search", SearchController)
 application.register("filter", FilterController)
+application.register("bulk-operations", BulkOperationsController)
