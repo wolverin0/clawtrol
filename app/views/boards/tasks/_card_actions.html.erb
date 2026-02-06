@@ -6,14 +6,14 @@
 <% if next_status %>
   <% if task.status == 'done' %>
     <%= link_to move_board_task_path(task.board, task, status: next_status),
-        data: { turbo_method: :patch, turbo_frame: "_top" },
+        data: { turbo_method: :patch },
         class: "inline-flex items-center px-1.5 py-0.5 text-[10px] bg-content-muted/20 hover:bg-content-muted/30 text-content-muted rounded transition-colors",
         title: "Archive this task" do %>
       📦
     <% end %>
   <% else %>
     <%= link_to move_board_task_path(task.board, task, status: next_status),
-        data: { turbo_method: :patch, turbo_frame: "_top" },
+        data: { turbo_method: :patch },
         class: "inline-flex items-center px-1.5 py-0.5 text-[10px] bg-accent/80 hover:bg-accent text-white rounded transition-colors",
         title: "Move to #{next_status.humanize}" do %>
       NEXT →
