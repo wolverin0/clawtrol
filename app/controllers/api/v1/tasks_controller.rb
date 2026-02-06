@@ -537,6 +537,12 @@ module Api
         # Auto-link session if provided and not already set
         sid = params[:session_id] || params[:agent_session_id]
         skey = params[:session_key] || params[:agent_session_key]
+
+        # If we have a session_key but no session_id, try to resolve it from transcript files
+        if skey.present? && sid.blank?
+          sid = resolve_session_id_from_key(skey)
+        end
+
         @task.agent_session_id = sid if sid.present? && @task.agent_session_id.blank?
         @task.agent_session_key = skey if skey.present? && @task.agent_session_key.blank?
 
@@ -851,6 +857,47 @@ module Api
 
       def set_task
         @task = current_user.tasks.find(params[:id])
+      end
+
+      # Resolve session_id (UUID) from session_key by scanning transcript files
+      # The OpenClaw gateway stores transcripts as {sessionId}.jsonl
+      # and the sessions index maps keys to sessionIds
+      def resolve_session_id_from_key(session_key)
+        sessions_dir = File.expand_path("~/.openclaw/agents/main/sessions")
+        return nil unless Dir.exist?(sessions_dir)
+
+        # Try the sessions index file first (fastest)
+        index_file = File.join(sessions_dir, "index.json")
+        if File.exist?(index_file)
+          begin
+            index = JSON.parse(File.read(index_file))
+            index.each do |_id, entry|
+              if entry["key"] == session_key
+                return entry["sessionId"] || _id
+              end
+            end
+          rescue JSON::ParserError
+            # Fall through to scan
+          end
+        end
+
+        # Fallback: scan .jsonl files for the session key
+        Dir.glob(File.join(sessions_dir, "*.jsonl")).each do |file|
+          first_line = File.open(file, &:readline) rescue next
+          begin
+            data = JSON.parse(first_line)
+            if data["key"] == session_key || data["sessionKey"] == session_key
+              return File.basename(file, ".jsonl")
+            end
+          rescue JSON::ParserError
+            next
+          end
+        end
+
+        nil
+      rescue => e
+        Rails.logger.warn "resolve_session_id_from_key error: #{e.message}"
+        nil
       end
 
       def set_task_activity_info(task)

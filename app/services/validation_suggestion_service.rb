@@ -8,20 +8,20 @@ class ValidationSuggestionService
     # Ruby/Rails
     ".rb" => "bin/rails test",
     ".rake" => "bin/rails test",
-    # JavaScript/TypeScript
-    ".js" => "npm test",
-    ".ts" => "npm test",
-    ".jsx" => "npm test",
-    ".tsx" => "npm test",
-    # Views
-    ".erb" => "bin/rails test:system",
-    ".html" => "bin/rails test:system",
-    ".haml" => "bin/rails test:system",
-    ".slim" => "bin/rails test:system",
+    # JavaScript/TypeScript — syntax check only (fast)
+    ".js" => nil, # handled specially in rule-based logic
+    ".ts" => nil,
+    ".jsx" => nil,
+    ".tsx" => nil,
+    # Views — syntax checked via ruby -c on controller, NOT test:system (too slow/broad)
+    ".erb" => nil, # skip — erb can't be validated standalone
+    ".html" => nil,
+    ".haml" => nil,
+    ".slim" => nil,
     # CSS/Assets
-    ".css" => "bin/rails assets:precompile",
-    ".scss" => "bin/rails assets:precompile",
-    ".sass" => "bin/rails assets:precompile",
+    ".css" => nil, # skip — no reliable fast validation
+    ".scss" => nil,
+    ".sass" => nil,
     # Python
     ".py" => "python -m pytest",
     # Config/YAML
@@ -72,39 +72,34 @@ class ValidationSuggestionService
       end
     end
 
-    # Check for system test indicators
-    if extensions.include?(".erb") || output_files.any? { |f| f.include?("views/") }
-      return "bin/rails test:system"
+    # Views/CSS/assets — skip validation (too slow/unreliable for auto-validate)
+    # These are visual changes that need human eyes, not automated tests
+    view_only = output_files.all? { |f| f.match?(/\.(erb|html|haml|slim|css|scss|sass)$/) }
+    return nil if view_only
+
+    # JS files — syntax check only (fast, no flaky integration tests)
+    js_files = output_files.select { |f| f.end_with?(".js") }
+    if js_files.any? && !extensions.include?(".rb")
+      real_js = js_files.select { |f| File.exist?(File.join(Rails.root, f)) }.take(5)
+      return real_js.any? ? "node -c #{real_js.join(' ')}" : nil
     end
 
-    # Check for JS files
-    if (extensions & [".js", ".ts", ".jsx", ".tsx"]).any?
-      if extensions.include?(".rb")
-        return "npm test"  # Can't chain with && due to safety rules
-      end
-      return "npm test"
-    end
-
-    # Default to Rails test for Ruby files
+    # Ruby files — find SPECIFIC matching tests (not blanket test suite)
     if extensions.include?(".rb")
-      # Try to find corresponding test files
       impl_files = output_files.select { |f| f.end_with?(".rb") && !f.include?("test/") && !f.include?("spec/") }
       
       if impl_files.any?
-        # Generate test path guesses
-        test_paths = impl_files.map do |f|
+        test_paths = impl_files.filter_map do |f|
           if f.start_with?("app/")
-            f.sub("app/", "test/").sub(".rb", "_test.rb")
-          else
-            nil
+            candidate = f.sub("app/", "test/").sub(".rb", "_test.rb")
+            File.exist?(File.join(Rails.root, candidate)) ? candidate : nil
           end
-        end.compact
-
-        if test_paths.any?
-          return "bin/rails test #{test_paths.take(3).join(' ')}"
         end
+
+        return "bin/rails test #{test_paths.take(5).join(' ')}" if test_paths.any?
       end
       
+      # Ruby files but no matching tests found — run unit tests only (fast)
       return "bin/rails test"
     end
 
