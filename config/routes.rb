@@ -115,6 +115,7 @@ Rails.application.routes.draw do
         post :revalidate
         post :run_validation
         post :run_debate
+        post :generate_validation_suggestion
         get :view_file
       end
     end

@@ -1,6 +1,6 @@
 class Boards::TasksController < ApplicationController
   before_action :set_board
-  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file]
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file, :generate_validation_suggestion]
 
   def show
     @api_token = current_user.api_token
@@ -306,6 +306,13 @@ class Boards::TasksController < ApplicationController
     respond_to do |format|
       format.turbo_stream
       format.json { render json: { enhanced: @enhanced || draft } }
+    end
+  end
+
+  def generate_validation_suggestion
+    suggestion = ValidationSuggestionService.new(current_user).generate_suggestion(@task)
+    respond_to do |format|
+      format.json { render json: { command: suggestion || "bin/rails test" } }
     end
   end
 

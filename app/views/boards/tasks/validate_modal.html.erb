@@ -14,7 +14,7 @@
       </div>
 
       <div class="overflow-y-auto flex-1">
-        <%= form_with url: run_validation_board_task_path(@board, @task), method: :post, class: "px-5 py-5 space-y-4", data: { controller: "review" } do |form| %>
+        <%= form_with url: run_validation_board_task_path(@board, @task), method: :post, class: "px-5 py-5 space-y-4", data: { controller: "review", review_suggestion_url_value: generate_validation_suggestion_board_task_path(@board, @task) } do |form| %>
           <!-- Task Reference -->
           <div class="p-3 bg-bg-elevated rounded-lg">
             <div class="flex items-center justify-between">
@@ -27,7 +27,20 @@
 
           <!-- Command Templates -->
           <div>
-            <label class="text-sm font-medium text-content-muted block mb-2">Quick Templates</label>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-sm font-medium text-content-muted">Quick Templates</label>
+              <button type="button" 
+                      data-review-target="aiBtn"
+                      data-action="click->review#generateSuggestion"
+                      class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg transition-colors disabled:opacity-50">
+                <svg data-review-target="aiSpinner" class="hidden animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <span>🤖</span>
+                <span data-review-target="aiLabel">AI Suggest</span>
+              </button>
+            </div>
             <div class="flex flex-wrap gap-2" data-review-target="templates">
               <button type="button" 
                       data-command="bundle exec rails test"
