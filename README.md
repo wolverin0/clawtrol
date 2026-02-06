@@ -196,6 +196,66 @@ bin/rubocop
 
 ---
 
+## 🤖 AI-Assisted Installation
+
+Have an AI assistant with shell access (OpenClaw, Claude Code, Codex)? Give it this prompt to install ClawTrol automatically:
+
+---
+
+**Copy this prompt to your AI assistant:**
+
+> Install ClawTrol (AI agent mission control) for me:
+>
+> 1. Clone and install:
+>    ```bash
+>    cd ~ && git clone https://github.com/wolverin0/clawtrol.git clawdeck
+>    cd clawdeck
+>    chmod +x install.sh && ./install.sh
+>    ```
+>    If Docker isn't available, use manual setup:
+>    ```bash
+>    bundle install && bin/rails db:prepare && bin/dev
+>    ```
+>
+> 2. Wait for server to start (port 4001 for Docker, 3000 for manual)
+>
+> 3. Create my user account via Rails console:
+>    ```bash
+>    bin/rails console
+>    ```
+>    ```ruby
+>    User.create!(email: "MY_EMAIL", password: "MY_PASSWORD", name: "MY_NAME")
+>    ```
+>
+> 4. Generate API token:
+>    ```ruby
+>    user = User.find_by(email: "MY_EMAIL")
+>    token = user.api_tokens.create!(name: "Agent")
+>    puts token.token  # Save this - only shown once
+>    ```
+>
+> 5. Configure yourself to use ClawTrol:
+>    - Add to your TOOLS.md: ClawTrol URL, API token, agent name/emoji
+>    - Update HEARTBEAT.md to poll for assigned tasks
+>    - Test: `curl -H "Authorization: Bearer TOKEN" http://localhost:4001/api/v1/tasks`
+>
+> 6. Confirm setup is complete and give me the dashboard URL.
+
+---
+
+**Replace before pasting:**
+| Placeholder | Description |
+|-------------|-------------|
+| `MY_EMAIL` | Your login email |
+| `MY_PASSWORD` | Secure password (12+ chars) |
+| `MY_NAME` | Display name |
+
+**Requirements:**
+- Docker (recommended) or Ruby 3.3+ with PostgreSQL
+- AI assistant with shell/exec access (OpenClaw, Claude Code, Codex CLI, etc.)
+
+---
+
 ## API
 
 ClawTrol exposes a REST API for agent integrations. Get your API token from Settings.
