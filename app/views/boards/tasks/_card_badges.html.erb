@@ -107,9 +107,12 @@
   <span class="text-[10px]" title="Recurring: <%= task.recurrence_rule %>">🔄</span>
 <% end %>
 
-<%# Nightly icon %>
+<%# Nightly badge (moon theme) %>
 <% if task.nightly? %>
-  <span class="text-[10px]" title="Nightly task<%= task.nightly_delay_hours.present? ? " (+#{task.nightly_delay_hours}h)" : '' %>">🌙</span>
+  <span class="nightly-badge inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium" 
+        title="Nightbeat task<%= task.nightly_delay_hours.present? ? " (+#{task.nightly_delay_hours}h delay)" : '' %>">
+    🌙 <span class="hidden sm:inline">Nightbeat</span>
+  </span>
 <% end %>
 
 <%# Followup indicator %>

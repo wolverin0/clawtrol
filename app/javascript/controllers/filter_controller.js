@@ -1,9 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
 
 // Connects to data-controller="filter"
-// Filter bar for board view - filters tasks by status, model, priority, agent assignment
+// Filter bar for board view - filters tasks by status, model, priority, agent assignment, nightly
 export default class extends Controller {
-  static targets = ["status", "model", "priority", "agent", "chips", "tasksContainer"]
+  static targets = ["status", "model", "priority", "agent", "nightly", "chips", "tasksContainer"]
   static values = {
     boardId: Number
   }
@@ -13,7 +13,8 @@ export default class extends Controller {
       status: null,
       model: null,
       priority: null,
-      hasAgent: null
+      hasAgent: null,
+      nightly: null
     }
     this.loadFromUrl()
   }
@@ -38,9 +39,37 @@ export default class extends Controller {
       this.filters.hasAgent = params.get("filter_agent")
       if (this.hasAgentTarget) this.agentTarget.value = this.filters.hasAgent
     }
+    if (params.get("filter_nightly")) {
+      this.filters.nightly = params.get("filter_nightly")
+      this.updateNightlyButton()
+    }
 
     this.updateChips()
     this.applyFilters()
+  }
+
+  // Toggle nightly filter
+  toggleNightly() {
+    if (this.filters.nightly === "true") {
+      this.filters.nightly = null
+    } else {
+      this.filters.nightly = "true"
+    }
+    this.updateNightlyButton()
+    this.onFilterChange()
+  }
+
+  // Update nightly button appearance
+  updateNightlyButton() {
+    if (!this.hasNightlyTarget) return
+    
+    if (this.filters.nightly === "true") {
+      this.nightlyTarget.classList.add("nightly-filter-active")
+      this.nightlyTarget.classList.remove("text-content-secondary")
+    } else {
+      this.nightlyTarget.classList.remove("nightly-filter-active")
+      this.nightlyTarget.classList.add("text-content-secondary")
+    }
   }
 
   // Handle filter change from dropdowns
@@ -97,6 +126,12 @@ export default class extends Controller {
     } else {
       url.searchParams.delete("filter_agent")
     }
+    
+    if (this.filters.nightly) {
+      url.searchParams.set("filter_nightly", this.filters.nightly)
+    } else {
+      url.searchParams.delete("filter_nightly")
+    }
 
     window.history.replaceState({}, "", url)
   }
@@ -119,6 +154,9 @@ export default class extends Controller {
     if (this.filters.hasAgent) {
       const label = this.filters.hasAgent === "true" ? "Has agent" : "No agent"
       chips.push(this.createChip("Agent", label, "hasAgent"))
+    }
+    if (this.filters.nightly) {
+      chips.push(this.createChip("🌙", "Nightbeat", "nightly"))
     }
 
     this.chipsTarget.innerHTML = chips.join("")
@@ -159,6 +197,9 @@ export default class extends Controller {
       case "hasAgent":
         if (this.hasAgentTarget) this.agentTarget.value = ""
         break
+      case "nightly":
+        this.updateNightlyButton()
+        break
     }
 
     this.onFilterChange()
@@ -169,7 +210,8 @@ export default class extends Controller {
       status: null,
       model: null,
       priority: null,
-      hasAgent: null
+      hasAgent: null,
+      nightly: null
     }
 
     // Reset all dropdowns
@@ -177,6 +219,7 @@ export default class extends Controller {
     if (this.hasModelTarget) this.modelTarget.value = ""
     if (this.hasPriorityTarget) this.priorityTarget.value = ""
     if (this.hasAgentTarget) this.agentTarget.value = ""
+    this.updateNightlyButton()
 
     this.onFilterChange()
   }
@@ -229,6 +272,12 @@ export default class extends Controller {
       if (hasAgent !== wantsAgent) return false
     }
 
+    // Nightly filter
+    if (this.filters.nightly === "true") {
+      const isNightly = card.dataset.taskNightly === "true"
+      if (!isNightly) return false
+    }
+
     return true
   }
 
@@ -251,6 +300,6 @@ export default class extends Controller {
   }
 
   hasActiveFilters() {
-    return !!(this.filters.status || this.filters.model || this.filters.priority || this.filters.hasAgent)
+    return !!(this.filters.status || this.filters.model || this.filters.priority || this.filters.hasAgent || this.filters.nightly)
   }
 }

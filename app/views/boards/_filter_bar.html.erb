@@ -48,6 +48,15 @@
       <option value="false">No agent</option>
     </select>
 
+    <%# Nightly/Nightbeat toggle %>
+    <button type="button"
+            data-filter-target="nightly"
+            data-action="click->filter#toggleNightly"
+            class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md hover:bg-bg-hover focus:outline-none focus:ring-1 focus:ring-indigo-500 text-content-secondary cursor-pointer transition-colors"
+            title="Filter Nightbeat tasks (overnight audits)">
+      🌙 Nightbeat
+    </button>
+
     <%# Active filter chips %>
     <div data-filter-target="chips" class="flex items-center gap-1.5 flex-wrap">
       <%# Chips will be dynamically inserted here %>

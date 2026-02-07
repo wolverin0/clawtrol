@@ -34,6 +34,13 @@
             <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-bg-elevated text-content-secondary">
               <%= status_labels[task.status] %>
             </span>
+            <!-- Nightly badge (if applicable) -->
+            <% if task.nightly? %>
+              <span class="nightly-badge inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium" 
+                    title="Nightbeat task - overnight automated audit">
+                🌙 Nightbeat
+              </span>
+            <% end %>
             <!-- Task ID -->
             <span class="text-[10px] font-mono text-content-muted">#<%= task.id %></span>
             <!-- Copy URL button -->

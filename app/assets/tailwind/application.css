@@ -395,3 +395,85 @@
 .markdown-content :first-child {
   margin-top: 0;
 }
+
+/* ========================================
+   NIGHTBEAT TASK CARDS (Moon Theme)
+   Tasks created by overnight audits
+   ======================================== */
+.task-card-nightly {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%) !important;
+  border: 1px solid rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 
+    0 0 15px rgba(99, 102, 241, 0.1),
+    0 0 30px rgba(99, 102, 241, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.task-card-nightly::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle at center, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Stars overlay effect */
+.task-card-nightly::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(1px 1px at 10px 10px, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 30px 25px, rgba(255, 255, 255, 0.2), transparent),
+    radial-gradient(1px 1px at 50px 15px, rgba(255, 255, 255, 0.25), transparent),
+    radial-gradient(1px 1px at 70px 30px, rgba(255, 255, 255, 0.15), transparent);
+  background-size: 80px 40px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.task-card-nightly:hover {
+  box-shadow: 
+    0 0 20px rgba(99, 102, 241, 0.2),
+    0 0 40px rgba(99, 102, 241, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.task-card-nightly .task-title,
+.task-card-nightly .text-content {
+  color: #e2e8f0 !important;
+}
+
+.task-card-nightly .text-content-secondary,
+.task-card-nightly .text-content-muted {
+  color: #94a3b8 !important;
+}
+
+/* Nightly badge styling */
+.nightly-badge {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.2);
+  animation: nightly-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes nightly-glow {
+  0% { box-shadow: 0 0 8px rgba(99, 102, 241, 0.2); }
+  100% { box-shadow: 0 0 12px rgba(99, 102, 241, 0.4); }
+}
+
+/* Nightly filter button active state */
+.nightly-filter-active {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: #a5b4fc !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+}

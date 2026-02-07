@@ -21,6 +21,10 @@ import SoundController from "controllers/sound_controller"
 import SoundToggleController from "controllers/sound_toggle_controller"
 import AgentCategoriesController from "controllers/agent_categories_controller"
 import MobileFilterController from "controllers/mobile_filter_controller"
+import AgentActivityController from "controllers/agent_activity_controller"
+import AgentTerminalController from "controllers/agent_terminal_controller"
+import AgentModalController from "controllers/agent_modal_controller"
+import AgentPreviewController from "controllers/agent_preview_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -38,3 +42,7 @@ application.register("sound", SoundController)
 application.register("sound-toggle", SoundToggleController)
 application.register("agent-categories", AgentCategoriesController)
 application.register("mobile-filter", MobileFilterController)
+application.register("agent-activity", AgentActivityController)
+application.register("agent-terminal", AgentTerminalController)
+application.register("agent-modal", AgentModalController)
+application.register("agent-preview", AgentPreviewController)
