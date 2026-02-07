@@ -127,11 +127,17 @@ class BoardsController < ApplicationController
     if params[:task_id].present? && params[:status].present?
       @task = @board.tasks.find(params[:task_id])
       @task.activity_source = "web"
-      @task.update!(status: params[:status])
 
-      # Return rendered HTML so JS can replace the card (updates NEXT button, etc.)
-      html = render_to_string(partial: "boards/task_card", locals: { task: @task })
-      render json: { success: true, html: html, task_id: @task.id }
+      if @task.update(status: params[:status])
+        # Return rendered HTML so JS can replace the card (updates NEXT button, etc.)
+        html = render_to_string(partial: "boards/task_card", locals: { task: @task })
+        render json: { success: true, html: html, task_id: @task.id }
+      else
+        render json: {
+          error: @task.errors.full_messages.join(", "),
+          errors: @task.errors.full_messages
+        }, status: :unprocessable_entity
+      end
       return
     end
 

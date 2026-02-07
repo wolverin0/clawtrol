@@ -7,6 +7,7 @@
     "in_review" => "In Review",
     "done" => "Done"
   }
+  missing_output_warning = task.in_review? && task.missing_agent_output?
 %>
 
 <div data-controller="task-modal file-viewer"
@@ -70,6 +71,12 @@
 
         <!-- Left Column: Task Details (scrollable) -->
         <div class="flex-1 lg:flex-[3] overflow-y-auto px-5 py-6 lg:border-r lg:border-border">
+          <% if missing_output_warning %>
+            <div class="mb-4 rounded-lg border border-orange-500/50 bg-orange-500/10 px-3 py-2 text-sm text-orange-200">
+              ⚠️ Missing Agent Output — add ## Agent Output section before moving to Done
+            </div>
+          <% end %>
+
           <%= form_with model: task, url: board_task_path(@board, task), method: :patch, data: { task_modal_target: "form" }, class: "space-y-6" do |form| %>
             <%= form.hidden_field :priority, value: task.priority, data: { task_modal_target: "priorityField" } %>
 

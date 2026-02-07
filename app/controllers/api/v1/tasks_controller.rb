@@ -461,8 +461,14 @@ module Api
         end
 
         set_task_activity_info(@task)
-        @task.update!(status: new_status)
-        render json: task_json(@task)
+        if @task.update(status: new_status)
+          render json: task_json(@task)
+        else
+          render json: {
+            error: @task.errors.full_messages.join(", "),
+            errors: @task.errors.full_messages
+          }, status: :unprocessable_entity
+        end
       end
 
       # GET /api/v1/tasks - all tasks for current user
@@ -581,7 +587,10 @@ module Api
 
           render json: task_json(@task.reload)
         else
-          render json: { error: @task.errors.full_messages.join(", ") }, status: :unprocessable_entity
+          render json: {
+            error: @task.errors.full_messages.join(", "),
+            errors: @task.errors.full_messages
+          }, status: :unprocessable_entity
         end
       end
 

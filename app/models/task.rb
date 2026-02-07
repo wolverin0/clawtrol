@@ -56,6 +56,7 @@ class Task < ApplicationRecord
   validates :model, inclusion: { in: MODELS }, allow_nil: true, allow_blank: true
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
+  validate :agent_output_required_for_done_transition, if: :moving_to_done?
 
   # Activity tracking - must be declared before callbacks that use it
   attr_accessor :activity_source, :actor_name, :actor_emoji, :activity_note
@@ -95,6 +96,11 @@ class Task < ApplicationRecord
   scope :not_errored, -> { where(error_at: nil) }
   scope :archived, -> { where(status: :archived) }
   scope :not_archived, -> { where.not(status: :archived) }
+  scope :missing_agent_output, -> {
+    where(status: :done)
+      .where("assigned_to_agent = :yes OR agent_session_id IS NOT NULL OR assigned_at IS NOT NULL", yes: true)
+      .where("description IS NULL OR description NOT LIKE ?", "%## Agent Output%")
+  }
   # NOTE: default_scope was removed intentionally to avoid implicit ordering
   # surprises. All queries that need ordering must specify it explicitly.
 
@@ -394,6 +400,14 @@ class Task < ApplicationRecord
     description.to_s.include?("## Agent Output")
   end
 
+  def requires_agent_output_for_done?
+    assigned_to_agent? || agent_session_id.present? || assigned_at.present?
+  end
+
+  def missing_agent_output?
+    requires_agent_output_for_done? && !has_agent_output_marker?
+  end
+
   def agent_output_posted_at
     return nil unless has_agent_output_marker?
 
@@ -420,6 +434,17 @@ class Task < ApplicationRecord
   end
 
   private
+
+  def moving_to_done?
+    will_save_change_to_status? && status == "done"
+  end
+
+  def agent_output_required_for_done_transition
+    return unless requires_agent_output_for_done?
+    return if has_agent_output_marker?
+
+    errors.add(:status, "Cannot mark as done without Agent Output. Add ## Agent Output section to description first.")
+  end
 
   # Security: validate that validation_command is safe to execute
   def validation_command_is_safe

@@ -103,11 +103,16 @@ export default class extends Controller {
     const message = blockingId 
       ? `Task blocked by #${blockingId} — complete the dependency first`
       : 'Task is blocked by dependencies'
-    
-    // Use existing toast system if available
-    document.dispatchEvent(new CustomEvent("toast:show", {
-      detail: { message, type: "warning" }
-    }))
+
+    this.showErrorToast(message)
+  }
+
+  showErrorToast(message) {
+    if (window.showToast) {
+      window.showToast(message, "error")
+    } else {
+      alert(message)
+    }
   }
 
   // Handle reordering within the same column
@@ -144,6 +149,15 @@ export default class extends Controller {
     const taskName = event.item.querySelector(".text-content")?.textContent?.trim() || "Task"
     const newStatus = this.statusValue
     const oldStatus = event.from.id.replace("column-", "")
+
+    const restorePosition = () => {
+      const oldIndex = event.oldIndex ?? event.from.children.length
+      const referenceNode = event.from.children[oldIndex] || null
+      event.from.insertBefore(event.item, referenceNode)
+      event.item.dataset.taskStatus = oldStatus
+      this.updateColumnCount(oldStatus, 1)
+      this.updateColumnCount(newStatus, -1)
+    }
     
     // Check if blocked task is being moved to in_progress
     const isBlocked = event.item.dataset.taskBlocked === 'true'
@@ -182,7 +196,14 @@ export default class extends Controller {
       })
 
       if (!response.ok) {
-        console.error("Failed to update task status")
+        let errorMessage = "Failed to move task"
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.errors?.[0] || errorMessage
+        } catch (_e) {}
+
+        restorePosition()
+        this.showErrorToast(errorMessage)
         return
       }
 
@@ -221,6 +242,8 @@ export default class extends Controller {
       }
     } catch (error) {
       console.error("Error updating task status:", error)
+      restorePosition()
+      this.showErrorToast("Failed to move task")
     }
   }
 

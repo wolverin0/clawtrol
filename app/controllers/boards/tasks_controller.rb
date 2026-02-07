@@ -103,10 +103,19 @@ class Boards::TasksController < ApplicationController
   def move
     @old_status = @task.status
     @task.activity_source = "web"
-    @task.update!(status: params[:status])
-    respond_to do |format|
-      format.turbo_stream
-      format.html { redirect_to board_path(@board), notice: "Task moved." }
+
+    if @task.update(status: params[:status])
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to board_path(@board), notice: "Task moved." }
+        format.json { render json: { success: true, task_id: @task.id, status: @task.status } }
+      end
+    else
+      respond_to do |format|
+        format.turbo_stream { render plain: @task.errors.full_messages.join(", "), status: :unprocessable_entity }
+        format.html { redirect_to board_path(@board), alert: @task.errors.full_messages.join(", ") }
+        format.json { render json: { error: @task.errors.full_messages.join(", "), errors: @task.errors.full_messages }, status: :unprocessable_entity }
+      end
     end
   end
 
