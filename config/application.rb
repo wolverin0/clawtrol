@@ -23,5 +23,7 @@ module ClawDeck
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    config.hooks_token = ENV.fetch("HOOKS_TOKEN", "otacon_hooks_f0xh0und_2026")
   end
 end

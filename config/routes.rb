@@ -45,6 +45,8 @@ Rails.application.routes.draw do
         end
       end
 
+      post "hooks/agent_complete", to: "hooks#agent_complete"
+
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
           get :next
