@@ -23,5 +23,7 @@ module ClawDeck
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+
+    config.hooks_token = ENV.fetch("HOOKS_TOKEN", "REVOKED")
   end
 end
