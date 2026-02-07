@@ -9,6 +9,10 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
+/* Hide scrollbar utility (board tabs on mobile) */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Filter hidden tasks */
 .filter-hidden {
   display: none !important;

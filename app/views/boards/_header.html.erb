@@ -7,8 +7,8 @@
       <%# Logo %>
       <span class="text-base md:text-lg font-semibold text-content font-display whitespace-nowrap flex-shrink-0">🦞 ClawTrol</span>
 
-      <%# Board Tabs - visible, wrapping, no scrolling %>
-      <div class="flex items-center gap-1 flex-wrap">
+      <%# Board Tabs - horizontal scroll on mobile, wrap on desktop %>
+      <div class="flex items-center gap-1 flex-nowrap overflow-x-auto md:flex-wrap md:overflow-visible scrollbar-hide">
         <% @boards.each do |board| %>
           <% active = board.id == @board.id %>
           <% task_count = board.tasks.where.not(status: :done).count %>
@@ -280,6 +280,15 @@
       <option value="false">No agent</option>
     </select>
 
+    <%# Nightbeat toggle %>
+    <button type="button"
+            data-filter-target="nightly"
+            data-action="click->filter#toggleNightly"
+            class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md hover:bg-bg-hover focus:outline-none focus:ring-1 focus:ring-indigo-500 text-content-secondary cursor-pointer transition-colors"
+            title="Filter Nightbeat tasks (overnight audits)">
+      🌙 Nightbeat
+    </button>
+
     <%# Active filter chips %>
     <div data-filter-target="chips" class="flex items-center gap-1.5 flex-wrap">
       <%# Chips will be dynamically inserted here %>
@@ -297,12 +306,20 @@
     <div class="flex-1"></div>
 
     <%# Quick stats %>
+    <% nightly_this_week = current_user.tasks.nightly.where("created_at >= ?", 7.days.ago).count %>
+    <% last_nightly = current_user.tasks.nightly.order(created_at: :desc).first %>
     <div class="flex items-center gap-3 text-xs text-content-muted">
       <span>📊 <span id="header-inbox-count" class="font-medium text-content"><%= @columns[:inbox]&.count || 0 %></span> inbox</span>
       <span class="text-border">·</span>
       <span><span id="header-in_progress-count" class="font-medium text-content"><%= @columns[:in_progress]&.count || 0 %></span> active</span>
       <span class="text-border">·</span>
       <span>✅ <span id="header-done_today-count" class="font-medium text-content"><%= current_user.tasks.where("completed_at >= ?", Time.zone.now.beginning_of_day).count %></span> today</span>
+      <% if nightly_this_week > 0 %>
+        <span class="text-border">·</span>
+        <span class="text-indigo-400" title="Last: <%= last_nightly&.created_at&.strftime('%b %d, %H:%M') %>">
+          🌙 <span class="font-medium"><%= nightly_this_week %></span> nightbeats
+        </span>
+      <% end %>
     </div>
 
     <%# Auto-refresh indicator %>
