@@ -216,6 +216,61 @@ export default class extends Controller {
     this.save()
   }
 
+  async recoverOutput(event) {
+    event.preventDefault()
+
+    const button = event.currentTarget
+    const url = button.dataset.recoverUrl
+    if (!url) return
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+
+    button.disabled = true
+    const originalText = button.textContent
+    button.textContent = '⏳ Recuperando...'
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-Token': csrfToken
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        alert(data?.error || 'No transcript found. Use manual edit.')
+        return
+      }
+
+      if (this.hasDescriptionFieldTarget) {
+        this.descriptionFieldTarget.value = data?.description || ''
+        this.resizeDescription()
+      }
+
+      this.save()
+    } catch (error) {
+      alert('No transcript found. Use manual edit.')
+    } finally {
+      button.disabled = false
+      button.textContent = originalText
+    }
+  }
+
+  focusDescription(event) {
+    event.preventDefault()
+    if (!this.hasDescriptionFieldTarget) return
+
+    this.descriptionFieldTarget.focus()
+    this.descriptionFieldTarget.setSelectionRange(
+      this.descriptionFieldTarget.value.length,
+      this.descriptionFieldTarget.value.length
+    )
+  }
+
   toggleRecurring() {
     if (!this.hasRecurringOptionsTarget) return
     const checkbox = this.recurringCheckboxTarget

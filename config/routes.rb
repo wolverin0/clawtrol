@@ -75,6 +75,7 @@ Rails.application.routes.draw do
           post :start_validation
           post :run_debate
           post :complete_review
+          post :recover_output
           get :file
           post :add_dependency
           delete :remove_dependency

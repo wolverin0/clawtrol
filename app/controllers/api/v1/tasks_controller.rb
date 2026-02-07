@@ -4,7 +4,7 @@ module Api
     class TasksController < BaseController
       # agent_log is public (no auth required) - secured by task lookup
       skip_before_action :authenticate_api_token, only: [ :agent_log, :session_health ]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :file, :add_dependency, :remove_dependency, :dependencies ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :file, :add_dependency, :remove_dependency, :dependencies ]
       before_action :set_task_for_agent_log, only: [ :agent_log, :session_health ]
 
       private
@@ -702,6 +702,48 @@ module Api
         render json: task_json(@task)
       end
 
+      # POST /api/v1/tasks/:id/recover_output
+      # Recover missing Agent Output from the linked OpenClaw transcript
+      def recover_output
+        if @task.agent_session_id.blank?
+          render json: { error: "No transcript found. Use manual edit." }, status: :unprocessable_entity
+          return
+        end
+
+        session_id = @task.agent_session_id.to_s
+        unless session_id.match?(/\A[a-zA-Z0-9_\-]+\z/)
+          render json: { error: "No transcript found. Use manual edit." }, status: :unprocessable_entity
+          return
+        end
+
+        transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl")
+
+        unless File.exist?(transcript_path)
+          render json: { error: "No transcript found. Use manual edit." }, status: :unprocessable_entity
+          return
+        end
+
+        recovered_text = extract_recoverable_agent_output(transcript_path)
+        if recovered_text.blank?
+          render json: { error: "No transcript found. Use manual edit." }, status: :unprocessable_entity
+          return
+        end
+
+        set_task_activity_info(@task)
+
+        existing = @task.description.to_s
+        marker = "## Agent Output"
+        new_description = if existing.include?(marker)
+          existing.sub(/## Agent Output\s*\n*/m, "## Agent Output\n\n#{recovered_text}\n\n")
+        else
+          ["#{marker}\n\n#{recovered_text}", existing].reject(&:blank?).join("\n\n")
+        end
+
+        @task.update!(description: new_description)
+
+        render json: task_json(@task.reload)
+      end
+
       # GET /api/v1/tasks/:id/file?path=docs/PROJECT_REVIEW.md
       # Returns file content for a task's output file
       # Validates path to prevent directory traversal
@@ -982,6 +1024,49 @@ module Api
       end
 
       private
+
+      def extract_recoverable_agent_output(transcript_path)
+        keywords = /\b(completed|done|summary|what i changed|findings|changes made|implemented|fixed)\b/i
+        candidate = nil
+
+        File.foreach(transcript_path) do |line|
+          next if line.blank?
+
+          begin
+            entry = JSON.parse(line)
+            next unless entry["type"] == "message"
+
+            msg = entry["message"] || {}
+            next unless msg["role"] == "assistant"
+
+            text = flatten_message_text(msg["content"])
+            next if text.blank?
+
+            candidate = text if text.match?(keywords)
+          rescue JSON::ParserError
+            next
+          end
+        end
+
+        candidate&.strip
+      rescue => e
+        Rails.logger.warn("[recover_output] Failed parsing transcript for task #{@task&.id}: #{e.message}")
+        nil
+      end
+
+      def flatten_message_text(content)
+        case content
+        when String
+          content
+        when Array
+          content
+            .select { |item| item.is_a?(Hash) && item["type"] == "text" }
+            .map { |item| item["text"].to_s }
+            .join("\n")
+        else
+          ""
+        end
+      end
 
       def set_task
         @task = current_user.tasks.find(params[:id])
