@@ -95,6 +95,39 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Nightly Tasks** — Delay execution until night hours
 - **Recurring Tasks** — Daily/weekly/monthly templates with time picker
 
+### 🌙 Nightbeat Integration
+- **Moon-Marked Tasks** — Nightly tasks are marked with a moon 🌙 icon
+- **Nightbeat Filter** — Toggle to show/hide nightbeat tasks quickly
+- **Morning Brief** — `/nightbeat` page shows overnight completed tasks grouped by project
+
+### 🪝 Agent Complete Auto-Save Pipeline
+- **Webhook Endpoint** — `POST /api/v1/hooks/agent_complete` for agent self-reporting
+- **Accepted Payload** — `task_id`, `findings`, `session_id`, `session_key`, `output_files`
+- **Auto Output Save** — Persists findings into task description under `## Agent Output`
+- **Auto Review Handoff** — Moves task to `in_review` automatically
+- **Session + File Linking** — Links session metadata and extracts output files from commits/transcripts
+- **Token Auth** — Requires `X-Hook-Token` header
+
+### 🔒 Done Validation
+- **Agent Output Required** — Agent-assigned tasks cannot move to `done` without `## Agent Output`
+- **Clear API Error** — Returns HTTP `422` with actionable validation message
+- **Kanban Guardrails** — Drag/drop reverts card and shows toast on rejection
+
+### 📄 Transcript Recovery
+- **Recover Endpoint** — `POST /api/v1/tasks/:id/recover_output`
+- **UI Recovery Actions** — Buttons: **"Recuperar del Transcript"** and **"Escribir manualmente"**
+- **Smart Extraction** — Reads `.jsonl` transcript and restores latest assistant summary
+
+### 📁 Output Files Auto-Extraction
+- **Findings Parsing** — Detects file paths directly from findings text
+- **Transcript Commit Mining** — Extracts changed files from git commits in transcript
+- **Merge + Dedupe** — Combines all discovered files and removes duplicates
+
+### 🛰️ Agent Activity Improvements
+- **Session Fallbacks** — Shows activity even without `session_id` using description markers
+- **Lifecycle Timeline** — `assigned → claimed → output posted → current status`
+- **Transcript Access** — Shows transcript link when transcript file exists
+
 ### 🪝 Webhook Integration
 - **OpenClaw Gateway** — Instant wake via webhook when tasks are assigned
 - **Real-time Triggers** — No polling delay for agent activation
@@ -113,8 +146,10 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 2. You assign tasks to your agent (or use `spawn_ready` for auto-assignment)
 3. Webhook notifies OpenClaw Gateway instantly (or agent polls for work)
 4. Agent streams progress via the activity feed API
-5. You watch everything in real-time with the terminal panel
-6. Agent completes and optionally suggests follow-up tasks
+5. Agent finishes and calls `POST /api/v1/hooks/agent_complete`
+6. ClawTrol auto-saves findings to `## Agent Output`, links session/files, and moves task to `in_review`
+7. Done validation enforces output presence before allowing move to `done`
+8. You review in terminal/modal and optionally create follow-up tasks
 
 ---
 
@@ -122,6 +157,7 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - **Ruby** 3.3.1 / **Rails** 8.1
 - **PostgreSQL** with Solid Queue, Cache, and Cable
+- **Solid Queue** — Background jobs for validation, async processing, and webhook-driven workflows
 - **ActionCable** — WebSocket for real-time kanban + agent activity
 - **Hotwire** (Turbo + Stimulus) + **Tailwind CSS v4**
 - **Propshaft** — Asset pipeline with importmap-rails
@@ -239,7 +275,15 @@ Have an AI assistant with shell access (OpenClaw, Claude Code, Codex)? Give it t
 >    - Update HEARTBEAT.md to poll for assigned tasks
 >    - Test: `curl -H "Authorization: Bearer TOKEN" http://localhost:4001/api/v1/tasks`
 >
-> 6. Confirm setup is complete and give me the dashboard URL.
+> 6. Configure the auto-save webhook as the LAST STEP of every agent task:
+>    ```bash
+>    curl -s -X POST http://YOUR_HOST:4001/api/v1/hooks/agent_complete \
+>      -H "X-Hook-Token: YOUR_HOOKS_TOKEN" \
+>      -H "Content-Type: application/json" \
+>      -d '{"task_id": TASK_ID, "findings": "SUMMARY OF WORK DONE"}'
+>    ```
+>
+> 7. Confirm setup is complete and give me the dashboard URL.
 
 ---
 
@@ -341,9 +385,12 @@ POST /api/v1/tasks/spawn_ready
 POST /api/v1/tasks/:id/link_session
 { "agent_session_id": "uuid", "agent_session_key": "key" }
 
-# Save agent output and complete
+# Save agent output and complete (legacy/manual path)
 POST /api/v1/tasks/:id/agent_complete
 { "output": "Task completed successfully", "status": "in_review" }
+
+# Recover missing output from transcript (.jsonl)
+POST /api/v1/tasks/:id/recover_output
 
 # Get live agent activity log
 GET /api/v1/tasks/:id/agent_log
@@ -364,6 +411,63 @@ POST /api/v1/tasks/:id/create_followup
 ```
 
 ---
+
+### Webhook: Agent Complete (Auto-Save Pipeline)
+
+`POST /api/v1/hooks/agent_complete`
+
+Primary endpoint for autonomous agents to self-report completion and persist output. This is the recommended integration path for production agents.
+
+**Authentication**
+
+Send webhook token in header:
+
+```
+X-Hook-Token: YOUR_HOOKS_TOKEN
+```
+
+**Request Body (JSON)**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `task_id` | integer | ✅ | Target task ID to update |
+| `findings` | string | ✅ | Work summary; stored under `## Agent Output` |
+| `session_id` | string | optional | Agent session UUID for transcript/activity linking |
+| `session_key` | string | optional | Session key used by terminal/transcript viewer |
+| `output_files` | array[string] | optional | Explicit output file list (merged with auto-extracted files) |
+
+**Example Request**
+
+```bash
+curl -s -X POST http://YOUR_HOST:4001/api/v1/hooks/agent_complete \
+  -H "X-Hook-Token: YOUR_HOOKS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task_id": 302,
+    "findings": "Implemented feature X and updated docs.",
+    "session_id": "sess_123",
+    "session_key": "agent:main:subagent:abc",
+    "output_files": ["README.md", "app/controllers/tasks_controller.rb"]
+  }'
+```
+
+**Behavior**
+
+- Auto-appends/updates `## Agent Output` in task description
+- Auto-transitions task status to `in_review`
+- Links session metadata when provided
+- Auto-extracts output files from findings text and transcript commit data
+- Merges + deduplicates discovered files and provided `output_files`
+
+**Success Response**
+
+- `200 OK` with updated task payload
+
+**Error Responses**
+
+- `401 Unauthorized` — missing/invalid `X-Hook-Token`
+- `404 Not Found` — task not found
+- `422 Unprocessable Entity` — invalid payload (e.g., missing required fields)
 
 ### Models (Rate Limiting)
 
