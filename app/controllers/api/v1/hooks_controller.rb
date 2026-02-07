@@ -18,7 +18,9 @@ module Api
 
         updates = {
           description: updated_description(task.description.to_s, findings),
-          status: "in_review"
+          status: "in_review",
+          assigned_to_agent: true,
+          assigned_at: task.assigned_at || Time.current
         }
 
         # Auto-link session_id/session_key on first hook
