@@ -515,7 +515,7 @@ class Task < ApplicationRecord
     return unless requires_agent_output_for_done?
     return if has_agent_output_marker?
 
-    errors.add(:status, "Cannot mark as done without Agent Output. Add ## Agent Output section to description first.")
+    errors.add(:status, "Cannot mark as done without Agent Output. Use 'Recuperar del Transcript' in the task panel, or add ## Agent Output manually.")
   end
 
   # Security: validate that validation_command is safe to execute

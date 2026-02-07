@@ -73,8 +73,21 @@
         <!-- Left Column: Task Details (scrollable) -->
         <div class="flex-1 lg:flex-[3] overflow-y-auto px-5 py-6 lg:border-r lg:border-border">
           <% if missing_output_warning %>
-            <div class="mb-4 rounded-lg border border-orange-500/50 bg-orange-500/10 px-3 py-2 text-sm text-orange-200">
-              ⚠️ Missing Agent Output — add ## Agent Output section before moving to Done
+            <div class="mb-4 rounded-lg border border-orange-500/50 bg-orange-500/10 px-3 py-2 text-sm text-orange-200 space-y-2">
+              <div>⚠️ Missing Agent Output — add ## Agent Output section before moving to Done</div>
+              <div class="flex flex-wrap gap-2">
+                <button type="button"
+                        data-action="click->task-modal#recoverOutput"
+                        data-recover-url="<%= recover_output_api_v1_task_path(task) %>"
+                        class="cursor-pointer inline-flex items-center rounded-md border border-orange-400/40 bg-orange-500/20 px-2.5 py-1.5 text-xs font-medium text-orange-100 hover:bg-orange-500/30 transition-colors">
+                  📄 Recuperar del Transcript
+                </button>
+                <button type="button"
+                        data-action="click->task-modal#focusDescription"
+                        class="cursor-pointer inline-flex items-center rounded-md border border-orange-400/40 bg-orange-500/20 px-2.5 py-1.5 text-xs font-medium text-orange-100 hover:bg-orange-500/30 transition-colors">
+                  ✏️ Escribir manualmente
+                </button>
+              </div>
             </div>
           <% end %>
 
