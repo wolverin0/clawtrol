@@ -22,10 +22,23 @@ module Api
         }
 
         # Auto-link session_id/session_key on first hook
-        session_id = params[:session_id].presence
-        session_key = params[:session_key].presence
+        session_id = params[:session_id].presence || params[:agent_session_id].presence
+        session_key = params[:session_key].presence || params[:agent_session_key].presence
         updates[:agent_session_id] = session_id if session_id.present? && task.agent_session_id.blank?
         updates[:agent_session_key] = session_key if session_key.present? && task.agent_session_key.blank?
+
+        provided_files = params[:output_files].presence || params[:files].presence
+        extracted_from_findings = task.extract_output_files_from_findings(findings)
+
+        candidate_files = task.normalized_output_files(provided_files)
+        candidate_files = extracted_from_findings if candidate_files.blank?
+
+        if task.agent_session_id.present? || updates[:agent_session_id].present?
+          candidate_files += task.extract_output_files_from_transcript_commit
+        end
+
+        merged_files = task.normalized_output_files((task.output_files || []) + candidate_files)
+        updates[:output_files] = merged_files if merged_files.any?
 
         task.update!(updates)
 
