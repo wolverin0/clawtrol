@@ -124,3 +124,10 @@
 <% if task.assigned_to_agent? %>
   <span class="text-xs" title="Assigned to <%= task.user&.agent_name || 'Agent' %>"><%= (task.user&.agent_emoji || "🦞").to_s.encode('UTF-8', invalid: :replace, undef: :replace) %></span>
 <% end %>
+
+<%# Agent output fallback badge (helps when session_id is missing) %>
+<% if task.has_agent_output_marker? && task.agent_session_id.blank? %>
+  <span class="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium bg-green-500/20 text-green-400" title="Agent output detected in description">
+    📝 Output
+  </span>
+<% end %>

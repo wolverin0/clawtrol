@@ -382,6 +382,43 @@ class Task < ApplicationRecord
     followup
   end
 
+  # Agent activity visibility: show panel even when session_id is missing
+  # if we can infer an agent run happened.
+  def show_agent_activity?
+    agent_session_id.present? ||
+      has_agent_output_marker? ||
+      (in_progress? && assigned_to_agent?)
+  end
+
+  def has_agent_output_marker?
+    description.to_s.include?("## Agent Output")
+  end
+
+  def agent_output_posted_at
+    return nil unless has_agent_output_marker?
+
+    # Best signal: when task moved into review (agent_complete default flow)
+    in_review_activity = activities
+      .where(action: "moved", field_name: "status", new_value: "in_review")
+      .order(created_at: :desc)
+      .first
+
+    in_review_activity&.created_at || completed_at || updated_at
+  end
+
+  def transcript_path
+    return nil if agent_session_id.blank?
+    sid = agent_session_id.to_s
+    return nil unless sid.match?(/\A[a-zA-Z0-9_\-]+\z/)
+
+    File.expand_path("~/.openclaw/agents/main/sessions/#{sid}.jsonl")
+  end
+
+  def transcript_exists?
+    path = transcript_path
+    path.present? && File.exist?(path)
+  end
+
   private
 
   # Security: validate that validation_command is safe to execute

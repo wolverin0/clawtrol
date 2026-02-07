@@ -348,8 +348,8 @@
           </div>
 
           <%# Agent Activity Section - Enhanced with filtering, search, timeline %>
-          <% has_agent_output = task.agent_session_id.present? || task.status == "in_progress" || (task.output_files.present? && task.output_files.any?) || task.description.to_s.include?("## Agent Output") %>
-          <% if has_agent_output %>
+          <% has_agent_activity = task.show_agent_activity? %>
+          <% if has_agent_activity %>
             <div class="flex-1 min-h-0 overflow-hidden flex flex-col px-5 py-4"
                  data-controller="agent-activity"
                  data-agent-activity-task-id-value="<%= task.id %>"
@@ -394,6 +394,28 @@
                     </svg>
                   </button>
                 </div>
+              </div>
+
+              <%# Activity timeline summary (works even without session_id) %>
+              <div class="mb-3 rounded-lg border border-border bg-bg-elevated/40 p-3">
+                <ol class="space-y-1.5 text-xs text-content-secondary">
+                  <% if task.assigned_at.present? %>
+                    <li>🧷 Assigned to agent <span class="text-content-muted">• <%= time_ago_in_words(task.assigned_at) %> ago</span></li>
+                  <% end %>
+                  <% if task.agent_claimed_at.present? %>
+                    <li>🤝 Agent claimed task <span class="text-content-muted">• <%= time_ago_in_words(task.agent_claimed_at) %> ago</span></li>
+                  <% end %>
+                  <% if task.agent_output_posted_at.present? %>
+                    <li>📝 Output posted <span class="text-content-muted">• <%= time_ago_in_words(task.agent_output_posted_at) %> ago</span></li>
+                  <% end %>
+                  <li>📌 Current status: <span class="font-medium text-content"><%= task.status.humanize %></span></li>
+                </ol>
+
+                <% if task.transcript_exists? %>
+                  <div class="mt-2 pt-2 border-t border-border">
+                    <%= link_to "View Transcript", agent_log_api_v1_task_path(task), target: "_blank", rel: "noopener", class: "text-xs text-accent hover:underline" %>
+                  </div>
+                <% end %>
               </div>
 
               <%# Search bar (hidden by default) %>
@@ -473,7 +495,7 @@
               </div>
             </div>
           <% end %>
-          <%# END has_agent_output %>
+          <%# END has_agent_activity %>
         </div>
 
         <!-- Mobile: Agent Activity + Output Files (shown below left column on mobile) -->
@@ -504,7 +526,7 @@
           <% end %>
 
           <%# Mobile Agent Activity - Enhanced %>
-          <% if has_agent_output %>
+          <% if has_agent_activity %>
             <div data-controller="agent-activity"
                  data-agent-activity-task-id-value="<%= task.id %>"
                  data-agent-activity-session-id-value="<%= task.agent_session_id %>"
@@ -545,6 +567,28 @@
                     </svg>
                   </button>
                 </div>
+              </div>
+
+              <%# Activity timeline summary %>
+              <div class="mb-3 rounded-lg border border-border bg-bg-elevated/40 p-3">
+                <ol class="space-y-1.5 text-xs text-content-secondary">
+                  <% if task.assigned_at.present? %>
+                    <li>🧷 Assigned to agent <span class="text-content-muted">• <%= time_ago_in_words(task.assigned_at) %> ago</span></li>
+                  <% end %>
+                  <% if task.agent_claimed_at.present? %>
+                    <li>🤝 Agent claimed task <span class="text-content-muted">• <%= time_ago_in_words(task.agent_claimed_at) %> ago</span></li>
+                  <% end %>
+                  <% if task.agent_output_posted_at.present? %>
+                    <li>📝 Output posted <span class="text-content-muted">• <%= time_ago_in_words(task.agent_output_posted_at) %> ago</span></li>
+                  <% end %>
+                  <li>📌 Current status: <span class="font-medium text-content"><%= task.status.humanize %></span></li>
+                </ol>
+
+                <% if task.transcript_exists? %>
+                  <div class="mt-2 pt-2 border-t border-border">
+                    <%= link_to "View Transcript", agent_log_api_v1_task_path(task), target: "_blank", rel: "noopener", class: "text-xs text-accent hover:underline" %>
+                  </div>
+                <% end %>
               </div>
 
               <%# Search bar (hidden) %>
