@@ -23,7 +23,7 @@
   <%# Task ID + Name %>
   <div class="flex items-start gap-2 min-w-0">
     <span class="flex-1 text-sm font-medium text-content leading-tight overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; max-width: 100%;">
-      <% if show_error_state %><span class="text-red-400">⚠️</span> <% end %><span class="text-xs text-content-muted font-normal">#<%= task.id %></span><% if task.status == 'in_progress' && task.assigned_to_agent? && task.agent_session_id.present? %><span class="inline-block align-middle ml-1"><span class="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin"></span></span><% end %> <%= task.name %>
+      <% if show_error_state %><span class="text-red-400">⚠️</span> <% end %><span class="text-xs text-content-muted font-normal">#<%= task.id %></span><% if task.nightly? %><span class="ml-1" title="Nightbeat task">🌙</span><% end %><% if task.status == 'in_progress' && task.assigned_to_agent? && task.agent_session_id.present? %><span class="inline-block align-middle ml-1"><span class="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin"></span></span><% end %> <%= task.name %>
     </span>
     <% if task.blocked? %>
       <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-status-warning" title="Blocked"></span>

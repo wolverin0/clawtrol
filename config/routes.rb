@@ -106,6 +106,9 @@ Rails.application.routes.draw do
   # Analytics page
   get "analytics", to: "analytics#show"
 
+  # Nightbeat morning brief
+  get "nightbeat", to: "nightbeat#index"
+
   # Agent Personas
   resources :agent_personas do
     collection do

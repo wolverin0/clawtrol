@@ -1,0 +1,64 @@
+<div class="min-h-screen bg-bg-base px-4 md:px-6 py-6">
+  <div class="max-w-6xl mx-auto space-y-6">
+    <div class="flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <h1 class="text-2xl font-display font-semibold text-content flex items-center gap-2">🌙 Morning Brief</h1>
+        <p class="text-sm text-content-muted mt-1">
+          Overnight window: <%= @window_start.strftime("%b %d, %H:%M") %> → <%= @window_end.strftime("%b %d, %H:%M") %>
+        </p>
+      </div>
+
+      <%= link_to boards_path, class: "px-3 py-1.5 text-xs rounded-md bg-bg-elevated border border-border text-content-secondary hover:bg-bg-hover transition-colors" do %>
+        ← Back to Boards
+      <% end %>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div class="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-3">
+        <div class="text-xs text-indigo-300/80">Nightly tasks completed</div>
+        <div class="text-2xl font-semibold text-indigo-300"><%= @nightly_tasks.count %></div>
+      </div>
+      <div class="rounded-lg border border-purple-500/30 bg-purple-500/10 px-4 py-3">
+        <div class="text-xs text-purple-300/80">Projects touched</div>
+        <div class="text-2xl font-semibold text-purple-300"><%= @tasks_by_project.keys.compact.count %></div>
+      </div>
+      <div class="rounded-lg border border-blue-500/30 bg-blue-500/10 px-4 py-3">
+        <div class="text-xs text-blue-300/80">Findings captured</div>
+        <div class="text-2xl font-semibold text-blue-300"><%= @findings_summary.count %></div>
+      </div>
+    </div>
+
+    <% if @nightly_tasks.any? %>
+      <div class="space-y-4">
+        <% @tasks_by_project.each do |project, tasks| %>
+          <section class="rounded-xl border border-border bg-bg-surface/60 overflow-hidden">
+            <div class="px-4 py-3 border-b border-border bg-bg-elevated/70 flex items-center justify-between">
+              <h2 class="text-sm font-semibold text-content"><%= project&.icon %> <%= project&.name || "Unknown Project" %></h2>
+              <span class="text-xs text-content-muted"><%= tasks.count %> completed</span>
+            </div>
+
+            <div class="divide-y divide-border">
+              <% tasks.each do |task| %>
+                <div class="px-4 py-3">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-sm text-content font-medium">🌙 #<%= task.id %> <%= task.name %></div>
+                      <p class="text-xs text-content-muted mt-1"><%= @findings_summary[task.id] %></p>
+                    </div>
+                    <span class="text-[11px] text-content-muted whitespace-nowrap"><%= task.completed_at&.strftime("%H:%M") %></span>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 px-6 py-10 text-center">
+        <div class="text-3xl mb-2">🌌</div>
+        <div class="text-content">No Nightbeat completions in the latest overnight window.</div>
+        <div class="text-xs text-content-muted mt-1">Run nightly tasks and check back in the morning.</div>
+      </div>
+    <% end %>
+  </div>
+</div>

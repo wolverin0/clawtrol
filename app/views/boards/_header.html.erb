@@ -69,6 +69,11 @@
           title: "Roster" do %>
         📋
       <% end %>
+      <%= link_to nightbeat_path,
+          class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+          title: "Morning Brief" do %>
+        🌙
+      <% end %>
 
       <%# Search %>
       <div data-controller="search" data-search-url-value="<%= search_path %>" class="relative">
@@ -203,6 +208,9 @@
             <% end %>
             <%= link_to roster_agent_personas_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
               📋 Roster
+            <% end %>
+            <%= link_to nightbeat_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+              🌙 Morning Brief
             <% end %>
             <%= link_to settings_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -380,6 +388,13 @@
           <option value="true">🦞 Has agent</option>
           <option value="false">No agent</option>
         </select>
+
+        <button type="button"
+                data-filter-target="nightly"
+                data-action="click->filter#toggleNightly"
+                class="px-2 py-1.5 text-xs bg-bg-elevated border border-border rounded-md text-content-secondary">
+          🌙 Nightbeat
+        </button>
 
         <button type="button"
                 data-action="click->filter#clearAll"
