@@ -24,6 +24,15 @@ module Api
       # Returns parsed messages from the OpenClaw session transcript
       # Supports ?since=N param to get only messages after line N (for polling efficiency)
       def agent_log
+        # Lazy resolution: try to resolve session_id from session_key if missing
+        if @task.agent_session_id.blank? && @task.agent_session_key.present?
+          resolved_id = resolve_session_id_from_key(@task.agent_session_key, @task)
+          if resolved_id.present?
+            @task.update_column(:agent_session_id, resolved_id)
+            Rails.logger.info("[agent_log] Lazy-resolved session_id=#{resolved_id} for task #{@task.id}")
+          end
+        end
+
         unless @task.agent_session_id.present?
           # No session ID, but check for agent output in description as fallback
           if @task.description.present? && @task.description.include?("## Agent Output")
@@ -403,6 +412,12 @@ module Api
         sid = params[:session_id] || params[:agent_session_id]
         skey = params[:session_key] || params[:agent_session_key]
 
+        # Try to resolve session_id from session_key if only key is provided
+        if sid.blank? && skey.present?
+          sid = resolve_session_id_from_key(skey, @task)
+          Rails.logger.info("[link_session] Resolved session_id=#{sid} for task #{@task.id}") if sid.present?
+        end
+
         @task.agent_session_id = sid if sid.present?
         @task.agent_session_key = skey if skey.present?
         set_task_activity_info(@task)
@@ -488,6 +503,12 @@ module Api
           @tasks = @tasks.where(assigned_to_agent: assigned)
         end
 
+        # Filter by nightly (Nightbeat) tasks
+        if params[:nightly].present?
+          nightly = ActiveModel::Type::Boolean.new.cast(params[:nightly])
+          @tasks = @tasks.where(nightly: nightly)
+        end
+
         # Order by assigned_at for assigned tasks, otherwise by status then position
         if params[:assigned].present? && ActiveModel::Type::Boolean.new.cast(params[:assigned])
           @tasks = @tasks.order(assigned_at: :asc)
@@ -539,7 +560,26 @@ module Api
       def update
         set_task_activity_info(@task)
         if @task.update(task_params)
-          render json: task_json(@task)
+          # Try to resolve session_id from session_key if key was set but id is missing
+          if @task.agent_session_id.blank? && @task.agent_session_key.present?
+            resolved_id = resolve_session_id_from_key(@task.agent_session_key, @task)
+            if resolved_id.present?
+              @task.update_column(:agent_session_id, resolved_id)
+              Rails.logger.info("[update] Resolved session_id=#{resolved_id} for task #{@task.id}")
+            end
+          end
+
+          # Auto-resolve: if task still has no session_id and description was just updated with agent output,
+          # scan recent transcripts for this task's ID
+          if @task.agent_session_id.blank? && @task.description&.include?("## Agent Output")
+            resolved_id = scan_transcripts_for_task(@task.id)
+            if resolved_id.present?
+              @task.update_column(:agent_session_id, resolved_id)
+              Rails.logger.info("[update] Auto-resolved session_id=#{resolved_id} for task #{@task.id} from transcript scan")
+            end
+          end
+
+          render json: task_json(@task.reload)
         else
           render json: { error: @task.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
@@ -575,11 +615,20 @@ module Api
 
         # If we have a session_key but no session_id, try to resolve it from transcript files
         if skey.present? && sid.blank?
-          sid = resolve_session_id_from_key(skey)
+          sid = resolve_session_id_from_key(skey, @task)
         end
 
         @task.agent_session_id = sid if sid.present? && @task.agent_session_id.blank?
         @task.agent_session_key = skey if skey.present? && @task.agent_session_key.blank?
+
+        # Last resort: scan transcript files for task ID
+        if @task.agent_session_id.blank?
+          scanned_id = scan_transcripts_for_task(@task.id)
+          if scanned_id.present?
+            @task.agent_session_id = scanned_id
+            Rails.logger.info("[agent_complete] Auto-resolved session_id=#{scanned_id} for task #{@task.id} from transcript scan")
+          end
+        end
 
         # Accept ANY reasonable field name for output text
         output_text = params[:output].presence || params[:description].presence ||
@@ -1001,42 +1050,104 @@ module Api
 
       # Resolve session_id (UUID) from session_key by scanning transcript files
       # The OpenClaw gateway stores transcripts as {sessionId}.jsonl
-      # and the sessions index maps keys to sessionIds
-      def resolve_session_id_from_key(session_key)
+      # NOTE: The session_key UUID is NOT in the file, but the Task ID IS!
+      # Subagent prompts start with "## Task #ID:" which we can match
+      def resolve_session_id_from_key(session_key, task = nil)
         sessions_dir = File.expand_path("~/.openclaw/agents/main/sessions")
         return nil unless Dir.exist?(sessions_dir)
+        return nil if session_key.blank?
 
-        # Try the sessions index file first (fastest)
-        index_file = File.join(sessions_dir, "index.json")
-        if File.exist?(index_file)
-          begin
-            index = JSON.parse(File.read(index_file))
-            index.each do |_id, entry|
-              if entry["key"] == session_key
-                return entry["sessionId"] || _id
-              end
-            end
-          rescue JSON::ParserError
-            # Fall through to scan
+        # Get task_id from param or from the task's session_key context
+        task_id = task&.id || @task&.id
+        return nil unless task_id.present?
+
+        # Build search patterns - the task prompt contains "Task #ID:" near the start
+        task_pattern = "Task ##{task_id}:"
+        cutoff_time = 7.days.ago  # Search up to 7 days back for session files
+
+        # Search active .jsonl files (most recent first for faster hits)
+        files = Dir.glob(File.join(sessions_dir, "*.jsonl")).sort_by { |f| -File.mtime(f).to_i }
+
+        files.each do |file|
+          # Skip old files for performance
+          next if File.mtime(file) < cutoff_time
+
+          # Read first 10 lines - the task prompt is in the first user message
+          first_lines = []
+          File.foreach(file).with_index do |line, idx|
+            break if idx >= 10
+            first_lines << line
+          end
+          content_sample = first_lines.join
+
+          # Check if this file is for our task
+          if content_sample.include?(task_pattern)
+            session_id = File.basename(file, ".jsonl")
+            Rails.logger.info("[resolve_session_id] Found session_id=#{session_id} for task #{task_id} in #{File.basename(file)}")
+            return session_id
           end
         end
 
-        # Fallback: scan .jsonl files for the session key
-        Dir.glob(File.join(sessions_dir, "*.jsonl")).each do |file|
-          first_line = File.open(file, &:readline) rescue next
-          begin
-            data = JSON.parse(first_line)
-            if data["key"] == session_key || data["sessionKey"] == session_key
-              return File.basename(file, ".jsonl")
+        # Also check archived files (with .deleted. suffix) if not found
+        archived_files = Dir.glob(File.join(sessions_dir, "*.jsonl.deleted.*")).sort_by { |f| -File.mtime(f).to_i }
+
+        archived_files.each do |file|
+          next if File.mtime(file) < cutoff_time
+
+          first_lines = []
+          File.foreach(file).with_index do |line, idx|
+            break if idx >= 10
+            first_lines << line
+          end
+          content_sample = first_lines.join
+
+          if content_sample.include?(task_pattern)
+            # Extract session_id from filename like "abc123.jsonl.deleted.2026-02-06..."
+            session_id = File.basename(file).sub(/\.jsonl\.deleted\..+$/, "")
+            Rails.logger.info("[resolve_session_id] Found session_id=#{session_id} (archived) for task #{task_id}")
+            return session_id
+          end
+        end
+
+        Rails.logger.info("[resolve_session_id] No session file found for task #{task_id}")
+        nil
+      rescue => e
+        Rails.logger.warn "resolve_session_id_from_key error: #{e.message}"
+        nil
+      end
+
+      # Scan recent transcript files for references to a task ID
+      # Used as a last-resort fallback when agent_session_key is not available
+      # Agents include the task ID in their curl commands and prompt context
+      def scan_transcripts_for_task(task_id)
+        sessions_dir = File.expand_path("~/.openclaw/agents/main/sessions")
+        return nil unless Dir.exist?(sessions_dir)
+
+        # Look at the 30 most recent .jsonl files
+        files = Dir.glob(File.join(sessions_dir, "*.jsonl"))
+          .sort_by { |f| -File.mtime(f).to_i }
+          .first(30)
+
+        # Search patterns - agents have the task ID in their prompt
+        patterns = ["tasks/#{task_id}", "Task ##{task_id}", "task_id.*#{task_id}", "Task ID: #{task_id}"]
+
+        files.each do |file|
+          # Read first 5KB of the file (task prompt is at the top)
+          sample = File.read(file, 5000) rescue next
+
+          if patterns.any? { |p| sample.include?(p) }
+            session_id = File.basename(file, ".jsonl")
+            # Don't return if this session_id is already linked to another task
+            if Task.where(agent_session_id: session_id).where.not(id: task_id).none?
+              Rails.logger.info("[scan_transcripts] Found session_id=#{session_id} for task #{task_id}")
+              return session_id
             end
-          rescue JSON::ParserError
-            next
           end
         end
 
         nil
       rescue => e
-        Rails.logger.warn "resolve_session_id_from_key error: #{e.message}"
+        Rails.logger.warn "[scan_transcripts] Error scanning for task #{task_id}: #{e.message}"
         nil
       end
 
