@@ -39,16 +39,7 @@
   </div>
 
   <%# Tasks List - no overflow, grows with content, min height for empty drop target %>
-  <ul id="column-<%= status %>"
-      class="px-2 pb-2 space-y-2 min-h-[2rem] w-full overflow-hidden"
-      data-controller="sortable"
-      data-sortable-group-value="board"
-      data-sortable-status-value="<%= status %>"
-      data-sortable-url-value="<%= update_task_status_board_path(@board) %>">
-    <% tasks.each do |task| %>
-      <%= render "boards/task_card", task: task %>
-    <% end %>
-  </ul>
+  <%= render "boards/column_tasks", status: status, tasks: tasks, board: @board %>
 
   <%# Inline Add Card Form (hidden by default) %>
   <div data-inline-add-target="form" class="hidden px-2 py-2">

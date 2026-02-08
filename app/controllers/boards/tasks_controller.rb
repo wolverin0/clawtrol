@@ -375,12 +375,15 @@ class Boards::TasksController < ApplicationController
 
     case bulk_action
     when "move_status"
+      auto_sorted_statuses = %w[in_review done]
       tasks.each do |task|
-        old_status = task.status
         task.activity_source = "web"
         task.update!(status: value)
         streams << turbo_stream.remove("task_#{task.id}")
-        streams << turbo_stream.prepend("column-#{value}", partial: "boards/task_card", locals: { task: task.reload })
+
+        unless auto_sorted_statuses.include?(value.to_s)
+          streams << turbo_stream.prepend("column-#{value}", partial: "boards/task_card", locals: { task: task.reload })
+        end
       end
       affected_statuses << value
 
@@ -411,6 +414,16 @@ class Boards::TasksController < ApplicationController
         format.json { render json: { error: "Unknown action" }, status: :unprocessable_entity }
       end
       return
+    end
+
+    # Keep deterministic order in auto-sorted columns after bulk operations
+    affected_statuses.uniq.each do |status|
+      next unless %w[in_review done].include?(status.to_s)
+
+      ordered_tasks = @board.tasks.not_archived.where(status: status)
+        .includes(:board, :user, :agent_persona)
+        .ordered_for_column(status)
+      streams << turbo_stream.replace("column-#{status}", partial: "boards/column_tasks", locals: { status: status, tasks: ordered_tasks, board: @board })
     end
 
     # Update column counts
