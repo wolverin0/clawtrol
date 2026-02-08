@@ -11,6 +11,9 @@ class Notification < ApplicationRecord
     agent_claimed
     validation_passed
     validation_failed
+    auto_runner
+    zombie_task
+    zombie_detected
   ].freeze
 
   validates :event_type, presence: true, inclusion: { in: EVENT_TYPES }
@@ -46,8 +49,10 @@ class Notification < ApplicationRecord
       "🎉"
     when "review_failed"
       "⚠️"
-    when "agent_claimed"
+    when "agent_claimed", "auto_runner"
       "🤖"
+    when "zombie_task", "zombie_detected"
+      "🧟"
     else
       "🔔"
     end
@@ -60,8 +65,10 @@ class Notification < ApplicationRecord
       "text-status-success"
     when "task_errored", "review_failed", "validation_failed"
       "text-status-error"
-    when "agent_claimed"
+    when "agent_claimed", "auto_runner"
       "text-accent"
+    when "zombie_task", "zombie_detected"
+      "text-status-error"
     else
       "text-content-secondary"
     end
