@@ -10,6 +10,13 @@
 #     schedule: at 5am every day
 
 default: &default
+  # Main "heartbeat" for the OpenClaw agent integration.
+  # Runs frequently so Up Next tasks can be picked up without manual intervention.
+  agent_auto_runner_tick:
+    class: AgentAutoRunnerJob
+    queue: default
+    schedule: every 1 minute
+
   process_recurring_tasks:
     class: ProcessRecurringTasksJob
     queue: default
