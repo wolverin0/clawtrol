@@ -25,5 +25,11 @@ module ClawDeck
     # config.eager_load_paths << Rails.root.join("extras")
 
     config.hooks_token = ENV.fetch("HOOKS_TOKEN", "otacon_hooks_f0xh0und_2026")
+
+    # Auto-runner / auto-pull settings
+    # Nightly window is a simple guardrail for tasks marked nightly=true.
+    # Defaults: 23:00-08:00 in America/Buenos_Aires.
+    config.x.auto_runner.nightly_start_hour = ENV.fetch("AUTO_RUNNER_NIGHT_START_HOUR", "23").to_i
+    config.x.auto_runner.nightly_end_hour = ENV.fetch("AUTO_RUNNER_NIGHT_END_HOUR", "8").to_i
   end
 end

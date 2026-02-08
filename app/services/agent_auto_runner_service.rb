@@ -16,13 +16,15 @@
 class AgentAutoRunnerService
   NO_FAKE_IN_PROGRESS_GRACE = 10.minutes
   ZOMBIE_STALE_AFTER = 30.minutes
-  WAKE_COOLDOWN = 3.minutes
+  SPAWN_COOLDOWN = 1.minute
   ZOMBIE_NOTIFY_COOLDOWN = 60.minutes
 
-  def initialize(logger: Rails.logger, cache: Rails.cache, openclaw_webhook_service: OpenclawWebhookService)
+  NIGHT_TZ = "America/Argentina/Buenos_Aires"
+
+  def initialize(logger: Rails.logger, cache: Rails.cache, openclaw_gateway_client: OpenclawGatewayClient)
     @logger = logger
     @cache = cache
-    @openclaw_webhook_service = openclaw_webhook_service
+    @openclaw_gateway_client = openclaw_gateway_client
   end
 
   def run!
@@ -43,7 +45,7 @@ class AgentAutoRunnerService
 
       next if agent_currently_working?(user)
 
-      if wake_if_work_available!(user)
+      if spawn_if_work_available!(user)
         stats[:users_woken] += 1
       end
     end
@@ -63,54 +65,149 @@ class AgentAutoRunnerService
   end
 
   def runnable_up_next_task_for(user)
-    # AUTO-PULL: tasks in Up Next should be eligible even if they were never manually
-    # "assigned to agent". We will auto-assign the chosen task immediately before waking.
-    user.tasks
-      .where(status: :up_next, blocked: false, agent_claimed_at: nil)
-      .order(priority: :desc, position: :asc, assigned_to_agent: :desc, assigned_at: :asc)
-      .first
+    scope = user.tasks
+      .where(status: :up_next, blocked: false, agent_claimed_at: nil, agent_session_id: nil, agent_session_key: nil)
+      .where.not(recurring: true, parent_task_id: nil) # never auto-run recurring templates
+
+    # Apply nightly gating
+    tasks = scope.order(priority: :desc, position: :asc, assigned_to_agent: :desc, assigned_at: :asc).to_a
+    tasks.find { |t| eligible_for_time_window?(t) }
   end
 
-  def wake_if_work_available!(user)
+  def spawn_if_work_available!(user)
     task = runnable_up_next_task_for(user)
     return false unless task
 
-    cache_key = "agent_auto_runner:last_wake:user:#{user.id}"
+    cache_key = "agent_auto_runner:last_spawn:user:#{user.id}"
     return false if @cache.read(cache_key).present?
 
-    # Make the task visible to the agent queue.
-    if !task.assigned_to_agent?
-      task.update!(assigned_to_agent: true, assigned_at: Time.current)
-    end
-
-    @openclaw_webhook_service.new(user).notify_task_assigned(task)
+    claim_for_auto_pull!(task)
 
     Notification.create!(
       user: user,
       task: task,
-      event_type: "auto_runner",
-      message: "Auto-runner woke OpenClaw for: #{task.name.truncate(60)}"
+      event_type: "auto_pull_claimed",
+      message: "Auto-pull claimed: #{task.name.truncate(60)}"
     )
 
-    @cache.write(cache_key, Time.current.to_i, expires_in: WAKE_COOLDOWN)
+    prompt = build_openclaw_prompt(task)
+    spawn = @openclaw_gateway_client.new(user).spawn_session!(model: task.openclaw_spawn_model, prompt: prompt)
 
-    @logger.info("[AgentAutoRunner] woke user_id=#{user.id} task_id=#{task.id}")
+    task.update!(
+      agent_session_key: spawn[:child_session_key],
+      agent_session_id: spawn[:session_id]
+    )
+
+    Notification.create!(
+      user: user,
+      task: task,
+      event_type: "auto_pull_spawned",
+      message: "Auto-pull spawned session for: #{task.name.truncate(60)}"
+    )
+
+    @cache.write(cache_key, Time.current.to_i, expires_in: SPAWN_COOLDOWN)
+
+    @logger.info("[AgentAutoRunner] auto-pull spawned user_id=#{user.id} task_id=#{task.id} session_key=#{task.agent_session_key}")
     true
   rescue StandardError => e
-    @logger.error("[AgentAutoRunner] wake failed user_id=#{user.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
+    @logger.error("[AgentAutoRunner] auto-pull spawn failed user_id=#{user.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
 
     begin
+      revert_auto_pull_claim!(task) if task
+
       Notification.create!(
         user: user,
         task: task,
-        event_type: "auto_runner_error",
-        message: "Auto-runner wake failed: #{e.class}: #{e.message}".truncate(250)
+        event_type: "auto_pull_error",
+        message: "Auto-pull spawn failed: #{e.class}: #{e.message}".truncate(250)
       )
     rescue StandardError
       # Don't let notification errors break the runner.
     end
 
     false
+  end
+
+  def claim_for_auto_pull!(task)
+    task.activity_source = "system"
+    task.actor_name = "Auto-Runner"
+    task.actor_emoji = "🤖"
+    task.activity_note = "Auto-pull: claimed + spawning OpenClaw session"
+
+    updates = {
+      assigned_to_agent: true,
+      assigned_at: task.assigned_at || Time.current,
+      agent_claimed_at: Time.current,
+      status: :in_progress
+    }
+
+    task.update!(updates)
+  end
+
+  def revert_auto_pull_claim!(task)
+    return unless task
+
+    task.activity_source = "system"
+    task.actor_name = "Auto-Runner"
+    task.actor_emoji = "🤖"
+    task.activity_note = "Auto-pull: spawn failed, reverting claim"
+
+    task.update!(
+      status: :up_next,
+      agent_claimed_at: nil
+    )
+  end
+
+  def eligible_for_time_window?(task)
+    return true unless task.nightly?
+
+    now = Time.current.in_time_zone(NIGHT_TZ)
+    start_hour = Rails.configuration.x.auto_runner.nightly_start_hour
+    end_hour = Rails.configuration.x.auto_runner.nightly_end_hour
+
+    in_window = if start_hour < end_hour
+      now.hour >= start_hour && now.hour < end_hour
+    else
+      # window spans midnight (default 23 -> 8)
+      now.hour >= start_hour || now.hour < end_hour
+    end
+
+    return false unless in_window
+
+    delay_hours = task.nightly_delay_hours.to_i
+    return true if delay_hours <= 0
+
+    # Anchor the "night start" to the current window.
+    night_start_date = now.hour >= start_hour ? now.to_date : (now.to_date - 1.day)
+    night_start = Time.find_zone!(NIGHT_TZ).local(night_start_date.year, night_start_date.month, night_start_date.day, start_hour, 0, 0)
+
+    now >= (night_start + delay_hours.hours)
+  end
+
+  def build_openclaw_prompt(task)
+    validation = task.validation_command.present? ? "\n\n## Validation\nRun:\n```bash\n#{task.validation_command}\n```\n" : ""
+
+    <<~PROMPT
+      ## Task ##{task.id}: #{task.name}
+
+      Project repo: /home/ggorbalan/clawdeck
+
+      #{task.description}
+      #{validation}
+
+      ## Constraints
+      - You are a sub-agent spawned by ClawTrol server-side auto-pull.
+      - Save your output before finishing by calling the agent_complete webhook:
+
+      ```bash
+      curl -s -X POST http://192.168.100.186:4001/api/v1/hooks/agent_complete \
+        -H "X-Hook-Token: otacon_hooks_f0xh0und_2026" \
+        -H "Content-Type: application/json" \
+        -d '{"task_id":#{task.id},"findings":"SUMMARY + COMMIT HASH + test command","output_files":["..."]}'
+      ```
+
+      Make sure the JSON includes real output_files paths.
+    PROMPT
   end
 
   # No-fake-in-progress invariant:
