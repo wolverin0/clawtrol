@@ -112,9 +112,8 @@ class Task < ApplicationRecord
       # NOTE: must qualify columns because board queries eager-load self-referential
       # associations (parent_task/followup_task) which join the tasks table twice.
       #
-      # We sort by completion time first (newest completed first), then updated_at, then id.
-      # completed_at can be NULL for legacy done tasks; NULLS LAST keeps those at the bottom.
-      order(Arel.sql("#{table_name}.completed_at DESC NULLS LAST, #{table_name}.updated_at DESC, #{table_name}.id DESC"))
+      # DONE is auto-sorted purely by task id (newest task number first).
+      order(Arel.sql("#{table_name}.id DESC"))
     else
       order(position: :asc, id: :asc)
     end
