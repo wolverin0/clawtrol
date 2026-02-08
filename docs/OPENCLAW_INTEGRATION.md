@@ -23,6 +23,30 @@ This guide covers:
 
 ---
 
+## 0. Auto-Runner (recommended)
+
+ClawDeck now includes a lightweight server-side auto-runner + guardrails.
+
+What it does:
+- Every run, it **wakes OpenClaw** if there is an `up_next` task that is `assigned_to_agent=true` and not blocked.
+- Enforces **no-fake-in-progress**: if a task is `in_progress` but has **no session** (`agent_session_id/key`) and was **never claimed** (`agent_claimed_at`), it will be auto-demoted back to `up_next` after **10 minutes**.
+- Computes a **Zombie KPI**: `in_progress` tasks that were claimed but haven't changed for **30 minutes**. It creates a Notification (rate-limited) so you can spot stalls.
+
+Run it manually:
+
+```bash
+cd /home/ggorbalan/clawdeck
+bin/rails clawdeck:agent_auto_runner
+```
+
+Recommended scheduling (cron, every 5 minutes):
+
+```cron
+*/5 * * * * cd /home/ggorbalan/clawdeck && RAILS_ENV=production bin/rails clawdeck:agent_auto_runner >> log/agent_auto_runner.log 2>&1
+```
+
+---
+
 ## 1. HEARTBEAT.md Configuration
 
 Add ClawTrol task checking to your `HEARTBEAT.md`:
