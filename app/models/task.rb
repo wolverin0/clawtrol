@@ -25,8 +25,18 @@ class Task < ApplicationRecord
   KANBAN_PER_COLUMN_ITEMS = 25
 
   # Model options for agent LLM selection
+  # NOTE: These values are the *ClawTrol* UI/task-level model choices.
+  # They intentionally stay small and stable (opus/codex/gemini/glm/sonnet).
   MODELS = %w[opus codex gemini glm sonnet].freeze
   DEFAULT_MODEL = "opus".freeze
+
+  # Map ClawTrol task.model -> OpenClaw sessions_spawn model alias.
+  # This prevents OpenClaw from silently falling back to its default model when
+  # given a task-level model name that is not a valid sessions_spawn identifier.
+  OPENCLAW_MODEL_ALIASES = {
+    # Route task.model=gemini to Gemini 3 Pro Preview (OpenClaw alias: gemini3)
+    "gemini" => "gemini3"
+  }.freeze
 
   # Review types
   REVIEW_TYPES = %w[command debate].freeze
@@ -62,6 +72,12 @@ class Task < ApplicationRecord
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
   validate :agent_output_required_for_done_transition, if: :moving_to_done?
+
+  # Returns the model identifier that OpenClaw should receive for sessions_spawn.
+  # (OpenClaw supports model *aliases* such as gemini3.)
+  def openclaw_spawn_model
+    OPENCLAW_MODEL_ALIASES.fetch(model.to_s, model.presence || DEFAULT_MODEL)
+  end
 
   # Activity tracking - must be declared before callbacks that use it
   attr_accessor :activity_source, :actor_name, :actor_emoji, :activity_note

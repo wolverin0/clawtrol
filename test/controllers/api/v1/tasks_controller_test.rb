@@ -93,6 +93,25 @@ class Api::V1::TasksControllerTest < ActionDispatch::IntegrationTest
     assert response.parsed_body["error"].present?
   end
 
+  test "spawn_ready maps task model gemini to openclaw alias gemini3" do
+    post spawn_ready_api_v1_tasks_url,
+         params: {
+           task: {
+             name: "Model routing test",
+             description: "Ensure mapping works",
+             model: "gemini"
+           }
+         },
+         headers: @auth_header
+
+    assert_response :created
+
+    body = response.parsed_body
+    assert_equal "gemini", body["model"]
+    assert_equal "gemini3", body["openclaw_spawn_model"]
+    assert_equal "gemini", body["requested_model"]
+  end
+
   # Show tests
   test "show returns task" do
     get api_v1_task_url(@task), headers: @auth_header
