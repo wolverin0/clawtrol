@@ -395,6 +395,12 @@ module Api
         end
 
         if @task.save
+          Rails.logger.info(
+            "[spawn_ready] task_id=#{@task.id} requested_model=#{requested_model.inspect} " \
+            "applied_model=#{@task.model.inspect} openclaw_spawn_model=#{@task.openclaw_spawn_model.inspect} " \
+            "fallback_used=#{fallback_note.present?}"
+          )
+
           response = task_json(@task)
           response[:fallback_used] = fallback_note.present?
           response[:fallback_note] = fallback_note
@@ -1319,6 +1325,7 @@ module Api
           agent_claimed_at: task.agent_claimed_at&.iso8601,
           board_id: task.board_id,
           model: task.model,
+          openclaw_spawn_model: task.openclaw_spawn_model,
           recurring: task.recurring,
           recurrence_rule: task.recurrence_rule,
           recurrence_time: task.recurrence_time&.strftime("%H:%M"),
