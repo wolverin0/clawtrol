@@ -336,8 +336,8 @@ end %>
       <%# === CARD ACTIONS: NEXT, Follow-up, Agent button === %>
       <%= render "boards/tasks/card_actions", task: task, has_current_user: has_current_user, show_agent_modal_btn: show_agent_modal_btn %>
       
-      <%# === CARD BADGES: Model, Review, Validation, Recurring, Nightly - SHOW ON HOVER === %>
-      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+      <%# === CARD BADGES: Model, Review, Validation, Recurring, Nightly - ALWAYS VISIBLE === %>
+      <div class="flex items-center gap-1 flex-wrap justify-end">
         <%= render "boards/tasks/card_badges", task: task, has_current_user: has_current_user %>
       </div>
     </div>
