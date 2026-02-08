@@ -63,9 +63,11 @@ class AgentAutoRunnerService
   end
 
   def runnable_up_next_task_for(user)
+    # AUTO-PULL: tasks in Up Next should be eligible even if they were never manually
+    # "assigned to agent". We will auto-assign the chosen task immediately before waking.
     user.tasks
-      .where(status: :up_next, assigned_to_agent: true, blocked: false, agent_claimed_at: nil)
-      .order(priority: :desc, position: :asc, assigned_at: :asc)
+      .where(status: :up_next, blocked: false, agent_claimed_at: nil)
+      .order(priority: :desc, position: :asc, assigned_to_agent: :desc, assigned_at: :asc)
       .first
   end
 
@@ -75,6 +77,11 @@ class AgentAutoRunnerService
 
     cache_key = "agent_auto_runner:last_wake:user:#{user.id}"
     return false if @cache.read(cache_key).present?
+
+    # Make the task visible to the agent queue.
+    if !task.assigned_to_agent?
+      task.update!(assigned_to_agent: true, assigned_at: Time.current)
+    end
 
     @openclaw_webhook_service.new(user).notify_task_assigned(task)
 
@@ -91,6 +98,18 @@ class AgentAutoRunnerService
     true
   rescue StandardError => e
     @logger.error("[AgentAutoRunner] wake failed user_id=#{user.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
+
+    begin
+      Notification.create!(
+        user: user,
+        task: task,
+        event_type: "auto_runner_error",
+        message: "Auto-runner wake failed: #{e.class}: #{e.message}".truncate(250)
+      )
+    rescue StandardError
+      # Don't let notification errors break the runner.
+    end
+
     false
   end
 

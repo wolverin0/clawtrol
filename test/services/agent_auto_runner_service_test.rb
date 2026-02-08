@@ -49,7 +49,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       board: board,
       name: "Up next",
       status: :up_next,
-      assigned_to_agent: true,
+      assigned_to_agent: false,
       blocked: false
     )
 
@@ -73,6 +73,8 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     calls = fake_openclaw.calls
 
     assert_equal 1, calls, "expected wake to be rate-limited"
+
+    assert task.reload.assigned_to_agent?, "expected task to be auto-assigned to agent"
 
     notif = Notification.order(created_at: :desc).find_by(task: task, event_type: "auto_runner")
     assert notif.present?, "expected an auto_runner notification"
