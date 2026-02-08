@@ -26,8 +26,8 @@
   <div class="flex items-center gap-2 px-3 py-3">
     <div class="w-2 h-2 rounded-full <%= column_colors[status] %>"></div>
     <h2 class="text-sm font-semibold text-content font-display"><%= column_labels[status] %></h2>
-    <span id="column-<%= status %>-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded"><%= tasks.count %></span>
-    <% if status == "done" && tasks.any? %>
+    <span id="column-<%= status %>-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded"><%= total_count || tasks.count %></span>
+    <% if status == "done" && (total_count || tasks.count).to_i > 0 %>
       <button type="button"
               data-archive-done-btn
               data-action="click->bulk-operations#archiveAllDone"
@@ -39,7 +39,12 @@
   </div>
 
   <%# Tasks List - no overflow, grows with content, min height for empty drop target %>
-  <%= render "boards/column_tasks", status: status, tasks: tasks, board: @board %>
+  <%= render "boards/column_tasks",
+    status: status,
+    tasks: tasks,
+    board: @board,
+    has_more: has_more,
+    tag: (defined?(tag) ? tag : nil) %>
 
   <%# Inline Add Card Form (hidden by default) %>
   <div data-inline-add-target="form" class="hidden px-2 py-2">

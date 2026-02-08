@@ -1,11 +1,25 @@
 <% board ||= @board %>
-<ul id="column-<%= status %>"
-    class="px-2 pb-2 space-y-2 min-h-[2rem] w-full overflow-hidden"
-    data-controller="sortable"
-    data-sortable-group-value="board"
-    data-sortable-status-value="<%= status %>"
-    data-sortable-url-value="<%= update_task_status_board_path(board) %>">
-  <% tasks.each do |task| %>
-    <%= render "boards/task_card", task: task %>
-  <% end %>
-</ul>
+<% has_more = local_assigns.fetch(:has_more, false) %>
+<% tag = local_assigns[:tag] %>
+
+<div data-controller="infinite-scroll"
+     data-infinite-scroll-url-value="<%= column_board_path(board, status: status, tag: tag) %>"
+     data-infinite-scroll-page-value="1"
+     data-infinite-scroll-has-more-value="<%= has_more ? 'true' : 'false' %>">
+  <ul id="column-<%= status %>"
+      class="px-2 pb-2 space-y-2 min-h-[2rem] w-full overflow-hidden"
+      data-controller="sortable"
+      data-sortable-group-value="board"
+      data-sortable-status-value="<%= status %>"
+      data-sortable-url-value="<%= update_task_status_board_path(board) %>"
+      data-infinite-scroll-target="entries">
+    <% tasks.each do |task| %>
+      <%= render "boards/task_card", task: task %>
+    <% end %>
+  </ul>
+
+  <div data-infinite-scroll-target="loader" class="hidden px-3 pb-3 text-xs text-content-muted">
+    Loading...
+  </div>
+  <div data-infinite-scroll-target="sentinel" class="h-px"></div>
+</div>

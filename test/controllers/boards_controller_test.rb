@@ -34,6 +34,36 @@ class BoardsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "column endpoint paginates per status" do
+    sign_in_as(@user)
+
+    30.times do |i|
+      Task.create!(
+        name: "Inbox #{i}",
+        user: @user,
+        board: @board,
+        status: :inbox
+      )
+    end
+
+    get column_board_path(@board, status: "inbox", page: 1),
+      headers: { "X-Requested-With" => "XMLHttpRequest" }
+
+    assert_response :success
+    assert_equal "true", response.headers["X-Has-More"]
+    assert_equal 25, response.body.scan(/id=\"task_\d+\"/).length
+
+    total_inbox = Task.where(board: @board, status: :inbox).count
+    expected_second_page = total_inbox - 25
+
+    get column_board_path(@board, status: "inbox", page: 2),
+      headers: { "X-Requested-With" => "XMLHttpRequest" }
+
+    assert_response :success
+    assert_equal "false", response.headers["X-Has-More"]
+    assert_equal expected_second_page, response.body.scan(/id=\"task_\d+\"/).length
+  end
+
   private
 
   def sign_in_as(user)

@@ -1,5 +1,7 @@
 class BoardsController < ApplicationController
-  before_action :set_board, only: [:show, :update, :destroy, :update_task_status, :archived]
+  PER_COLUMN_ITEMS = Task::KANBAN_PER_COLUMN_ITEMS
+
+  before_action :set_board, only: [:show, :update, :destroy, :update_task_status, :archived, :column]
 
   def index
     # Redirect to the first board
@@ -16,19 +18,8 @@ class BoardsController < ApplicationController
   def show
     @board_page = true
     session[:last_board_id] = @board.id
-    
-    # For aggregator boards, show tasks from ALL non-aggregator boards
-    if @board.aggregator?
-      @tasks = current_user.tasks
-        .joins(:board)
-        .where(boards: { is_aggregator: false })
-        .not_archived
-        .includes(:user, :board, :parent_task, :followup_task, :agent_persona)
-      @is_aggregator = true
-    else
-      @tasks = @board.tasks.not_archived.includes(:user, :parent_task, :followup_task, :agent_persona)
-      @is_aggregator = false
-    end
+
+    @tasks = scoped_tasks_for_board(@board)
 
     # Filter by tag if specified
     if params[:tag].present?
@@ -36,14 +27,21 @@ class BoardsController < ApplicationController
       @current_tag = params[:tag]
     end
 
-    # Group tasks by status using canonical deterministic column ordering.
-    @columns = {
-      inbox: @tasks.inbox.ordered_for_column(:inbox),
-      up_next: @tasks.up_next.ordered_for_column(:up_next),
-      in_progress: @tasks.in_progress.ordered_for_column(:in_progress),
-      in_review: @tasks.in_review.ordered_for_column(:in_review),
-      done: @tasks.done.ordered_for_column(:done)
-    }
+    # Per-column pagination (initial render only shows first page)
+    statuses = %i[inbox up_next in_progress in_review done]
+
+    @column_counts = {}
+    @columns = {}
+    @columns_has_more = {}
+
+    statuses.each do |status|
+      scope = @tasks.where(status: status).ordered_for_column(status)
+      first_page_plus_one = scope.limit(PER_COLUMN_ITEMS + 1).to_a
+
+      @columns[status] = first_page_plus_one.first(PER_COLUMN_ITEMS)
+      @columns_has_more[status] = first_page_plus_one.length > PER_COLUMN_ITEMS
+      @column_counts[status] = @tasks.where(status: status).count
+    end
 
     # Get all unique tags for the sidebar filter
     if @board.aggregator?
@@ -81,6 +79,34 @@ class BoardsController < ApplicationController
       response.set_header("X-Has-More", @pagy.next.present?.to_s)
       render html: html.html_safe
     end
+  end
+
+  # Infinite-scroll pagination endpoint for a single kanban column.
+  # Returns only the task cards HTML (no <ul>) so the client can append.
+  def column
+    status = params[:status].to_s
+
+    unless Task.statuses.key?(status) && status != "archived"
+      return head :bad_request
+    end
+
+    tasks = scoped_tasks_for_board(@board)
+
+    if params[:tag].present?
+      tasks = tasks.where("? = ANY(tags)", params[:tag])
+    end
+
+    scope = tasks.where(status: status).ordered_for_column(status)
+    @pagy, @tasks = pagy(scope, limit: PER_COLUMN_ITEMS)
+
+    html = render_to_string(
+      partial: "boards/task_card",
+      collection: @tasks,
+      as: :task
+    )
+
+    response.set_header("X-Has-More", @pagy.next.present?.to_s)
+    render html: html.html_safe
   end
 
   def create
@@ -143,6 +169,23 @@ class BoardsController < ApplicationController
   end
 
   private
+
+  def scoped_tasks_for_board(board)
+    # For aggregator boards, show tasks from ALL non-aggregator boards
+    if board.aggregator?
+      @is_aggregator = true
+      current_user.tasks
+        .joins(:board)
+        .where(boards: { is_aggregator: false })
+        .not_archived
+        .includes(:user, :board, :parent_task, :followup_task, :agent_persona)
+    else
+      @is_aggregator = false
+      board.tasks
+        .not_archived
+        .includes(:user, :parent_task, :followup_task, :agent_persona)
+    end
+  end
 
   def set_board
     @board = current_user.boards.find(params[:id])

@@ -128,6 +128,7 @@ Rails.application.routes.draw do
     member do
       patch :update_task_status
       get :archived
+      get :column
     end
     resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "boards/tasks" do
       collection do

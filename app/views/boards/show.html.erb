@@ -57,7 +57,7 @@
               data-mobile-columns-target="tabButton"
               class="mobile-tab-inactive px-3 py-2 text-xs whitespace-nowrap rounded-lg transition-colors">
         <%= column_labels[status] %>
-        <span class="text-content-muted ml-1">(<%= @columns[status.to_sym]&.count || 0 %>)</span>
+        <span class="text-content-muted ml-1">(<%= @column_counts[status.to_sym] || 0 %>)</span>
       </button>
     <% end %>
   </div>
@@ -67,7 +67,12 @@
        data-mobile-columns-target="columnsContainer">
     <div class="flex gap-3 sm:gap-4 px-4 sm:px-6 py-4 items-start min-h-full md:min-w-max md:min-w-0">
       <% (Task.statuses.keys - ["archived"]).each do |status| %>
-        <%= render "boards/column", status: status, tasks: @columns[status.to_sym] %>
+        <%= render "boards/column",
+          status: status,
+          tasks: @columns[status.to_sym],
+          total_count: @column_counts[status.to_sym],
+          has_more: @columns_has_more[status.to_sym],
+          tag: @current_tag %>
       <% end %>
     </div>
   </div>

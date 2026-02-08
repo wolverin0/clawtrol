@@ -21,6 +21,9 @@ class Task < ApplicationRecord
   enum :priority, { none: 0, low: 1, medium: 2, high: 3 }, default: :none, prefix: true
   enum :status, { inbox: 0, up_next: 1, in_progress: 2, in_review: 3, done: 4, archived: 5 }, default: :inbox
 
+  # Kanban paging
+  KANBAN_PER_COLUMN_ITEMS = 25
+
   # Model options for agent LLM selection
   MODELS = %w[opus codex gemini glm sonnet].freeze
   DEFAULT_MODEL = "opus".freeze
@@ -794,17 +797,22 @@ class Task < ApplicationRecord
   end
 
   def broadcast_sorted_column(column_status)
-    ordered_tasks = board.tasks
+    scope = board.tasks
       .not_archived
       .where(status: column_status)
       .includes(:board, :user, :agent_persona)
       .ordered_for_column(column_status)
 
+    # Keep kanban columns lightweight: only render first page, and let infinite scroll load more.
+    first_page_plus_one = scope.limit(KANBAN_PER_COLUMN_ITEMS + 1).to_a
+    tasks = first_page_plus_one.first(KANBAN_PER_COLUMN_ITEMS)
+    has_more = first_page_plus_one.length > KANBAN_PER_COLUMN_ITEMS
+
     broadcast_to_board(
       action: :replace,
       target: "column-#{column_status}",
       partial: "boards/column_tasks",
-      locals: { status: column_status, tasks: ordered_tasks, board: board }
+      locals: { status: column_status, tasks: tasks, board: board, has_more: has_more }
     )
   end
 
