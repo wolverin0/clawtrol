@@ -1,3 +1,4 @@
+<% auto_sorted_statuses = %w[in_review done] %>
 <% if @task.saved_change_to_status? %>
   <%# Status changed - move card to new column %>
   <% old_status = @task.status_before_last_save %>
@@ -6,9 +7,27 @@
   <%# Remove from old column %>
   <%= turbo_stream.remove "task_#{@task.id}" %>
 
-  <%# Add to new column %>
-  <%= turbo_stream.prepend "column-#{new_status}" do %>
-    <%= render "boards/task_card", task: @task %>
+  <%# Keep canonical ordering for auto-sorted columns %>
+  <% if auto_sorted_statuses.include?(new_status) %>
+    <%= turbo_stream.replace "column-#{new_status}" do %>
+      <%= render "boards/column_tasks",
+        status: new_status,
+        board: @board,
+        tasks: @board.tasks.not_archived.where(status: new_status).includes(:board, :user, :agent_persona).ordered_for_column(new_status) %>
+    <% end %>
+  <% else %>
+    <%= turbo_stream.prepend "column-#{new_status}" do %>
+      <%= render "boards/task_card", task: @task %>
+    <% end %>
+  <% end %>
+
+  <% if auto_sorted_statuses.include?(old_status) %>
+    <%= turbo_stream.replace "column-#{old_status}" do %>
+      <%= render "boards/column_tasks",
+        status: old_status,
+        board: @board,
+        tasks: @board.tasks.not_archived.where(status: old_status).includes(:board, :user, :agent_persona).ordered_for_column(old_status) %>
+    <% end %>
   <% end %>
 
   <%# Update old column count %>
@@ -31,9 +50,18 @@
     <%= turbo_stream.update "header-#{new_status}-count", new_count.to_s %>
   <% end %>
 <% else %>
-  <%# Status didn't change - just update the card in place %>
-  <%= turbo_stream.replace "task_#{@task.id}" do %>
-    <%= render "boards/task_card", task: @task %>
+  <%# Status didn't change - preserve deterministic ordering in auto-sorted columns %>
+  <% if auto_sorted_statuses.include?(@task.status) %>
+    <%= turbo_stream.replace "column-#{@task.status}" do %>
+      <%= render "boards/column_tasks",
+        status: @task.status,
+        board: @board,
+        tasks: @board.tasks.not_archived.where(status: @task.status).includes(:board, :user, :agent_persona).ordered_for_column(@task.status) %>
+    <% end %>
+  <% else %>
+    <%= turbo_stream.replace "task_#{@task.id}" do %>
+      <%= render "boards/task_card", task: @task %>
+    <% end %>
   <% end %>
 <% end %>
 

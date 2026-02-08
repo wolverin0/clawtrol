@@ -1,6 +1,16 @@
-<%# Append the new task to the bottom of the appropriate column %>
-<%= turbo_stream.append "column-#{@task.status}" do %>
-  <%= render "boards/task_card", task: @task %>
+<% auto_sorted_statuses = %w[in_review done] %>
+<% if auto_sorted_statuses.include?(@task.status) %>
+  <%= turbo_stream.replace "column-#{@task.status}" do %>
+    <%= render "boards/column_tasks",
+      status: @task.status,
+      board: @board,
+      tasks: @board.tasks.not_archived.where(status: @task.status).includes(:board, :user, :agent_persona).ordered_for_column(@task.status) %>
+  <% end %>
+<% else %>
+  <%# Append the new task to the bottom of the appropriate column %>
+  <%= turbo_stream.append "column-#{@task.status}" do %>
+    <%= render "boards/task_card", task: @task %>
+  <% end %>
 <% end %>
 
 <%# Close the modal by replacing the frame with empty content %>

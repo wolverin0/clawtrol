@@ -103,6 +103,17 @@ class Task < ApplicationRecord
       .where("assigned_to_agent = :yes OR agent_session_id IS NOT NULL OR assigned_at IS NOT NULL", yes: true)
       .where("description IS NULL OR description NOT LIKE ?", "%## Agent Output%")
   }
+
+  scope :ordered_for_column, ->(column_status) {
+    case column_status.to_s
+    when "in_review"
+      order(updated_at: :desc, id: :desc)
+    when "done"
+      order(Arel.sql("COALESCE(completed_at, updated_at) DESC"), id: :desc)
+    else
+      order(position: :asc, id: :asc)
+    end
+  }
   # NOTE: default_scope was removed intentionally to avoid implicit ordering
   # surprises. All queries that need ordering must specify it explicitly.
 
@@ -669,12 +680,17 @@ class Task < ApplicationRecord
     # Reload with associations to avoid N+1 when rendering the partial
     task_with_associations = Task.includes(:board, :user, :agent_persona).find(id)
 
-    broadcast_to_board(
-      action: :prepend,
-      target: "column-#{status}",
-      partial: "boards/task_card",
-      locals: { task: task_with_associations }
-    )
+    if auto_sorted_column?(status)
+      broadcast_sorted_column(status)
+    else
+      broadcast_to_board(
+        action: :prepend,
+        target: "column-#{status}",
+        partial: "boards/task_card",
+        locals: { task: task_with_associations }
+      )
+    end
+
     broadcast_column_count(status)
 
     # Also broadcast via ActionCable KanbanChannel for WebSocket clients
@@ -692,25 +708,33 @@ class Task < ApplicationRecord
       old_status, new_status = saved_change_to_status
       # Remove from old column
       broadcast_to_board(action: :remove, target: "task_#{id}")
-      # Add to new column (prepend = newest first for done/in_review, since they sort by date)
-      broadcast_to_board(
-        action: :prepend,
-        target: "column-#{new_status}",
-        partial: "boards/task_card",
-        locals: { task: task_with_associations }
-      )
+
+      if auto_sorted_column?(new_status)
+        broadcast_sorted_column(new_status)
+      else
+        broadcast_to_board(
+          action: :prepend,
+          target: "column-#{new_status}",
+          partial: "boards/task_card",
+          locals: { task: task_with_associations }
+        )
+      end
+
+      broadcast_sorted_column(old_status) if auto_sorted_column?(old_status)
       broadcast_column_count(old_status)
       broadcast_column_count(new_status)
     else
-      # For non-status updates, just replace the card in place
-      # This preserves the correct ordering (position-based for active columns,
-      # completed_at-based for done/in_review columns)
-      broadcast_to_board(
-        action: :replace,
-        target: "task_#{id}",
-        partial: "boards/task_card",
-        locals: { task: task_with_associations }
-      )
+      # For auto-sorted columns, replace the whole list to preserve deterministic order.
+      if auto_sorted_column?(status)
+        broadcast_sorted_column(status)
+      else
+        broadcast_to_board(
+          action: :replace,
+          target: "task_#{id}",
+          partial: "boards/task_card",
+          locals: { task: task_with_associations }
+        )
+      end
     end
 
     # Also broadcast via ActionCable KanbanChannel for WebSocket clients
@@ -758,6 +782,25 @@ class Task < ApplicationRecord
       action: :replace,
       target: "column-#{column_status}-count",
       html: %(<span id="column-#{column_status}-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded">#{count}</span>)
+    )
+  end
+
+  def auto_sorted_column?(column_status)
+    %w[in_review done].include?(column_status.to_s)
+  end
+
+  def broadcast_sorted_column(column_status)
+    ordered_tasks = board.tasks
+      .not_archived
+      .where(status: column_status)
+      .includes(:board, :user, :agent_persona)
+      .ordered_for_column(column_status)
+
+    broadcast_to_board(
+      action: :replace,
+      target: "column-#{column_status}",
+      partial: "boards/column_tasks",
+      locals: { status: column_status, tasks: ordered_tasks, board: board }
     )
   end
 
