@@ -1,0 +1,80 @@
+<%#
+  Locals:
+  - health: OpenclawMemorySearchHealthService::Result (or nil)
+
+  Notes:
+  - Must be persistent visible (no hover-only).
+  - Never expose gateway token.
+%>
+
+<% return if health.nil? || health.status.to_s == "unknown" %>
+
+<% status = health.status.to_s %>
+<% label = case status
+  when "ok" then "Memory: OK"
+  when "degraded" then "Memory: DEGRADED"
+  when "down" then "Memory: DOWN"
+  else "Memory: ?"
+end %>
+
+<% badge_classes = case status
+  when "ok" then "bg-status-success/20 text-status-success hover:bg-status-success/30"
+  when "degraded" then "bg-status-warning/20 text-status-warning hover:bg-status-warning/30"
+  when "down" then "bg-status-error/20 text-status-error hover:bg-status-error/30"
+  else "bg-bg-elevated text-content-muted hover:bg-bg-hover"
+end %>
+
+<div data-controller="openclaw-memory-indicator" class="relative">
+  <button type="button"
+          data-action="click->openclaw-memory-indicator#toggle"
+          class="px-2 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer <%= badge_classes %>"
+          aria-haspopup="dialog"
+          aria-expanded="false">
+    <%= label %>
+  </button>
+
+  <div data-openclaw-memory-indicator-target="panel"
+       class="hidden absolute right-0 mt-2 w-96 max-w-[90vw] bg-bg-surface border border-border rounded-lg shadow-xl z-[120] overflow-hidden">
+    <div class="px-4 py-3 border-b border-border bg-bg-elevated flex items-center justify-between gap-3">
+      <div class="text-sm font-semibold text-content">OpenClaw Memory Search</div>
+      <button type="button"
+              data-action="click->openclaw-memory-indicator#close"
+              class="text-xs text-content-muted hover:text-content transition-colors cursor-pointer">
+        Close
+      </button>
+    </div>
+
+    <div class="p-4 space-y-3 text-xs">
+      <div class="flex items-center justify-between">
+        <span class="text-content-muted">Status</span>
+        <span class="font-semibold text-content"><%= status.upcase %></span>
+      </div>
+
+      <% if health.last_checked_at.present? %>
+        <div class="flex items-center justify-between">
+          <span class="text-content-muted">Last checked</span>
+          <span class="text-content"><%= health.last_checked_at.strftime("%b %d, %H:%M:%S") %></span>
+        </div>
+      <% end %>
+
+      <% if health.error_message.present? %>
+        <div class="pt-2 border-t border-border">
+          <div class="text-content-muted mb-1">Last error</div>
+          <pre class="whitespace-pre-wrap break-words bg-bg-elevated/60 border border-border rounded-md p-2 text-[11px] text-content"><%= health.error_message %></pre>
+          <% if health.error_at.present? %>
+            <div class="text-content-muted mt-1">At: <%= health.error_at.strftime("%b %d, %H:%M:%S") %></div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <div class="pt-2 border-t border-border text-content-muted">
+        <div class="font-semibold text-content mb-1">Suggested fixes</div>
+        <ul class="list-disc pl-5 space-y-1">
+          <li>If you see <code>400</code> / invalid key: rotate embeddings API key in OpenClaw.</li>
+          <li>If you see <code>429</code> / <code>RESOURCE_EXHAUSTED</code>: switch provider or wait for quota reset.</li>
+          <li>If gateway is down: restart OpenClaw gateway (and confirm the URL in Settings → OpenClaw Integration).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_06_125855) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_08_160022) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -119,6 +119,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_06_125855) do
     t.index ["user_id", "created_at"], name: "index_notifications_on_user_id_and_created_at", order: { created_at: :desc }
     t.index ["user_id", "read_at"], name: "index_notifications_on_user_unread"
     t.index ["user_id"], name: "index_notifications_on_user_id"
+  end
+
+  create_table "openclaw_integration_statuses", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "memory_search_last_checked_at"
+    t.text "memory_search_last_error"
+    t.datetime "memory_search_last_error_at"
+    t.integer "memory_search_status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_openclaw_integration_statuses_on_user_id", unique: true
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -309,6 +320,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_06_125855) do
   add_foreign_key "model_limits", "users"
   add_foreign_key "notifications", "tasks"
   add_foreign_key "notifications", "users"
+  add_foreign_key "openclaw_integration_statuses", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "task_activities", "tasks"
   add_foreign_key "task_activities", "users"

@@ -10,6 +10,7 @@ class User < ApplicationRecord
   has_many :notifications, dependent: :destroy
   has_many :agent_personas, dependent: :destroy
   has_one_attached :avatar
+  has_one :openclaw_integration_status, dependent: :destroy
 
   # Security: encrypt sensitive fields at rest using Rails 7+ built-in encryption
   encrypts :ai_api_key
