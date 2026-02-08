@@ -1,4 +1,7 @@
 Rails.application.routes.draw do
+  # ActionCable endpoint (required for Turbo Streams + custom channels)
+  mount ActionCable.server => "/cable"
+
   # API routes
   namespace :api do
     namespace :v1 do

@@ -84,6 +84,16 @@ Rails.application.configure do
   config.hosts << "app.clawdeck.io"
   config.hosts << ".clawdeck.io"  # Allow all subdomains
   
+  # ActionCable / Turbo Streams
+  # Allow WebSocket origins for production domains.
+  config.action_cable.allowed_request_origins = [
+    %r{\Ahttps://clawdeck\.io\z},
+    %r{\Ahttps://www\.clawdeck\.io\z},
+    %r{\Ahttps://app\.clawdeck\.io\z},
+    %r{\Ahttps://.*\.clawdeck\.io\z},
+    %r{\Ahttps://clawdeck\.onrender\.com\z}
+  ]
+
   # Skip DNS rebinding protection for the default health check endpoint.
   config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end

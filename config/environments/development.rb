@@ -71,6 +71,16 @@ Rails.application.configure do
   # Annotate rendered view with file names.
   config.action_view.annotate_rendered_view_with_filenames = true
 
+  # ActionCable / Turbo Streams
+  # When accessing dev server via LAN IP / ngrok, allow those origins so WebSocket connects.
+  config.action_cable.allowed_request_origins = [
+    %r{\Ahttp://localhost:\d+\z},
+    %r{\Ahttp://127\.0\.0\.1:\d+\z},
+    %r{\Ahttp://192\.168\.100\.186:\d+\z},
+    %r{\Ahttps?://.*\.ngrok-free\.app\z},
+    %r{\Ahttps?://.*\.ngrok\.io\z}
+  ]
+
   # Uncomment if you wish to allow Action Cable access from any origin.
   # config.action_cable.disable_request_forgery_protection = true
 
