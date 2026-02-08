@@ -25,6 +25,7 @@ import AgentActivityController from "controllers/agent_activity_controller"
 import AgentTerminalController from "controllers/agent_terminal_controller"
 import AgentModalController from "controllers/agent_modal_controller"
 import AgentPreviewController from "controllers/agent_preview_controller"
+import OpenclawMemoryIndicatorController from "controllers/openclaw_memory_indicator_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -46,3 +47,4 @@ application.register("agent-activity", AgentActivityController)
 application.register("agent-terminal", AgentTerminalController)
 application.register("agent-modal", AgentModalController)
 application.register("agent-preview", AgentPreviewController)
+application.register("openclaw-memory-indicator", OpenclawMemoryIndicatorController)

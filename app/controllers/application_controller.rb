@@ -6,4 +6,12 @@ class ApplicationController < ActionController::Base
 
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
+
+  helper_method :openclaw_memory_health
+
+  def openclaw_memory_health
+    return nil unless current_user
+
+    @openclaw_memory_health ||= OpenclawMemorySearchHealthService.new(current_user).call
+  end
 end

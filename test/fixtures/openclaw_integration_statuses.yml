@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  memory_search_status: 1
+  memory_search_last_checked_at: 2026-02-08 13:00:22
+  memory_search_last_error: MyText
+  memory_search_last_error_at: 2026-02-08 13:00:22
+
+two:
+  user: two
+  memory_search_status: 1
+  memory_search_last_checked_at: 2026-02-08 13:00:22
+  memory_search_last_error: MyText
+  memory_search_last_error_at: 2026-02-08 13:00:22

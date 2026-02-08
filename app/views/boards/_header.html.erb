@@ -100,6 +100,9 @@
         </div>
       <% end %>
 
+      <%# OpenClaw Memory Search Health (persistent) %>
+      <%= render "shared/openclaw_memory_indicator", health: openclaw_memory_health %>
+
       <%# Error Badge %>
       <div data-controller="error-badge" 
            data-error-badge-url-value="<%= errored_count_api_v1_tasks_path(format: :json) %>"
