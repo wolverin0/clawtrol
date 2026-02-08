@@ -12,6 +12,10 @@ class Notification < ApplicationRecord
     validation_passed
     validation_failed
     auto_runner
+    auto_runner_error
+    auto_pull_claimed
+    auto_pull_spawned
+    auto_pull_error
     zombie_task
     zombie_detected
   ].freeze
@@ -49,8 +53,10 @@ class Notification < ApplicationRecord
       "🎉"
     when "review_failed"
       "⚠️"
-    when "agent_claimed", "auto_runner"
+    when "agent_claimed", "auto_runner", "auto_pull_claimed", "auto_pull_spawned"
       "🤖"
+    when "auto_runner_error", "auto_pull_error"
+      "❌"
     when "zombie_task", "zombie_detected"
       "🧟"
     else
@@ -65,8 +71,10 @@ class Notification < ApplicationRecord
       "text-status-success"
     when "task_errored", "review_failed", "validation_failed"
       "text-status-error"
-    when "agent_claimed", "auto_runner"
+    when "agent_claimed", "auto_runner", "auto_pull_claimed", "auto_pull_spawned"
       "text-accent"
+    when "auto_runner_error", "auto_pull_error"
+      "text-status-error"
     when "zombie_task", "zombie_detected"
       "text-status-error"
     else
