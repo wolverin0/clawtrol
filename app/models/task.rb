@@ -88,7 +88,7 @@ class Task < ApplicationRecord
 
   # Order incomplete tasks by position, completed tasks by completion time (most recent first)
   scope :incomplete, -> { where(completed: false).order(position: :asc) }
-  scope :completed, -> { where(completed: true).order(completed_at: :desc) }
+  scope :completed, -> { where(completed: true).order(Arel.sql("#{table_name}.completed_at DESC")) }
   scope :assigned_to_agent, -> { where(assigned_to_agent: true).order(assigned_at: :asc) }
   scope :unassigned, -> { where(assigned_to_agent: false) }
   scope :recurring_templates, -> { where(recurring: true, parent_task_id: nil) }
@@ -109,7 +109,9 @@ class Task < ApplicationRecord
     when "in_review"
       order(updated_at: :desc, id: :desc)
     when "done"
-      order(Arel.sql("COALESCE(completed_at, updated_at) DESC"), id: :desc)
+      # NOTE: must qualify columns because board queries eager-load self-referential
+      # associations (parent_task/followup_task) which join the tasks table twice.
+      order(Arel.sql("COALESCE(#{table_name}.completed_at, #{table_name}.updated_at) DESC"), id: :desc)
     else
       order(position: :asc, id: :asc)
     end
