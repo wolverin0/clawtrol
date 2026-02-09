@@ -151,6 +151,22 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 7. Done validation enforces output presence before allowing move to `done`
 8. You review in terminal/modal and optionally create follow-up tasks
 
+## Agent Install Prompt (OpenClaw / Telegram Orchestrator)
+
+ClawTrol works best when your orchestrator has an explicit "tooling + reporting contract" prompt so it:
+
+- knows which endpoints exist and how to authenticate
+- always reports back deterministically at the end of each run
+- can requeue the same task for follow-ups (no kanban bloat)
+
+In your running instance, open `http://<host>:<port>/settings` → `Integration` and use **Agent Install Prompt**.
+
+If you're integrating manually:
+
+- API endpoints live under `/api/v1/*` (Bearer token)
+- Completion hooks live under `/api/v1/hooks/*` (`X-Hook-Token`)
+- Follow-up is signaled via `POST /api/v1/hooks/task_outcome` with `recommended_action="requeue_same_task"`
+
 ---
 
 ## Tech Stack
