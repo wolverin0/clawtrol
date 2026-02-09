@@ -250,9 +250,30 @@ class AgentAutoRunnerService
 
       ## Constraints
       - You are a sub-agent spawned by ClawTrol server-side auto-pull.
-      - Save your output before finishing by calling the agent_complete webhook:
+      - ALWAYS report completion with an OutcomeContract (YES/NO follow-up) first, then attach your raw output via agent_complete.
+
+      If you set `needs_follow_up=true` with `recommended_action=requeue_same_task`, ClawTrol will move THIS SAME TASK back to `up_next` and wake OpenClaw immediately (no new follow-up card bloat).
 
       ```bash
+      RUN_ID="$(ruby -e 'require \"securerandom\"; puts SecureRandom.uuid')"
+      ENDED_AT="$(date -Iseconds)"
+
+      curl -s -X POST http://192.168.100.186:4001/api/v1/hooks/task_outcome \
+        -H "X-Hook-Token: #{hooks_token}" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "version":"1",
+          "task_id":#{task.id},
+          "run_id":"'"$RUN_ID"'",
+          "ended_at":"'"$ENDED_AT"'",
+          "needs_follow_up":false,
+          "recommended_action":"in_review",
+          "summary":"<one paragraph>",
+          "achieved":["..."],
+          "evidence":["..."],
+          "remaining":["..."]
+        }'
+
       curl -s -X POST http://192.168.100.186:4001/api/v1/hooks/agent_complete \
         -H "X-Hook-Token: #{hooks_token}" \
         -H "Content-Type: application/json" \
