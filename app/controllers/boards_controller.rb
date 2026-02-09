@@ -58,6 +58,14 @@ class BoardsController < ApplicationController
 
     # Load agent personas for drag-assign sidebar
     @agent_personas = AgentPersona.for_user(current_user).active.order(:name)
+
+    # Board status cluster (truthful running + queue signals)
+    in_progress_ids = @tasks.where(status: :in_progress).select(:id)
+    active_leases = RunnerLease.active.joins(:task).where(tasks: { id: in_progress_ids })
+    @running_tasks_count = active_leases.count
+    @running_oldest_hb_at = active_leases.minimum(:last_heartbeat_at)
+
+    @queue_count = @tasks.where(status: :up_next, assigned_to_agent: true, blocked: false).count
   end
 
   def archived

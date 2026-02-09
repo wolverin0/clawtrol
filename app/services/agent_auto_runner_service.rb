@@ -14,7 +14,11 @@
 # This service is intended to be run by a lightweight scheduler (cron/systemd
 # timer) via `bin/rails clawdeck:agent_auto_runner`.
 class AgentAutoRunnerService
+  # Lease-based truthfulness invariant:
+  # - in_progress tasks must have an active RunnerLease (or a linked session).
+  # - leases expire if we don't see heartbeats.
   NO_FAKE_IN_PROGRESS_GRACE = 10.minutes
+  LEASE_STALE_AFTER = 10.minutes
   ZOMBIE_STALE_AFTER = 30.minutes
   SPAWN_COOLDOWN = 1.minute
   ZOMBIE_NOTIFY_COOLDOWN = 60.minutes
@@ -40,7 +44,7 @@ class AgentAutoRunnerService
 
       stats[:users_considered] += 1
 
-      stats[:tasks_demoted] += demote_fake_in_progress!(user)
+      stats[:tasks_demoted] += demote_expired_or_missing_leases!(user)
       stats[:zombie_tasks] += notify_zombies_if_any!(user)
 
       next if agent_currently_working?(user)
@@ -61,7 +65,8 @@ class AgentAutoRunnerService
   end
 
   def agent_currently_working?(user)
-    user.tasks.where(status: :in_progress).where.not(agent_claimed_at: nil).exists?
+    # Consider the agent busy if any in_progress task has an active lease.
+    RunnerLease.active.joins(:task).where(tasks: { user_id: user.id, status: Task.statuses[:in_progress] }).exists?
   end
 
   def runnable_up_next_task_for(user)
@@ -132,12 +137,26 @@ class AgentAutoRunnerService
     task.activity_source = "system"
     task.actor_name = "Auto-Runner"
     task.actor_emoji = "🤖"
-    task.activity_note = "Auto-pull: claimed + spawning OpenClaw session"
+    task.activity_note = "Auto-pull: leased + claimed + spawning OpenClaw session"
+
+    now = Time.current
+
+    # Create lease first so the Task model validation can enforce
+    # in_progress ⇔ active lease.
+    RunnerLease.create!(
+      task: task,
+      agent_name: task.user&.agent_name,
+      lease_token: SecureRandom.hex(24),
+      source: "auto_runner",
+      started_at: now,
+      last_heartbeat_at: now,
+      expires_at: now + RunnerLease::LEASE_DURATION
+    )
 
     updates = {
       assigned_to_agent: true,
-      assigned_at: task.assigned_at || Time.current,
-      agent_claimed_at: Time.current,
+      assigned_at: task.assigned_at || now,
+      agent_claimed_at: now,
       status: :in_progress
     }
 
@@ -150,11 +169,16 @@ class AgentAutoRunnerService
     task.activity_source = "system"
     task.actor_name = "Auto-Runner"
     task.actor_emoji = "🤖"
-    task.activity_note = "Auto-pull: spawn failed, reverting claim"
+    task.activity_note = "Auto-pull: spawn failed, reverting claim + releasing lease"
+
+    # Release any active lease so the invariant stays truthful.
+    task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
 
     task.update!(
       status: :up_next,
-      agent_claimed_at: nil
+      agent_claimed_at: nil,
+      agent_session_id: nil,
+      agent_session_key: nil
     )
   end
 
@@ -210,38 +234,66 @@ class AgentAutoRunnerService
     PROMPT
   end
 
-  # No-fake-in-progress invariant:
-  # - if a task is in_progress + assigned_to_agent, but has no session AND was never claimed,
-  #   it must not stay in_progress indefinitely.
-  def demote_fake_in_progress!(user)
+  # Truthfulness invariant (lease-based):
+  # - if a task is in_progress + assigned_to_agent, it must have an active lease
+  #   (or a linked agent session as legacy evidence).
+  # - expired leases are auto-demoted back to up_next and the lease is released.
+  def demote_expired_or_missing_leases!(user)
+    count = 0
+
+    # 1) Expired leases
+    RunnerLease.expired.joins(:task).where(tasks: { user_id: user.id, status: Task.statuses[:in_progress] }).find_each do |lease|
+      task = lease.task
+
+      task.activity_source = "system"
+      task.actor_name = "Auto-Runner"
+      task.actor_emoji = "🤖"
+      task.activity_note = "Auto-demoted: Runner Lease expired (last hb #{lease.last_heartbeat_at&.iso8601})"
+
+      lease.release!
+      task.update!(status: :up_next, agent_claimed_at: nil)
+
+      Notification.create!(
+        user: user,
+        task: task,
+        event_type: "runner_lease_expired",
+        message: "Guardrail: demoted expired RUNNING task back to Up Next: #{task.name.truncate(60)}"
+      )
+
+      count += 1
+      @logger.warn("[AgentAutoRunner] demoted expired lease task_id=#{task.id} lease_id=#{lease.id}")
+    rescue StandardError => e
+      @logger.error("[AgentAutoRunner] failed to demote expired lease_id=#{lease&.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
+    end
+
+    # 2) Missing lease (legacy / drift) — keep a short grace window.
     cutoff = Time.current - NO_FAKE_IN_PROGRESS_GRACE
+    active_or_released_ids = RunnerLease.where(task_id: user.tasks.select(:id)).select(:task_id)
 
     tasks = user.tasks
-      .where(status: :in_progress, assigned_to_agent: true, agent_claimed_at: nil, agent_session_id: nil, agent_session_key: nil)
-      .where("updated_at < ?", cutoff)
-
-    count = 0
+      .where(status: :in_progress, assigned_to_agent: true, agent_session_id: nil)
+      .where("tasks.updated_at < ?", cutoff)
+      .where.not(id: active_or_released_ids)
 
     tasks.find_each do |task|
       task.activity_source = "system"
       task.actor_name = "Auto-Runner"
       task.actor_emoji = "🤖"
-      task.activity_note = "Auto-demoted: in_progress without agent session/claim for > #{NO_FAKE_IN_PROGRESS_GRACE.inspect}"
+      task.activity_note = "Auto-demoted: in_progress without Runner Lease for > #{NO_FAKE_IN_PROGRESS_GRACE.inspect}"
 
-      task.update!(status: :up_next)
+      task.update!(status: :up_next, agent_claimed_at: nil)
 
       Notification.create!(
         user: user,
         task: task,
-        event_type: "zombie_task",
-        message: "Guardrail: demoted stuck task back to Up Next: #{task.name.truncate(60)}"
+        event_type: "runner_lease_missing",
+        message: "Guardrail: demoted task without lease back to Up Next: #{task.name.truncate(60)}"
       )
 
       count += 1
-
-      @logger.warn("[AgentAutoRunner] demoted fake-in-progress task_id=#{task.id}")
+      @logger.warn("[AgentAutoRunner] demoted missing-lease task_id=#{task.id}")
     rescue StandardError => e
-      @logger.error("[AgentAutoRunner] failed to demote task_id=#{task.id} err=#{e.class}: #{e.message}")
+      @logger.error("[AgentAutoRunner] failed to demote missing-lease task_id=#{task.id} err=#{e.class}: #{e.message}")
     end
 
     count

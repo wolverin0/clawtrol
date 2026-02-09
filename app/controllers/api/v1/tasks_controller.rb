@@ -367,7 +367,10 @@ module Api
       # Supports auto-fallback: if requested model is rate-limited, uses next available
       def spawn_ready
         @task = current_user.tasks.new(spawn_ready_params)
-        @task.status = :in_progress
+
+        # Create as queued first; we'll attach a lease and then promote to in_progress.
+        # This keeps the in_progress ⇔ active lease invariant truthful.
+        @task.status = :up_next
         @task.assigned_to_agent = true
         # Auto-detect board based on task name if not specified
         @task.board_id ||= detect_board_for_task(@task.name, current_user)&.id || current_user.boards.first&.id
@@ -395,6 +398,20 @@ module Api
         end
 
         if @task.save
+          now = Time.current
+
+          RunnerLease.create!(
+            task: @task,
+            agent_name: current_user.agent_name,
+            lease_token: SecureRandom.hex(24),
+            source: "spawn_ready",
+            started_at: now,
+            last_heartbeat_at: now,
+            expires_at: now + RunnerLease::LEASE_DURATION
+          )
+
+          @task.update!(status: :in_progress, agent_claimed_at: now)
+
           Rails.logger.info(
             "[spawn_ready] task_id=#{@task.id} requested_model=#{requested_model.inspect} " \
             "applied_model=#{@task.model.inspect} openclaw_spawn_model=#{@task.openclaw_spawn_model.inspect} " \

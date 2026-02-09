@@ -19,7 +19,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "demotes fake in_progress tasks (no session, no claim) after grace period" do
+  test "demotes in_progress tasks with expired runner leases" do
     user = User.create!(
       email_address: "auto_runner_demote_#{SecureRandom.hex(4)}@example.test",
       password: "password123",
@@ -35,21 +35,33 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       user: user,
       board: board,
       name: "Stuck task",
-      status: :in_progress,
+      status: :up_next,
       assigned_to_agent: true
     )
+
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
-      stuck.update_columns(updated_at: 20.minutes.ago)
+      now = Time.current
+
+      lease = RunnerLease.create!(
+        task: stuck,
+        agent_name: "Test Agent",
+        lease_token: SecureRandom.hex(16),
+        source: "test",
+        started_at: now - 20.minutes,
+        last_heartbeat_at: now - 20.minutes,
+        expires_at: now + 1.minute
+      )
+
+      stuck.update!(status: :in_progress)
+      lease.update_columns(expires_at: now - 1.minute)
 
       cache = ActiveSupport::Cache::MemoryStore.new
-      stats = AgentAutoRunnerService.new(openclaw_gateway_client: FakeGatewayClient, cache: cache).run!
-      assert stats[:tasks_demoted] >= 1
+      AgentAutoRunnerService.new(openclaw_gateway_client: FakeGatewayClient, cache: cache).run!
     end
 
     assert_equal "up_next", stuck.reload.status
 
-    notif = Notification.order(created_at: :desc).find_by(task: stuck, event_type: "zombie_task")
-    assert notif.present?, "expected a zombie_task notification"
+    assert stuck.runner_leases.where(released_at: nil).none?, "expected lease to be released"
   end
 
   test "auto-pull claims + spawns the top eligible up_next task and links session" do
@@ -74,14 +86,16 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     cache = ActiveSupport::Cache::MemoryStore.new
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
       AgentAutoRunnerService.new(openclaw_gateway_client: FakeGatewayClient, cache: cache).run!
-    end
 
-    task.reload
-    assert task.assigned_to_agent?
-    assert_equal "in_progress", task.status
-    assert task.agent_claimed_at.present?
-    assert_equal "agent:main:subagent:FAKE-KEY", task.agent_session_key
-    assert_equal "FAKE-SESSION-ID", task.agent_session_id
+      task.reload
+      assert task.assigned_to_agent?
+      assert_equal "in_progress", task.status
+      assert task.agent_claimed_at.present?
+      assert task.runner_lease_active?, "expected an active runner lease"
+      assert_equal 1, task.runner_leases.where(released_at: nil).count
+      assert_equal "agent:main:subagent:FAKE-KEY", task.agent_session_key
+      assert_equal "FAKE-SESSION-ID", task.agent_session_id
+    end
 
     assert_equal 1, FakeGatewayClient.spawns.length
     spawn = FakeGatewayClient.spawns.first
@@ -143,11 +157,12 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     cache = ActiveSupport::Cache::MemoryStore.new
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
       AgentAutoRunnerService.new(openclaw_gateway_client: failing_client, cache: cache).run!
-    end
 
-    task.reload
-    assert_equal "up_next", task.status
-    assert_nil task.agent_claimed_at
+      task.reload
+      assert_equal "up_next", task.status
+      assert_nil task.agent_claimed_at
+      assert_equal 0, task.runner_leases.where(released_at: nil).count, "expected lease to be released on spawn failure"
+    end
 
     notif = Notification.order(created_at: :desc).find_by(task: task, event_type: "auto_pull_error")
     assert notif.present?, "expected an auto_pull_error notification"

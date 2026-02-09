@@ -12,7 +12,7 @@ export default class extends Controller {
     apiPath: String
   }
 
-  static targets = ["indicator"]
+  static targets = ["indicator", "realtimeBadge"]
 
   connect() {
     this.lastFingerprint = null
@@ -28,6 +28,7 @@ export default class extends Controller {
     
     // Try WebSocket first
     this.connectWebSocket()
+    this.updateRealtimeBadge()
     
     // Pause when tab is not visible
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this)
@@ -53,11 +54,13 @@ export default class extends Controller {
         onConnected: () => {
           this.wsConnected = true
           this.stopPolling() // Disable polling when WebSocket is active
+          this.updateRealtimeBadge()
           console.log("[KanbanRefresh] WebSocket connected, polling disabled")
         },
         onDisconnected: () => {
           this.wsConnected = false
           this.startPolling() // Re-enable polling as fallback
+          this.updateRealtimeBadge()
           console.log("[KanbanRefresh] WebSocket disconnected, polling enabled")
         },
         onReceived: (data) => {
@@ -183,6 +186,24 @@ export default class extends Controller {
     if (this.hasIndicatorTarget) {
       this.indicatorTarget.classList.remove("opacity-100")
       this.indicatorTarget.classList.add("opacity-0")
+    }
+  }
+
+  updateRealtimeBadge() {
+    if (!this.hasRealtimeBadgeTarget) return
+
+    const el = this.realtimeBadgeTarget
+
+    if (this.wsConnected) {
+      el.textContent = "Realtime: OK"
+      el.classList.remove("bg-status-warning/20", "text-status-warning")
+      el.classList.add("bg-status-success/20", "text-status-success")
+      el.title = "WebSocket connected (ActionCable)"
+    } else {
+      el.textContent = "Realtime: POLLING"
+      el.classList.remove("bg-status-success/20", "text-status-success")
+      el.classList.add("bg-status-warning/20", "text-status-warning")
+      el.title = "WebSocket disconnected — using polling fallback"
     }
   }
 

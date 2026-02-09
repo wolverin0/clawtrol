@@ -100,6 +100,34 @@
         </div>
       <% end %>
 
+      <%# Board header status cluster: Realtime, Queue, OpenClaw %>
+      <div class="hidden md:flex items-center gap-2">
+        <span data-kanban-refresh-target="realtimeBadge"
+              class="px-2 py-1 rounded-md text-xs font-semibold bg-bg-elevated text-content-muted">
+          Realtime: …
+        </span>
+
+        <% queue_count = defined?(@queue_count) ? @queue_count.to_i : (@column_counts&.dig(:up_next) || 0) %>
+        <span class="px-2 py-1 rounded-md text-xs font-semibold bg-bg-elevated text-content-muted"
+              title="Queued work (Up Next, assigned, not blocked)">
+          Queue: <%= queue_count %>
+        </span>
+
+        <% running = defined?(@running_tasks_count) ? @running_tasks_count.to_i : 0 %>
+        <% oldest_hb_at = defined?(@running_oldest_hb_at) ? @running_oldest_hb_at : nil %>
+        <span class="px-2 py-1 rounded-md text-xs font-semibold <%= running > 0 ? 'bg-accent/20 text-accent' : 'bg-bg-elevated text-content-muted' %>"
+              title="Tasks with an active Runner Lease">
+          Running: <%= running %><% if oldest_hb_at.present? %> · oldest hb <%= time_ago_in_words(oldest_hb_at) %><% end %>
+        </span>
+
+        <% configured = current_user.openclaw_gateway_url.present? && current_user.openclaw_gateway_token.present? %>
+        <% active = current_user.agent_last_active_at.present? && current_user.agent_last_active_at > 2.minutes.ago %>
+        <span class="px-2 py-1 rounded-md text-xs font-semibold <%= !configured ? 'bg-status-error/20 text-status-error' : (active ? 'bg-status-success/20 text-status-success' : 'bg-status-warning/20 text-status-warning') %>"
+              title="OpenClaw gateway + agent token activity">
+          OpenClaw: <%= !configured ? 'OFF' : (active ? 'ACTIVE' : 'IDLE') %>
+        </span>
+      </div>
+
       <%# OpenClaw Memory Search Health (persistent) %>
       <%= render "shared/openclaw_memory_indicator", health: openclaw_memory_health %>
 
