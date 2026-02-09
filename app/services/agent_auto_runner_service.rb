@@ -251,7 +251,7 @@ class AgentAutoRunnerService
       task.activity_note = "Auto-demoted: Runner Lease expired (last hb #{lease.last_heartbeat_at&.iso8601})"
 
       lease.release!
-      task.update!(status: :up_next, agent_claimed_at: nil)
+      task.update!(status: :up_next, agent_claimed_at: nil, agent_session_id: nil, agent_session_key: nil)
 
       Notification.create!(
         user: user,
@@ -268,12 +268,12 @@ class AgentAutoRunnerService
 
     # 2) Missing lease (legacy / drift) — keep a short grace window.
     cutoff = Time.current - NO_FAKE_IN_PROGRESS_GRACE
-    active_or_released_ids = RunnerLease.where(task_id: user.tasks.select(:id)).select(:task_id)
+    active_lease_task_ids = RunnerLease.active.where(task_id: user.tasks.select(:id)).select(:task_id)
 
     tasks = user.tasks
       .where(status: :in_progress, assigned_to_agent: true, agent_session_id: nil)
       .where("tasks.updated_at < ?", cutoff)
-      .where.not(id: active_or_released_ids)
+      .where.not(id: active_lease_task_ids)
 
     tasks.find_each do |task|
       task.activity_source = "system"
