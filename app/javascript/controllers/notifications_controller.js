@@ -218,6 +218,30 @@ export default class extends Controller {
     }
   }
 
+  async clearAll(event) {
+    event.stopPropagation()
+
+    try {
+      const response = await fetch(`${this.urlValue}/clear_all`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'X-CSRF-Token': this.csrfToken
+        },
+        credentials: 'same-origin'
+      })
+
+      if (response.ok) {
+        this.unreadCount = 0
+        this.notifications = []
+        this.updateBadge()
+        this.renderNotifications()
+      }
+    } catch (error) {
+      console.error('Error clearing notifications:', error)
+    }
+  }
+
   // Browser Notifications API
   async requestNotificationPermission() {
     this.permissionRequested = true

@@ -1,4 +1,5 @@
 ENV["RAILS_ENV"] ||= "test"
+ENV["HOOKS_TOKEN"] ||= "test_hooks_token"
 require_relative "../config/environment"
 require "rails/test_help"
 require_relative "test_helpers/session_test_helper"

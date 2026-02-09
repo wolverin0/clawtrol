@@ -48,8 +48,33 @@ class OpenclawGatewayClient
     @user.openclaw_gateway_url.present? && @user.openclaw_gateway_token.present?
   end
 
+  def validate_gateway_url!
+    raw = @user.openclaw_gateway_url.to_s.strip
+    raise "OpenClaw gateway URL missing" if raw.blank?
+
+    if raw.match?(/example/i)
+      raise "OpenClaw gateway URL looks like a placeholder (contains 'example')"
+    end
+
+    uri = URI.parse(raw)
+    unless uri.is_a?(URI::HTTP) && %w[http https].include?(uri.scheme)
+      raise "OpenClaw gateway URL must be http(s)"
+    end
+
+    raise "OpenClaw gateway URL missing host" if uri.host.blank?
+
+    # Reject localhost without an explicit port, to avoid accidental port 80/443.
+    if uri.host == "localhost" && !raw.match?(/localhost:\d+/)
+      raise "OpenClaw gateway URL must include an explicit port for localhost"
+    end
+
+    uri
+  rescue URI::InvalidURIError
+    raise "OpenClaw gateway URL is invalid"
+  end
+
   def base_uri
-    URI.parse(@user.openclaw_gateway_url)
+    @base_uri ||= validate_gateway_url!
   end
 
   def http_for(uri)

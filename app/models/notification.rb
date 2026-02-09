@@ -2,6 +2,9 @@ class Notification < ApplicationRecord
   belongs_to :user
   belongs_to :task, optional: true
 
+  DEDUP_WINDOW = 5.minutes
+  CAP_PER_USER = 200
+
   # Event types
   EVENT_TYPES = %w[
     task_completed
@@ -24,6 +27,8 @@ class Notification < ApplicationRecord
 
   validates :event_type, presence: true, inclusion: { in: EVENT_TYPES }
   validates :message, presence: true
+
+  after_create :enforce_cap_for_user
 
   # Scopes
   scope :unread, -> { where(read_at: nil) }
@@ -94,14 +99,14 @@ class Notification < ApplicationRecord
 
     case new_status
     when "in_review"
-      create!(
+      create_deduped!(
         user: task.user,
         task: task,
         event_type: "task_completed",
         message: "#{task.name.truncate(50)} is ready for review"
       )
     when "done"
-      create!(
+      create_deduped!(
         user: task.user,
         task: task,
         event_type: "task_completed",
@@ -114,7 +119,7 @@ class Notification < ApplicationRecord
   def self.create_for_error(task, error_message = nil)
     return unless task.user
 
-    create!(
+    create_deduped!(
       user: task.user,
       task: task,
       event_type: "task_errored",
@@ -126,7 +131,7 @@ class Notification < ApplicationRecord
   def self.create_for_review(task, passed:)
     return unless task.user
 
-    create!(
+    create_deduped!(
       user: task.user,
       task: task,
       event_type: passed ? "review_passed" : "review_failed",
@@ -138,11 +143,35 @@ class Notification < ApplicationRecord
   def self.create_for_agent_claim(task)
     return unless task.user
 
-    create!(
+    create_deduped!(
       user: task.user,
       task: task,
       event_type: "agent_claimed",
       message: "Agent started working on #{task.name.truncate(50)}"
     )
+  end
+
+  # Safe default for noisy event streams (auto-runner, background jobs).
+  # Returns the notification or nil when deduped.
+  def self.create_deduped!(user:, event_type:, message:, task: nil)
+    return nil unless user
+
+    scope = where(user_id: user.id, event_type: event_type)
+    scope = scope.where(task_id: task.id) if task
+    scope = scope.where("created_at >= ?", DEDUP_WINDOW.ago)
+    return nil if scope.exists?
+
+    create!(user: user, task: task, event_type: event_type, message: message)
+  end
+
+  def self.enforce_cap_for_user_id!(user_id)
+    overflow_ids = where(user_id: user_id).order(created_at: :desc).offset(CAP_PER_USER).pluck(:id)
+    where(id: overflow_ids).delete_all if overflow_ids.any?
+  end
+
+  private
+
+  def enforce_cap_for_user
+    self.class.enforce_cap_for_user_id!(user_id)
   end
 end

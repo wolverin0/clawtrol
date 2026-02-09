@@ -18,6 +18,7 @@ Rails.application.routes.draw do
       resources :notifications, only: [:index] do
         collection do
           post :mark_all_read
+          post :clear_all
         end
         member do
           post :mark_read
@@ -49,6 +50,7 @@ Rails.application.routes.draw do
       end
 
       post "hooks/agent_complete", to: "hooks#agent_complete"
+      post "hooks/task_outcome", to: "hooks#task_outcome"
 
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         collection do

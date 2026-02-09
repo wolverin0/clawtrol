@@ -42,6 +42,16 @@ module Api
         }
       end
 
+      # POST /api/v1/notifications/clear_all
+      def clear_all
+        current_user.notifications.delete_all
+        render json: {
+          success: true,
+          unread_count: 0,
+          total: 0
+        }
+      end
+
       private
 
       def set_notification

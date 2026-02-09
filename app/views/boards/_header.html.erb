@@ -174,16 +174,23 @@
           </span>
         </button>
         
-        <%# Notifications Panel %>
-        <div data-notifications-target="panel" 
+          <%# Notifications Panel %>
+          <div data-notifications-target="panel" 
              class="hidden absolute right-0 mt-2 w-80 bg-bg-surface border border-border rounded-lg shadow-xl z-[100] overflow-hidden">
           <div class="flex items-center justify-between px-4 py-3 border-b border-border bg-bg-elevated">
             <span class="text-sm font-semibold text-content">Notifications</span>
-            <button type="button" 
-                    data-action="click->notifications#markAllRead"
-                    class="text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer">
-              Mark all read
-            </button>
+            <div class="flex items-center gap-2">
+              <button type="button" 
+                      data-action="click->notifications#markAllRead"
+                      class="text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer">
+                Mark all read
+              </button>
+              <button type="button" 
+                      data-action="click->notifications#clearAll"
+                      class="text-xs text-content-muted hover:text-content transition-colors cursor-pointer">
+                Clear all
+              </button>
+            </div>
           </div>
           <div data-notifications-target="list" class="max-h-80 overflow-y-auto">
             <div class="px-4 py-8 text-center text-content-muted text-sm">

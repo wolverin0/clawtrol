@@ -491,7 +491,7 @@ class Boards::TasksController < ApplicationController
   end
 
   def set_task
-    @task = @board.tasks.includes(:activities, :parent_task, :followup_task).find(params[:id])
+    @task = @board.tasks.includes(:activities, :parent_task, :followup_task, :task_runs).find(params[:id])
   end
 
   def task_params
