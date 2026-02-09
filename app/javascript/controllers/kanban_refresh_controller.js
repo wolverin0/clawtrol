@@ -8,6 +8,7 @@ import { subscribeToKanban } from "channels"
 export default class extends Controller {
   static values = {
     boardId: Number,
+    boardIds: Array,
     interval: { type: Number, default: 15000 }, // 15 seconds default (fallback polling)
     apiPath: String
   }
@@ -18,22 +19,23 @@ export default class extends Controller {
     this.lastFingerprint = null
     this.isRefreshing = false
     this.isPaused = false
-    this.wsConnected = false
-    this.subscription = null
-    
+
+    this.wsConnectedCount = 0
+    this.subscriptions = []
+
     // Get initial fingerprint
-    this.fetchFingerprint().then(fp => {
+    this.fetchFingerprint().then((fp) => {
       this.lastFingerprint = fp
     })
-    
+
     // Try WebSocket first
     this.connectWebSocket()
     this.updateRealtimeBadge()
-    
+
     // Pause when tab is not visible
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this)
     document.addEventListener("visibilitychange", this.handleVisibilityChange)
-    
+
     // Listen for Turbo events to reset fingerprint after navigation
     this.handleTurboLoad = this.handleTurboLoad.bind(this)
     document.addEventListener("turbo:load", this.handleTurboLoad)
@@ -46,31 +48,52 @@ export default class extends Controller {
     document.removeEventListener("turbo:load", this.handleTurboLoad)
   }
 
+  _kanbanBoardIds() {
+    const idsRaw = Array.isArray(this.boardIdsValue) ? this.boardIdsValue : []
+    const ids = [...new Set(idsRaw.map((x) => Number(x)).filter((x) => Number.isFinite(x) && x > 0))]
+
+    if (ids.length > 0) return ids
+    if (this.boardIdValue) return [this.boardIdValue]
+    return []
+  }
+
   connectWebSocket() {
-    if (!this.boardIdValue) return
-    
+    const ids = this._kanbanBoardIds()
+    if (ids.length === 0) return
+
     try {
-      this.subscription = subscribeToKanban(this.boardIdValue, {
-        onConnected: () => {
-          this.wsConnected = true
-          this.stopPolling() // Disable polling when WebSocket is active
-          this.updateRealtimeBadge()
-          console.log("[KanbanRefresh] WebSocket connected, polling disabled")
-        },
-        onDisconnected: () => {
-          this.wsConnected = false
-          this.startPolling() // Re-enable polling as fallback
-          this.updateRealtimeBadge()
-          console.log("[KanbanRefresh] WebSocket disconnected, polling enabled")
-        },
-        onReceived: (data) => {
-          // Trigger refresh when we get a message
-          if (data.type === "refresh" || data.type === "create" || data.type === "update" || data.type === "destroy") {
-            // Play codec sounds for agent-related status transitions
-            this.playStatusSound(data)
-            this.refresh()
+      // Reset in case connectWebSocket is called more than once.
+      this.disconnectWebSocket()
+
+      ids.forEach((boardId) => {
+        const sub = subscribeToKanban(boardId, {
+          onConnected: () => {
+            this.wsConnectedCount += 1
+            if (this.wsConnectedCount === 1) {
+              this.stopPolling() // Disable polling when WebSocket is active
+              this.updateRealtimeBadge()
+              console.log("[KanbanRefresh] WebSocket connected, polling disabled")
+            }
+          },
+          onDisconnected: () => {
+            this.wsConnectedCount = Math.max(0, this.wsConnectedCount - 1)
+            if (this.wsConnectedCount === 0) {
+              this.startPolling() // Re-enable polling as fallback
+              this.updateRealtimeBadge()
+              console.log("[KanbanRefresh] WebSocket disconnected, polling enabled")
+            }
+          },
+          onReceived: (data) => {
+            // Trigger refresh when we get a message
+            if (data.type === "refresh" || data.type === "create" || data.type === "update" || data.type === "destroy") {
+              // Play codec sounds for agent-related status transitions
+              this.playStatusSound(data)
+              this.refresh()
+            }
           }
-        }
+        })
+
+        this.subscriptions.push(sub)
       })
     } catch (error) {
       console.warn("[KanbanRefresh] WebSocket connection failed, using polling:", error)
@@ -79,16 +102,23 @@ export default class extends Controller {
   }
 
   disconnectWebSocket() {
-    if (this.subscription) {
-      this.subscription.unsubscribe()
-      this.subscription = null
+    if (Array.isArray(this.subscriptions)) {
+      this.subscriptions.forEach((s) => {
+        try {
+          s?.unsubscribe?.()
+        } catch {
+          // noop
+        }
+      })
     }
-    this.wsConnected = false
+
+    this.subscriptions = []
+    this.wsConnectedCount = 0
   }
 
   startPolling() {
     if (this.pollInterval) return // Already polling
-    
+
     this.pollInterval = setInterval(() => {
       this.checkForChanges()
     }, this.intervalValue)
@@ -109,7 +139,7 @@ export default class extends Controller {
     } else {
       this.isPaused = false
       // Check immediately when tab becomes visible again
-      if (!this.wsConnected) {
+      if (this.wsConnectedCount === 0) {
         this.checkForChanges()
       }
     }
@@ -117,21 +147,21 @@ export default class extends Controller {
 
   handleTurboLoad() {
     // Update fingerprint after a Turbo navigation
-    this.fetchFingerprint().then(fp => {
+    this.fetchFingerprint().then((fp) => {
       this.lastFingerprint = fp
     })
   }
 
   async checkForChanges() {
     if (this.isPaused || this.isRefreshing) return
-    
+
     try {
       const fingerprint = await this.fetchFingerprint()
-      
+
       if (this.lastFingerprint && fingerprint !== this.lastFingerprint) {
         this.refresh()
       }
-      
+
       this.lastFingerprint = fingerprint
     } catch (error) {
       console.warn("Kanban refresh check failed:", error)
@@ -142,34 +172,34 @@ export default class extends Controller {
     const apiPath = this.apiPathValue || `/api/v1/boards/${this.boardIdValue}/status`
     const response = await fetch(apiPath, {
       headers: {
-        "Accept": "application/json"
+        Accept: "application/json"
       },
       credentials: "same-origin"
     })
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`)
     }
-    
+
     const data = await response.json()
     return data.fingerprint
   }
 
   refresh() {
     if (this.isRefreshing) return
-    
+
     this.isRefreshing = true
     this.showIndicator()
-    
+
     // Use Turbo to refresh the page content
     Turbo.visit(window.location.href, { action: "replace" })
-    
+
     // Reset state after a short delay
     setTimeout(() => {
       this.isRefreshing = false
       this.hideIndicator()
       // Update fingerprint after refresh
-      this.fetchFingerprint().then(fp => {
+      this.fetchFingerprint().then((fp) => {
         this.lastFingerprint = fp
       })
     }, 1000)
@@ -194,7 +224,7 @@ export default class extends Controller {
 
     const el = this.realtimeBadgeTarget
 
-    if (this.wsConnected) {
+    if (this.wsConnectedCount > 0) {
       el.textContent = "Realtime: OK"
       el.classList.remove("bg-status-warning/20", "text-status-warning")
       el.classList.add("bg-status-success/20", "text-status-success")

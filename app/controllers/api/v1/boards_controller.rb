@@ -21,12 +21,19 @@ module Api
       # GET /api/v1/boards/:id/status
       # Lightweight endpoint for polling - returns a fingerprint based on task state
       def status
-        tasks = @board.tasks
+        tasks = if @board.aggregator?
+          current_user.tasks
+            .joins(:board)
+            .where(boards: { is_aggregator: false })
+            .not_archived
+        else
+          @board.tasks.not_archived
+        end
 
         # Build a fingerprint from task count and latest modification
         task_count = tasks.count
-        latest_task = tasks.order(updated_at: :desc).first
-        latest_update = latest_task&.updated_at&.to_i || 0
+        latest_update_time = tasks.maximum(:updated_at)
+        latest_update = latest_update_time&.to_i || 0
 
         # Include status counts for more granular change detection
         status_counts = tasks.group(:status).count
@@ -38,7 +45,7 @@ module Api
         render json: {
           fingerprint: fingerprint,
           task_count: task_count,
-          updated_at: latest_task&.updated_at&.iso8601
+          updated_at: latest_update_time&.iso8601
         }
       end
 

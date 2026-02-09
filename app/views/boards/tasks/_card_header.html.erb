@@ -18,46 +18,48 @@
   </div>
 <% end %>
 
-<%# Main card content - clickable to open task panel %>
-<%= link_to board_task_path(task.board, task), data: { turbo_frame: "task_panel" }, class: "block p-3 pb-1" do %>
-  <%# Task ID + Name %>
-  <div class="flex items-start gap-2 min-w-0">
-    <span class="flex-1 text-sm font-medium text-content leading-tight overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; max-width: 100%;">
-      <% if show_error_state %><span class="text-red-400">⚠️</span> <% end %><span class="text-xs text-content-muted font-normal">#<%= task.id %></span><% if task.nightly? %><span class="ml-1" title="Nightbeat task">🌙</span><% end %><% if task.status == 'in_progress' && task.assigned_to_agent? && task.runner_lease_active? %><span class="inline-block align-middle ml-1"><span class="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin"></span></span><% end %> <%= task.name %>
-    </span>
-    <% if task.blocked? %>
-      <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-status-warning" title="Blocked"></span>
-    <% end %>
-  </div>
-
-  <%# RUNNING indicator (lease-based, truthful) %>
-  <% if task.status == 'in_progress' && task.assigned_to_agent? && task.runner_lease_active? %>
-    <div class="mt-2">
-      <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent/20 text-accent border border-accent/30">
-        <span class="inline-block w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-        RUNNING
-        <% if task.runner_started_at.present? %>
-          <span class="text-content-muted font-medium">· <%= time_ago_in_words(task.runner_started_at) %></span>
-        <% end %>
-        <% if task.runner_last_heartbeat_at.present? %>
-          <span class="text-content-muted font-medium">· hb <%= time_ago_in_words(task.runner_last_heartbeat_at) %></span>
-        <% end %>
+<div class="p-3 pb-1">
+  <%# Main card content - clickable to open task panel %>
+  <%= link_to board_task_path(task.board, task), data: { turbo_frame: "task_panel" }, class: "block" do %>
+    <%# Task ID + Name %>
+    <div class="flex items-start gap-2 min-w-0">
+      <span class="flex-1 text-sm font-medium text-content leading-tight overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; max-width: 100%;">
+        <% if show_error_state %><span class="text-red-400">⚠️</span> <% end %><span class="text-xs text-content-muted font-normal">#<%= task.id %></span><% if task.nightly? %><span class="ml-1" title="Nightbeat task">🌙</span><% end %><% if task.status == 'in_progress' && task.assigned_to_agent? && task.runner_lease_active? %><span class="inline-block align-middle ml-1"><span class="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin"></span></span><% end %> <%= task.name %>
       </span>
-    </div>
-  <% end %>
-
-  <%# Tags %>
-  <% if task.tags.present? && task.tags.any? %>
-    <div class="flex flex-wrap gap-1 mt-2">
-      <% task.tags.each do |tag| %>
-        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-bg-surface text-content-secondary">
-          <%= tag %>
-        </span>
+      <% if task.blocked? %>
+        <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-status-warning" title="Blocked"></span>
       <% end %>
     </div>
+
+    <%# RUNNING indicator (lease-based, truthful) %>
+    <% if task.status == 'in_progress' && task.assigned_to_agent? && task.runner_lease_active? %>
+      <div class="mt-2">
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent/20 text-accent border border-accent/30">
+          <span class="inline-block w-2 h-2 rounded-full bg-accent animate-pulse"></span>
+          RUNNING
+          <% if task.runner_started_at.present? %>
+            <span class="text-content-muted font-medium">· <%= time_ago_in_words(task.runner_started_at) %></span>
+          <% end %>
+          <% if task.runner_last_heartbeat_at.present? %>
+            <span class="text-content-muted font-medium">· hb <%= time_ago_in_words(task.runner_last_heartbeat_at) %></span>
+          <% end %>
+        </span>
+      </div>
+    <% end %>
+
+    <%# Tags %>
+    <% if task.tags.present? && task.tags.any? %>
+      <div class="flex flex-wrap gap-1 mt-2">
+        <% task.tags.each do |tag| %>
+          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-bg-surface text-content-secondary">
+            <%= tag %>
+          </span>
+        <% end %>
+      </div>
+    <% end %>
   <% end %>
 
-  <%# Assigned Agent Persona Badge %>
+  <%# Assigned Agent Persona Badge (outside the link so X is clickable) %>
   <div data-persona-badge class="<%= 'hidden' unless task.agent_persona.present? %> mt-1.5 px-0 flex items-center">
     <% if task.agent_persona.present? %>
       <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-accent/15 text-accent border border-accent/20">
@@ -75,4 +77,4 @@
       </span>
     <% end %>
   </div>
-<% end %>
+</div>

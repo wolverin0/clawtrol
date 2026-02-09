@@ -1,49 +1,11 @@
 <%# Board Header - Redesigned with tabs + expanded filters per Snake's specs %>
 <header class="flex-shrink-0 bg-bg-base border-b border-border">
   <%# Row 1: Logo + Board Tabs (responsive wrap) + Controls %>
-  <div class="flex items-start justify-between px-4 md:px-6 py-2.5 gap-4">
-    <%# Left section: Logo + Board Tabs %>
-    <div class="flex items-center gap-4 flex-wrap min-w-0">
+  <div class="flex items-center justify-between px-4 md:px-6 py-2.5 gap-4">
+    <%# Left section: Logo %>
+    <div class="flex items-center gap-3 min-w-0">
       <%# Logo %>
       <span class="text-base md:text-lg font-semibold text-content font-display whitespace-nowrap flex-shrink-0">🦞 ClawTrol</span>
-
-      <%# Board Tabs - horizontal scroll on mobile, wrap on desktop %>
-      <div class="flex items-center gap-1 flex-nowrap overflow-x-auto md:flex-wrap md:overflow-visible scrollbar-hide">
-        <% @boards.each do |board| %>
-          <% active = board.id == @board.id %>
-          <% task_count = board.tasks.where.not(status: :done).count %>
-          <%= link_to board_path(board),
-              class: "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap #{active ? 'bg-accent text-content' : 'bg-bg-elevated text-content-secondary hover:bg-bg-hover hover:text-content'}",
-              data: { turbo_frame: "_top" } do %>
-            <span><%= board.icon %></span>
-            <span class="max-w-[100px] truncate"><%= board.name %></span>
-            <% if task_count > 0 %>
-              <span class="text-[10px] <%= active ? 'opacity-75' : 'text-content-muted' %>">(<%= task_count %>)</span>
-            <% end %>
-          <% end %>
-        <% end %>
-
-        <%# Archived link %>
-        <% archived_count = @board.tasks.archived.count %>
-        <%= link_to archived_board_path(@board),
-            class: "inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-content-muted hover:text-content hover:bg-bg-elevated transition-colors whitespace-nowrap" do %>
-          📦
-          <% if archived_count > 0 %>
-            <span class="text-[10px]">(<%= archived_count %>)</span>
-          <% end %>
-        <% end %>
-
-        <%# New Board button %>
-        <button type="button"
-                data-action="click->board-modal#open"
-                data-board-modal-target="newBoardTrigger"
-                class="inline-flex items-center justify-center w-7 h-7 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer"
-                title="New Board">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-            <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
-          </svg>
-        </button>
-      </div>
     </div>
 
     <%# Right section: Quick nav + Controls %>
@@ -273,7 +235,47 @@
     </div>
   </div>
 
-  <%# Row 2: Expanded Filters Bar (always visible) %>
+    <%# Row 1b: Board Tabs (full-width row) %>
+  <div class="px-4 md:px-6 py-2 border-t border-border/50 bg-bg-base">
+    <div class="flex items-center gap-1 flex-nowrap overflow-x-auto md:flex-wrap md:overflow-visible scrollbar-hide w-full">
+      <% @boards.each do |board| %>
+        <% active = board.id == @board.id %>
+        <% task_count = board.tasks.where.not(status: :done).count %>
+        <%= link_to board_path(board),
+            class: "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap #{active ? 'bg-accent text-content' : 'bg-bg-elevated text-content-secondary hover:bg-bg-hover hover:text-content'}",
+            data: { turbo_frame: "_top" } do %>
+          <span><%= board.icon %></span>
+          <span class="max-w-[140px] truncate"><%= board.name %></span>
+          <% if task_count > 0 %>
+            <span class="text-[10px] <%= active ? 'opacity-75' : 'text-content-muted' %>">(<%= task_count %>)</span>
+          <% end %>
+        <% end %>
+      <% end %>
+
+      <%# Archived link %>
+      <% archived_count = @board.tasks.archived.count %>
+      <%= link_to archived_board_path(@board),
+          class: "inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-content-muted hover:text-content hover:bg-bg-elevated transition-colors whitespace-nowrap" do %>
+        📦
+        <% if archived_count > 0 %>
+          <span class="text-[10px]">(<%= archived_count %>)</span>
+        <% end %>
+      <% end %>
+
+      <%# New Board button %>
+      <button type="button"
+              data-action="click->board-modal#open"
+              data-board-modal-target="newBoardTrigger"
+              class="inline-flex items-center justify-center w-7 h-7 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer"
+              title="New Board">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+          <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+<%# Row 2: Expanded Filters Bar (always visible) %>
   <div data-controller="filter" 
        data-filter-board-id-value="<%= @board.id %>"
        class="hidden md:flex items-center gap-3 px-4 md:px-6 py-2 bg-bg-surface/50 border-t border-border/50 flex-wrap">

@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 // Connects to data-controller="task-modal"
 // Handles both mobile slide-in panel and desktop full-screen modal
 export default class extends Controller {
-  static targets = ["modal", "backdrop", "form", "nameField", "descriptionField", "submitButton", "priorityField", "priorityButton", "priorityGroup", "dueDateField", "dueDateDisplay", "recurringCheckbox", "recurringOptions", "nightlyCheckbox", "nightlyOptions"]
+  static targets = ["modal", "backdrop", "form", "nameField", "descriptionField", "submitButton", "priorityField", "priorityButton", "priorityGroup", "dueDateField", "dueDateDisplay", "recurringCheckbox", "recurringOptions", "nightlyCheckbox", "nightlyOptions", "personaSelect", "personaPill", "personaClear"]
   static values = { taskId: Number }
 
   connect() {
@@ -23,6 +23,7 @@ export default class extends Controller {
       this.open()
       this.resizeDescription()
       this.updatePriorityUI()
+      this.updatePersonaUI()
     }, 10)
   }
 
@@ -120,33 +121,8 @@ export default class extends Controller {
       }
     }).then(html => {
       if (html) {
-        // Parse the turbo-stream response
-        const parser = new DOMParser()
-        const doc = parser.parseFromString(html, 'text/html')
-        const streams = doc.querySelectorAll('turbo-stream')
-
-        let activityStreams = ''
-        let otherStreams = ''
-
-        streams.forEach(stream => {
-          const target = stream.getAttribute('target') || ''
-          // Apply activity updates immediately
-          if (target.startsWith('task-activities-')) {
-            activityStreams += stream.outerHTML
-          } else {
-            otherStreams += stream.outerHTML
-          }
-        })
-
-        // Apply activity updates now
-        if (activityStreams) {
-          Turbo.renderStreamMessage(activityStreams)
-        }
-
-        // Store other updates for when modal closes
-        if (otherStreams) {
-          this.pendingTurboStream = otherStreams
-        }
+        // Apply updates immediately so the UI reflects changes while the modal is open.
+        Turbo.renderStreamMessage(html)
       }
     })
   }
@@ -271,6 +247,56 @@ export default class extends Controller {
     )
   }
 
+
+
+  clearPersona(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (this.hasPersonaSelectTarget) {
+      this.personaSelectTarget.value = ""
+    }
+
+    this.updatePersonaUI()
+
+    // Persist immediately
+    this.save()
+  }
+
+  onPersonaChange() {
+    this.updatePersonaUI()
+    this.scheduleAutoSave()
+  }
+
+  updatePersonaUI() {
+    if (!this.hasPersonaSelectTarget) return
+
+    const selected = this.personaSelectTarget.selectedOptions?.[0]
+    const hasPersona = !!(this.personaSelectTarget.value && this.personaSelectTarget.value.trim().length > 0)
+
+    if (this.hasPersonaPillTarget) {
+      if (hasPersona && selected) {
+        // Option label format: "🤖 Name (model → fallback)"
+        const label = (selected.textContent || "").trim()
+        const display = label.replace(/\s*\(.+\)\s*$/, "").trim()
+        this.personaPillTarget.textContent = display || label
+        this.personaPillTarget.title = label
+        this.personaPillTarget.classList.remove("hidden")
+      } else {
+        this.personaPillTarget.textContent = ""
+        this.personaPillTarget.title = ""
+        this.personaPillTarget.classList.add("hidden")
+      }
+    }
+
+    if (this.hasPersonaClearTarget) {
+      if (hasPersona) {
+        this.personaClearTarget.classList.remove("hidden")
+      } else {
+        this.personaClearTarget.classList.add("hidden")
+      }
+    }
+  }
   toggleRecurring() {
     if (!this.hasRecurringOptionsTarget) return
     const checkbox = this.recurringCheckboxTarget

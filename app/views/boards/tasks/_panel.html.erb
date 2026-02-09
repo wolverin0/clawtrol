@@ -159,7 +159,33 @@
                   </div>
                 </div>
 
-                <!-- Row 2, Col 1: Recurring -->
+                
+
+                <!-- Agent Persona (full width) -->
+                <div class="col-span-2 flex items-center justify-between gap-3">
+                  <span class="text-sm text-content-muted">Agent Persona</span>
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span data-task-modal-target="personaPill"
+                          class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-accent/15 text-accent border border-accent/20 <%= 'hidden' unless task.agent_persona.present? %>"
+                          title="<%= task.agent_persona.present? ? "#{task.agent_persona.emoji || '🤖'} #{task.agent_persona.name}" : '' %>">
+                      <% if task.agent_persona.present? %>
+                        <%= "#{task.agent_persona.emoji || '🤖'} #{task.agent_persona.name}" %>
+                      <% end %>
+                    </span>
+                    <button type="button"
+                            data-task-modal-target="personaClear"
+                            data-action="click->task-modal#clearPersona"
+                            class="cursor-pointer p-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover text-content-muted hover:text-red-400 transition-colors <%= 'hidden' unless task.agent_persona.present? %>"
+                            title="Unassign persona">✕</button>
+
+                    <%= form.select :agent_persona_id,
+                        options_for_select([["Unassigned", ""]] + (@agent_personas || []).map { |p| ["#{p.emoji || '🤖'} #{p.name} (#{p.model_chain})", p.id] }, task.agent_persona_id),
+                        {},
+                        class: "bg-bg-elevated border-none rounded-md text-sm text-content-secondary px-2 py-1.5 focus:ring-0 focus:outline-none max-w-[360px]",
+                        data: { task_modal_target: "personaSelect", action: "change->task-modal#onPersonaChange" } %>
+                  </div>
+                </div>
+<!-- Row 2, Col 1: Recurring -->
                 <div>
                   <% if task.recurring_instance? %>
                     <div class="flex items-center gap-2 text-xs text-content-muted">
