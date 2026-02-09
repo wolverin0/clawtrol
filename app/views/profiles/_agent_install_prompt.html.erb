@@ -1,0 +1,97 @@
+<%# Always-available "agent self-awareness" prompt. %>
+<% api_url = "#{request.base_url}/api/v1" %>
+<% api_token_value = api_token&.raw_token.presence || api_token&.masked_token %>
+<% hooks_token_value = (current_user&.admin? ? Rails.application.config.hooks_token.to_s : "") %>
+
+<div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+  <div class="flex items-center gap-2">
+    <span class="text-lg">📋</span>
+    <h3 class="text-sm font-semibold text-content font-display">Agent Install Prompt</h3>
+    <span class="text-[10px] text-content-muted bg-bg-elevated px-1.5 py-0.5 rounded-full uppercase tracking-wider">Copy</span>
+  </div>
+
+  <p class="text-xs text-content-secondary">
+    Paste this into your OpenClaw/Telegram orchestrator system prompt so it stays aligned with ClawTrol's API, task lifecycle, and reporting contract.
+  </p>
+
+  <div data-controller="clipboard" class="space-y-2">
+    <div class="bg-bg-elevated rounded-md max-h-64 overflow-y-auto">
+      <pre data-clipboard-target="source" class="px-3 py-3 text-[10px] font-mono text-content-secondary whitespace-pre-wrap break-words leading-relaxed"># ClawTrol (ClawDeck fork) - Agent Tooling + Reporting Contract
+BASE_URL: <%= request.base_url %>
+API_URL: <%= api_url %>
+AUTH: "Authorization: Bearer <YOUR_API_TOKEN>"
+YOUR_API_TOKEN: <%= api_token_value.to_s %>
+
+# Hooks (server-side completion callbacks)
+# NOTE: Hooks use X-Hook-Token (not the API token). If you are the admin, it is shown below.
+<% if hooks_token_value.present? %>HOOKS_TOKEN: <%= hooks_token_value %>
+HOOKS_AUTH: "X-Hook-Token: <HOOKS_TOKEN>"<% else %>HOOKS_TOKEN: (ask your ClawTrol admin or set HOOKS_TOKEN on the server)
+HOOKS_AUTH: "X-Hook-Token: <HOOKS_TOKEN>"<% end %>
+
+# Task Lifecycle (what "done" means here)
+# 1) Work happens in ClawTrol tasks. The UI is the source of truth.
+# 2) When a run finishes you MUST report outcome deterministically.
+#
+# Always do BOTH (in this order):
+# A) POST /api/v1/hooks/task_outcome  (OutcomeContract v1: structured YES/NO follow-up)
+# B) POST /api/v1/hooks/agent_complete (persist raw findings + output file paths; moves to in_review)
+
+# Follow-up policy (no kanban bloat):
+# - If follow-up is needed: needs_follow_up=true AND recommended_action="requeue_same_task"
+#   - Include next_prompt (required).
+#   - ClawTrol will move THE SAME CARD back to up_next and wake OpenClaw.
+# - If no follow-up: needs_follow_up=false AND recommended_action="in_review"
+#   - Task stays in review; human decides next.
+
+# Model + Persona controls:
+# - Task.model is authoritative for what model to use (ClawTrol maps to OpenClaw aliases).
+# - Task.agent_persona_id selects the persona; the spawned prompt may include persona instructions.
+
+# Useful endpoints (Bearer token auth):
+# - GET  /api/v1/boards
+# - GET  /api/v1/tasks?status=up_next&assigned_to_agent=true&blocked=false
+# - POST /api/v1/tasks/spawn_ready   (create + reserve a task for spawning)
+# - POST /api/v1/tasks/:id/link_session
+# - PATCH /api/v1/tasks/:id          (status/model/priority/nightly/recurring/agent_persona_id)
+# - GET  /api/v1/tasks/:id/agent_log (live progress)
+
+# Completion: OutcomeContract v1 (idempotent by run_id UUID)
+# POST <BASE_URL>/api/v1/hooks/task_outcome
+# Headers: <HOOKS_AUTH>, Content-Type: application/json
+# Body:
+# {
+#   "version":"1",
+#   "task_id":123,
+#   "run_id":"<uuid>",
+#   "ended_at":"<iso8601>",
+#   "needs_follow_up": false,
+#   "recommended_action":"in_review|requeue_same_task",
+#   "next_prompt":"<required if requeue_same_task>",
+#   "summary":"<one paragraph>",
+#   "achieved":["..."],
+#   "evidence":["..."],
+#   "remaining":["..."],
+#   "model_used":"opus|codex|gemini|glm|sonnet",
+#   "openclaw_session_id":"...",
+#   "openclaw_session_key":"..."
+# }
+
+# Completion: raw output persistence
+# POST <BASE_URL>/api/v1/hooks/agent_complete
+# Headers: <HOOKS_AUTH>, Content-Type: application/json
+# Body: { "task_id":123, "findings":"...", "session_id":"...", "session_key":"...", "output_files":["path1","path2"] }</pre>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button type="button"
+              data-action="click->clipboard#copy"
+              class="px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+        <span data-clipboard-target="label">Copy to clipboard</span>
+      </button>
+      <span class="text-[10px] text-content-muted">
+        Tip: after updating ClawTrol, re-copy this to keep your Telegram orchestrator aligned.
+      </span>
+    </div>
+  </div>
+</div>
+

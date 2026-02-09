@@ -294,6 +294,7 @@
 
   <!-- Integration Tab -->
   <div data-tabs-target="panel" data-tab="integration" class="hidden space-y-6">
+    <%= render "profiles/agent_install_prompt", api_token: @api_token %>
     <%= render "profiles/integration_wizard" %>
   </div>
 </div>
