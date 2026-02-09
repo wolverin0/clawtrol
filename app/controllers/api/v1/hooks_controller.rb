@@ -56,6 +56,137 @@ module Api
         render json: { success: true, task_id: task.id, status: task.status }
       end
 
+      # POST /api/v1/hooks/task_outcome
+      #
+      # OpenClaw completion hook (OutcomeContract v1). This is intentionally
+      # idempotent via run_id (UUID).
+      def task_outcome
+        token = request.headers["X-Hook-Token"] || params[:token]
+        unless ActiveSupport::SecurityUtils.secure_compare(token.to_s, Rails.application.config.hooks_token.to_s)
+          return render json: { error: "unauthorized" }, status: :unauthorized
+        end
+
+        task = Task.find_by(id: params[:task_id])
+        return render json: { error: "task not found" }, status: :not_found unless task
+
+        payload = params.to_unsafe_h
+
+        version = payload["version"].to_s
+        run_id = payload["run_id"].to_s
+        ended_at_raw = payload["ended_at"].to_s
+        needs_follow_up = ActiveModel::Type::Boolean.new.cast(payload["needs_follow_up"])
+        recommended_action = payload["recommended_action"].to_s.presence || "in_review"
+
+        unless version == "1"
+          return render json: { error: "invalid version" }, status: :unprocessable_entity
+        end
+
+        unless run_id.match?(/\A[0-9a-fA-F\-]{36}\z/)
+          return render json: { error: "invalid run_id" }, status: :unprocessable_entity
+        end
+
+        allowed_actions = TaskRun::RECOMMENDED_ACTIONS
+        unless allowed_actions.include?(recommended_action)
+          return render json: { error: "invalid recommended_action" }, status: :unprocessable_entity
+        end
+
+        next_prompt = payload["next_prompt"].to_s
+        if needs_follow_up && recommended_action == "requeue_same_task" && next_prompt.blank?
+          return render json: { error: "next_prompt required for requeue_same_task" }, status: :unprocessable_entity
+        end
+
+        ended_at =
+          begin
+            ended_at_raw.present? ? Time.iso8601(ended_at_raw) : Time.current
+          rescue StandardError
+            Time.current
+          end
+
+        wake_after_commit = false
+        idempotent = false
+
+        task_run = nil
+        existing = TaskRun.find_by(run_id: run_id)
+        if existing
+          return render json: { success: true, idempotent: true, task_id: task.id, run_number: existing.run_number, status: task.status }
+        end
+
+        Task.transaction do
+          task.lock!
+
+          # Re-check under lock for race conditions.
+          task_run = TaskRun.find_by(run_id: run_id)
+          if task_run
+            idempotent = true
+            next
+          end
+
+          run_number = task.run_count.to_i + 1
+
+          task_run = TaskRun.create!(
+            task: task,
+            run_id: run_id,
+            run_number: run_number,
+            ended_at: ended_at,
+            needs_follow_up: needs_follow_up,
+            recommended_action: recommended_action,
+            summary: payload["summary"],
+            achieved: Array(payload["achieved"]),
+            evidence: Array(payload["evidence"]),
+            remaining: Array(payload["remaining"]),
+            next_prompt: payload["next_prompt"],
+            model_used: payload["model_used"],
+            openclaw_session_id: payload["openclaw_session_id"],
+            openclaw_session_key: payload["openclaw_session_key"],
+            raw_payload: payload
+          )
+
+          # Release any runner lease: the run is over, even if we're requeueing.
+          task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
+
+          base_updates = {
+            run_count: run_number,
+            last_run_id: run_id,
+            last_outcome_at: ended_at,
+            last_needs_follow_up: needs_follow_up,
+            last_recommended_action: recommended_action,
+            agent_claimed_at: nil
+          }
+
+          case recommended_action
+          when "requeue_same_task"
+            # Follow-up stays on the same card: move back to Up Next and let
+            # OpenClaw pick it up again (new run).
+            task.update!(
+              base_updates.merge(
+                status: :up_next,
+                # Keep assignment settings (assigned_to_agent + assigned_at)
+                agent_session_id: nil,
+                agent_session_key: nil
+              )
+            )
+            wake_after_commit = true
+          else
+            # Default: keep in review for human decision.
+            task.update!(
+              base_updates.merge(
+                status: :in_review
+              )
+            )
+          end
+        end
+
+        if wake_after_commit
+          # Best-effort; don't fail the hook if wake fails.
+          OpenclawWebhookService.new(task.user).notify_task_assigned(task)
+        end
+
+        render json: { success: true, idempotent: idempotent, task_id: task.id, run_number: task_run&.run_number, status: task.status }
+      rescue ActiveRecord::RecordNotUnique
+        existing = TaskRun.find_by(run_id: params[:run_id].to_s)
+        render json: { success: true, idempotent: true, task_id: task.id, run_number: existing&.run_number, status: task.status }
+      end
+
       private
 
       def find_task_from_params

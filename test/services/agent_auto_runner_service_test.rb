@@ -209,11 +209,60 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
 
       task.reload
       assert_equal "up_next", task.status
+      assert_equal false, task.assigned_to_agent
       assert_nil task.agent_claimed_at
       assert_equal 0, task.runner_leases.where(released_at: nil).count, "expected lease to be released on spawn failure"
+      assert_equal 1, task.auto_pull_failures
+      assert task.auto_pull_last_error_at.present?
     end
 
     notif = Notification.order(created_at: :desc).find_by(task: task, event_type: "auto_pull_error")
     assert notif.present?, "expected an auto_pull_error notification"
+  end
+
+  test "auto-pull circuit breaker blocks after 3 failures and cooldown prevents immediate retry" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+    task = Task.create!(
+      user: user,
+      board: board,
+      name: "Flaky task",
+      status: :up_next,
+      blocked: false
+    )
+
+    failing_client = Class.new do
+      def initialize(_user); end
+      def spawn_session!(*); raise "boom"; end
+    end
+
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    tz = Time.find_zone!("America/Argentina/Buenos_Aires")
+    t0 = tz.local(2026, 2, 8, 23, 30, 0)
+
+    travel_to t0 do
+      AgentAutoRunnerService.new(openclaw_gateway_client: failing_client, cache: cache).run!
+      assert_equal 1, task.reload.auto_pull_failures
+
+      # Within cooldown: should not attempt again (still 1 failure)
+      AgentAutoRunnerService.new(openclaw_gateway_client: failing_client, cache: cache).run!
+      assert_equal 1, task.reload.auto_pull_failures
+    end
+
+    travel_to t0 + 6.minutes do
+      AgentAutoRunnerService.new(openclaw_gateway_client: failing_client, cache: cache).run!
+      assert_equal 2, task.reload.auto_pull_failures
+      assert_equal false, task.auto_pull_blocked
+    end
+
+    travel_to t0 + 12.minutes do
+      AgentAutoRunnerService.new(openclaw_gateway_client: failing_client, cache: cache).run!
+      task.reload
+      assert_equal 3, task.auto_pull_failures
+      assert_equal true, task.auto_pull_blocked
+    end
   end
 end

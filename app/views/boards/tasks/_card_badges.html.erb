@@ -115,6 +115,24 @@
   </span>
 <% end %>
 
+<%# Run badge (iterations on the same workstream) %>
+<% if task.respond_to?(:run_count) && task.run_count.to_i > 0 %>
+  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-bg-surface text-content-muted"
+        title="Runs completed: <%= task.run_count %>">
+    <span class="hidden sm:inline">Run</span> <%= task.run_count %>
+  </span>
+<% end %>
+
+<%# Follow-up decision badge (from last OutcomeContract) %>
+<% if task.respond_to?(:last_needs_follow_up) && !task.last_needs_follow_up.nil? %>
+  <% fu_class = task.last_needs_follow_up ? "bg-yellow-500/20 text-yellow-400" : "bg-green-500/20 text-green-400" %>
+  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium <%= fu_class %>"
+        title="Follow-up needed: <%= task.last_needs_follow_up ? 'YES' : 'NO' %><%= task.last_recommended_action.present? ? " (#{task.last_recommended_action})" : '' %>">
+    <span class="hidden sm:inline">FU</span>
+    <%= task.last_needs_follow_up ? "YES" : "NO" %>
+  </span>
+<% end %>
+
 <%# Followup indicator %>
 <% if task.followup_task_id.present? %>
   <span class="text-[10px]" title="Has follow-up task">↪️</span>

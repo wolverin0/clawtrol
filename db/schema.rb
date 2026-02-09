@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_09_135521) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_09_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pgcrypto"
 
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
@@ -168,6 +169,127 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_135521) do
     t.index ["created_at"], name: "index_solid_cable_messages_on_created_at"
   end
 
+  create_table "solid_queue_blocked_executions", force: :cascade do |t|
+    t.string "concurrency_key", null: false
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.bigint "job_id", null: false
+    t.integer "priority", default: 0, null: false
+    t.string "queue_name", null: false
+    t.index ["concurrency_key", "priority", "job_id"], name: "index_solid_queue_blocked_executions_for_release"
+    t.index ["expires_at", "concurrency_key"], name: "index_solid_queue_blocked_executions_for_maintenance"
+    t.index ["job_id"], name: "index_solid_queue_blocked_executions_on_job_id", unique: true
+  end
+
+  create_table "solid_queue_claimed_executions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "job_id", null: false
+    t.bigint "process_id"
+    t.index ["job_id"], name: "index_solid_queue_claimed_executions_on_job_id", unique: true
+    t.index ["process_id", "job_id"], name: "index_solid_queue_claimed_executions_on_process_id_and_job_id"
+  end
+
+  create_table "solid_queue_failed_executions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "error"
+    t.bigint "job_id", null: false
+    t.index ["job_id"], name: "index_solid_queue_failed_executions_on_job_id", unique: true
+  end
+
+  create_table "solid_queue_jobs", force: :cascade do |t|
+    t.string "active_job_id"
+    t.text "arguments"
+    t.string "class_name", null: false
+    t.string "concurrency_key"
+    t.datetime "created_at", null: false
+    t.datetime "finished_at"
+    t.integer "priority", default: 0, null: false
+    t.string "queue_name", null: false
+    t.datetime "scheduled_at"
+    t.datetime "updated_at", null: false
+    t.index ["active_job_id"], name: "index_solid_queue_jobs_on_active_job_id"
+    t.index ["class_name"], name: "index_solid_queue_jobs_on_class_name"
+    t.index ["finished_at"], name: "index_solid_queue_jobs_on_finished_at"
+    t.index ["queue_name", "finished_at"], name: "index_solid_queue_jobs_for_filtering"
+    t.index ["scheduled_at", "finished_at"], name: "index_solid_queue_jobs_for_alerting"
+  end
+
+  create_table "solid_queue_pauses", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "queue_name", null: false
+    t.index ["queue_name"], name: "index_solid_queue_pauses_on_queue_name", unique: true
+  end
+
+  create_table "solid_queue_processes", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "hostname"
+    t.string "kind", null: false
+    t.datetime "last_heartbeat_at", null: false
+    t.text "metadata"
+    t.string "name", null: false
+    t.integer "pid", null: false
+    t.bigint "supervisor_id"
+    t.index ["last_heartbeat_at"], name: "index_solid_queue_processes_on_last_heartbeat_at"
+    t.index ["name", "supervisor_id"], name: "index_solid_queue_processes_on_name_and_supervisor_id", unique: true
+    t.index ["supervisor_id"], name: "index_solid_queue_processes_on_supervisor_id"
+  end
+
+  create_table "solid_queue_ready_executions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "job_id", null: false
+    t.integer "priority", default: 0, null: false
+    t.string "queue_name", null: false
+    t.index ["job_id"], name: "index_solid_queue_ready_executions_on_job_id", unique: true
+    t.index ["priority", "job_id"], name: "index_solid_queue_poll_all"
+    t.index ["queue_name", "priority", "job_id"], name: "index_solid_queue_poll_by_queue"
+  end
+
+  create_table "solid_queue_recurring_executions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "job_id", null: false
+    t.datetime "run_at", null: false
+    t.string "task_key", null: false
+    t.index ["job_id"], name: "index_solid_queue_recurring_executions_on_job_id", unique: true
+    t.index ["task_key", "run_at"], name: "index_solid_queue_recurring_executions_on_task_key_and_run_at", unique: true
+  end
+
+  create_table "solid_queue_recurring_tasks", force: :cascade do |t|
+    t.text "arguments"
+    t.string "class_name"
+    t.string "command", limit: 2048
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "key", null: false
+    t.integer "priority", default: 0
+    t.string "queue_name"
+    t.string "schedule", null: false
+    t.boolean "static", default: true, null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_solid_queue_recurring_tasks_on_key", unique: true
+    t.index ["static"], name: "index_solid_queue_recurring_tasks_on_static"
+  end
+
+  create_table "solid_queue_scheduled_executions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "job_id", null: false
+    t.integer "priority", default: 0, null: false
+    t.string "queue_name", null: false
+    t.datetime "scheduled_at", null: false
+    t.index ["job_id"], name: "index_solid_queue_scheduled_executions_on_job_id", unique: true
+    t.index ["scheduled_at", "priority", "job_id"], name: "index_solid_queue_dispatch_all"
+  end
+
+  create_table "solid_queue_semaphores", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.string "key", null: false
+    t.datetime "updated_at", null: false
+    t.integer "value", default: 1, null: false
+    t.index ["expires_at"], name: "index_solid_queue_semaphores_on_expires_at"
+    t.index ["key", "value"], name: "index_solid_queue_semaphores_on_key_and_value"
+    t.index ["key"], name: "index_solid_queue_semaphores_on_key", unique: true
+  end
+
   create_table "task_activities", force: :cascade do |t|
     t.string "action", null: false
     t.string "actor_emoji"
@@ -197,6 +319,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_135521) do
     t.index ["task_id"], name: "index_task_dependencies_on_task_id"
   end
 
+  create_table "task_runs", force: :cascade do |t|
+    t.jsonb "achieved", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "ended_at"
+    t.jsonb "evidence", default: [], null: false
+    t.string "model_used"
+    t.boolean "needs_follow_up", default: false, null: false
+    t.text "next_prompt"
+    t.string "openclaw_session_id"
+    t.string "openclaw_session_key"
+    t.jsonb "raw_payload", default: {}, null: false
+    t.string "recommended_action", default: "in_review", null: false
+    t.jsonb "remaining", default: [], null: false
+    t.uuid "run_id", null: false
+    t.integer "run_number", null: false
+    t.text "summary"
+    t.bigint "task_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["run_id"], name: "index_task_runs_on_run_id", unique: true
+    t.index ["task_id", "run_number"], name: "index_task_runs_on_task_id_and_run_number", unique: true
+    t.index ["task_id"], name: "index_task_runs_on_task_id"
+  end
+
   create_table "task_templates", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description_template"
@@ -223,6 +368,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_135521) do
     t.datetime "archived_at"
     t.datetime "assigned_at"
     t.boolean "assigned_to_agent", default: false, null: false
+    t.boolean "auto_pull_blocked", default: false, null: false
+    t.integer "auto_pull_failures", default: 0, null: false
+    t.datetime "auto_pull_last_attempt_at"
+    t.text "auto_pull_last_error"
+    t.datetime "auto_pull_last_error_at"
     t.boolean "blocked", default: false, null: false
     t.bigint "board_id", null: false
     t.boolean "completed", default: false, null: false
@@ -237,6 +387,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_135521) do
     t.text "error_message"
     t.bigint "followup_task_id"
     t.integer "impact", default: 0, null: false
+    t.boolean "last_needs_follow_up"
+    t.datetime "last_outcome_at"
+    t.string "last_recommended_action"
+    t.uuid "last_run_id"
     t.string "model"
     t.string "name"
     t.datetime "next_recurrence_at"
@@ -256,6 +410,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_135521) do
     t.jsonb "review_result", default: {}
     t.string "review_status"
     t.string "review_type"
+    t.integer "run_count", default: 0, null: false
     t.integer "status", default: 0, null: false
     t.text "suggested_followup"
     t.string "tags", default: [], array: true
@@ -267,6 +422,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_135521) do
     t.index ["agent_persona_id"], name: "index_tasks_on_agent_persona_id"
     t.index ["archived_at"], name: "index_tasks_on_archived_at", where: "(archived_at IS NOT NULL)"
     t.index ["assigned_to_agent"], name: "index_tasks_on_assigned_to_agent"
+    t.index ["auto_pull_blocked"], name: "index_tasks_on_auto_pull_blocked"
     t.index ["blocked"], name: "index_tasks_on_blocked"
     t.index ["board_id", "status", "position"], name: "index_tasks_on_board_status_position"
     t.index ["board_id"], name: "index_tasks_on_board_id"
@@ -340,10 +496,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_135521) do
   add_foreign_key "openclaw_integration_statuses", "users"
   add_foreign_key "runner_leases", "tasks"
   add_foreign_key "sessions", "users"
+  add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_failed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_ready_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "task_activities", "tasks"
   add_foreign_key "task_activities", "users"
   add_foreign_key "task_dependencies", "tasks"
   add_foreign_key "task_dependencies", "tasks", column: "depends_on_id"
+  add_foreign_key "task_runs", "tasks"
   add_foreign_key "task_templates", "users"
   add_foreign_key "tasks", "agent_personas"
   add_foreign_key "tasks", "boards"

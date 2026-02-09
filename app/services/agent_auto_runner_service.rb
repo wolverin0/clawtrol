@@ -22,6 +22,8 @@ class AgentAutoRunnerService
   ZOMBIE_STALE_AFTER = 30.minutes
   SPAWN_COOLDOWN = 1.minute
   ZOMBIE_NOTIFY_COOLDOWN = 60.minutes
+  FAILURE_COOLDOWN = 5.minutes
+  FAILURE_LIMIT = 3
 
   NIGHT_TZ = "America/Argentina/Buenos_Aires"
 
@@ -72,6 +74,8 @@ class AgentAutoRunnerService
   def runnable_up_next_task_for(user)
     scope = user.tasks
       .where(status: :up_next, blocked: false, agent_claimed_at: nil, agent_session_id: nil, agent_session_key: nil)
+      .where(auto_pull_blocked: false)
+      .where("auto_pull_last_error_at IS NULL OR auto_pull_last_error_at < ?", Time.current - FAILURE_COOLDOWN)
       .where.not(recurring: true, parent_task_id: nil) # never auto-run recurring templates
 
     # Apply nightly gating
@@ -88,7 +92,7 @@ class AgentAutoRunnerService
 
     claim_for_auto_pull!(task)
 
-    Notification.create!(
+    Notification.create_deduped!(
       user: user,
       task: task,
       event_type: "auto_pull_claimed",
@@ -96,14 +100,19 @@ class AgentAutoRunnerService
     )
 
     prompt = build_openclaw_prompt(task)
+    task.update_columns(auto_pull_last_attempt_at: Time.current)
     spawn = @openclaw_gateway_client.new(user).spawn_session!(model: task.openclaw_spawn_model, prompt: prompt)
 
     task.update!(
       agent_session_key: spawn[:child_session_key],
-      agent_session_id: spawn[:session_id]
+      agent_session_id: spawn[:session_id],
+      auto_pull_failures: 0,
+      auto_pull_blocked: false,
+      auto_pull_last_error_at: nil,
+      auto_pull_last_error: nil
     )
 
-    Notification.create!(
+    Notification.create_deduped!(
       user: user,
       task: task,
       event_type: "auto_pull_spawned",
@@ -118,9 +127,10 @@ class AgentAutoRunnerService
     @logger.error("[AgentAutoRunner] auto-pull spawn failed user_id=#{user.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
 
     begin
+      mark_auto_pull_failure!(task, e) if task
       revert_auto_pull_claim!(task) if task
 
-      Notification.create!(
+      Notification.create_deduped!(
         user: user,
         task: task,
         event_type: "auto_pull_error",
@@ -176,10 +186,28 @@ class AgentAutoRunnerService
 
     task.update!(
       status: :up_next,
+      assigned_to_agent: false,
+      assigned_at: nil,
       agent_claimed_at: nil,
       agent_session_id: nil,
       agent_session_key: nil
     )
+  end
+
+  def mark_auto_pull_failure!(task, error)
+    return unless task.respond_to?(:auto_pull_failures)
+
+    failures = task.auto_pull_failures.to_i + 1
+    blocked = failures >= FAILURE_LIMIT
+
+    task.update_columns(
+      auto_pull_failures: failures,
+      auto_pull_blocked: blocked,
+      auto_pull_last_error_at: Time.current,
+      auto_pull_last_error: "#{error.class}: #{error.message}".truncate(500)
+    )
+  rescue StandardError
+    # best-effort; never crash the runner
   end
 
   def eligible_for_time_window?(task)
@@ -210,6 +238,7 @@ class AgentAutoRunnerService
 
   def build_openclaw_prompt(task)
     validation = task.validation_command.present? ? "\n\n## Validation\nRun:\n```bash\n#{task.validation_command}\n```\n" : ""
+    hooks_token = Rails.application.config.hooks_token.to_s
 
     <<~PROMPT
       ## Task ##{task.id}: #{task.name}
@@ -225,7 +254,7 @@ class AgentAutoRunnerService
 
       ```bash
       curl -s -X POST http://192.168.100.186:4001/api/v1/hooks/agent_complete \
-        -H "X-Hook-Token: otacon_hooks_f0xh0und_2026" \
+        -H "X-Hook-Token: #{hooks_token}" \
         -H "Content-Type: application/json" \
         -d '{"task_id":#{task.id},"findings":"SUMMARY + COMMIT HASH + test command","output_files":["..."]}'
       ```
@@ -253,7 +282,7 @@ class AgentAutoRunnerService
       lease.release!
       task.update!(status: :up_next, agent_claimed_at: nil, agent_session_id: nil, agent_session_key: nil)
 
-      Notification.create!(
+      Notification.create_deduped!(
         user: user,
         task: task,
         event_type: "runner_lease_expired",
@@ -283,7 +312,7 @@ class AgentAutoRunnerService
 
       task.update!(status: :up_next, agent_claimed_at: nil)
 
-      Notification.create!(
+      Notification.create_deduped!(
         user: user,
         task: task,
         event_type: "runner_lease_missing",
@@ -316,7 +345,7 @@ class AgentAutoRunnerService
     cache_key = "agent_auto_runner:last_zombie_notify:user:#{user.id}"
     return zombie_count if @cache.read(cache_key).present?
 
-    Notification.create!(
+    Notification.create_deduped!(
       user: user,
       event_type: "zombie_detected",
       message: "Zombie KPI: #{zombie_count} in-progress task(s) look stale (> #{ZOMBIE_STALE_AFTER.inspect} without updates)"

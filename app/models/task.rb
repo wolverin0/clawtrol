@@ -12,6 +12,7 @@ class Task < ApplicationRecord
   has_many :notifications, dependent: :destroy
   has_many :token_usages, dependent: :destroy
 
+  has_many :task_runs, dependent: :destroy
   has_many :runner_leases, dependent: :destroy
 
   # Task dependencies (blocking relationships)
@@ -102,6 +103,7 @@ class Task < ApplicationRecord
   after_update :create_status_notification, if: :saved_change_to_status?
   after_update :try_transcript_capture, if: :saved_change_to_status?
   after_update :heartbeat_lease_from_activity_evidence
+  after_update :reset_auto_pull_guardrails_if_manual_change
 
   # Position management - acts_as_list functionality without the gem
   before_create :set_position
@@ -725,6 +727,26 @@ class Task < ApplicationRecord
     return unless user.openclaw_gateway_url.present?
 
     OpenclawNotifyJob.perform_later(id)
+  end
+
+  # Reset circuit breaker fields on manual (web) edits, so a human can unblock
+  # a task and let auto-pull try again.
+  def reset_auto_pull_guardrails_if_manual_change
+    return unless activity_source == "web"
+    return unless saved_change_to_status? || saved_change_to_assigned_to_agent?
+
+    return unless respond_to?(:auto_pull_failures) && respond_to?(:auto_pull_blocked)
+
+    return unless auto_pull_failures.to_i > 0 || auto_pull_blocked?
+
+    update_columns(
+      auto_pull_failures: 0,
+      auto_pull_blocked: false,
+      auto_pull_last_error_at: nil,
+      auto_pull_last_error: nil
+    )
+  rescue StandardError => e
+    Rails.logger.warn("[Task##{id}] reset_auto_pull_guardrails failed: #{e.class}: #{e.message}")
   end
 
   # Try to auto-claim this task based on board settings
