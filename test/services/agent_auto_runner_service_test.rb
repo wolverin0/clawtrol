@@ -64,6 +64,55 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     assert stuck.runner_leases.where(released_at: nil).none?, "expected lease to be released"
   end
 
+  test "demotes in_progress tasks missing an active lease even if a released lease exists" do
+    user = User.create!(
+      email_address: "auto_runner_missing_lease_#{SecureRandom.hex(4)}@example.test",
+      password: "password123",
+      password_confirmation: "password123",
+      agent_auto_mode: true,
+      openclaw_gateway_url: "http://example.test",
+      openclaw_gateway_token: "tok"
+    )
+
+    board = Board.create!(user: user, name: "Test Board")
+
+    task = Task.create!(
+      user: user,
+      board: board,
+      name: "Missing lease task",
+      status: :up_next,
+      assigned_to_agent: true
+    )
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      now = Time.current
+
+      # Historical lease exists but is already released; it should not prevent demotion.
+      RunnerLease.create!(
+        task: task,
+        agent_name: "Test Agent",
+        lease_token: SecureRandom.hex(16),
+        source: "test",
+        started_at: now - 40.minutes,
+        last_heartbeat_at: now - 40.minutes,
+        expires_at: now - 30.minutes,
+        released_at: now - 30.minutes
+      )
+
+      # Simulate DB drift: task ended up in_progress without an active lease.
+      task.update_columns(status: Task.statuses[:in_progress], updated_at: 20.minutes.ago)
+
+      cache = ActiveSupport::Cache::MemoryStore.new
+      AgentAutoRunnerService.new(openclaw_gateway_client: FakeGatewayClient, cache: cache).run!
+      assert_equal "up_next", task.reload.status
+
+      notif = Notification.order(created_at: :desc).find_by(task: task, event_type: "runner_lease_missing")
+      assert notif.present?, "expected a runner_lease_missing notification"
+    end
+
+    assert_equal "up_next", task.reload.status
+  end
+
   test "auto-pull claims + spawns the top eligible up_next task and links session" do
     user = users(:one)
     user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")

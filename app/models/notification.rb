@@ -18,6 +18,8 @@ class Notification < ApplicationRecord
     auto_pull_error
     zombie_task
     zombie_detected
+    runner_lease_expired
+    runner_lease_missing
   ].freeze
 
   validates :event_type, presence: true, inclusion: { in: EVENT_TYPES }
@@ -59,6 +61,8 @@ class Notification < ApplicationRecord
       "❌"
     when "zombie_task", "zombie_detected"
       "🧟"
+    when "runner_lease_expired", "runner_lease_missing"
+      "🏷️"
     else
       "🔔"
     end
@@ -77,6 +81,8 @@ class Notification < ApplicationRecord
       "text-status-error"
     when "zombie_task", "zombie_detected"
       "text-status-error"
+    when "runner_lease_expired", "runner_lease_missing"
+      "text-status-warning"
     else
       "text-content-secondary"
     end
