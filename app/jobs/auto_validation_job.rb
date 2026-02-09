@@ -2,7 +2,7 @@
 # - Generates rule-based validation command from output_files
 # - If no command can be generated → leave in_review for human review
 # - If command passes → auto-move to done
-# - If command fails → move to in_progress, create follow-up task
+# - If command fails → move to up_next (truthful queue), create follow-up task
 class AutoValidationJob < ApplicationJob
   queue_as :default
 
@@ -65,20 +65,22 @@ class AutoValidationJob < ApplicationJob
   end
 
   def handle_validation_failed(task, user, result)
-    # Move back to in_progress
+    # Validation failure means: agent work is needed again, but the task is not
+    # actually running yet. Keep the board truthful by queuing it.
     task.update!(
-      status: :in_progress,
-      validation_status: "failed"
+      status: :up_next,
+      validation_status: "failed",
+      agent_claimed_at: nil
     )
 
-    # Create follow-up task with error context
+    # Create follow-up task with error context (queued for auto-runner)
     follow_up = Task.create!(
       name: "Fix: #{task.name.truncate(80)}",
       description: build_followup_description(task, result),
       board_id: task.board_id,
       user_id: task.user_id,
       parent_task_id: task.id,
-      status: :in_progress,
+      status: :up_next,
       model: task.model,
       assigned_to_agent: true,
       assigned_at: Time.current,

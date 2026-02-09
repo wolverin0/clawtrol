@@ -35,4 +35,19 @@ class TaskTest < ActiveSupport::TestCase
 
     assert_equal [t3.id, t2.id, t1.id], ordered_ids.first(3)
   end
+
+  test "assigned tasks cannot move to in_progress without a runner lease (or linked session)" do
+    board = boards(:one)
+    user = users(:one)
+
+    task = Task.create!(name: "lease required", board: board, user: user, status: :up_next, assigned_to_agent: true)
+
+    task.status = :in_progress
+    assert_not task.valid?
+    assert_includes task.errors[:status].join(" "), "Runner Lease"
+
+    # Linked session counts as legacy evidence
+    task.agent_session_id = "FAKE"
+    assert task.valid?
+  end
 end

@@ -12,6 +12,8 @@ class Task < ApplicationRecord
   has_many :notifications, dependent: :destroy
   has_many :token_usages, dependent: :destroy
 
+  has_many :runner_leases, dependent: :destroy
+
   # Task dependencies (blocking relationships)
   has_many :task_dependencies, dependent: :destroy
   has_many :dependencies, through: :task_dependencies, source: :depends_on
@@ -72,6 +74,7 @@ class Task < ApplicationRecord
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
   validate :agent_output_required_for_done_transition, if: :moving_to_done?
+  validate :in_progress_requires_active_lease, if: :moving_to_in_progress?
 
   # Returns the model identifier that OpenClaw should receive for sessions_spawn.
   # (OpenClaw supports model *aliases* such as gemini3.)
@@ -98,6 +101,7 @@ class Task < ApplicationRecord
   after_update :warn_if_review_without_session, if: :saved_change_to_status?
   after_update :create_status_notification, if: :saved_change_to_status?
   after_update :try_transcript_capture, if: :saved_change_to_status?
+  after_update :heartbeat_lease_from_activity_evidence
 
   # Position management - acts_as_list functionality without the gem
   before_create :set_position
@@ -424,6 +428,38 @@ class Task < ApplicationRecord
     followup
   end
 
+  # Runner lease helpers (truthfulness invariant)
+  def active_runner_lease
+    runner_leases.active.order(expires_at: :desc).first
+  end
+
+  def runner_lease_active?
+    active_runner_lease.present?
+  end
+
+  def runner_last_heartbeat_at
+    active_runner_lease&.last_heartbeat_at
+  end
+
+  def runner_started_at
+    active_runner_lease&.started_at
+  end
+
+  def runner_age_seconds
+    return nil unless runner_started_at
+    (Time.current - runner_started_at).to_i
+  end
+
+  def runner_heartbeat_age_seconds
+    return nil unless runner_last_heartbeat_at
+    (Time.current - runner_last_heartbeat_at).to_i
+  end
+
+  def heartbeat_runner_lease!
+    lease = active_runner_lease
+    lease&.heartbeat!
+  end
+
   # Agent activity visibility: show panel even when session_id is missing
   # if we can infer an agent run happened.
   def show_agent_activity?
@@ -545,11 +581,28 @@ class Task < ApplicationRecord
     will_save_change_to_status? && status == "done"
   end
 
+  def moving_to_in_progress?
+    will_save_change_to_status? && status == "in_progress"
+  end
+
   def agent_output_required_for_done_transition
     return unless requires_agent_output_for_done?
     return if has_agent_output_marker?
 
     errors.add(:status, "Cannot mark as done without Agent Output. Use 'Recuperar del Transcript' in the task panel, or add ## Agent Output manually.")
+  end
+
+  # Truthfulness invariant:
+  # A task may only be in_progress if there is verifiable run evidence.
+  # We enforce this only for agent-assigned tasks to avoid breaking
+  # human-only workflows.
+  def in_progress_requires_active_lease
+    return unless assigned_to_agent?
+
+    # Accept a linked session as legacy/equivalent evidence.
+    return if runner_lease_active? || agent_session_id.present?
+
+    errors.add(:status, "cannot be In Progress without an active Runner Lease (or a linked agent session)")
   end
 
   # Security: validate that validation_command is safe to execute
@@ -647,6 +700,25 @@ class Task < ApplicationRecord
     TranscriptCaptureJob.perform_later(id)
   end
 
+  # Any verifiable "agent evidence" should renew the lease, keeping the UI
+  # truthful about what is actually running.
+  def heartbeat_lease_from_activity_evidence
+    return unless in_progress?
+    return unless assigned_to_agent?
+
+    relevant = saved_change_to_agent_session_id? ||
+      saved_change_to_agent_claimed_at? ||
+      saved_change_to_description? ||
+      saved_change_to_output_files? ||
+      saved_change_to_status?
+
+    return unless relevant
+
+    heartbeat_runner_lease!
+  rescue StandardError => e
+    Rails.logger.warn("[Task##{id}] lease heartbeat failed: #{e.class}: #{e.message}")
+  end
+
   # Notify OpenClaw gateway when task is moved to in_progress and assigned to agent
   def notify_openclaw_if_urgent
     return unless status == "in_progress" && assigned_to_agent?
@@ -661,11 +733,24 @@ class Task < ApplicationRecord
     return unless board.can_auto_claim?
     return unless board.task_matches_auto_claim?(self)
 
-    # Auto-claim: assign to agent and move to in_progress
-    update_columns(
+    now = Time.current
+
+    RunnerLease.create!(
+      task: self,
+      agent_name: user&.agent_name,
+      lease_token: SecureRandom.hex(24),
+      source: "auto_claim",
+      started_at: now,
+      last_heartbeat_at: now,
+      expires_at: now + RunnerLease::LEASE_DURATION
+    )
+
+    # Auto-claim: assign to agent and move to in_progress (validation enforces lease)
+    update!(
       assigned_to_agent: true,
-      assigned_at: Time.current,
-      status: Task.statuses[:in_progress]
+      assigned_at: now,
+      agent_claimed_at: now,
+      status: :in_progress
     )
 
     # Record the auto-claim time on the board (rate limiting)

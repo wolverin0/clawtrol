@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_08_160022) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_09_135521) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -130,6 +130,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_08_160022) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_openclaw_integration_statuses_on_user_id", unique: true
+  end
+
+  create_table "runner_leases", force: :cascade do |t|
+    t.string "agent_name"
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "last_heartbeat_at", null: false
+    t.string "lease_token", null: false
+    t.datetime "released_at"
+    t.string "source", default: "auto_runner", null: false
+    t.datetime "started_at", null: false
+    t.bigint "task_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expires_at"], name: "index_runner_leases_on_expires_at"
+    t.index ["lease_token"], name: "index_runner_leases_on_lease_token", unique: true
+    t.index ["task_id"], name: "index_runner_leases_on_task_id"
+    t.index ["task_id"], name: "index_runner_leases_on_task_id_active", unique: true, where: "(released_at IS NULL)"
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -321,6 +338,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_08_160022) do
   add_foreign_key "notifications", "tasks"
   add_foreign_key "notifications", "users"
   add_foreign_key "openclaw_integration_statuses", "users"
+  add_foreign_key "runner_leases", "tasks"
   add_foreign_key "sessions", "users"
   add_foreign_key "task_activities", "tasks"
   add_foreign_key "task_activities", "users"
