@@ -239,12 +239,16 @@ class AgentAutoRunnerService
   def build_openclaw_prompt(task)
     validation = task.validation_command.present? ? "\n\n## Validation\nRun:\n```bash\n#{task.validation_command}\n```\n" : ""
     hooks_token = Rails.application.config.hooks_token.to_s
+    persona_prompt = task.agent_persona&.spawn_prompt.to_s.strip
+    persona_section = persona_prompt.present? ? "\n\n## Agent Persona\n#{persona_prompt}\n" : ""
 
     <<~PROMPT
       ## Task ##{task.id}: #{task.name}
 
       Project repo: /home/ggorbalan/clawdeck
+      Selected model: #{task.model.presence || Task::DEFAULT_MODEL} (OpenClaw: #{task.openclaw_spawn_model})
 
+      #{persona_section}
       #{task.description}
       #{validation}
 

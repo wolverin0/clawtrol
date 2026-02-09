@@ -4,6 +4,7 @@ class Boards::TasksController < ApplicationController
 
   def show
     @api_token = current_user.api_token
+    @agent_personas = AgentPersona.for_user(current_user).active.order(:name)
     if turbo_frame_request?
       render layout: false
     else

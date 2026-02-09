@@ -143,7 +143,8 @@ export default class extends Controller {
     const taskId = event.currentTarget.dataset.taskId
     if (!taskId) return
 
-    const card = document.getElementById(`task_${taskId}`)
+    // Prefer DOM-local lookup (works even if ids differ or a card is duplicated in an aggregator view)
+    const card = event.currentTarget.closest("[data-task-card]") || document.getElementById(`task_${taskId}`)
     await this._assignPersona(taskId, null, card)
   }
 
