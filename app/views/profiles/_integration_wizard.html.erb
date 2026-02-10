@@ -88,22 +88,38 @@
     </div>
 
     <p class="text-xs text-content-secondary">
-      Enter your Gateway Token to authenticate requests.
+      ClawTrol wakes OpenClaw via the Gateway Hooks API.
     </p>
 
     <%= form_with(model: @user, url: settings_path, method: :patch, local: true, class: "space-y-4") do |form| %>
       <div>
-        <label class="block text-xs font-medium text-content-secondary mb-1.5">Gateway Token</label>
-        <%= form.password_field :openclaw_gateway_token,
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Hooks Token (required)</label>
+        <%= form.password_field :openclaw_hooks_token,
             data: { wizard_target: "gatewayToken" },
-            value: @user.openclaw_gateway_token,
+            value: (@user.respond_to?(:openclaw_hooks_token) ? @user.openclaw_hooks_token : nil),
             placeholder: "••••••••",
             autocomplete: "off",
             class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
         <p class="text-xs text-content-muted mt-1">
-          Find in <code class="bg-bg-elevated px-1 rounded">~/.openclaw/config.yaml</code> → <code class="bg-bg-elevated px-1 rounded">gateway.token</code>
+          This must match the OpenClaw Gateway hooks token for <code class="bg-bg-elevated px-1 rounded">POST /hooks/wake</code>.
+          Find it in <code class="bg-bg-elevated px-1 rounded">~/.openclaw/openclaw.json</code> → <code class="bg-bg-elevated px-1 rounded">hooks.token</code>.
         </p>
       </div>
+
+      <details class="bg-bg-elevated rounded-md p-3">
+        <summary class="text-xs text-content-secondary cursor-pointer select-none">Advanced: Gateway Connect Token (optional)</summary>
+        <div class="mt-3 space-y-2">
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Gateway Token</label>
+          <%= form.password_field :openclaw_gateway_token,
+              value: @user.openclaw_gateway_token,
+              placeholder: "••••••••",
+              autocomplete: "off",
+              class: "block w-full bg-bg-base border border-border rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+          <p class="text-[11px] text-content-muted">
+            Only needed if you wire features that call the Gateway directly (websocket/RPC). Wake webhooks use the Hooks Token above.
+          </p>
+        </div>
+      </details>
 
       <div class="flex items-center justify-between pt-2">
         <button type="button" data-wizard-target="prevButton" data-action="click->wizard#prev" class="px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">

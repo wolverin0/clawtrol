@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_09_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_10_000651) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -477,6 +477,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_09_180000) do
     t.string "fallback_model_chain"
     t.string "openclaw_gateway_token"
     t.string "openclaw_gateway_url"
+    t.string "openclaw_hooks_token"
     t.string "password_digest"
     t.string "provider"
     t.string "uid"

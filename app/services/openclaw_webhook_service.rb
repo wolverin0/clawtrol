@@ -41,8 +41,21 @@ class OpenclawWebhookService
 
   private
 
+  def hook_token
+    if @user.respond_to?(:openclaw_hooks_token)
+      @user.openclaw_hooks_token.to_s.strip
+    else
+      ""
+    end
+  end
+
+  def auth_token
+    # Back-compat: older installs stored the hooks token in openclaw_gateway_token.
+    hook_token.presence || @user.openclaw_gateway_token.to_s.strip
+  end
+
   def send_webhook(task, message)
-    uri = URI.parse("#{@user.openclaw_gateway_url}/api/cron/wake")
+    uri = URI.parse("#{@user.openclaw_gateway_url}/hooks/wake")
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = uri.scheme == "https"
     http.open_timeout = 5
@@ -50,7 +63,7 @@ class OpenclawWebhookService
 
     request = Net::HTTP::Post.new(uri.path, {
       "Content-Type" => "application/json",
-      "Authorization" => "Bearer #{@user.openclaw_gateway_token}"
+      "Authorization" => "Bearer #{auth_token}"
     })
     request.body = {
       text: message,
@@ -75,10 +88,9 @@ class OpenclawWebhookService
 
   def configured?
     url = @user.openclaw_gateway_url.to_s.strip
-    token = @user.openclaw_gateway_token.to_s.strip
+    token = auth_token
     return false if url.blank? || token.blank?
     return false if url.match?(/example/i)
     true
   end
 end
-

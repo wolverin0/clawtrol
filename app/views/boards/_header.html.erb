@@ -82,7 +82,8 @@
           Running: <%= running %><% if oldest_hb_at.present? %> · oldest hb <%= time_ago_in_words(oldest_hb_at) %><% end %>
         </span>
 
-        <% configured = current_user.openclaw_gateway_url.present? && current_user.openclaw_gateway_token.present? %>
+        <% hooks_token = current_user.respond_to?(:openclaw_hooks_token) ? current_user.openclaw_hooks_token : nil %>
+        <% configured = current_user.openclaw_gateway_url.present? && (hooks_token.present? || current_user.openclaw_gateway_token.present?) %>
         <% active = current_user.agent_last_active_at.present? && current_user.agent_last_active_at > 2.minutes.ago %>
         <span class="px-2 py-1 rounded-md text-xs font-semibold <%= !configured ? 'bg-status-error/20 text-status-error' : (active ? 'bg-status-success/20 text-status-success' : 'bg-status-warning/20 text-status-warning') %>"
               title="OpenClaw gateway + agent token activity">
