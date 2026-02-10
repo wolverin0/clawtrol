@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Futura Sistemas — Marketing Roadmap</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a1628;--card:#111d33;--cyan:#00d4ff;--orange:#F97316;--blue:#3B82F6;--green:#22c55e;--red:#ef4444;--text:#e2e8f0;--muted:#94a3b8;--border:#1e293b}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{font-size:2.2rem;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.subtitle{color:var(--muted);margin-bottom:24px}
+h2{font-size:1.3rem;color:var(--cyan);margin:28px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 20px;text-align:center;min-width:100px}
+.stat .num{font-size:1.8rem;font-weight:800}
+.stat .label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.phase{margin-bottom:24px}
+.phase-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.phase-badge{padding:4px 12px;border-radius:6px;font-size:.75rem;font-weight:700}
+.p-fund{background:rgba(239,68,68,.15);color:var(--red)}
+.p-content{background:rgba(249,115,22,.15);color:var(--orange)}
+.p-infra{background:rgba(59,130,246,.15);color:var(--blue)}
+.p-night{background:rgba(139,92,246,.15);color:#8b5cf6}
+.p-auto{background:rgba(34,197,94,.15);color:var(--green)}
+.p-ui{background:rgba(0,212,255,.15);color:var(--cyan)}
+.task{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:.2s}
+.task:hover{border-color:var(--cyan);transform:translateX(4px)}
+.task-id{color:var(--muted);font-size:.8rem;min-width:40px}
+.task-name{flex:1;font-size:.9rem}
+.task-model{font-size:.7rem;padding:2px 8px;border-radius:4px;background:rgba(139,92,246,.15);color:#a78bfa}
+.task-priority{font-size:.7rem;padding:2px 8px;border-radius:4px}
+.pri-high{background:rgba(239,68,68,.15);color:var(--red)}
+.pri-medium{background:rgba(249,115,22,.15);color:var(--orange)}
+.pri-low{background:rgba(59,130,246,.15);color:var(--blue)}
+.task-status{font-size:.7rem;padding:2px 8px;border-radius:4px}
+.st-up{background:rgba(0,212,255,.15);color:var(--cyan)}
+.st-ip{background:rgba(249,115,22,.15);color:var(--orange)}
+.st-done{background:rgba(34,197,94,.15);color:var(--green)}
+.st-night{background:rgba(139,92,246,.15);color:#8b5cf6}
+.timeline{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.day{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;min-width:140px;flex:1}
+.day-label{font-size:.75rem;color:var(--cyan);font-weight:700;margin-bottom:6px}
+.day-tasks{font-size:.8rem;color:var(--muted)}
+.day-tasks li{margin:2px 0;list-style:none}
+.nav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:20px;position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:10}
+.nav a{padding:6px 14px;border-radius:8px;font-size:.8rem;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--muted);text-decoration:none;transition:.2s}
+.nav a:hover{background:var(--cyan);color:var(--bg);border-color:var(--cyan)}
+.links{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap}
+.link{padding:10px 20px;border-radius:8px;background:var(--card);border:1px solid var(--border);color:var(--cyan);text-decoration:none;font-size:.85rem;transition:.2s}
+.link:hover{background:var(--cyan);color:var(--bg)}
+@media(max-width:768px){h1{font-size:1.4rem}.stats{flex-direction:column}.day{min-width:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🚀 FUTURA SISTEMAS — Marketing Roadmap</h1>
+<p class="subtitle">Board #17 Marketing · Feb 2026 · Semana de vacaciones edition</p>
+
+<div class="stats">
+<div class="stat"><div class="num" style="color:var(--cyan)">24</div><div class="label">Tasks totales</div></div>
+<div class="stat"><div class="num" style="color:var(--green)">3</div><div class="label">Docs listos</div></div>
+<div class="stat"><div class="num" style="color:var(--orange)">5</div><div class="label">Agentes activos</div></div>
+<div class="stat"><div class="num" style="color:#8b5cf6">2</div><div class="label">Night runs</div></div>
+<div class="stat"><div class="num" style="color:var(--red)">1</div><div class="label">Bloqueado (IG)</div></div>
+</div>
+
+<div class="nav">
+<a href="#fund">🔧 Fundamentos</a>
+<a href="#content">✍️ Content</a>
+<a href="#seo">🔍 SEO Blog</a>
+<a href="#infra">🖥️ ComfyUI</a>
+<a href="#night">🌙 Night Runs</a>
+<a href="#auto">⚡ Automation</a>
+<a href="#ui">🎨 UI/UX</a>
+<a href="#week">📅 Semana</a>
+</div>
+
+<!-- FUNDAMENTOS -->
+<div id="fund" class="phase">
+<div class="phase-header"><span class="phase-badge p-fund">FASE 1: FUNDAMENTOS</span><span style="color:var(--muted);font-size:.85rem">Semana 1 — Lo que falta para existir en Google</span></div>
+
+<div class="task"><span class="task-id">#451</span><span class="task-name">SEO P0: Meta tags + sitemap + robots.txt para 3 landings</span><span class="task-priority pri-high">HIGH</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#452</span><span class="task-name">Google Search Console + Business Profile</span><span class="task-priority pri-high">HIGH</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#453</span><span class="task-name">Schema markup JSON-LD para 3 productos</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#458</span><span class="task-name">n8n: Activar workflow FB + Telegram approval</span><span class="task-priority pri-high">HIGH</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#463</span><span class="task-name">⚠️ Linkear IG Business a FB Page (acción Snake)</span><span class="task-priority pri-high">HIGH</span><span class="task-model">—</span><span class="task-status" style="background:rgba(239,68,68,.15);color:var(--red)">BLOCKED</span></div>
+</div>
+
+<!-- CONTENT -->
+<div id="content" class="phase">
+<div class="phase-header"><span class="phase-badge p-content">FASE 2: CONTENT</span><span style="color:var(--muted);font-size:.85rem">30 posts listos para publicar</span></div>
+
+<div class="task"><span class="task-id">#454</span><span class="task-name">10 posts Delivery (copy + imagen)</span><span class="task-priority pri-high">HIGH</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#455</span><span class="task-name">10 posts Fitness (copy + imagen)</span><span class="task-priority pri-high">HIGH</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#456</span><span class="task-name">10 posts CRM (copy + imagen)</span><span class="task-priority pri-high">HIGH</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#457</span><span class="task-name">5 posts servicios Futura Sistemas</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+</div>
+
+<!-- SEO BLOG -->
+<div id="seo" class="phase">
+<div class="phase-header"><span class="phase-badge p-content">FASE 3: SEO BLOG</span><span style="color:var(--muted);font-size:.85rem">4 artículos SEO de alto impacto</span></div>
+
+<div class="task"><span class="task-id">#459</span><span class="task-name">Blog: Guía completa facturación AFIP para PyMEs</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#460</span><span class="task-name">Blog: Alternativa PedidosYa sin comisiones</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#461</span><span class="task-name">Blog: Mejor app entrenadores personales Argentina</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#462</span><span class="task-name">Blog: FuturaCRM vs Colppy vs Xubio</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+</div>
+
+<!-- INFRA -->
+<div id="infra" class="phase">
+<div class="phase-header"><span class="phase-badge p-infra">FASE 4: COMFYUI + LOCAL GEN</span><span style="color:var(--muted);font-size:.85rem">Pipeline de generación local ilimitada</span></div>
+
+<div class="task"><span class="task-id">#464</span><span class="task-name">Instalar ComfyUI Docker en Windows 3080</span><span class="task-priority pri-high">HIGH</span><span class="task-model">codex</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#465</span><span class="task-name">Descargar modelos: SDXL + LoRAs + ControlNet</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#466</span><span class="task-name">Screenshot pack de las 3 apps</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#467</span><span class="task-name">Workflows: Static Ad + UI-Anchored</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#468</span><span class="task-name">Wan 2.1: Setup video generation 1.3B</span><span class="task-priority pri-low">LOW</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+</div>
+
+<!-- NIGHT RUNS -->
+<div id="night" class="phase">
+<div class="phase-header"><span class="phase-badge p-night">FASE 5: NIGHT RUNS</span><span style="color:var(--muted);font-size:.85rem">23:00–08:00 ART · Iteración autónoma</span></div>
+
+<div class="task"><span class="task-id">#469</span><span class="task-name">🌙 Night 1: Batch generation 20 static ads</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-night">NIGHTLY</span></div>
+<div class="task"><span class="task-id">#470</span><span class="task-name">🌙 Night 2: UI-anchored ads con screenshots reales</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-night">NIGHTLY</span></div>
+</div>
+
+<!-- AUTOMATION -->
+<div id="auto" class="phase">
+<div class="phase-header"><span class="phase-badge p-auto">FASE 6: AUTOMATION</span><span style="color:var(--muted);font-size:.85rem">n8n workflows para todo el pipeline</span></div>
+
+<div class="task"><span class="task-id">#471</span><span class="task-name">n8n: Content Queue (schedule + auto-publish)</span><span class="task-priority pri-medium">MED</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#472</span><span class="task-name">n8n: Analytics Report semanal</span><span class="task-priority pri-low">LOW</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+</div>
+
+<!-- UI -->
+<div id="ui" class="phase">
+<div class="phase-header"><span class="phase-badge p-ui">FASE 7: CLAWTROL UI</span><span style="color:var(--muted);font-size:.85rem">Interfaz de marketing interactiva</span></div>
+
+<div class="task"><span class="task-id">#473</span><span class="task-name">🎨 /playground: Social Media Studio (gen + preview FB/IG + edit + publish)</span><span class="task-priority pri-high">HIGH</span><span class="task-model">opus</span><span class="task-status st-up">UP NEXT</span></div>
+<div class="task"><span class="task-id">#474</span><span class="task-name">📁 /marketing: File browser endpoint</span><span class="task-priority pri-high">HIGH</span><span class="task-model">opus</span><span class="task-status st-ip">IN PROGRESS</span></div>
+</div>
+
+<!-- VACATION WEEK -->
+<div id="week">
+<h2>📅 Semana de Vacaciones (Feb 10–16)</h2>
+<div class="timeline">
+<div class="day"><div class="day-label">Lun 10</div><ul class="day-tasks">
+<li>🔧 #451 Meta tags</li><li>🔧 #458 n8n FB approval</li><li>✍️ #454 Posts Delivery</li></ul></div>
+
+<div class="day"><div class="day-label">Mar 11</div><ul class="day-tasks">
+<li>🔧 #452 Search Console</li><li>✍️ #455 Posts Fitness</li><li>📝 #459 Blog AFIP</li></ul></div>
+
+<div class="day"><div class="day-label">Mié 12</div><ul class="day-tasks">
+<li>🔧 #453 Schema markup</li><li>✍️ #456 Posts CRM</li><li>📝 #460 Blog vs PedidosYa</li></ul></div>
+
+<div class="day"><div class="day-label">Jue 13</div><ul class="day-tasks">
+<li>✍️ #457 Posts servicios</li><li>📝 #461 Blog fitness</li><li>🖥️ #464 ComfyUI install</li></ul></div>
+
+<div class="day"><div class="day-label">Vie 14</div><ul class="day-tasks">
+<li>📝 #462 Blog CRM vs</li><li>🖥️ #465 Modelos SDXL</li><li>📸 #466 Screenshots</li></ul></div>
+
+<div class="day"><div class="day-label">Sáb 15</div><ul class="day-tasks">
+<li>🖥️ #467 Workflows Comfy</li><li>🌙 #469 Night run 1</li><li>⚡ #471 n8n queue</li></ul></div>
+
+<div class="day"><div class="day-label">Dom 16</div><ul class="day-tasks">
+<li>🌙 #470 Night run 2</li><li>🎨 #473 Playground</li><li>📊 Review + optimize</li></ul></div>
+</div>
+</div>
+
+<h2>📄 Documentación generada</h2>
+<div class="links">
+<a class="link" href="/marketing-plan.html">📋 Marketing Master Plan</a>
+<a class="link" href="/marketing/index.html">📁 Marketing File Browser</a>
+<a class="link" href="http://192.168.100.186:4001/boards/17">🎯 Board #17 en ClawTrol</a>
+</div>
+
+<p style="color:var(--muted);margin-top:24px;font-size:.8rem;text-align:center">Generado por Otacon · Feb 9, 2026 · Auto-pull ejecuta tareas sin intervención</p>
+</div>
+</body>
+</html>

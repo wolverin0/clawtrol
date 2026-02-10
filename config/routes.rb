@@ -157,6 +157,7 @@ Rails.application.routes.draw do
         post :run_debate
         post :generate_validation_suggestion
         get :view_file
+        get :diff_file
       end
     end
   end
@@ -182,6 +183,7 @@ Rails.application.routes.draw do
   get "marketing/playground", to: "marketing#playground", as: :marketing_playground
   get "marketing/generated_content", to: "marketing#generated_content", as: :marketing_generated_content
   post "marketing/generate_image", to: "marketing#generate_image", as: :marketing_generate_image
+  post "marketing/publish", to: "marketing#publish_to_n8n", as: :marketing_publish
   get "marketing/*path", to: "marketing#show", as: :marketing_show, format: false
 
   # Defines the root path route ("/")

@@ -3,8 +3,9 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [
     // Image generation
-    "prompt", "model", "product", "size", "generateBtn", "generateText", "generateSpinner",
+    "prompt", "model", "product", "template", "size", "generateBtn", "generateText", "generateSpinner",
     "imagePreview", "useImageBtn", "gallery",
+    "variantsBtn", "variantsText", "variantsSpinner", "variantsContainer", "variantsRow",
     // Post composer
     "dropZone", "dropZonePlaceholder", "postImage", "fileInput",
     "platformFb", "platformIg", "caption", "charCount",
@@ -328,36 +329,39 @@ export default class extends Controller {
 
   // === IMAGE GENERATION ===
   
-  async generateImage() {
+  async generateImage(variantSeed = 0) {
     const prompt = this.promptTarget.value.trim()
     if (!prompt) {
       this.showToast("Please enter a prompt", "warning")
-      return
+      return null
     }
 
     const model = this.hasModelTarget ? this.modelTarget.value : "gpt-image-1"
     const product = this.hasProductTarget ? this.productTarget.value : "futura"
+    const template = this.hasTemplateTarget ? this.templateTarget.value : "none"
     const size = this.hasSizeTarget ? this.sizeTarget.value : "1024x1024"
 
     // Check if model is supported
     if (model !== "gpt-image-1") {
       this.showToast("This model is coming soon!", "warning")
-      return
+      return null
     }
 
-    // Show loading state
-    this.generateTextTarget.classList.add("hidden")
-    this.generateSpinnerTarget.classList.remove("hidden")
-    this.generateBtnTarget.disabled = true
-    
-    // Update preview to show loading
-    this.imagePreviewTarget.innerHTML = `
-      <div class="text-center text-content-muted">
-        <div class="text-4xl mb-2 animate-pulse">🎨</div>
-        <p class="text-sm">Generating with ${model}...</p>
-        <p class="text-xs mt-1 text-content-muted">This may take 30-60 seconds</p>
-      </div>
-    `
+    // Show loading state (only for main generation, not variants)
+    if (variantSeed === 0) {
+      this.generateTextTarget.classList.add("hidden")
+      this.generateSpinnerTarget.classList.remove("hidden")
+      this.generateBtnTarget.disabled = true
+      
+      // Update preview to show loading
+      this.imagePreviewTarget.innerHTML = `
+        <div class="text-center text-content-muted">
+          <div class="text-4xl mb-2 animate-pulse">🎨</div>
+          <p class="text-sm">Generating with ${model}...</p>
+          <p class="text-xs mt-1 text-content-muted">This may take 30-60 seconds</p>
+        </div>
+      `
+    }
 
     try {
       const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
@@ -373,7 +377,9 @@ export default class extends Controller {
           prompt: prompt,
           model: model,
           product: product,
-          size: size
+          template: template,
+          size: size,
+          variant_seed: variantSeed
         })
       })
 
@@ -383,30 +389,158 @@ export default class extends Controller {
         throw new Error(data.error || "Generation failed")
       }
 
-      // Success! Display the image
-      this.displayGeneratedImage(data.url, data)
-      this.addToGalleryUrl(data.url)
-      
-      // Refresh content library to show the new image
-      this.loadContentLibrary()
-      
-      this.showToast("Image generated! 🎉")
+      // Success! Display the image (only for main generation)
+      if (variantSeed === 0) {
+        this.displayGeneratedImage(data.url, data)
+        this.addToGalleryUrl(data.url)
+        
+        // Store last generation params for variants
+        this.lastGenerationParams = { prompt, model, product, template, size }
+        
+        // Show variants button
+        if (this.hasVariantsBtnTarget) {
+          this.variantsBtnTarget.classList.remove("hidden")
+        }
+        
+        // Refresh content library to show the new image
+        this.loadContentLibrary()
+        
+        this.showToast("Image generated! 🎉")
+      }
+
+      return data
 
     } catch (error) {
       console.error("Image generation failed:", error)
-      this.imagePreviewTarget.innerHTML = `
-        <div class="text-center text-red-400">
-          <div class="text-4xl mb-2">❌</div>
-          <p class="text-sm">Generation failed</p>
-          <p class="text-xs mt-1">${error.message}</p>
+      if (variantSeed === 0) {
+        this.imagePreviewTarget.innerHTML = `
+          <div class="text-center text-red-400">
+            <div class="text-4xl mb-2">❌</div>
+            <p class="text-sm">Generation failed</p>
+            <p class="text-xs mt-1">${error.message}</p>
+          </div>
+        `
+        this.showToast(error.message || "Generation failed", "error")
+      }
+      return null
+    } finally {
+      // Reset button state (only for main generation)
+      if (variantSeed === 0) {
+        this.generateTextTarget.classList.remove("hidden")
+        this.generateSpinnerTarget.classList.add("hidden")
+        this.generateBtnTarget.disabled = false
+      }
+    }
+  }
+
+  async generateVariants() {
+    if (!this.lastGenerationParams) {
+      this.showToast("Generate an image first!", "warning")
+      return
+    }
+
+    // Show loading state
+    if (this.hasVariantsTextTarget) this.variantsTextTarget.classList.add("hidden")
+    if (this.hasVariantsSpinnerTarget) this.variantsSpinnerTarget.classList.remove("hidden")
+    if (this.hasVariantsBtnTarget) this.variantsBtnTarget.disabled = true
+
+    // Show variants container with loading state
+    if (this.hasVariantsContainerTarget) {
+      this.variantsContainerTarget.classList.remove("hidden")
+      this.variantsRowTarget.innerHTML = `
+        <div class="aspect-square bg-bg-elevated rounded-lg animate-pulse flex items-center justify-center">
+          <span class="text-content-muted text-2xl">1️⃣</span>
+        </div>
+        <div class="aspect-square bg-bg-elevated rounded-lg animate-pulse flex items-center justify-center">
+          <span class="text-content-muted text-2xl">2️⃣</span>
+        </div>
+        <div class="aspect-square bg-bg-elevated rounded-lg animate-pulse flex items-center justify-center">
+          <span class="text-content-muted text-2xl">3️⃣</span>
         </div>
       `
-      this.showToast(error.message || "Generation failed", "error")
+    }
+
+    try {
+      // Generate 3 variants concurrently with different seeds
+      const variantPromises = [1, 2, 3].map(seed => this.generateVariantWithSeed(seed))
+      const results = await Promise.allSettled(variantPromises)
+      
+      const successfulVariants = results
+        .filter(r => r.status === "fulfilled" && r.value)
+        .map(r => r.value)
+
+      if (successfulVariants.length > 0) {
+        // Display variants
+        this.variantsRowTarget.innerHTML = successfulVariants.map((variant, i) => `
+          <button 
+            class="aspect-square rounded-lg overflow-hidden border-2 border-border hover:border-accent transition-colors"
+            data-action="click->playground#selectVariant"
+            data-url="${variant.url}"
+          >
+            <img src="${variant.url}" class="w-full h-full object-cover" alt="Variant ${i + 1}" />
+          </button>
+        `).join("")
+        
+        // Add variants to gallery
+        successfulVariants.forEach(v => this.addToGalleryUrl(v.url))
+        
+        // Refresh content library
+        this.loadContentLibrary()
+        
+        this.showToast(`${successfulVariants.length} variants generated! 🎉`)
+      } else {
+        this.variantsRowTarget.innerHTML = `
+          <div class="col-span-3 text-center text-red-400 py-4">
+            <p class="text-sm">Failed to generate variants</p>
+          </div>
+        `
+        this.showToast("Failed to generate variants", "error")
+      }
+
+    } catch (error) {
+      console.error("Variants generation failed:", error)
+      this.showToast("Failed to generate variants", "error")
     } finally {
       // Reset button state
-      this.generateTextTarget.classList.remove("hidden")
-      this.generateSpinnerTarget.classList.add("hidden")
-      this.generateBtnTarget.disabled = false
+      if (this.hasVariantsTextTarget) this.variantsTextTarget.classList.remove("hidden")
+      if (this.hasVariantsSpinnerTarget) this.variantsSpinnerTarget.classList.add("hidden")
+      if (this.hasVariantsBtnTarget) this.variantsBtnTarget.disabled = false
+    }
+  }
+
+  async generateVariantWithSeed(seed) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+    const params = this.lastGenerationParams
+
+    const response = await fetch("/marketing/generate_image", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "X-CSRF-Token": csrfToken || ""
+      },
+      body: JSON.stringify({
+        prompt: params.prompt,
+        model: params.model,
+        product: params.product,
+        template: params.template,
+        size: params.size,
+        variant_seed: seed
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error("Variant generation failed")
+    }
+
+    return response.json()
+  }
+
+  selectVariant(event) {
+    const url = event.currentTarget.dataset.url
+    if (url) {
+      this.displayGeneratedImage(url, { url })
+      this.showToast("Variant selected!")
     }
   }
 
@@ -798,22 +932,62 @@ export default class extends Controller {
     this.showToast("Image downloaded!")
   }
 
-  approveAndQueue() {
-    // Placeholder for future n8n integration
-    const data = {
+  async approveAndQueue() {
+    if (!this.currentImageData) {
+      this.showToast("No image selected!", "warning")
+      return
+    }
+
+    // Determine image URL - could be a server URL or data URL
+    let imageUrl = this.currentImageData
+    if (imageUrl.startsWith("data:")) {
+      this.showToast("Please use a generated image from the API", "warning")
+      return
+    }
+
+    const payload = {
+      image_url: imageUrl,
       caption: this.captionTarget.value,
       hashtags: this.hashtags,
       cta: this.ctaTarget.value,
       platforms: this.platforms,
-      image: this.currentImageData ? "present" : "none",
-      queuedAt: new Date().toISOString()
+      product: this.hasProductTarget ? this.productTarget.value : "futura"
     }
-    
-    console.log("Queued post:", data)
-    this.showToast("Post queued for publishing! 🚀")
-    
-    // Clear draft after queueing
-    localStorage.removeItem("playground_draft")
+
+    try {
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+      
+      const response = await fetch("/marketing/publish", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-CSRF-Token": csrfToken || ""
+        },
+        body: JSON.stringify(payload)
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        if (data.warning) {
+          this.showToast(`Queued locally: ${data.warning}`, "warning")
+        } else {
+          this.showToast("Post queued for publishing! 🚀")
+        }
+        
+        // Clear draft after successful queue
+        localStorage.removeItem("playground_draft")
+        
+        console.log("Published to n8n:", data)
+      } else {
+        throw new Error(data.error || "Failed to queue post")
+      }
+
+    } catch (error) {
+      console.error("Failed to queue post:", error)
+      this.showToast(error.message || "Failed to queue post", "error")
+    }
   }
 
   // === UTILITIES ===

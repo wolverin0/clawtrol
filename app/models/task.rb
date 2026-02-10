@@ -11,6 +11,7 @@ class Task < ApplicationRecord
   has_one :source_task, class_name: "Task", foreign_key: :followup_task_id
   has_many :notifications, dependent: :destroy
   has_many :token_usages, dependent: :destroy
+  has_many :task_diffs, dependent: :destroy
 
   has_many :task_runs, dependent: :destroy
   has_many :runner_leases, dependent: :destroy

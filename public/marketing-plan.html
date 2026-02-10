@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Futura Sistemas — Marketing Master Plan</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a1628;--card:#111d33;--cyan:#00d4ff;--orange:#F97316;--blue:#3B82F6;--green:#22c55e;--text:#e2e8f0;--muted:#94a3b8;--border:#1e293b}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1{font-size:2.5rem;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+h2{font-size:1.5rem;color:var(--cyan);margin:32px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-size:1.1rem;color:#fff;margin:20px 0 10px}
+.subtitle{color:var(--muted);font-size:1.1rem;margin-bottom:24px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:24px;position:sticky;top:0;background:var(--bg);padding:12px 0;z-index:10}
+.tab{padding:8px 16px;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;border:1px solid var(--border);background:var(--card);color:var(--muted);transition:.2s}
+.tab:hover,.tab.active{background:var(--cyan);color:var(--bg);border-color:var(--cyan)}
+.section{display:none;animation:fadeIn .3s}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.9rem}
+th{background:var(--border);color:var(--cyan);text-align:left;padding:10px 12px;font-weight:600}
+td{padding:10px 12px;border-bottom:1px solid var(--border)}
+tr:hover td{background:rgba(0,212,255,.05)}
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:.75rem;font-weight:700}
+.b-delivery{background:rgba(249,115,22,.15);color:var(--orange)}
+.b-fitness{background:rgba(0,212,255,.15);color:var(--cyan)}
+.b-crm{background:rgba(59,130,246,.15);color:var(--blue)}
+.b-services{background:rgba(34,197,94,.15);color:var(--green)}
+.b-done{background:rgba(34,197,94,.2);color:var(--green)}
+.b-pending{background:rgba(249,115,22,.2);color:var(--orange)}
+.b-blocked{background:rgba(239,68,68,.2);color:#ef4444}
+.pillar{display:flex;align-items:center;gap:8px;padding:8px 0}
+.pillar-icon{font-size:1.5rem}
+.kw{display:inline-block;background:rgba(0,212,255,.1);color:var(--cyan);padding:2px 8px;border-radius:4px;font-size:.8rem;margin:2px}
+.hashtag{display:inline-block;background:rgba(59,130,246,.1);color:var(--blue);padding:2px 8px;border-radius:4px;font-size:.8rem;margin:2px}
+.metric-row{display:flex;gap:16px;flex-wrap:wrap}
+.metric{flex:1;min-width:120px;text-align:center;padding:16px;background:var(--card);border-radius:12px;border:1px solid var(--border)}
+.metric .num{font-size:1.8rem;font-weight:800;color:var(--cyan)}
+.metric .label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.pipeline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:16px 0}
+.pipe-step{background:var(--card);border:1px solid var(--border);padding:8px 16px;border-radius:8px;font-size:.85rem}
+.pipe-arrow{color:var(--cyan);font-weight:bold}
+.compare-win{color:var(--green);font-weight:700}
+.compare-lose{color:var(--muted)}
+ul{padding-left:20px;margin:8px 0}
+li{margin:4px 0;font-size:.9rem}
+.priority{font-size:.7rem;font-weight:700;padding:2px 6px;border-radius:4px;vertical-align:middle}
+.p0{background:#ef4444;color:white}
+.p1{background:var(--orange);color:white}
+.p2{background:var(--blue);color:white}
+.checklist{list-style:none;padding:0}
+.checklist li{padding:6px 0;font-size:.9rem}
+.checklist li::before{content:'☐ ';color:var(--muted)}
+.checklist li.done::before{content:'✅ ';color:var(--green)}
+@media(max-width:768px){h1{font-size:1.5rem}.tabs{gap:4px}.tab{padding:6px 10px;font-size:.75rem}.card-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🚀 FUTURA SISTEMAS</h1>
+<p class="subtitle">Marketing Master Plan — Feb 2026</p>
+
+<div class="tabs">
+<div class="tab active" onclick="show('overview')">📊 Overview</div>
+<div class="tab" onclick="show('products')">📦 Productos</div>
+<div class="tab" onclick="show('services')">⚙️ Servicios</div>
+<div class="tab" onclick="show('seo')">🔍 SEO</div>
+<div class="tab" onclick="show('social')">📱 Social Media</div>
+<div class="tab" onclick="show('competitors')">⚔️ Competidores</div>
+<div class="tab" onclick="show('automation')">🤖 Automatización</div>
+<div class="tab" onclick="show('metrics')">📈 Métricas</div>
+<div class="tab" onclick="show('actions')">✅ Acciones</div>
+</div>
+
+<!-- OVERVIEW -->
+<div id="overview" class="section active">
+<h2>Posicionamiento</h2>
+<p style="font-size:1.2rem;color:var(--cyan);margin:16px 0;font-style:italic">"Implementamos tecnología que funciona. En días, no meses. Con IA integrada, no como add-on."</p>
+<div class="card-grid">
+<div class="card"><div class="pillar"><span class="pillar-icon">⚡</span><div><strong>Velocidad</strong><br><span style="color:var(--muted)">"Tu sistema en días, no meses" — vs consultoras de 6 meses</span></div></div></div>
+<div class="card"><div class="pillar"><span class="pillar-icon">🤖</span><div><strong>IA Nativa</strong><br><span style="color:var(--muted)">"IA que entiende tu negocio" — parte del core, no un add-on</span></div></div></div>
+<div class="card"><div class="pillar"><span class="pillar-icon">💰</span><div><strong>Sin Comisiones</strong><br><span style="color:var(--muted)">"Tu negocio, tus reglas" — vs PedidosYa/Rappi (30%)</span></div></div></div>
+<div class="card"><div class="pillar"><span class="pillar-icon">🇦🇷</span><div><strong>Local</strong><br><span style="color:var(--muted)">"Hecho para Argentina" — AFIP, MercadoPago, contexto local</span></div></div></div>
+<div class="card"><div class="pillar"><span class="pillar-icon">🔧</span><div><strong>Todo en Uno</strong><br><span style="color:var(--muted)">"Un solo lugar para todo" — vs 5 herramientas separadas</span></div></div></div>
+</div>
+
+<h2>Brand Guide</h2>
+<div class="card">
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+<div style="width:60px;height:40px;background:#0a1628;border-radius:6px;border:1px solid var(--border)" title="#0a1628"></div>
+<div style="width:60px;height:40px;background:#00d4ff;border-radius:6px" title="#00d4ff"></div>
+<div style="width:60px;height:40px;background:#F97316;border-radius:6px" title="#F97316 Delivery"></div>
+<div style="width:60px;height:40px;background:#3B82F6;border-radius:6px" title="#3B82F6 CRM"></div>
+<div style="width:60px;height:40px;background:#22c55e;border-radius:6px" title="#22c55e Services"></div>
+</div>
+<p><strong>Tipografía:</strong> Geométrica sans-serif (Inter/Geist) · <strong>Tono:</strong> Profesional pero cercano, argentino, con datos</p>
+<p style="color:var(--green);margin-top:8px">✅ "¿Tomás pedidos por WhatsApp? Pasá a un sistema que cobra solo."</p>
+<p style="color:#ef4444">❌ "Nuestra solución integral optimiza flujos operacionales."</p>
+</div>
+</div>
+
+<!-- PRODUCTS -->
+<div id="products" class="section">
+<h2>📦 FuturaDelivery <span class="badge b-delivery">DELIVERY</span></h2>
+<div class="card">
+<p><strong>Target:</strong> Restaurantes, dark kitchens, meal prep, viandas</p>
+<p><strong>Ventaja letal:</strong> CERO comisiones + suscripciones recurrentes</p>
+<table>
+<tr><th>Feature</th><th>Copy</th><th>Por qué importa</th></tr>
+<tr><td>Carta digital QR</td><td>"Tu carta en el celular de tu cliente"</td><td>Sin imprimir, actualizable al instante</td></tr>
+<tr><td>Pedidos online</td><td>"Recibí pedidos sin WhatsApp manual"</td><td>Automatización</td></tr>
+<tr><td>Suscripciones</td><td>"Clientes que pagan todos los meses solos"</td><td>Revenue recurrente</td></tr>
+<tr><td>Sin comisiones</td><td>"Lo que vendés es tuyo, 100%"</td><td>Kill shot vs apps</td></tr>
+</table>
+<h3>Keywords SEO</h3>
+<span class="kw">delivery restaurantes argentina</span><span class="kw">carta digital QR</span><span class="kw">alternativa PedidosYa sin comisiones</span><span class="kw">sistema delivery propio restaurante</span><span class="kw">suscripción delivery comida</span>
+<h3>Hashtags</h3>
+<span class="hashtag">#DeliveryArgentina</span><span class="hashtag">#GastroTech</span><span class="hashtag">#MenuDigital</span><span class="hashtag">#CartaDigital</span><span class="hashtag">#SinComisiones</span><span class="hashtag">#RestauranteTech</span><span class="hashtag">#DarkKitchen</span><span class="hashtag">#FoodTech</span><span class="hashtag">#FuturaDelivery</span><span class="hashtag">#FuturaSistemas</span>
+</div>
+
+<h2>💪 FuturaFitness <span class="badge b-fitness">FITNESS</span></h2>
+<div class="card">
+<p><strong>Target:</strong> Entrenadores personales, coaches, gimnasios pequeños</p>
+<p><strong>Ventaja letal:</strong> IA generativa (Gemini) + gamificación + nutrición</p>
+<table>
+<tr><th>Feature</th><th>Copy</th><th>Por qué importa</th></tr>
+<tr><td>IA rutinas</td><td>"La IA crea el plan, vos lo supervisás"</td><td>Ahorro 2h/día</td></tr>
+<tr><td>Drag & drop</td><td>"Armá rutinas en 2 minutos"</td><td>UX superior</td></tr>
+<tr><td>Nutrición</td><td>"Macros calculados automáticamente"</td><td>Sin nutricionista</td></tr>
+<tr><td>Gamificación</td><td>"Tus clientes compiten entre ellos"</td><td>Retención</td></tr>
+<tr><td>WhatsApp</td><td>"Rutina por WhatsApp en 1 click"</td><td>Directo</td></tr>
+</table>
+<h3>Keywords SEO</h3>
+<span class="kw">app entrenadores personales argentina</span><span class="kw">software gimnasio</span><span class="kw">app crear rutinas entrenamiento</span><span class="kw">alternativa SmartGym</span><span class="kw">app nutricion entrenador</span>
+<h3>Hashtags</h3>
+<span class="hashtag">#FitnessArgentina</span><span class="hashtag">#EntrenadorPersonal</span><span class="hashtag">#GymTech</span><span class="hashtag">#IAFitness</span><span class="hashtag">#RutinasPersonalizadas</span><span class="hashtag">#PersonalTrainer</span><span class="hashtag">#AppFitness</span><span class="hashtag">#FuturaFitness</span><span class="hashtag">#FuturaSistemas</span>
+</div>
+
+<h2>📊 FuturaCRM <span class="badge b-crm">CRM</span></h2>
+<div class="card">
+<p><strong>Target:</strong> PyMEs argentinas, comercios, servicios técnicos</p>
+<p><strong>Ventaja letal:</strong> TODO en uno (AFIP + inventario + POS + webshop + CRM + MercadoLibre)</p>
+<table>
+<tr><th>Feature</th><th>Copy</th><th>Por qué importa</th></tr>
+<tr><td>AFIP A,B,C</td><td>"Facturá electrónicamente en 3 clicks"</td><td>Compliance</td></tr>
+<tr><td>Inventario</td><td>"Stock en tiempo real por depósito"</td><td>Control</td></tr>
+<tr><td>POS</td><td>"Cobrá en mostrador o delivery"</td><td>Operación diaria</td></tr>
+<tr><td>Webshop</td><td>"Tu tienda online en minutos"</td><td>Nuevo canal</td></tr>
+<tr><td>MercadoLibre</td><td>"Integrá donde ya vendés"</td><td>No reinventar</td></tr>
+</table>
+<h3>Keywords SEO</h3>
+<span class="kw">software gestión empresas argentina</span><span class="kw">facturación electrónica AFIP</span><span class="kw">CRM PyMEs argentina</span><span class="kw">FuturaCRM vs Colppy</span><span class="kw">mejor ERP PyMEs 2025</span>
+<h3>Hashtags</h3>
+<span class="hashtag">#PyMEsArgentinas</span><span class="hashtag">#FacturaciónAFIP</span><span class="hashtag">#SoftwareGestión</span><span class="hashtag">#ERPArgentina</span><span class="hashtag">#ComercioDigital</span><span class="hashtag">#MercadoPago</span><span class="hashtag">#FuturaCRM</span><span class="hashtag">#FuturaSistemas</span>
+</div>
+</div>
+
+<!-- SERVICES -->
+<div id="services" class="section">
+<h2>⚙️ Servicios</h2>
+<div class="card-grid">
+<div class="card"><h3>⚡ Implementaciones Rápidas</h3><p style="color:var(--cyan)">"Tu sistema en días, no meses"</p><p style="color:var(--muted);font-size:.85rem">Setup completo: migración desde Excel/papel a sistema digital. Zero downtime.</p><span class="kw">implementación software rápida</span><span class="kw">migración digital empresas</span></div>
+<div class="card"><h3>🔄 Migraciones de Sistemas</h3><p style="color:var(--cyan)">"De Excel a sistema pro sin perder data"</p><p style="color:var(--muted);font-size:.85rem">Migración de sistemas legacy a plataformas modernas con datos intactos.</p><span class="kw">migración sistema empresas</span><span class="kw">pasar de Excel a software</span></div>
+<div class="card"><h3>🤖 Integración con IA</h3><p style="color:var(--cyan)">"IA que entiende tu operación"</p><p style="color:var(--muted);font-size:.85rem">Gemini, GPT, Claude integrado. Análisis predictivo. Automatización inteligente.</p><span class="kw">integración IA empresas argentina</span><span class="kw">automatización IA PyMEs</span></div>
+<div class="card"><h3>💬 Asistentes Virtuales</h3><p style="color:var(--cyan)">"Atención 24/7 sin contratar gente"</p><p style="color:var(--muted);font-size:.85rem">Chatbots inteligentes para atención al cliente. WhatsApp, web, Telegram.</p><span class="kw">asistente virtual empresas</span><span class="kw">chatbot WhatsApp negocios</span></div>
+<div class="card"><h3>📹 Video Vigilancia IA</h3><p style="color:var(--cyan)">"Tus cámaras ahora piensan"</p><p style="color:var(--muted);font-size:.85rem">Detección de anomalías, alertas automáticas, análisis de comportamiento.</p><span class="kw">video vigilancia IA</span><span class="kw">cámaras inteligencia artificial</span></div>
+<div class="card"><h3>🔧 Automatización</h3><p style="color:var(--cyan)">"Menos Excel, más resultados"</p><p style="color:var(--muted);font-size:.85rem">n8n + IA para eliminar tareas manuales repetitivas. Workflows custom.</p><span class="kw">automatización procesos empresas</span></div>
+</div>
+</div>
+
+<!-- SEO -->
+<div id="seo" class="section">
+<h2>🔍 SEO — Estado actual: CERO</h2>
+<div class="card" style="border-color:#ef4444">
+<p style="color:#ef4444;font-weight:700">⚠️ Ningún producto tiene SEO implementado</p>
+<ul style="color:var(--muted)">
+<li>SPAs (React/Vite) = invisibles para Google</li><li>Sin meta tags dinámicos</li><li>Sin schema markup</li><li>Sin sitemap/robots.txt</li><li>Sin blog</li><li>Sin Google Search Console</li>
+</ul>
+</div>
+
+<h3><span class="priority p0">P0</span> Fundamentos (Semana 1-2)</h3>
+<div class="card">
+<ul>
+<li><strong>SSR o pre-rendering</strong> — SPAs actuales invisibles. Vite-SSG o prerender.io</li>
+<li><strong>Meta tags</strong> — Title, description, og:image por página</li>
+<li><strong>Schema markup</strong> — SoftwareApplication, Organization, FAQPage</li>
+<li><strong>Sitemap + robots.txt</strong></li>
+<li><strong>Google Search Console</strong> — Registrar 3 dominios</li>
+<li><strong>Google Business Profile</strong> — "Futura Sistemas Pergamino"</li>
+</ul>
+</div>
+
+<h3><span class="priority p1">P1</span> Contenido (Semana 3-6)</h3>
+<div class="card">
+<ul>
+<li><strong>Blog</strong> — 2 artículos/semana, 1500+ palabras, keyword-optimized</li>
+<li><strong>Comparativas</strong> — "FuturaCRM vs Colppy", "FuturaDelivery vs PedidosYa"</li>
+<li><strong>Guías</strong> — "Guía completa facturación AFIP para PyMEs"</li>
+<li><strong>FAQ pages</strong> — Con schema para rich snippets</li>
+<li><strong>Landings por servicio</strong> — Una por cada servicio (IA, chatbots, etc.)</li>
+</ul>
+</div>
+
+<h3><span class="priority p2">P2</span> Autoridad (Semana 6-12)</h3>
+<div class="card">
+<ul>
+<li><strong>Backlinks</strong> — Guest posts en ComparaSoftware, iProfesional</li>
+<li><strong>Directorios</strong> — Capterra, GetApp, ComparaSoftware.com.ar, G2</li>
+<li><strong>Casos de estudio</strong> con datos reales</li>
+<li><strong>YouTube</strong> — Tutorials, demos</li>
+</ul>
+</div>
+
+<h2>Keywords Master</h2>
+<div class="card">
+<h3>Alta intención (transaccional)</h3>
+<table>
+<tr><th>Keyword</th><th>Vol.</th><th>Comp.</th><th>Producto</th></tr>
+<tr><td>software facturación AFIP</td><td>Alto</td><td>Media</td><td><span class="badge b-crm">CRM</span></td></tr>
+<tr><td>sistema gestión PyMEs argentina</td><td>Alto</td><td>Media</td><td><span class="badge b-crm">CRM</span></td></tr>
+<tr><td>app entrenador personal</td><td>Medio</td><td>Baja</td><td><span class="badge b-fitness">FITNESS</span></td></tr>
+<tr><td>delivery sin comisiones restaurante</td><td>Bajo</td><td>Muy baja</td><td><span class="badge b-delivery">DELIVERY</span></td></tr>
+<tr><td>chatbot WhatsApp empresas</td><td>Medio</td><td>Media</td><td><span class="badge b-services">SERVICIOS</span></td></tr>
+</table>
+<h3>Comparativas (consideration)</h3>
+<table>
+<tr><th>Keyword</th><th>Producto</th></tr>
+<tr><td>Colppy vs Xubio vs FuturaCRM</td><td><span class="badge b-crm">CRM</span></td></tr>
+<tr><td>alternativa PedidosYa restaurantes</td><td><span class="badge b-delivery">DELIVERY</span></td></tr>
+<tr><td>Trainerize vs FuturaFitness</td><td><span class="badge b-fitness">FITNESS</span></td></tr>
+</table>
+</div>
+</div>
+
+<!-- SOCIAL -->
+<div id="social" class="section">
+<h2>📱 Plataformas</h2>
+<table>
+<tr><th>Plataforma</th><th>Prioridad</th><th>Foco</th><th>Frecuencia</th></tr>
+<tr><td>Facebook (Futura Sistemas)</td><td><span class="priority p0">P0</span></td><td>Brand + productos</td><td>5x/semana</td></tr>
+<tr><td>Instagram (@futurasistemas)</td><td><span class="priority p0">P0</span></td><td>Visual + reels</td><td>5x/semana</td></tr>
+<tr><td>LinkedIn (personal)</td><td><span class="priority p1">P1</span></td><td>B2B + thought leadership</td><td>3x/semana</td></tr>
+<tr><td>TikTok</td><td><span class="priority p2">P2</span></td><td>Demos cortos</td><td>2x/semana</td></tr>
+</table>
+
+<h2>Calendario Semanal</h2>
+<div class="card">
+<table>
+<tr><th>Día</th><th>Tipo</th><th>Contenido</th></tr>
+<tr><td style="color:var(--cyan)">Lunes</td><td>🔥 Pain point</td><td>Problema del target → nuestra solución</td></tr>
+<tr><td style="color:var(--cyan)">Martes</td><td>📱 Producto</td><td>Demo/mockup/feature highlight</td></tr>
+<tr><td style="color:var(--cyan)">Miércoles</td><td>🎓 Educativo</td><td>Tip/guía/how-to del nicho</td></tr>
+<tr><td style="color:var(--cyan)">Jueves</td><td>🗣️ Social proof</td><td>Testimonio, caso, datos de uso</td></tr>
+<tr><td style="color:var(--cyan)">Viernes</td><td>🏢 Brand</td><td>Equipo, proceso, tech stack</td></tr>
+<tr><td style="color:var(--muted)">Sábado</td><td>📊 Engagement</td><td>Encuesta, quiz, pregunta (Stories)</td></tr>
+<tr><td style="color:var(--muted)">Domingo</td><td>📋 Recap</td><td>Resumen semanal (Stories)</td></tr>
+</table>
+</div>
+
+<h2>Horarios Óptimos (Argentina)</h2>
+<div class="card-grid">
+<div class="card"><strong>Posts</strong><br>Mar/Jue/Sáb<br><span style="color:var(--cyan);font-size:1.2rem">12:00-13:00</span> o <span style="color:var(--cyan);font-size:1.2rem">19:00-20:30</span></div>
+<div class="card"><strong>Stories</strong><br>Lun/Mié<br><span style="color:var(--cyan);font-size:1.2rem">10:00-11:00</span> o <span style="color:var(--cyan);font-size:1.2rem">18:00-19:00</span></div>
+<div class="card"><strong>LinkedIn</strong><br>Mar/Mié/Jue<br><span style="color:var(--cyan);font-size:1.2rem">08:00-10:00</span></div>
+<div class="card"><strong>Reels/TikTok</strong><br>Mié/Vie<br><span style="color:var(--cyan);font-size:1.2rem">20:00-21:00</span></div>
+</div>
+
+<h2>Content Pillars por Producto</h2>
+<div class="card-grid">
+<div class="card"><h3><span class="badge b-delivery">DELIVERY</span></h3>
+<div class="pillar">🔥 Pain points — "¿Cuánto te cobra PedidosYa?"</div>
+<div class="pillar">📱 Demo — Mockups carta digital</div>
+<div class="pillar">📊 Datos — "Restaurantes pierden $X/mes"</div>
+<div class="pillar">🗣️ Testimonios</div>
+<div class="pillar">🎓 Tips — "Cómo digitalizar tu restaurante"</div>
+</div>
+<div class="card"><h3><span class="badge b-fitness">FITNESS</span></h3>
+<div class="pillar">💪 Producto en acción — Screen recordings</div>
+<div class="pillar">🤖 IA spotlight — "Gemini arma rutina en 30s"</div>
+<div class="pillar">📈 Métricas — "Progreso X% más con tracking"</div>
+<div class="pillar">🏋️ Tips fitness para entrenadores</div>
+<div class="pillar">💰 Business — "Cobrá online, crecé"</div>
+</div>
+<div class="card"><h3><span class="badge b-crm">CRM</span></h3>
+<div class="pillar">🧾 AFIP simplificado — "3 clicks"</div>
+<div class="pillar">📦 Inventario inteligente</div>
+<div class="pillar">🛒 Webshop — "Sin saber programar"</div>
+<div class="pillar">📊 Datos — "60% PyMEs sin sistema"</div>
+<div class="pillar">🔧 Casos de uso por vertical</div>
+</div>
+</div>
+</div>
+
+<!-- COMPETITORS -->
+<div id="competitors" class="section">
+<h2>⚔️ FuturaDelivery vs Competidores</h2>
+<div class="card">
+<table>
+<tr><th></th><th style="color:var(--cyan)">FuturaDelivery</th><th>PedidosYa</th><th>Rappi</th></tr>
+<tr><td>Comisión</td><td class="compare-win">0%</td><td class="compare-lose">25-30%</td><td class="compare-lose">30-35%</td></tr>
+<tr><td>Suscripciones</td><td class="compare-win">✅ Sí</td><td class="compare-lose">❌</td><td class="compare-lose">❌</td></tr>
+<tr><td>Carta propia</td><td class="compare-win">✅ Sí</td><td class="compare-lose">❌ Su app</td><td class="compare-lose">❌ Su app</td></tr>
+<tr><td>Control clientes</td><td class="compare-win">✅ Total</td><td class="compare-lose">❌ De la plataforma</td><td class="compare-lose">❌ De la plataforma</td></tr>
+<tr><td>Setup</td><td class="compare-win">Días</td><td class="compare-lose">Semanas</td><td class="compare-lose">Semanas</td></tr>
+</table>
+<p style="margin-top:12px;color:var(--orange)"><strong>Ángulo:</strong> "¿Sabías que PedidosYa se queda con el 30% de cada pedido? Con FuturaDelivery, lo que vendés es tuyo."</p>
+</div>
+
+<h2>⚔️ FuturaFitness vs Competidores</h2>
+<div class="card">
+<table>
+<tr><th></th><th style="color:var(--cyan)">FuturaFitness</th><th>Smartgym</th><th>Trainerize</th><th>Hevy</th></tr>
+<tr><td>IA generativa</td><td class="compare-win">✅ Gemini</td><td class="compare-lose">❌</td><td class="compare-lose">❌</td><td class="compare-lose">❌</td></tr>
+<tr><td>Gamificación</td><td class="compare-win">✅</td><td class="compare-lose">❌</td><td class="compare-lose">❌</td><td class="compare-lose">Básica</td></tr>
+<tr><td>Nutrición</td><td class="compare-win">✅ Completa</td><td class="compare-lose">❌</td><td class="compare-lose">Básica</td><td class="compare-lose">❌</td></tr>
+<tr><td>WhatsApp</td><td class="compare-win">✅</td><td class="compare-lose">❌</td><td class="compare-lose">❌</td><td class="compare-lose">❌</td></tr>
+<tr><td>Idioma</td><td class="compare-win">ES nativo</td><td>ES</td><td class="compare-lose">EN</td><td class="compare-lose">EN</td></tr>
+</table>
+<p style="margin-top:12px;color:var(--cyan)"><strong>Ángulo:</strong> "La primera app argentina para entrenadores con IA que arma rutinas y calcula macros."</p>
+</div>
+
+<h2>⚔️ FuturaCRM vs Competidores</h2>
+<div class="card">
+<table>
+<tr><th></th><th style="color:var(--cyan)">FuturaCRM</th><th>Colppy</th><th>Xubio</th><th>Calipso</th></tr>
+<tr><td>AFIP</td><td class="compare-win">✅ A,B,C</td><td>✅</td><td>✅</td><td>✅</td></tr>
+<tr><td>Inventario</td><td class="compare-win">✅ Multi-depósito</td><td class="compare-lose">Básico</td><td class="compare-lose">Básico</td><td>✅</td></tr>
+<tr><td>POS</td><td class="compare-win">✅</td><td class="compare-lose">❌</td><td class="compare-lose">❌</td><td>✅</td></tr>
+<tr><td>Webshop</td><td class="compare-win">✅ Integrada</td><td class="compare-lose">❌</td><td class="compare-lose">❌</td><td class="compare-lose">❌</td></tr>
+<tr><td>CRM</td><td class="compare-win">✅</td><td class="compare-lose">❌</td><td class="compare-lose">❌</td><td class="compare-lose">❌</td></tr>
+<tr><td>MercadoLibre</td><td class="compare-win">✅</td><td>✅</td><td>✅</td><td class="compare-lose">❌</td></tr>
+</table>
+<p style="margin-top:12px;color:var(--blue)"><strong>Ángulo:</strong> "Colppy te cobra por facturar. Xubio te limita usuarios. FuturaCRM te da TODO."</p>
+</div>
+</div>
+
+<!-- AUTOMATION -->
+<div id="automation" class="section">
+<h2>🤖 Pipeline de Contenido</h2>
+<div class="card">
+<div class="pipeline">
+<div class="pipe-step">📋 Brief/Task</div><span class="pipe-arrow">→</span>
+<div class="pipe-step">🔍 Research</div><span class="pipe-arrow">→</span>
+<div class="pipe-step">✍️ Copy + Image</div><span class="pipe-arrow">→</span>
+<div class="pipe-step">📱 Telegram Review</div><span class="pipe-arrow">→</span>
+<div class="pipe-step">🚀 Publish (n8n)</div><span class="pipe-arrow">→</span>
+<div class="pipe-step">📊 Analytics</div>
+</div>
+</div>
+
+<h2>n8n Workflows</h2>
+<div class="card">
+<table>
+<tr><th>Workflow</th><th>Estado</th><th>Función</th></tr>
+<tr><td>Futura / FB Post</td><td><span class="badge b-done">✅ Creado</span></td><td>Post directo a Facebook</td></tr>
+<tr><td>Futura / FB Post Aprobación</td><td><span class="badge b-done">✅ Creado</span></td><td>Con Telegram approval</td></tr>
+<tr><td>Futura / IG Post</td><td><span class="badge b-blocked">❌ Bloqueado</span></td><td>Requiere IG linked a FB page</td></tr>
+<tr><td>Futura / Content Queue</td><td><span class="badge b-pending">⏳ Pendiente</span></td><td>Queue → schedule → publish</td></tr>
+<tr><td>Futura / Analytics Report</td><td><span class="badge b-pending">⏳ Pendiente</span></td><td>Reporte semanal métricas</td></tr>
+<tr><td>Futura / SEO Blog</td><td><span class="badge b-pending">⏳ Pendiente</span></td><td>AI genera blog → publish</td></tr>
+</table>
+</div>
+
+<h2>Herramientas de Generación</h2>
+<div class="card-grid">
+<div class="card"><h3>🎨 gpt-image-1 (Primary)</h3><p style="color:var(--muted)">OpenAI API · 1024x1024 HD · ~$0.04/img · ~60-90s</p><p style="color:var(--green)">✅ Funciona via API</p></div>
+<div class="card"><h3>🍌 Nano Banana Pro (Secondary)</h3><p style="color:var(--muted)">Gemini web · 1024x1024 · Gratis · ~45-60s</p><p style="color:var(--orange)">⚠️ Via browser automation</p></div>
+<div class="card"><h3>📝 Copy (Opus)</h3><p style="color:var(--muted)">Claude Opus 4.6 · Marketing Director persona</p><p style="color:var(--green)">✅ Via sub-agent</p></div>
+</div>
+</div>
+
+<!-- METRICS -->
+<div id="metrics" class="section">
+<h2>📈 Social Media KPIs</h2>
+<div class="card">
+<table>
+<tr><th>Métrica</th><th>Mes 1</th><th>Mes 3</th><th>Mes 6</th></tr>
+<tr><td>Followers FB+IG</td><td>100</td><td>500</td><td>2,000</td></tr>
+<tr><td>Engagement rate</td><td>3%</td><td>5%</td><td>5%+</td></tr>
+<tr><td>Posts/semana</td><td>5</td><td>5</td><td>7</td></tr>
+<tr><td>Reach/post</td><td>200</td><td>1,000</td><td>5,000</td></tr>
+</table>
+</div>
+
+<h2>📈 SEO KPIs</h2>
+<div class="card">
+<table>
+<tr><th>Métrica</th><th>Mes 1</th><th>Mes 3</th><th>Mes 6</th></tr>
+<tr><td>Organic traffic</td><td>50/mes</td><td>200/mes</td><td>1,000/mes</td></tr>
+<tr><td>Indexed pages</td><td>10</td><td>50</td><td>150+</td></tr>
+<tr><td>Top 10 keywords</td><td>0</td><td>5</td><td>20</td></tr>
+<tr><td>Blog posts</td><td>4</td><td>20</td><td>50</td></tr>
+</table>
+</div>
+
+<h2>📈 Conversión</h2>
+<div class="metric-row">
+<div class="metric"><div class="num">3-5%</div><div class="label">Landing → Signup</div></div>
+<div class="metric"><div class="num">50%</div><div class="label">Signup → Trial</div></div>
+<div class="metric"><div class="num">10-15%</div><div class="label">Trial → Paid</div></div>
+<div class="metric"><div class="num">3:1</div><div class="label">LTV/CAC ratio</div></div>
+</div>
+
+<h2>💰 Presupuesto Paid (cuando estemos listos)</h2>
+<div class="card">
+<table>
+<tr><th>Canal</th><th>Budget semanal</th><th>Objetivo</th></tr>
+<tr><td>Facebook/IG Ads</td><td>$5,000-15,000 ARS</td><td>Brand + leads</td></tr>
+<tr><td>Google Ads</td><td>$5,000-10,000 ARS</td><td>High-intent keywords</td></tr>
+<tr><td><strong>Total mensual</strong></td><td colspan="2"><strong>$40,000-100,000 ARS</strong></td></tr>
+</table>
+</div>
+</div>
+
+<!-- ACTIONS -->
+<div id="actions" class="section">
+<h2>✅ Checklist de Ejecución</h2>
+
+<h3>Esta Semana</h3>
+<div class="card">
+<ul class="checklist">
+<li class="done">Hub de marketing creado</li>
+<li class="done">Agent persona Marketing Director</li>
+<li class="done">Skill Nano Banana Pro</li>
+<li class="done">Research de competidores y keywords</li>
+<li class="done">3 posts generados (1 por producto)</li>
+<li class="done">Publicados en FB Futura Sistemas</li>
+<li>Generar batch de 10 posts/producto (copy + imagen)</li>
+<li>Activar workflow n8n FB + Telegram approval</li>
+<li>Conectar Meta long-lived token a n8n</li>
+</ul>
+</div>
+
+<h3>Semana 2</h3>
+<div class="card">
+<ul class="checklist">
+<li>Implementar meta tags en las 3 landings</li>
+<li>Crear Google Business Profile</li>
+<li>Registrar en Google Search Console</li>
+<li>Generar 5 blog posts SEO</li>
+<li>Linkear IG a FB page (acción de Snake)</li>
+</ul>
+</div>
+
+<h3>Semana 3-4</h3>
+<div class="card">
+<ul class="checklist">
+<li>Schema markup en landings</li>
+<li>Páginas comparativas vs competidores</li>
+<li>Registrar en directorios (Capterra, ComparaSoftware)</li>
+<li>Content queue en n8n</li>
+<li>Primer reporte de métricas</li>
+</ul>
+</div>
+
+<h3>⚠️ Bloqueados</h3>
+<div class="card" style="border-color:#ef4444">
+<ul>
+<li style="color:#ef4444">Instagram Business Account no linkeada a FB page → Snake debe hacerlo desde la app de IG</li>
+<li style="color:var(--orange)">GCP billing no habilitado → bloquea Nano Banana Pro via API</li>
+<li style="color:var(--orange)">gog CLI no disponible → sin Gmail/Calendar automation</li>
+</ul>
+</div>
+</div>
+
+</div>
+
+<script>
+function show(id){
+document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

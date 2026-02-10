@@ -477,3 +477,43 @@
   color: #a5b4fc !important;
   border-color: rgba(99, 102, 241, 0.5) !important;
 }
+
+/* ========================================
+   DIFF VIEWER STYLING
+   ======================================== */
+.diff-content {
+  color: var(--color-content-secondary);
+}
+
+.diff-content ins { 
+  background-color: rgba(34, 197, 94, 0.15); 
+  text-decoration: none; 
+  display: block;
+  padding: 1px 8px;
+  color: #86efac;
+}
+
+.diff-content del { 
+  background-color: rgba(239, 68, 68, 0.15); 
+  text-decoration: none; 
+  display: block;
+  padding: 1px 8px;
+  color: #fca5a5;
+}
+
+.diff-content li {
+  list-style: none;
+  padding: 1px 8px;
+}
+
+.diff-content ul {
+  padding: 0;
+  margin: 0;
+}
+
+/* Diff header lines (@@) */
+.diff-content li:has(ins):has(del),
+.diff-content .diff-block-info {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #93c5fd;
+}
