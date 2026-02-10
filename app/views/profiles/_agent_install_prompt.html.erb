@@ -36,10 +36,12 @@ HOOKS_AUTH: "X-Hook-Token: <HOOKS_TOKEN>"<% end %>
 # A) POST /api/v1/hooks/task_outcome  (OutcomeContract v1: structured YES/NO follow-up)
 # B) POST /api/v1/hooks/agent_complete (persist raw findings + output file paths; moves to in_review)
 
-# Follow-up policy (no kanban bloat):
+# Follow-up policy (no kanban bloat, no auto-requeue):
+# - Always finish the run by moving the task to in_review (via hooks).
 # - If follow-up is needed: needs_follow_up=true AND recommended_action="requeue_same_task"
 #   - Include next_prompt (required).
-#   - ClawTrol will move THE SAME CARD back to up_next and wake OpenClaw.
+#   - You MUST ask the human in Telegram to approve requeue.
+#   - Only after explicit approval: POST /api/v1/tasks/:id/requeue to move THE SAME CARD back to up_next.
 # - If no follow-up: needs_follow_up=false AND recommended_action="in_review"
 #   - Task stays in review; human decides next.
 
@@ -49,7 +51,8 @@ HOOKS_AUTH: "X-Hook-Token: <HOOKS_TOKEN>"<% end %>
 
 # Useful endpoints (Bearer token auth):
 # - GET  /api/v1/boards
-# - GET  /api/v1/tasks?status=up_next&assigned_to_agent=true&blocked=false
+# - GET  /api/v1/tasks?status=up_next&assigned=true&blocked=false
+# - POST /api/v1/tasks/:id/requeue      (explicit follow-up approval: same card -> up_next)
 # - POST /api/v1/tasks/spawn_ready   (create + reserve a task for spawning)
 # - POST /api/v1/tasks/:id/link_session
 # - PATCH /api/v1/tasks/:id          (status/model/priority/nightly/recurring/agent_persona_id)
@@ -94,4 +97,3 @@ HOOKS_AUTH: "X-Hook-Token: <HOOKS_TOKEN>"<% end %>
     </div>
   </div>
 </div>
-

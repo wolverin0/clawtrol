@@ -65,6 +65,7 @@ Rails.application.routes.draw do
           post :agent_complete
           patch :claim
           patch :unclaim
+          post :requeue
           patch :assign
           patch :unassign
           patch :move
@@ -175,6 +176,9 @@ Rails.application.routes.draw do
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
+
+  # Marketing docs static site (redirects to static files in public/marketing/)
+  get "marketing", to: redirect("/marketing/index.html")
 
   # Defines the root path route ("/")
   root "pages#home"

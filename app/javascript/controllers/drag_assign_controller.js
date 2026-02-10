@@ -18,6 +18,8 @@ export default class extends Controller {
 
       event.preventDefault()
       event.stopPropagation()
+      // Some card/modal listeners attach on capture too; this prevents those from firing.
+      if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation()
 
       const taskId = btn.dataset.taskId
       if (!taskId) return
@@ -160,6 +162,7 @@ export default class extends Controller {
   async unassign(event) {
     event.preventDefault()
     event.stopPropagation()
+    if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation()
 
     const taskId = event.currentTarget.dataset.taskId
     if (!taskId) return

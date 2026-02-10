@@ -268,6 +268,7 @@ export default class extends Controller {
   clearPersona(event) {
     event.preventDefault()
     event.stopPropagation()
+    if (typeof event.stopImmediatePropagation === "function") event.stopImmediatePropagation()
 
     if (this.hasPersonaSelectTarget) {
       this.personaSelectTarget.value = ""

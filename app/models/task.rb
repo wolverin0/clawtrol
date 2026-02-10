@@ -98,7 +98,7 @@ class Task < ApplicationRecord
   after_create :try_auto_claim
   after_update :record_update_activities
   after_update :handle_recurring_completion, if: :saved_change_to_status?
-  after_update :notify_openclaw_if_urgent, if: :saved_change_to_status?
+  after_update :notify_openclaw_if_urgent, if: -> { saved_change_to_status? || saved_change_to_assigned_to_agent? }
   after_update :warn_if_review_without_session, if: :saved_change_to_status?
   after_update :create_status_notification, if: :saved_change_to_status?
   after_update :try_transcript_capture, if: :saved_change_to_status?
@@ -721,10 +721,16 @@ class Task < ApplicationRecord
     Rails.logger.warn("[Task##{id}] lease heartbeat failed: #{e.class}: #{e.message}")
   end
 
-  # Notify OpenClaw gateway when task is moved to in_progress and assigned to agent
+
+  # Notify OpenClaw gateway when a task becomes runnable for the orchestrator.
+  #
+  # OpenClaw is the sole orchestrator: ClawTrol should never auto-claim/promote.
+  # We only WAKE OpenClaw so it can poll/claim/spawn based on the task settings.
   def notify_openclaw_if_urgent
-    return unless status == "in_progress" && assigned_to_agent?
     return unless user.openclaw_gateway_url.present?
+
+    # Only wake when this task is runnable from the queue.
+    return unless status == "up_next" && assigned_to_agent? && !blocked?
 
     OpenclawNotifyJob.perform_later(id)
   end
@@ -749,7 +755,11 @@ class Task < ApplicationRecord
     Rails.logger.warn("[Task##{id}] reset_auto_pull_guardrails failed: #{e.class}: #{e.message}")
   end
 
-  # Try to auto-claim this task based on board settings
+
+  # Try to auto-queue this task based on board settings.
+  #
+  # IMPORTANT: ClawTrol does not start work. It may move tasks into Up Next +
+  # assign them, then wake OpenClaw to decide when/how to run.
   def try_auto_claim
     return unless status == "inbox"
     return unless board.can_auto_claim?
@@ -757,39 +767,39 @@ class Task < ApplicationRecord
 
     now = Time.current
 
-    RunnerLease.create!(
-      task: self,
-      agent_name: user&.agent_name,
-      lease_token: SecureRandom.hex(24),
-      source: "auto_claim",
-      started_at: now,
-      last_heartbeat_at: now,
-      expires_at: now + RunnerLease::LEASE_DURATION
-    )
+    old_status = status
 
-    # Auto-claim: assign to agent and move to in_progress (validation enforces lease)
     update!(
       assigned_to_agent: true,
       assigned_at: now,
-      agent_claimed_at: now,
-      status: :in_progress
+      agent_claimed_at: nil,
+      status: :up_next
     )
 
-    # Record the auto-claim time on the board (rate limiting)
+    # Record the auto-queue time on the board (rate limiting)
     board.record_auto_claim!
 
     # Record activity
     TaskActivity.create!(
       task: self,
       user: user,
-      action: "auto_claimed",
+      action: "auto_queued",
       source: "system",
-      actor_name: "Auto-Claim",
+      actor_name: "Auto-Queue",
       actor_emoji: "🤖",
-      note: "Task auto-claimed based on board settings"
+      note: "Task auto-queued based on board settings"
     )
 
-    # Trigger webhook to wake the agent
+    # Notify UIs that this card moved columns
+    KanbanChannel.broadcast_refresh(
+      board_id,
+      task_id: id,
+      action: "update",
+      old_status: old_status,
+      new_status: status
+    )
+
+    # Wake the orchestrator
     if user.openclaw_gateway_url.present?
       AutoClaimNotifyJob.perform_later(id)
     end
@@ -805,7 +815,11 @@ class Task < ApplicationRecord
   # Turbo Streams broadcasts for real-time updates
   # Note: We reload with includes to avoid N+1 queries when rendering partials
   def broadcast_create
-    return if skip_broadcast?
+    if skip_broadcast?
+      # Still notify WebSocket clients (other tabs/devices) even when the change came from the web UI.
+      KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "create")
+      return
+    end
 
     # Reload with associations to avoid N+1 when rendering the partial
     task_with_associations = Task.includes(:board, :user, :agent_persona).find(id)
@@ -828,7 +842,16 @@ class Task < ApplicationRecord
   end
 
   def broadcast_update
-    return if skip_broadcast?
+    if skip_broadcast?
+      # Still notify WebSocket clients (other tabs/devices) even when the change came from the web UI.
+      if saved_change_to_status?
+        old_s, new_s = saved_change_to_status
+        KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "update", old_status: old_s, new_status: new_s)
+      else
+        KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "update")
+      end
+      return
+    end
 
     # Reload with associations to avoid N+1 when rendering the partial
     task_with_associations = Task.includes(:board, :user, :agent_persona).find(id)
@@ -883,7 +906,11 @@ class Task < ApplicationRecord
   end
 
   def broadcast_destroy
-    return if skip_broadcast?
+    if skip_broadcast?
+      # Still notify WebSocket clients (other tabs/devices) even when the change came from the web UI.
+      KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "destroy")
+      return
+    end
 
     # Cache values before they become inaccessible
     cached_board_id = board_id

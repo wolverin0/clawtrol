@@ -71,7 +71,7 @@
         <span><%= task.agent_persona.emoji || '🤖' %></span>
         <span class="max-w-[60px] truncate"><%= task.agent_persona.name %></span>
         <button type="button"
-                data-action="click->drag-assign#unassign"
+                data-action="click->drag-assign#unassign:stop"
                 data-unassign-persona="1"
                 data-task-id="<%= task.id %>"
                 class="ml-0.5 p-0.5 -mr-0.5 rounded hover:bg-bg-hover hover:text-red-400 transition-colors cursor-pointer"

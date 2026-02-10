@@ -53,7 +53,9 @@ class AgentAutoRunnerService
 
       next if agent_currently_working?(user)
 
-      if spawn_if_work_available!(user)
+      # OpenClaw is the orchestrator. ClawTrol may WAKE OpenClaw, but must not
+      # claim/promote tasks into in_progress.
+      if wake_if_work_available!(user)
         stats[:users_woken] += 1
       end
     end
@@ -65,7 +67,8 @@ class AgentAutoRunnerService
   private
 
   def openclaw_configured?(user)
-    user.openclaw_gateway_url.present? && user.openclaw_gateway_token.present?
+    hooks_token = user.respond_to?(:openclaw_hooks_token) ? user.openclaw_hooks_token : nil
+    user.openclaw_gateway_url.present? && (hooks_token.present? || user.openclaw_gateway_token.present?)
   end
 
   def agent_currently_working?(user)
@@ -76,6 +79,7 @@ class AgentAutoRunnerService
   def runnable_up_next_task_for(user)
     scope = user.tasks
       .where(status: :up_next, blocked: false, agent_claimed_at: nil, agent_session_id: nil, agent_session_key: nil)
+      .where(assigned_to_agent: true)
       .where(auto_pull_blocked: false)
       .where("auto_pull_last_error_at IS NULL OR auto_pull_last_error_at < ?", Time.current - FAILURE_COOLDOWN)
       .where.not(recurring: true, parent_task_id: nil) # never auto-run recurring templates
@@ -85,22 +89,12 @@ class AgentAutoRunnerService
     tasks.find { |t| eligible_for_time_window?(t) }
   end
 
-  def spawn_if_work_available!(user)
+  def wake_if_work_available!(user)
     task = runnable_up_next_task_for(user)
     return false unless task
 
-    cache_key = "agent_auto_runner:last_spawn:user:#{user.id}"
+    cache_key = "agent_auto_runner:last_wake:user:#{user.id}"
     return false if @cache.read(cache_key).present?
-
-    claim_for_auto_pull!(task)
-    task.update_columns(auto_pull_last_attempt_at: Time.current)
-
-    Notification.create_deduped!(
-      user: user,
-      task: task,
-      event_type: "auto_pull_claimed",
-      message: "Auto-pull claimed: #{task.name.truncate(60)}"
-    )
 
     Notification.create_deduped!(
       user: user,
@@ -118,112 +112,23 @@ class AgentAutoRunnerService
 
     @cache.write(cache_key, Time.current.to_i, expires_in: SPAWN_COOLDOWN)
 
-    @logger.info("[AgentAutoRunner] auto-pull ready user_id=#{user.id} task_id=#{task.id}")
+    @logger.info("[AgentAutoRunner] wake sent user_id=#{user.id} task_id=#{task.id}")
     true
   rescue StandardError => e
-    @logger.error("[AgentAutoRunner] auto-pull claim failed user_id=#{user.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
+    @logger.error("[AgentAutoRunner] auto-pull wake failed user_id=#{user.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
 
     begin
-      mark_auto_pull_failure!(task, e) if task
-      revert_auto_pull_claim!(task) if task
-
       Notification.create_deduped!(
         user: user,
         task: task,
         event_type: "auto_pull_error",
-        message: "Auto-pull claim failed: #{e.class}: #{e.message}".truncate(250)
+        message: "Auto-pull wake failed: #{e.class}: #{e.message}".truncate(250)
       )
     rescue StandardError
       # Don't let notification errors break the runner.
     end
 
     false
-  end
-
-  def claim_for_auto_pull!(task)
-    task.activity_source = "system"
-    task.actor_name = "Auto-Runner"
-    task.actor_emoji = "🤖"
-    task.activity_note = "Auto-pull: leased + claimed + waking OpenClaw"
-
-    now = Time.current
-
-    # Create lease first so the Task model validation can enforce
-    # in_progress ⇔ active lease.
-    RunnerLease.create!(
-      task: task,
-      agent_name: task.user&.agent_name,
-      lease_token: SecureRandom.hex(24),
-      source: "auto_runner",
-      started_at: now,
-      last_heartbeat_at: now,
-      expires_at: now + RunnerLease::LEASE_DURATION
-    )
-
-    old_status = task.status
-
-    updates = {
-      assigned_to_agent: true,
-      assigned_at: task.assigned_at || now,
-      agent_claimed_at: now,
-      status: :in_progress
-    }
-
-    task.update!(updates)
-
-    KanbanChannel.broadcast_refresh(
-      task.board_id,
-      task_id: task.id,
-      action: "update",
-      old_status: old_status,
-      new_status: task.status
-    )
-  end
-
-  def revert_auto_pull_claim!(task)
-    return unless task
-
-    task.activity_source = "system"
-    task.actor_name = "Auto-Runner"
-    task.actor_emoji = "🤖"
-    task.activity_note = "Auto-pull: claim failed, reverting claim + releasing lease"
-
-    # Release any active lease so the invariant stays truthful.
-    task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
-
-    old_status = task.status
-    task.update!(
-      status: :up_next,
-      assigned_to_agent: false,
-      assigned_at: nil,
-      agent_claimed_at: nil,
-      agent_session_id: nil,
-      agent_session_key: nil
-    )
-
-    KanbanChannel.broadcast_refresh(
-      task.board_id,
-      task_id: task.id,
-      action: "update",
-      old_status: old_status,
-      new_status: task.status
-    )
-  end
-
-  def mark_auto_pull_failure!(task, error)
-    return unless task.respond_to?(:auto_pull_failures)
-
-    failures = task.auto_pull_failures.to_i + 1
-    blocked = failures >= FAILURE_LIMIT
-
-    task.update_columns(
-      auto_pull_failures: failures,
-      auto_pull_blocked: blocked,
-      auto_pull_last_error_at: Time.current,
-      auto_pull_last_error: "#{error.class}: #{error.message}".truncate(500)
-    )
-  rescue StandardError
-    # best-effort; never crash the runner
   end
 
   def eligible_for_time_window?(task)
