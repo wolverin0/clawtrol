@@ -27,9 +27,11 @@ class AgentAutoRunnerService
 
   NIGHT_TZ = "America/Argentina/Buenos_Aires"
 
-  def initialize(logger: Rails.logger, cache: Rails.cache, openclaw_gateway_client: OpenclawGatewayClient)
+  def initialize(logger: Rails.logger, cache: Rails.cache, openclaw_webhook_service: OpenclawWebhookService, openclaw_gateway_client: nil)
     @logger = logger
     @cache = cache
+    @openclaw_webhook_service = openclaw_webhook_service
+    # Deprecated: direct gateway spawning was removed; keep for backwards compat.
     @openclaw_gateway_client = openclaw_gateway_client
   end
 
@@ -91,6 +93,7 @@ class AgentAutoRunnerService
     return false if @cache.read(cache_key).present?
 
     claim_for_auto_pull!(task)
+    task.update_columns(auto_pull_last_attempt_at: Time.current)
 
     Notification.create_deduped!(
       user: user,
@@ -99,32 +102,26 @@ class AgentAutoRunnerService
       message: "Auto-pull claimed: #{task.name.truncate(60)}"
     )
 
-    prompt = build_openclaw_prompt(task)
-    task.update_columns(auto_pull_last_attempt_at: Time.current)
-    spawn = @openclaw_gateway_client.new(user).spawn_session!(model: task.openclaw_spawn_model, prompt: prompt)
-
-    task.update!(
-      agent_session_key: spawn[:child_session_key],
-      agent_session_id: spawn[:session_id],
-      auto_pull_failures: 0,
-      auto_pull_blocked: false,
-      auto_pull_last_error_at: nil,
-      auto_pull_last_error: nil
-    )
-
     Notification.create_deduped!(
       user: user,
       task: task,
-      event_type: "auto_pull_spawned",
-      message: "Auto-pull spawned session for: #{task.name.truncate(60)}"
+      event_type: "auto_pull_ready",
+      message: "Auto-pull ready: ##{task.id} #{task.name.truncate(60)}"
     )
+
+    begin
+      @openclaw_webhook_service.new(user).notify_auto_pull_ready(task)
+    rescue StandardError => e
+      # Non-fatal: the task is already claimed; OpenClaw can still pick it up via polling/heartbeat.
+      @logger.warn("[AgentAutoRunner] wake failed user_id=#{user.id} task_id=#{task.id} err=#{e.class}: #{e.message}")
+    end
 
     @cache.write(cache_key, Time.current.to_i, expires_in: SPAWN_COOLDOWN)
 
-    @logger.info("[AgentAutoRunner] auto-pull spawned user_id=#{user.id} task_id=#{task.id} session_key=#{task.agent_session_key}")
+    @logger.info("[AgentAutoRunner] auto-pull ready user_id=#{user.id} task_id=#{task.id}")
     true
   rescue StandardError => e
-    @logger.error("[AgentAutoRunner] auto-pull spawn failed user_id=#{user.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
+    @logger.error("[AgentAutoRunner] auto-pull claim failed user_id=#{user.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
 
     begin
       mark_auto_pull_failure!(task, e) if task
@@ -134,7 +131,7 @@ class AgentAutoRunnerService
         user: user,
         task: task,
         event_type: "auto_pull_error",
-        message: "Auto-pull spawn failed: #{e.class}: #{e.message}".truncate(250)
+        message: "Auto-pull claim failed: #{e.class}: #{e.message}".truncate(250)
       )
     rescue StandardError
       # Don't let notification errors break the runner.
@@ -147,7 +144,7 @@ class AgentAutoRunnerService
     task.activity_source = "system"
     task.actor_name = "Auto-Runner"
     task.actor_emoji = "🤖"
-    task.activity_note = "Auto-pull: leased + claimed + spawning OpenClaw session"
+    task.activity_note = "Auto-pull: leased + claimed + waking OpenClaw"
 
     now = Time.current
 
@@ -179,7 +176,7 @@ class AgentAutoRunnerService
     task.activity_source = "system"
     task.actor_name = "Auto-Runner"
     task.actor_emoji = "🤖"
-    task.activity_note = "Auto-pull: spawn failed, reverting claim + releasing lease"
+    task.activity_note = "Auto-pull: claim failed, reverting claim + releasing lease"
 
     # Release any active lease so the invariant stays truthful.
     task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
@@ -234,58 +231,6 @@ class AgentAutoRunnerService
     night_start = Time.find_zone!(NIGHT_TZ).local(night_start_date.year, night_start_date.month, night_start_date.day, start_hour, 0, 0)
 
     now >= (night_start + delay_hours.hours)
-  end
-
-  def build_openclaw_prompt(task)
-    validation = task.validation_command.present? ? "\n\n## Validation\nRun:\n```bash\n#{task.validation_command}\n```\n" : ""
-    hooks_token = Rails.application.config.hooks_token.to_s
-    persona_prompt = task.agent_persona&.spawn_prompt.to_s.strip
-    persona_section = persona_prompt.present? ? "\n\n## Agent Persona\n#{persona_prompt}\n" : ""
-
-    <<~PROMPT
-      ## Task ##{task.id}: #{task.name}
-
-      Project repo: /home/ggorbalan/clawdeck
-      Selected model: #{task.model.presence || Task::DEFAULT_MODEL} (OpenClaw: #{task.openclaw_spawn_model})
-
-      #{persona_section}
-      #{task.description}
-      #{validation}
-
-      ## Constraints
-      - You are a sub-agent spawned by ClawTrol server-side auto-pull.
-      - ALWAYS report completion with an OutcomeContract (YES/NO follow-up) first, then attach your raw output via agent_complete.
-
-      If you set `needs_follow_up=true` with `recommended_action=requeue_same_task`, ClawTrol will move THIS SAME TASK back to `up_next` and wake OpenClaw immediately (no new follow-up card bloat).
-
-      ```bash
-      RUN_ID="$(ruby -e 'require \"securerandom\"; puts SecureRandom.uuid')"
-      ENDED_AT="$(date -Iseconds)"
-
-      curl -s -X POST http://192.168.100.186:4001/api/v1/hooks/task_outcome \
-        -H "X-Hook-Token: #{hooks_token}" \
-        -H "Content-Type: application/json" \
-        -d '{
-          "version":"1",
-          "task_id":#{task.id},
-          "run_id":"'"$RUN_ID"'",
-          "ended_at":"'"$ENDED_AT"'",
-          "needs_follow_up":false,
-          "recommended_action":"in_review",
-          "summary":"<one paragraph>",
-          "achieved":["..."],
-          "evidence":["..."],
-          "remaining":["..."]
-        }'
-
-      curl -s -X POST http://192.168.100.186:4001/api/v1/hooks/agent_complete \
-        -H "X-Hook-Token: #{hooks_token}" \
-        -H "Content-Type: application/json" \
-        -d '{"task_id":#{task.id},"findings":"SUMMARY + COMMIT HASH + test command","output_files":["..."]}'
-      ```
-
-      Make sure the JSON includes real output_files paths.
-    PROMPT
   end
 
   # Truthfulness invariant (lease-based):
