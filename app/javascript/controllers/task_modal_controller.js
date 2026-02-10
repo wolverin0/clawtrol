@@ -114,16 +114,26 @@ export default class extends Controller {
       headers: {
         'Accept': 'text/vnd.turbo-stream.html',
         'X-CSRF-Token': csrfToken
+      },
+      credentials: "same-origin"
+    }).then(async (response) => {
+      if (!response.ok) {
+        let details = ""
+        try {
+          details = await response.text()
+        } catch {
+          // noop
+        }
+        console.error("Task modal save failed:", response.status, response.statusText, details)
+        return null
       }
-    }).then(response => {
-      if (response.ok) {
-        return response.text()
-      }
-    }).then(html => {
-      if (html) {
-        // Apply updates immediately so the UI reflects changes while the modal is open.
-        Turbo.renderStreamMessage(html)
-      }
+      return response.text()
+    }).then((html) => {
+      if (!html) return
+      // Apply updates immediately so the UI reflects changes while the modal is open.
+      Turbo.renderStreamMessage(html)
+    }).catch((error) => {
+      console.error("Task modal save error:", error)
     })
   }
 
@@ -248,6 +258,12 @@ export default class extends Controller {
   }
 
 
+
+  stopEvent(event) {
+    // Some ancestors (cards/backdrops) use click handlers; stop early so controls remain usable.
+    event.preventDefault()
+    event.stopPropagation()
+  }
 
   clearPersona(event) {
     event.preventDefault()
