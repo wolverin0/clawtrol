@@ -1,0 +1,536 @@
+<% content_for :title, "Social Media Studio - ClawTrol" %>
+
+<div class="py-6" data-controller="playground">
+  <%# Header %>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl font-display font-bold text-content">🎨 Social Media Studio</h1>
+      <p class="text-sm text-content-muted mt-1">Create, preview, and schedule social media posts</p>
+    </div>
+    <%= link_to marketing_path, class: "inline-flex items-center gap-2 px-4 py-2 bg-bg-elevated text-content-muted hover:text-content rounded-lg text-sm transition-colors border border-border" do %>
+      ← Back to Docs
+    <% end %>
+  </div>
+
+  <%# === CONTENT LIBRARY === %>
+  <div class="bg-bg-surface border border-border rounded-lg overflow-hidden mb-6">
+    <div class="p-4 border-b border-border bg-bg-elevated flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <h2 class="font-semibold text-content flex items-center gap-2">
+        📸 Content Library
+        <span data-playground-target="galleryCount" class="text-sm font-normal text-content-muted">(loading...)</span>
+      </h2>
+      
+      <%# Filters %>
+      <div class="flex flex-wrap gap-2">
+        <%# Product Filter %>
+        <div class="flex flex-wrap gap-1">
+          <button data-action="click->playground#filterProduct" data-product="all" 
+            class="px-3 py-1 text-xs rounded-full border border-border bg-accent text-white transition-colors"
+            data-playground-target="filterAll">
+            All
+          </button>
+          <button data-action="click->playground#filterProduct" data-product="futuracrm"
+            class="px-3 py-1 text-xs rounded-full border border-border bg-bg-elevated text-content-muted hover:border-blue-500 hover:text-blue-400 transition-colors"
+            data-playground-target="filterCrm">
+            FuturaCRM
+          </button>
+          <button data-action="click->playground#filterProduct" data-product="futurafitness"
+            class="px-3 py-1 text-xs rounded-full border border-border bg-bg-elevated text-content-muted hover:border-green-500 hover:text-green-400 transition-colors"
+            data-playground-target="filterFitness">
+            FuturaFitness
+          </button>
+          <button data-action="click->playground#filterProduct" data-product="optimadelivery"
+            class="px-3 py-1 text-xs rounded-full border border-border bg-bg-elevated text-content-muted hover:border-orange-500 hover:text-orange-400 transition-colors"
+            data-playground-target="filterDelivery">
+            OptimaDelivery
+          </button>
+          <button data-action="click->playground#filterProduct" data-product="futura"
+            class="px-3 py-1 text-xs rounded-full border border-border bg-bg-elevated text-content-muted hover:border-purple-500 hover:text-purple-400 transition-colors"
+            data-playground-target="filterFutura">
+            Futura
+          </button>
+        </div>
+        
+        <%# Type Filter %>
+        <select data-playground-target="typeFilter" data-action="change->playground#filterType"
+          class="px-3 py-1 text-xs rounded-full border border-border bg-bg-elevated text-content focus:outline-none focus:ring-1 focus:ring-accent">
+          <option value="all">All Types</option>
+          <option value="hero">Hero</option>
+          <option value="instagram">Instagram</option>
+          <option value="story">Story</option>
+          <option value="facebook">Facebook</option>
+          <option value="feature">Feature</option>
+          <option value="video">Video</option>
+        </select>
+      </div>
+    </div>
+    
+    <%# Gallery Grid %>
+    <div class="p-4">
+      <div data-playground-target="contentGallery" 
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <%# Loading state %>
+        <div class="col-span-full flex items-center justify-center py-12 text-content-muted">
+          <svg class="animate-spin h-6 w-6 mr-2" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          Loading content...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# Lightbox Modal %>
+  <div data-playground-target="lightbox" 
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm"
+    data-action="click->playground#closeLightbox keydown.escape@window->playground#closeLightbox">
+    <div class="relative max-w-4xl max-h-[90vh] m-4 bg-bg-surface rounded-lg overflow-hidden shadow-2xl"
+      data-action="click->playground#stopPropagation">
+      <%# Close button %>
+      <button data-action="click->playground#closeLightbox"
+        class="absolute top-3 right-3 z-10 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      
+      <%# Image/Video container %>
+      <div class="relative bg-black flex items-center justify-center" style="max-height: 60vh;">
+        <img data-playground-target="lightboxImage" class="max-w-full max-h-[60vh] object-contain" alt="" />
+        <video data-playground-target="lightboxVideo" class="max-w-full max-h-[60vh] hidden" controls></video>
+      </div>
+      
+      <%# Metadata %>
+      <div class="p-4 bg-bg-elevated border-t border-border">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-2">
+              <span data-playground-target="lightboxProduct" class="px-2 py-1 text-xs font-medium rounded-full bg-accent/20 text-accent"></span>
+              <span data-playground-target="lightboxType" class="px-2 py-1 text-xs font-medium rounded-full bg-bg-surface text-content-muted"></span>
+              <span data-playground-target="lightboxDimensions" class="text-xs text-content-muted"></span>
+            </div>
+            <p data-playground-target="lightboxBatch" class="text-xs text-content-muted mb-2"></p>
+            <p data-playground-target="lightboxPrompt" class="text-sm text-content line-clamp-3"></p>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <button data-action="click->playground#useInPost"
+              class="px-4 py-2 bg-accent text-white font-medium rounded-lg hover:bg-accent/90 transition-colors text-sm flex items-center gap-2">
+              ✅ Use in Post
+            </button>
+            <button data-action="click->playground#approveContent"
+              class="px-4 py-2 bg-bg-surface text-content border border-border rounded-lg hover:border-accent transition-colors text-sm flex items-center gap-2">
+              👍 Approve
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# Main Grid: 3 columns on desktop, stacked on mobile %>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <%# === LEFT COLUMN: Image Generation === %>
+    <div class="bg-bg-surface border border-border rounded-lg overflow-hidden">
+      <div class="p-4 border-b border-border bg-bg-elevated">
+        <h2 class="font-semibold text-content flex items-center gap-2">
+          🖼️ Image Generation
+        </h2>
+      </div>
+      
+      <div class="p-4 space-y-4">
+        <%# Product Selector %>
+        <div>
+          <label class="block text-sm font-medium text-content-muted mb-2">Product</label>
+          <select 
+            data-playground-target="product"
+            class="w-full px-3 py-2 bg-bg-elevated border border-border rounded-lg text-sm text-content focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+          >
+            <option value="futuracrm">📊 FuturaCRM</option>
+            <option value="futurafitness">💪 FuturaFitness</option>
+            <option value="optimadelivery">🚚 OptimaDelivery</option>
+            <option value="futura">🌟 Futura Brand</option>
+          </select>
+          <p class="text-xs text-content-muted mt-1">Product context will be prepended to your prompt</p>
+        </div>
+
+        <%# Prompt %>
+        <div>
+          <label class="block text-sm font-medium text-content-muted mb-2">Prompt</label>
+          <textarea 
+            data-playground-target="prompt"
+            rows="3"
+            class="w-full px-3 py-2 bg-bg-elevated border border-border rounded-lg text-sm text-content placeholder-content-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
+            placeholder="Describe the image you want to generate..."
+          ></textarea>
+        </div>
+
+        <%# Model Selector %>
+        <div>
+          <label class="block text-sm font-medium text-content-muted mb-2">Model</label>
+          <select 
+            data-playground-target="model"
+            class="w-full px-3 py-2 bg-bg-elevated border border-border rounded-lg text-sm text-content focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+          >
+            <option value="gpt-image-1">🎨 GPT-Image-1 (OpenAI)</option>
+            <option value="comfyui-sdxl" disabled>🖼️ ComfyUI SDXL (Coming Soon)</option>
+            <option value="nano-banana" disabled>🍌 Nano Banana (Coming Soon)</option>
+          </select>
+        </div>
+
+        <%# Size Selector %>
+        <div>
+          <label class="block text-sm font-medium text-content-muted mb-2">Size</label>
+          <select 
+            data-playground-target="size"
+            class="w-full px-3 py-2 bg-bg-elevated border border-border rounded-lg text-sm text-content focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+          >
+            <option value="1024x1024">1024×1024 (Square)</option>
+            <option value="1536x1024">1536×1024 (Landscape)</option>
+            <option value="1024x1536">1024×1536 (Portrait)</option>
+          </select>
+        </div>
+
+        <%# Generate Button %>
+        <button 
+          data-playground-target="generateBtn"
+          data-action="click->playground#generateImage"
+          class="w-full px-4 py-3 bg-accent text-white font-semibold rounded-lg hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+        >
+          <span data-playground-target="generateText">✨ Generate Image</span>
+          <span data-playground-target="generateSpinner" class="hidden">
+            <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+            </svg>
+          </span>
+        </button>
+
+        <%# Generated Image Preview %>
+        <div class="border-2 border-dashed border-border rounded-lg p-4 min-h-40 flex items-center justify-center" data-playground-target="imagePreview">
+          <div class="text-center text-content-muted">
+            <div class="text-4xl mb-2">🎭</div>
+            <p class="text-sm">Generated image will appear here</p>
+          </div>
+        </div>
+
+        <%# Use Image Button %>
+        <button 
+          data-playground-target="useImageBtn"
+          data-action="click->playground#useGeneratedImage"
+          class="hidden w-full px-4 py-2 bg-bg-elevated text-content border border-border rounded-lg hover:border-accent transition-colors text-sm"
+        >
+          ✅ Use This Image
+        </button>
+
+        <%# Gallery %>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-medium text-content-muted">Recent Generations</label>
+            <button 
+              data-action="click->playground#clearGallery"
+              class="text-xs text-content-muted hover:text-red-400 transition-colors"
+            >
+              Clear All
+            </button>
+          </div>
+          <div 
+            data-playground-target="gallery"
+            class="grid grid-cols-4 gap-2"
+          >
+            <%# Gallery items populated by JS %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# === CENTER COLUMN: Post Composer === %>
+    <div class="bg-bg-surface border border-border rounded-lg overflow-hidden">
+      <div class="p-4 border-b border-border bg-bg-elevated">
+        <h2 class="font-semibold text-content flex items-center gap-2">
+          ✏️ Post Composer
+        </h2>
+      </div>
+      
+      <div class="p-4 space-y-4">
+        <%# Image Drop Zone %>
+        <div 
+          data-playground-target="dropZone"
+          data-action="dragover->playground#dragOver dragenter->playground#dragEnter dragleave->playground#dragLeave drop->playground#drop click->playground#clickUpload"
+          class="border-2 border-dashed border-border rounded-lg p-4 min-h-48 flex items-center justify-center cursor-pointer hover:border-accent/50 transition-colors"
+        >
+          <div class="text-center" data-playground-target="dropZonePlaceholder">
+            <div class="text-4xl mb-2">📷</div>
+            <p class="text-sm text-content-muted">Drag & drop an image or click to select</p>
+            <p class="text-xs text-content-muted mt-1">Or use a generated image from the left</p>
+          </div>
+          <img 
+            data-playground-target="postImage" 
+            class="hidden max-w-full max-h-64 rounded-lg"
+            alt="Post image"
+          />
+        </div>
+        <input type="file" data-playground-target="fileInput" class="hidden" accept="image/*" data-action="change->playground#fileSelected">
+
+        <%# Platform Toggle %>
+        <div>
+          <label class="block text-sm font-medium text-content-muted mb-2">Platform</label>
+          <div class="flex gap-2">
+            <button 
+              data-playground-target="platformFb"
+              data-action="click->playground#togglePlatform"
+              data-platform="facebook"
+              class="flex-1 px-4 py-2 rounded-lg border border-border text-sm transition-colors bg-blue-600/20 border-blue-500 text-blue-400"
+            >
+              📘 Facebook
+            </button>
+            <button 
+              data-playground-target="platformIg"
+              data-action="click->playground#togglePlatform"
+              data-platform="instagram"
+              class="flex-1 px-4 py-2 rounded-lg border border-border text-sm transition-colors bg-pink-600/20 border-pink-500 text-pink-400"
+            >
+              📸 Instagram
+            </button>
+          </div>
+        </div>
+
+        <%# Caption %>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-medium text-content-muted">Caption</label>
+            <span data-playground-target="charCount" class="text-xs text-content-muted">0 / 2,200</span>
+          </div>
+          <textarea 
+            data-playground-target="caption"
+            data-action="input->playground#updateCaption"
+            rows="4"
+            class="w-full px-3 py-2 bg-bg-elevated border border-border rounded-lg text-sm text-content placeholder-content-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
+            placeholder="Write your caption..."
+          ></textarea>
+        </div>
+
+        <%# Hashtags %>
+        <div>
+          <label class="block text-sm font-medium text-content-muted mb-2">Hashtags</label>
+          <div 
+            data-playground-target="hashtagContainer"
+            class="flex flex-wrap gap-2 mb-2 min-h-8"
+          >
+            <%# Hashtag pills populated by JS %>
+          </div>
+          <div class="flex gap-2">
+            <input 
+              type="text"
+              data-playground-target="hashtagInput"
+              data-action="keydown->playground#addHashtag"
+              class="flex-1 px-3 py-2 bg-bg-elevated border border-border rounded-lg text-sm text-content placeholder-content-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+              placeholder="Add hashtag (press Enter)"
+            />
+          </div>
+          <div class="flex flex-wrap gap-1 mt-2">
+            <% %w[marketing tech startup digital socialmedia].each do |tag| %>
+              <button 
+                data-action="click->playground#addSuggestedHashtag"
+                data-tag="<%= tag %>"
+                class="px-2 py-1 text-xs bg-bg-elevated text-content-muted hover:text-accent border border-border rounded hover:border-accent transition-colors"
+              >
+                #<%= tag %>
+              </button>
+            <% end %>
+          </div>
+        </div>
+
+        <%# CTA %>
+        <div>
+          <label class="block text-sm font-medium text-content-muted mb-2">Call to Action (optional)</label>
+          <input 
+            type="text"
+            data-playground-target="cta"
+            data-action="input->playground#updatePreview"
+            class="w-full px-3 py-2 bg-bg-elevated border border-border rounded-lg text-sm text-content placeholder-content-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+            placeholder="Learn more at futurasistemas.com.ar"
+          />
+        </div>
+      </div>
+    </div>
+
+    <%# === RIGHT COLUMN: Social Previews === %>
+    <div class="space-y-6">
+      <%# Facebook Preview %>
+      <div class="bg-bg-surface border border-border rounded-lg overflow-hidden" data-playground-target="fbPreviewContainer">
+        <div class="p-4 border-b border-border bg-bg-elevated">
+          <h2 class="font-semibold text-content flex items-center gap-2">
+            📘 Facebook Preview
+          </h2>
+        </div>
+        
+        <div class="p-4">
+          <%# Facebook Post Card %>
+          <div class="bg-[#242526] rounded-lg overflow-hidden shadow-lg">
+            <%# Header %>
+            <div class="p-3 flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                FS
+              </div>
+              <div class="flex-1">
+                <div class="text-white font-semibold text-sm">Futura Sistemas</div>
+                <div class="text-gray-400 text-xs flex items-center gap-1">
+                  Just now · 🌐
+                </div>
+              </div>
+              <button class="text-gray-400 hover:text-white text-xl">⋯</button>
+            </div>
+            
+            <%# Caption %>
+            <div class="px-3 pb-3">
+              <p data-playground-target="fbCaption" class="text-white text-sm whitespace-pre-wrap break-words">
+                Your caption will appear here...
+              </p>
+            </div>
+            
+            <%# Image %>
+            <div class="bg-[#18191a] aspect-square flex items-center justify-center">
+              <img 
+                data-playground-target="fbImage" 
+                class="hidden w-full h-full object-cover"
+                alt="Post"
+              />
+              <div data-playground-target="fbImagePlaceholder" class="text-6xl text-gray-600">🖼️</div>
+            </div>
+            
+            <%# Engagement Bar %>
+            <div class="p-3 border-t border-[#3e4042]">
+              <div class="flex items-center justify-between text-gray-400 text-xs mb-2">
+                <span>👍❤️ 42</span>
+                <span>12 comments · 3 shares</span>
+              </div>
+              <div class="flex border-t border-[#3e4042] pt-2">
+                <button class="flex-1 flex items-center justify-center gap-2 py-2 text-gray-400 hover:bg-[#3e4042] rounded text-sm">
+                  👍 Like
+                </button>
+                <button class="flex-1 flex items-center justify-center gap-2 py-2 text-gray-400 hover:bg-[#3e4042] rounded text-sm">
+                  💬 Comment
+                </button>
+                <button class="flex-1 flex items-center justify-center gap-2 py-2 text-gray-400 hover:bg-[#3e4042] rounded text-sm">
+                  ↗️ Share
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# Instagram Preview %>
+      <div class="bg-bg-surface border border-border rounded-lg overflow-hidden" data-playground-target="igPreviewContainer">
+        <div class="p-4 border-b border-border bg-bg-elevated">
+          <h2 class="font-semibold text-content flex items-center gap-2">
+            📸 Instagram Preview
+          </h2>
+        </div>
+        
+        <div class="p-4">
+          <%# Instagram Post Card %>
+          <div class="bg-black rounded-lg overflow-hidden shadow-lg">
+            <%# Header %>
+            <div class="p-3 flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 p-0.5">
+                <div class="w-full h-full rounded-full bg-black flex items-center justify-center text-white font-bold text-xs">
+                  FS
+                </div>
+              </div>
+              <div class="flex-1">
+                <div class="text-white font-semibold text-sm">futurasistemas.com.ar</div>
+              </div>
+              <button class="text-white text-xl">⋯</button>
+            </div>
+            
+            <%# Image %>
+            <div class="aspect-square bg-[#121212] flex items-center justify-center">
+              <img 
+                data-playground-target="igImage" 
+                class="hidden w-full h-full object-cover"
+                alt="Post"
+              />
+              <div data-playground-target="igImagePlaceholder" class="text-6xl text-gray-700">🖼️</div>
+            </div>
+            
+            <%# Actions %>
+            <div class="p-3">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-4">
+                  <button class="text-white text-2xl hover:opacity-70">🤍</button>
+                  <button class="text-white text-2xl hover:opacity-70">💬</button>
+                  <button class="text-white text-2xl hover:opacity-70">📤</button>
+                </div>
+                <button class="text-white text-2xl hover:opacity-70">🔖</button>
+              </div>
+              
+              <div class="text-white text-sm font-semibold mb-1">1,234 likes</div>
+              
+              <p class="text-white text-sm">
+                <span class="font-semibold">futurasistemas.com.ar</span>
+                <span data-playground-target="igCaption" class="whitespace-pre-wrap break-words ml-1">Your caption will appear here...</span>
+              </p>
+              
+              <div class="text-gray-500 text-xs mt-2">View all 42 comments</div>
+              <div class="text-gray-500 text-[10px] mt-1 uppercase">2 hours ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# === ACTION BAR === %>
+  <div class="mt-6 p-4 bg-bg-surface border border-border rounded-lg">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex flex-wrap gap-2">
+        <button 
+          data-action="click->playground#saveDraft"
+          class="px-4 py-2 bg-bg-elevated text-content border border-border rounded-lg hover:border-accent transition-colors text-sm flex items-center gap-2"
+        >
+          💾 Save Draft
+        </button>
+        <button 
+          data-action="click->playground#loadDraft"
+          class="px-4 py-2 bg-bg-elevated text-content-muted border border-border rounded-lg hover:border-accent transition-colors text-sm flex items-center gap-2"
+        >
+          📂 Load Draft
+        </button>
+      </div>
+      
+      <div class="flex flex-wrap gap-2">
+        <button 
+          data-action="click->playground#copyCaption"
+          class="px-4 py-2 bg-bg-elevated text-content border border-border rounded-lg hover:border-accent transition-colors text-sm flex items-center gap-2"
+        >
+          📋 Copy Caption
+        </button>
+        <button 
+          data-action="click->playground#downloadImage"
+          data-playground-target="downloadBtn"
+          class="px-4 py-2 bg-bg-elevated text-content border border-border rounded-lg hover:border-accent transition-colors text-sm flex items-center gap-2 opacity-50 cursor-not-allowed"
+          disabled
+        >
+          ⬇️ Download Image
+        </button>
+        <button 
+          data-action="click->playground#approveAndQueue"
+          class="px-4 py-2 bg-accent text-white font-semibold rounded-lg hover:bg-accent/90 transition-colors text-sm flex items-center gap-2"
+        >
+          ✅ Approve & Queue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <%# Toast Notification %>
+  <div 
+    data-playground-target="toast"
+    class="fixed bottom-6 right-6 px-4 py-3 bg-green-600 text-white rounded-lg shadow-lg transform translate-y-full opacity-0 transition-all duration-300 pointer-events-none z-50"
+  >
+    <span data-playground-target="toastMessage">Saved!</span>
+  </div>
+</div>
