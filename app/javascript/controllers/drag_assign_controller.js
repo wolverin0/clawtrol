@@ -10,6 +10,23 @@ export default class extends Controller {
   }
 
   connect() {
+    // Delegate unassign clicks so dynamic badges always work (even after innerHTML updates).
+    // Use capture to run before other click handlers on task cards.
+    this._delegatedUnassignClick = (event) => {
+      const btn = event.target?.closest?.("[data-unassign-persona]")
+      if (!btn) return
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      const taskId = btn.dataset.taskId
+      if (!taskId) return
+
+      const card = btn.closest("[data-task-card]") || document.getElementById(`task_${taskId}`)
+      this._assignPersona(taskId, null, card)
+    }
+    document.addEventListener("click", this._delegatedUnassignClick, true)
+
     // Listen for custom events from task cards
     this.handleDragOver = this._handleDragOver.bind(this)
     this.handleDrop = this._handleDrop.bind(this)
@@ -36,6 +53,10 @@ export default class extends Controller {
   disconnect() {
     if (this.observer) this.observer.disconnect()
     this._detachDropListeners()
+    if (this._delegatedUnassignClick) {
+      document.removeEventListener("click", this._delegatedUnassignClick, true)
+      this._delegatedUnassignClick = null
+    }
   }
 
   // Toggle sidebar visibility
@@ -230,8 +251,9 @@ export default class extends Controller {
         <span class="max-w-[60px] truncate">${persona.name}</span>
         <button type="button"
                 data-action="click->drag-assign#unassign"
+                data-unassign-persona="1"
                 data-task-id="${taskId}"
-                class="ml-0.5 hover:text-red-400 transition-colors cursor-pointer"
+                class="ml-0.5 p-0.5 -mr-0.5 rounded hover:bg-bg-hover hover:text-red-400 transition-colors cursor-pointer"
                 title="Unassign persona">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-3 h-3">
             <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
