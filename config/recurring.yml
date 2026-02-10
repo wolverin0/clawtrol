@@ -10,8 +10,11 @@
 #     schedule: at 5am every day
 
 default: &default
-  # Main "heartbeat" for the OpenClaw agent integration.
-  # Runs frequently so Up Next tasks can be picked up without manual intervention.
+  # NOTE: OpenClaw is the sole orchestrator. ClawTrol must never auto-claim/promote tasks.
+  # This tick ONLY:
+  # - demotes expired leases (truthfulness)
+  # - notifies zombies (KPI)
+  # - wakes OpenClaw if runnable work exists
   agent_auto_runner_tick:
     class: AgentAutoRunnerJob
     queue: default

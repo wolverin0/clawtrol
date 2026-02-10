@@ -126,7 +126,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     assert_equal "up_next", task.reload.status
   end
 
-  test "auto-pull claims the top eligible up_next task and wakes OpenClaw" do
+  test "auto-pull wakes the top eligible up_next task (assigned) without claiming it" do
     user = users(:one)
     user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
 
@@ -137,7 +137,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       name: "Up next",
       description: "Do the thing",
       status: :up_next,
-      assigned_to_agent: false,
+      assigned_to_agent: true,
       blocked: false,
       model: "gemini",
       validation_command: "bin/rails test"
@@ -151,12 +151,14 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
 
       task.reload
       assert task.assigned_to_agent?
-      assert_equal "in_progress", task.status
-      assert task.agent_claimed_at.present?
-      assert task.runner_lease_active?, "expected an active runner lease"
-      assert_equal 1, task.runner_leases.where(released_at: nil).count
+      assert_equal "up_next", task.status
+      assert_nil task.agent_claimed_at
+      assert_equal 0, task.runner_leases.where(released_at: nil).count
       assert_nil task.agent_session_key
       assert_nil task.agent_session_id
+
+      # Cooldown: should not wake again immediately.
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
     end
 
     assert_equal 1, FakeWebhookService.wakes.length
@@ -192,84 +194,4 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     assert_equal "up_next", nightly.reload.status
   end
 
-  test "claim failures revert claim and create an error notification" do
-    user = users(:one)
-    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
-
-    board = boards(:one)
-    task = Task.create!(
-      user: user,
-      board: board,
-      name: "Up next",
-      status: :up_next,
-      blocked: false
-    )
-
-    cache = ActiveSupport::Cache::MemoryStore.new
-    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
-      with_stubbed_runner_lease_create! do
-        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
-      end
-
-      task.reload
-      assert_equal "up_next", task.status
-      assert_equal false, task.assigned_to_agent
-      assert_nil task.agent_claimed_at
-      assert_equal 0, task.runner_leases.where(released_at: nil).count, "expected lease to be released on spawn failure"
-      assert_equal 1, task.auto_pull_failures
-      assert task.auto_pull_last_error_at.present?
-    end
-
-    notif = Notification.order(created_at: :desc).find_by(task: task, event_type: "auto_pull_error")
-    assert notif.present?, "expected an auto_pull_error notification"
-  end
-
-  test "auto-pull circuit breaker blocks after 3 failures and cooldown prevents immediate retry" do
-    user = users(:one)
-    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
-
-    board = boards(:one)
-    task = Task.create!(
-      user: user,
-      board: board,
-      name: "Flaky task",
-      status: :up_next,
-      blocked: false
-    )
-
-    cache = ActiveSupport::Cache::MemoryStore.new
-
-    tz = Time.find_zone!("America/Argentina/Buenos_Aires")
-    t0 = tz.local(2026, 2, 8, 23, 30, 0)
-
-    travel_to t0 do
-      with_stubbed_runner_lease_create! do
-        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
-      end
-      assert_equal 1, task.reload.auto_pull_failures
-
-      # Within cooldown: should not attempt again (still 1 failure)
-      with_stubbed_runner_lease_create! do
-        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
-      end
-      assert_equal 1, task.reload.auto_pull_failures
-    end
-
-    travel_to t0 + 6.minutes do
-      with_stubbed_runner_lease_create! do
-        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
-      end
-      assert_equal 2, task.reload.auto_pull_failures
-      assert_equal false, task.auto_pull_blocked
-    end
-
-    travel_to t0 + 12.minutes do
-      with_stubbed_runner_lease_create! do
-        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
-      end
-      task.reload
-      assert_equal 3, task.auto_pull_failures
-      assert_equal true, task.auto_pull_blocked
-    end
-  end
 end

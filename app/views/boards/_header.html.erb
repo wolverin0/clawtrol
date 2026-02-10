@@ -239,12 +239,12 @@
   <%# Row 1b: Board Tabs (full-width row) %>
   <div class="px-4 md:px-6 py-2 border-t border-border/50 bg-bg-base w-full">
     <div class="w-full">
-      <div class="flex flex-wrap items-center gap-1.5 w-full">
+      <div class="flex flex-nowrap items-center gap-1.5 w-full max-w-full overflow-x-auto scrollbar-hide">
       <% @boards.each do |board| %>
         <% active = board.id == @board.id %>
         <% task_count = board.tasks.where.not(status: :done).count %>
         <%= link_to board_path(board),
-            class: "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap #{active ? 'bg-accent text-content' : 'bg-bg-elevated text-content-secondary hover:bg-bg-hover hover:text-content'}",
+            class: "inline-flex flex-shrink-0 items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap #{active ? 'bg-accent text-content' : 'bg-bg-elevated text-content-secondary hover:bg-bg-hover hover:text-content'}",
             data: { turbo_frame: "_top" } do %>
           <span><%= board.icon %></span>
           <span class="max-w-[140px] truncate"><%= board.name %></span>
@@ -257,7 +257,7 @@
       <%# Archived link %>
       <% archived_count = @board.tasks.archived.count %>
       <%= link_to archived_board_path(@board),
-          class: "inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-content-muted hover:text-content hover:bg-bg-elevated transition-colors whitespace-nowrap" do %>
+          class: "inline-flex flex-shrink-0 items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-content-muted hover:text-content hover:bg-bg-elevated transition-colors whitespace-nowrap" do %>
         📦
         <% if archived_count > 0 %>
           <span class="text-[10px]">(<%= archived_count %>)</span>

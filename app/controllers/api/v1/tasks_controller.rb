@@ -234,11 +234,31 @@ module Api
         # Auto-link session if provided
         sid = params[:session_id] || params[:agent_session_id]
         skey = params[:session_key] || params[:agent_session_key]
-        updates = { agent_claimed_at: Time.current, status: :in_progress }
-        updates[:agent_session_id] = sid if sid.present?
-        updates[:agent_session_key] = skey if skey.present?
 
-        @task.update!(updates)
+        now = Time.current
+
+        Task.transaction do
+          @task.lock!
+
+          # Ensure a lease exists so status=in_progress is always truthful.
+          unless @task.runner_leases.active.exists?
+            RunnerLease.create!(
+              task: @task,
+              agent_name: @task.user&.agent_name,
+              lease_token: SecureRandom.hex(24),
+              source: "api_claim",
+              started_at: now,
+              last_heartbeat_at: now,
+              expires_at: now + RunnerLease::LEASE_DURATION
+            )
+          end
+
+          updates = { agent_claimed_at: now, status: :in_progress }
+          updates[:agent_session_id] = sid if sid.present?
+          updates[:agent_session_key] = skey if skey.present?
+
+          @task.update!(updates)
+        end
 
         # Create notification for agent claim
         Notification.create_for_agent_claim(@task)
@@ -258,7 +278,34 @@ module Api
       def unclaim
         old_status = @task.status
         set_task_activity_info(@task)
-        @task.update!(agent_claimed_at: nil)
+        Task.transaction do
+          @task.lock!
+          @task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
+          @task.update!(agent_claimed_at: nil, status: :up_next)
+        end
+        broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
+        render json: task_json(@task)
+      end
+
+      # POST /api/v1/tasks/:id/requeue - requeue SAME card back to Up Next after explicit approval
+      #
+      # This is used by the OpenClaw orchestrator after it prompts the human
+      # and receives approval to continue.
+      def requeue
+        old_status = @task.status
+        set_task_activity_info(@task)
+
+        Task.transaction do
+          @task.lock!
+          @task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
+          @task.update!(
+            status: :up_next,
+            agent_claimed_at: nil,
+            agent_session_id: nil,
+            agent_session_key: nil
+          )
+        end
+
         broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
         render json: task_json(@task)
       end

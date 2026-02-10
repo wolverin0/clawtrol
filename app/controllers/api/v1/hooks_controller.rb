@@ -112,7 +112,6 @@ module Api
             Time.current
           end
 
-        wake_after_commit = false
         idempotent = false
 
         task_run = nil
@@ -167,17 +166,9 @@ module Api
 
           case recommended_action
           when "requeue_same_task"
-            # Follow-up stays on the same card: move back to Up Next and let
-            # OpenClaw pick it up again (new run).
-            task.update!(
-              base_updates.merge(
-                status: :up_next,
-                # Keep assignment settings (assigned_to_agent + assigned_at)
-                agent_session_id: nil,
-                agent_session_key: nil
-              )
-            )
-            wake_after_commit = true
+            # Follow-up stays on the same card, BUT we do not auto-requeue.
+            # OpenClaw must prompt the user and only requeue on explicit approval.
+            task.update!(base_updates.merge(status: :in_review))
           else
             # Default: keep in review for human decision.
             task.update!(
@@ -195,11 +186,6 @@ module Api
           old_status: old_status,
           new_status: task.status
         )
-
-        if wake_after_commit
-          # Best-effort; don't fail the hook if wake fails.
-          OpenclawWebhookService.new(task.user).notify_task_assigned(task)
-        end
 
         render json: { success: true, idempotent: idempotent, task_id: task.id, run_number: task_run&.run_number, status: task.status }
       rescue ActiveRecord::RecordNotUnique
