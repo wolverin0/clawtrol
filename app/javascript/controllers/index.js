@@ -27,6 +27,8 @@ import AgentModalController from "controllers/agent_modal_controller"
 import AgentPreviewController from "controllers/agent_preview_controller"
 import OpenclawMemoryIndicatorController from "controllers/openclaw_memory_indicator_controller"
 import EvidenceTabsController from "controllers/evidence_tabs_controller"
+import CollapsibleController from "controllers/collapsible_controller"
+import MarketingTreeController from "controllers/marketing_tree_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -50,3 +52,5 @@ application.register("agent-modal", AgentModalController)
 application.register("agent-preview", AgentPreviewController)
 application.register("openclaw-memory-indicator", OpenclawMemoryIndicatorController)
 application.register("evidence-tabs", EvidenceTabsController)
+application.register("collapsible", CollapsibleController)
+application.register("marketing-tree", MarketingTreeController)

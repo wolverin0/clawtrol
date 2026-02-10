@@ -1,0 +1,142 @@
+<% content_for :title, "Marketing Docs - ClawTrol" %>
+
+<div class="py-6" data-controller="marketing-tree">
+  <%# Header %>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl font-display font-bold text-content">📁 Marketing Docs</h1>
+      <p class="text-sm text-content-muted mt-1">Browse all marketing documentation and assets</p>
+    </div>
+
+    <%# Search %>
+    <div class="relative">
+      <%= form_tag marketing_path, method: :get, class: "flex items-center gap-2" do %>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-content-muted">🔍</span>
+          <%= text_field_tag :q, @search_query,
+              class: "pl-9 pr-4 py-2 bg-bg-surface border border-border rounded-lg text-sm text-content placeholder-content-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent w-64",
+              placeholder: "Search files...",
+              autocomplete: "off",
+              data: { action: "input->marketing-tree#filter" } %>
+        </div>
+        <% if @search_query.present? %>
+          <%= link_to marketing_path, class: "px-3 py-2 bg-bg-elevated text-content-muted hover:text-content rounded-lg text-sm transition-colors" do %>
+            Clear
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Breadcrumb %>
+  <div class="flex items-center gap-2 text-sm text-content-muted mb-4">
+    <span>📂</span>
+    <span class="text-content">~/.openclaw/workspace/marketing/</span>
+  </div>
+
+  <%# Tree View %>
+  <div class="bg-bg-surface border border-border rounded-lg overflow-hidden">
+    <div class="p-4">
+      <%= render_tree(@tree) %>
+    </div>
+  </div>
+
+  <%# Stats %>
+  <% file_count = count_files(@tree) %>
+  <% dir_count = count_dirs(@tree) %>
+  <div class="mt-4 text-xs text-content-muted text-center">
+    <%= file_count %> files in <%= dir_count %> directories
+    <% if @search_query.present? %>
+      <span class="text-accent">• Filtered by "<%= @search_query %>"</span>
+    <% end %>
+  </div>
+</div>
+
+<%# Helper methods defined in view for tree rendering %>
+<%
+def render_tree(node, depth = 0)
+  return "" if node[:children].blank? && depth == 0
+
+  content_tag(:ul, class: depth == 0 ? "space-y-1" : "ml-4 mt-1 space-y-1 border-l border-border/50 pl-2") do
+    if depth == 0
+      # Root level - render children directly
+      node[:children].map { |child| render_node(child, depth) }.join.html_safe
+    else
+      render_node(node, depth)
+    end
+  end
+end
+
+def render_node(node, depth)
+  if node[:type] == :directory
+    render_directory(node, depth)
+  else
+    render_file(node, depth)
+  end
+end
+
+def render_directory(node, depth)
+  content_tag(:li, data: { controller: "collapsible", collapsible_open_value: depth < 2 }) do
+    button = content_tag(:button,
+      class: "flex items-center gap-2 w-full text-left py-1.5 px-2 rounded hover:bg-bg-elevated transition-colors group",
+      data: { action: "click->collapsible#toggle" }
+    ) do
+      chevron = content_tag(:span, "▶", class: "text-xs text-content-muted transition-transform", data: { collapsible_target: "icon" })
+      folder_icon = content_tag(:span, "📁", class: "text-sm")
+      name = content_tag(:span, node[:name], class: "text-sm text-content group-hover:text-accent transition-colors")
+      count = content_tag(:span, "(#{count_children(node)})", class: "text-xs text-content-muted")
+      chevron + folder_icon + name + count
+    end
+
+    children_ul = content_tag(:div, data: { collapsible_target: "content" }, class: depth < 2 ? "" : "hidden") do
+      if node[:children].present?
+        content_tag(:ul, class: "ml-4 mt-1 space-y-1 border-l border-border/50 pl-2") do
+          node[:children].map { |child| render_node(child, depth + 1) }.join.html_safe
+        end
+      end
+    end
+
+    button + children_ul
+  end
+end
+
+def render_file(node, depth)
+  icon = file_icon(node[:extension])
+  link_class = "flex items-center gap-2 py-1.5 px-2 rounded hover:bg-bg-elevated transition-colors group"
+
+  content_tag(:li) do
+    link_to marketing_show_path(path: node[:path]), class: link_class, data: { turbo_frame: "_top" } do
+      icon_span = content_tag(:span, icon, class: "text-sm")
+      name_span = content_tag(:span, node[:name], class: "text-sm text-content-muted group-hover:text-accent transition-colors")
+      icon_span + name_span
+    end
+  end
+end
+
+def file_icon(ext)
+  case ext
+  when ".md" then "📝"
+  when ".json" then "📊"
+  when ".html" then "🌐"
+  when ".png", ".jpg", ".jpeg", ".gif", ".webp" then "🖼️"
+  when ".yml", ".yaml" then "⚙️"
+  when ".txt" then "📄"
+  else "📎"
+  end
+end
+
+def count_children(node)
+  return 0 unless node[:children]
+  node[:children].sum { |c| c[:type] == :file ? 1 : count_children(c) + 1 }
+end
+
+def count_files(node)
+  return 0 unless node[:children]
+  node[:children].sum { |c| c[:type] == :file ? 1 : count_files(c) }
+end
+
+def count_dirs(node)
+  return 0 unless node[:children]
+  node[:children].sum { |c| c[:type] == :directory ? 1 + count_dirs(c) : 0 }
+end
+%>

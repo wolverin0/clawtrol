@@ -1,0 +1,132 @@
+<% content_for :title, "#{@filename} - Marketing Docs - ClawTrol" %>
+
+<div class="py-6">
+  <%# Breadcrumb Navigation %>
+  <div class="flex items-center gap-2 text-sm mb-4 flex-wrap">
+    <%= link_to marketing_path, class: "text-accent hover:underline flex items-center gap-1" do %>
+      <span>📁</span>
+      <span>Marketing</span>
+    <% end %>
+
+    <% path_parts = @relative_path.split("/") %>
+    <% path_parts.each_with_index do |part, index| %>
+      <span class="text-content-muted">/</span>
+      <% if index == path_parts.length - 1 %>
+        <span class="text-content font-medium"><%= part %></span>
+      <% else %>
+        <% parent_path = path_parts[0..index].join("/") %>
+        <%= link_to marketing_show_path(path: parent_path.sub(/\/[^\/]+$/, "")), class: "text-content-muted hover:text-accent transition-colors" do %>
+          <%= part %>
+        <% end %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%# File Header %>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl"><%= file_icon_for(@extension) %></span>
+      <div>
+        <h1 class="text-xl font-display font-bold text-content"><%= @filename %></h1>
+        <p class="text-xs text-content-muted"><%= @relative_path %></p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <span class="px-2 py-1 bg-bg-elevated rounded text-xs text-content-muted uppercase">
+        <%= @extension.delete(".") %>
+      </span>
+      <%= link_to marketing_path, class: "px-3 py-1.5 bg-bg-surface border border-border hover:border-accent text-sm text-content-muted hover:text-accent rounded-lg transition-colors" do %>
+        ← Back to list
+      <% end %>
+    </div>
+  </div>
+
+  <%# Content Area %>
+  <div class="bg-bg-surface border border-border rounded-lg overflow-hidden">
+    <% if @is_image %>
+      <%# Image preview %>
+      <div class="p-6 flex items-center justify-center bg-bg-elevated/50">
+        <img src="data:<%= @mime_type %>;base64,<%= @image_data %>"
+             alt="<%= @filename %>"
+             class="max-w-full max-h-[70vh] rounded shadow-lg" />
+      </div>
+    <% elsif @is_binary %>
+      <%# Binary file - no preview %>
+      <div class="p-8 text-center">
+        <span class="text-4xl mb-4 block">📦</span>
+        <p class="text-content-muted">Binary file - preview not available</p>
+        <p class="text-xs text-content-muted mt-2"><%= @filename %></p>
+      </div>
+    <% elsif @extension == ".md" %>
+      <%# Rendered Markdown %>
+      <div class="prose prose-invert prose-sm max-w-none p-6
+                  prose-headings:text-content prose-headings:font-display
+                  prose-h1:text-2xl prose-h1:border-b prose-h1:border-border prose-h1:pb-2
+                  prose-h2:text-xl prose-h2:mt-6
+                  prose-h3:text-lg
+                  prose-p:text-content-secondary prose-p:leading-relaxed
+                  prose-a:text-accent prose-a:no-underline hover:prose-a:underline
+                  prose-strong:text-content
+                  prose-code:bg-bg-elevated prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-accent prose-code:before:content-none prose-code:after:content-none
+                  prose-pre:bg-bg-elevated prose-pre:border prose-pre:border-border
+                  prose-blockquote:border-l-accent prose-blockquote:text-content-muted
+                  prose-li:text-content-secondary
+                  prose-table:border-collapse
+                  prose-th:bg-bg-elevated prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:border prose-th:border-border
+                  prose-td:px-3 prose-td:py-2 prose-td:border prose-td:border-border">
+        <%= @rendered_content %>
+      </div>
+    <% elsif @extension == ".json" %>
+      <%# Syntax-highlighted JSON %>
+      <div class="relative">
+        <div class="absolute top-2 right-2">
+          <button onclick="navigator.clipboard.writeText(document.getElementById('json-content').textContent)"
+                  class="px-2 py-1 bg-bg-elevated hover:bg-accent/20 text-xs text-content-muted hover:text-accent rounded transition-colors">
+            📋 Copy
+          </button>
+        </div>
+        <pre id="json-content" class="p-6 overflow-x-auto text-sm font-mono text-content-secondary leading-relaxed"><code class="language-json"><%= @rendered_content %></code></pre>
+      </div>
+    <% elsif @extension == ".html" %>
+      <%# HTML source %>
+      <div class="relative">
+        <div class="absolute top-2 right-2 flex gap-2">
+          <button onclick="navigator.clipboard.writeText(document.getElementById('html-content').textContent)"
+                  class="px-2 py-1 bg-bg-elevated hover:bg-accent/20 text-xs text-content-muted hover:text-accent rounded transition-colors">
+            📋 Copy
+          </button>
+        </div>
+        <pre id="html-content" class="p-6 overflow-x-auto text-sm font-mono text-content-secondary leading-relaxed"><code><%= h @content %></code></pre>
+      </div>
+    <% else %>
+      <%# Plain text %>
+      <pre class="p-6 overflow-x-auto text-sm font-mono text-content-secondary leading-relaxed whitespace-pre-wrap"><%= h @content %></pre>
+    <% end %>
+  </div>
+
+  <%# File info footer %>
+  <div class="mt-4 flex items-center justify-between text-xs text-content-muted">
+    <div class="flex items-center gap-4">
+      <span>Size: <%= number_to_human_size(File.size(@file_path)) rescue "Unknown" %></span>
+      <span>Modified: <%= File.mtime(@file_path).strftime("%Y-%m-%d %H:%M") rescue "Unknown" %></span>
+    </div>
+    <div>
+      <span class="text-content-muted/50">~/.openclaw/workspace/marketing/<%= @relative_path %></span>
+    </div>
+  </div>
+</div>
+
+<%
+def file_icon_for(ext)
+  case ext
+  when ".md" then "📝"
+  when ".json" then "📊"
+  when ".html" then "🌐"
+  when ".png", ".jpg", ".jpeg", ".gif", ".webp" then "🖼️"
+  when ".yml", ".yaml" then "⚙️"
+  when ".txt" then "📄"
+  else "📎"
+  end
+end
+%>
