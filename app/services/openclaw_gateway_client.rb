@@ -7,7 +7,7 @@ require "json"
 # Minimal HTTP client for the OpenClaw Gateway API.
 #
 # Used by ClawDeck server-side auto-pull to spawn sessions directly
-# (instead of merely waking the agent via /api/cron/wake).
+# (instead of merely waking the agent via /hooks/wake).
 class OpenclawGatewayClient
   OPEN_TIMEOUT = 5
   READ_TIMEOUT = 30

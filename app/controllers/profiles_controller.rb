@@ -9,14 +9,17 @@ class ProfilesController < ApplicationController
     results = {
       gateway_reachable: false,
       token_valid: false,
+      hooks_token_valid: false,
       webhook_configured: false
     }
 
     gateway_url = @user.openclaw_gateway_url
-    gateway_token = @user.openclaw_gateway_token
+    hooks_token = (@user.respond_to?(:openclaw_hooks_token) ? @user.openclaw_hooks_token : nil).to_s.strip
+    legacy_token = @user.openclaw_gateway_token.to_s.strip
+    token = hooks_token.presence || legacy_token
 
     # Check if gateway URL and token are configured
-    results[:webhook_configured] = gateway_url.present? && gateway_token.present?
+    results[:webhook_configured] = gateway_url.present? && token.present?
 
     if gateway_url.present?
       begin
@@ -31,15 +34,18 @@ class ProfilesController < ApplicationController
 
         results[:gateway_reachable] = response.code.to_i == 200
 
-        # If gateway is reachable and we have a token, try to validate it
-        if results[:gateway_reachable] && gateway_token.present?
-          # Try the sessions endpoint to validate token
-          sessions_uri = URI.parse("#{gateway_url}/api/sessions")
-          sessions_request = Net::HTTP::Get.new(sessions_uri)
-          sessions_request["Authorization"] = "Bearer #{gateway_token}"
+        # Validate hooks token by calling the gateway hooks wake endpoint.
+        if results[:gateway_reachable] && token.present?
+          wake_uri = URI.parse("#{gateway_url}/hooks/wake")
+          wake_request = Net::HTTP::Post.new(wake_uri)
+          wake_request["Authorization"] = "Bearer #{token}"
+          wake_request["Content-Type"] = "application/json"
+          wake_request.body = { text: "ClawTrol connection test", mode: "next-heartbeat" }.to_json
 
-          sessions_response = http.request(sessions_request)
-          results[:token_valid] = [ 200, 401 ].exclude?(sessions_response.code.to_i) || sessions_response.code.to_i == 200
+          wake_response = http.request(wake_request)
+          results[:hooks_token_valid] = wake_response.code.to_i == 200
+          results[:token_valid] = results[:hooks_token_valid]
+          results[:hooks_wake_code] = wake_response.code.to_i
         end
       rescue StandardError => e
         results[:error] = e.message
@@ -74,6 +80,6 @@ class ProfilesController < ApplicationController
   private
 
   def profile_params
-    params.expect(user: [ :email_address, :avatar, :openclaw_gateway_url, :openclaw_gateway_token, :ai_suggestion_model, :ai_api_key, :context_threshold_percent, :auto_retry_enabled, :auto_retry_max, :auto_retry_backoff, :fallback_model_chain, :agent_name, :agent_emoji ])
+    params.expect(user: [ :email_address, :avatar, :openclaw_gateway_url, :openclaw_gateway_token, :openclaw_hooks_token, :ai_suggestion_model, :ai_api_key, :context_threshold_percent, :auto_retry_enabled, :auto_retry_max, :auto_retry_backoff, :fallback_model_chain, :agent_name, :agent_emoji ])
   end
 end

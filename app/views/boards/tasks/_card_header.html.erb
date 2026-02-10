@@ -24,24 +24,29 @@
     <%# Task ID + Name %>
     <div class="flex items-start gap-2 min-w-0">
       <span class="flex-1 text-sm font-medium text-content leading-tight overflow-hidden text-ellipsis" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; word-break: break-word; max-width: 100%;">
-        <% if show_error_state %><span class="text-red-400">⚠️</span> <% end %><span class="text-xs text-content-muted font-normal">#<%= task.id %></span><% if task.nightly? %><span class="ml-1" title="Nightbeat task">🌙</span><% end %><% if task.status == 'in_progress' && task.assigned_to_agent? && task.runner_lease_active? %><span class="inline-block align-middle ml-1"><span class="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin"></span></span><% end %> <%= task.name %>
+        <% lease_active = (task.status == 'in_progress' && task.assigned_to_agent? && task.runner_lease_active?) %>
+        <% has_session = task.agent_session_id.present? %>
+        <% if show_error_state %><span class="text-red-400">⚠️</span> <% end %><span class="text-xs text-content-muted font-normal">#<%= task.id %></span><% if task.nightly? %><span class="ml-1" title="Nightbeat task">🌙</span><% end %><% if lease_active && has_session %><span class="inline-block align-middle ml-1"><span class="inline-block w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin"></span></span><% end %> <%= task.name %>
       </span>
       <% if task.blocked? %>
         <span class="flex-shrink-0 w-2 h-2 mt-1.5 rounded-full bg-status-warning" title="Blocked"></span>
       <% end %>
     </div>
 
-    <%# RUNNING indicator (lease-based, truthful) %>
-    <% if task.status == 'in_progress' && task.assigned_to_agent? && task.runner_lease_active? %>
+  <%# RUNNING indicator (lease-based, truthful) %>
+  <% if lease_active %>
       <div class="mt-2">
-        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent/20 text-accent border border-accent/30">
-          <span class="inline-block w-2 h-2 rounded-full bg-accent animate-pulse"></span>
-          RUNNING
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold <%= has_session ? 'bg-accent/20 text-accent border border-accent/30' : 'bg-status-warning/15 text-status-warning border border-status-warning/30' %>">
+          <span class="inline-block w-2 h-2 rounded-full <%= has_session ? 'bg-accent animate-pulse' : 'bg-status-warning' %>"></span>
+          <%= has_session ? "RUNNING" : "CLAIMED" %>
           <% if task.runner_started_at.present? %>
             <span class="text-content-muted font-medium">· <%= time_ago_in_words(task.runner_started_at) %></span>
           <% end %>
           <% if task.runner_last_heartbeat_at.present? %>
             <span class="text-content-muted font-medium">· hb <%= time_ago_in_words(task.runner_last_heartbeat_at) %></span>
+          <% end %>
+          <% unless has_session %>
+            <span class="text-content-muted font-medium">· waiting for OpenClaw</span>
           <% end %>
         </span>
       </div>
