@@ -237,7 +237,7 @@
 
     <%# Row 1b: Board Tabs (full-width row) %>
   <div class="px-4 md:px-6 py-2 border-t border-border/50 bg-bg-base">
-    <div class="flex items-center gap-1 flex-nowrap overflow-x-auto md:flex-wrap md:overflow-visible scrollbar-hide w-full">
+    <div class="flex items-center gap-1 flex-nowrap overflow-x-auto scrollbar-hide w-full">
       <% @boards.each do |board| %>
         <% active = board.id == @board.id %>
         <% task_count = board.tasks.where.not(status: :done).count %>

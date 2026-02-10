@@ -167,11 +167,24 @@ export default class extends Controller {
       const response = await fetch(`${this.apiBaseValue}/tasks/${taskId}`, {
         method: "PATCH",
         headers,
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        credentials: "same-origin"
       })
 
       if (!response.ok) {
-        console.error("Failed to assign persona:", response.statusText)
+        let details = ""
+        try {
+          details = await response.text()
+        } catch {
+          // noop
+        }
+
+        console.error("Failed to assign persona:", response.status, response.statusText, details)
+
+        if (cardElement) {
+          cardElement.classList.add("ring-2", "ring-red-500/50")
+          setTimeout(() => cardElement.classList.remove("ring-2", "ring-red-500/50"), 1200)
+        }
         return
       }
 

@@ -228,6 +228,7 @@ module Api
       # PATCH /api/v1/tasks/:id/claim - agent claims a task
       # Accepts optional session_id/session_key to link session at claim time
       def claim
+        old_status = @task.status
         set_task_activity_info(@task)
 
         # Auto-link session if provided
@@ -248,27 +249,35 @@ module Api
           session_linked: sid.present?
         })
 
+        broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
+
         render json: task_json(@task)
       end
 
       # PATCH /api/v1/tasks/:id/unclaim - agent releases a task
       def unclaim
+        old_status = @task.status
         set_task_activity_info(@task)
         @task.update!(agent_claimed_at: nil)
+        broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
         render json: task_json(@task)
       end
 
       # PATCH /api/v1/tasks/:id/assign - assign task to agent
       def assign
+        old_status = @task.status
         set_task_activity_info(@task)
         @task.update!(assigned_to_agent: true, assigned_at: Time.current)
+        broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
         render json: task_json(@task)
       end
 
       # PATCH /api/v1/tasks/:id/unassign - unassign task from agent
       def unassign
+        old_status = @task.status
         set_task_activity_info(@task)
         @task.update!(assigned_to_agent: false, assigned_at: nil)
+        broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
         render json: task_json(@task)
       end
 
@@ -587,8 +596,12 @@ module Api
 
       # PATCH /api/v1/tasks/:id
       def update
+        old_status = @task.status
         set_task_activity_info(@task)
         if @task.update(task_params)
+          status_changed = @task.saved_change_to_status?
+          status_before = @task.status_before_last_save
+
           # Try to resolve session_id from session_key if key was set but id is missing
           if @task.agent_session_id.blank? && @task.agent_session_key.present?
             resolved_id = resolve_session_id_from_key(@task.agent_session_key, @task)
@@ -606,6 +619,13 @@ module Api
               @task.update_column(:agent_session_id, resolved_id)
               Rails.logger.info("[update] Auto-resolved session_id=#{resolved_id} for task #{@task.id} from transcript scan")
             end
+          end
+
+          # Real-time UI update for agent-driven changes (Bearer token calls).
+          if status_changed
+            broadcast_kanban_update(@task, old_status: status_before, new_status: @task.status)
+          else
+            broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
           end
 
           render json: task_json(@task.reload)
@@ -1273,6 +1293,22 @@ module Api
         task.actor_name = request.headers["X-Agent-Name"]
         task.actor_emoji = request.headers["X-Agent-Emoji"]
         task.activity_note = params[:activity_note] || params.dig(:task, :activity_note)
+      end
+
+      def broadcast_kanban_update(task, old_status: nil, new_status: nil, action: "update")
+        # Only broadcast for token-authenticated calls (the agent/orchestrator).
+        # Browser UI actions already return Turbo Streams and should not trigger a full refresh.
+        return unless extract_token_from_header.present?
+
+        KanbanChannel.broadcast_refresh(
+          task.board_id,
+          task_id: task.id,
+          action: action,
+          old_status: old_status,
+          new_status: new_status
+        )
+      rescue StandardError => e
+        Rails.logger.warn("[Api::V1::TasksController] Kanban broadcast failed task_id=#{task.id}: #{e.class}: #{e.message}")
       end
 
       def task_params
