@@ -7,15 +7,28 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     Rails.cache.clear
   end
 
-  class FakeGatewayClient
-    cattr_accessor :spawns, default: []
+  def with_stubbed_runner_lease_create!(raises_message: "boom")
+    singleton = class << RunnerLease; self; end
+    original = singleton.instance_method(:create!)
+
+    singleton.define_method(:create!) do |*args, **kwargs, &blk|
+      raise raises_message
+    end
+
+    yield
+  ensure
+    singleton.define_method(:create!, original)
+  end
+
+  class FakeWebhookService
+    cattr_accessor :wakes, default: []
 
     def initialize(_user)
     end
 
-    def spawn_session!(model:, prompt:)
-      self.class.spawns << { model: model, prompt: prompt }
-      { child_session_key: "agent:main:subagent:FAKE-KEY", session_id: "FAKE-SESSION-ID" }
+    def notify_auto_pull_ready(task)
+      self.class.wakes << { task_id: task.id, name: task.name }
+      true
     end
   end
 
@@ -56,7 +69,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       lease.update_columns(expires_at: now - 1.minute)
 
       cache = ActiveSupport::Cache::MemoryStore.new
-      AgentAutoRunnerService.new(openclaw_gateway_client: FakeGatewayClient, cache: cache).run!
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
     end
 
     assert_equal "up_next", stuck.reload.status
@@ -103,7 +116,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       task.update_columns(status: Task.statuses[:in_progress], updated_at: 20.minutes.ago)
 
       cache = ActiveSupport::Cache::MemoryStore.new
-      AgentAutoRunnerService.new(openclaw_gateway_client: FakeGatewayClient, cache: cache).run!
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
       assert_equal "up_next", task.reload.status
 
       notif = Notification.order(created_at: :desc).find_by(task: task, event_type: "runner_lease_missing")
@@ -113,7 +126,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     assert_equal "up_next", task.reload.status
   end
 
-  test "auto-pull claims + spawns the top eligible up_next task and links session" do
+  test "auto-pull claims the top eligible up_next task and wakes OpenClaw" do
     user = users(:one)
     user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
 
@@ -130,11 +143,11 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       validation_command: "bin/rails test"
     )
 
-    FakeGatewayClient.spawns = []
+    FakeWebhookService.wakes = []
 
     cache = ActiveSupport::Cache::MemoryStore.new
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
-      AgentAutoRunnerService.new(openclaw_gateway_client: FakeGatewayClient, cache: cache).run!
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
 
       task.reload
       assert task.assigned_to_agent?
@@ -142,18 +155,16 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       assert task.agent_claimed_at.present?
       assert task.runner_lease_active?, "expected an active runner lease"
       assert_equal 1, task.runner_leases.where(released_at: nil).count
-      assert_equal "agent:main:subagent:FAKE-KEY", task.agent_session_key
-      assert_equal "FAKE-SESSION-ID", task.agent_session_id
+      assert_nil task.agent_session_key
+      assert_nil task.agent_session_id
     end
 
-    assert_equal 1, FakeGatewayClient.spawns.length
-    spawn = FakeGatewayClient.spawns.first
-    assert_equal "gemini3", spawn[:model], "expected task.model=gemini to map to OpenClaw gemini3"
-    assert_includes spawn[:prompt], "Do the thing"
-    assert_includes spawn[:prompt], "bin/rails test"
+    assert_equal 1, FakeWebhookService.wakes.length
+    wake = FakeWebhookService.wakes.first
+    assert_equal task.id, wake[:task_id]
 
-    notif = Notification.order(created_at: :desc).find_by(task: task, event_type: "auto_pull_spawned")
-    assert notif.present?, "expected an auto_pull_spawned notification"
+    notif = Notification.order(created_at: :desc).find_by(task: task, event_type: "auto_pull_ready")
+    assert notif.present?, "expected an auto_pull_ready notification"
   end
 
   test "nightly tasks are not auto-pulled outside the nightly window" do
@@ -170,18 +181,18 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       nightly: true
     )
 
-    FakeGatewayClient.spawns = []
+    FakeWebhookService.wakes = []
     cache = ActiveSupport::Cache::MemoryStore.new
 
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 16, 0, 0) do
-      AgentAutoRunnerService.new(openclaw_gateway_client: FakeGatewayClient, cache: cache).run!
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
     end
 
-    assert_equal 0, FakeGatewayClient.spawns.length
+    assert_equal 0, FakeWebhookService.wakes.length
     assert_equal "up_next", nightly.reload.status
   end
 
-  test "spawn failures revert claim and create an error notification" do
+  test "claim failures revert claim and create an error notification" do
     user = users(:one)
     user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
 
@@ -194,18 +205,11 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       blocked: false
     )
 
-    failing_client = Class.new do
-      def initialize(_user)
-      end
-
-      def spawn_session!(*)
-        raise "boom"
-      end
-    end
-
     cache = ActiveSupport::Cache::MemoryStore.new
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
-      AgentAutoRunnerService.new(openclaw_gateway_client: failing_client, cache: cache).run!
+      with_stubbed_runner_lease_create! do
+        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+      end
 
       task.reload
       assert_equal "up_next", task.status
@@ -233,33 +237,36 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       blocked: false
     )
 
-    failing_client = Class.new do
-      def initialize(_user); end
-      def spawn_session!(*); raise "boom"; end
-    end
-
     cache = ActiveSupport::Cache::MemoryStore.new
 
     tz = Time.find_zone!("America/Argentina/Buenos_Aires")
     t0 = tz.local(2026, 2, 8, 23, 30, 0)
 
     travel_to t0 do
-      AgentAutoRunnerService.new(openclaw_gateway_client: failing_client, cache: cache).run!
+      with_stubbed_runner_lease_create! do
+        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+      end
       assert_equal 1, task.reload.auto_pull_failures
 
       # Within cooldown: should not attempt again (still 1 failure)
-      AgentAutoRunnerService.new(openclaw_gateway_client: failing_client, cache: cache).run!
+      with_stubbed_runner_lease_create! do
+        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+      end
       assert_equal 1, task.reload.auto_pull_failures
     end
 
     travel_to t0 + 6.minutes do
-      AgentAutoRunnerService.new(openclaw_gateway_client: failing_client, cache: cache).run!
+      with_stubbed_runner_lease_create! do
+        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+      end
       assert_equal 2, task.reload.auto_pull_failures
       assert_equal false, task.auto_pull_blocked
     end
 
     travel_to t0 + 12.minutes do
-      AgentAutoRunnerService.new(openclaw_gateway_client: failing_client, cache: cache).run!
+      with_stubbed_runner_lease_create! do
+        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+      end
       task.reload
       assert_equal 3, task.auto_pull_failures
       assert_equal true, task.auto_pull_blocked

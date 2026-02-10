@@ -12,13 +12,31 @@ class OpenclawWebhookService
   def notify_task_assigned(task)
     return unless configured?
 
-    send_webhook(task, "🚀 Execute Now: #{task.name}")
+    send_webhook(task, "Execute Now: #{task.name}")
   end
 
   def notify_auto_claimed(task)
     return unless configured?
 
-    send_webhook(task, "🤖 Auto-claimed task ##{task.id}: #{task.name}")
+    send_webhook(task, "Auto-claimed task ##{task.id}: #{task.name}")
+  end
+
+  # Auto-pull signal from ClawTrol (server-side).
+  #
+  # This is WAKE only. The OpenClaw orchestrator should fetch the task from
+  # ClawTrol's API and decide how/when to spawn work (model/persona).
+  def notify_auto_pull_ready(task)
+    return unless configured?
+
+    persona =
+      if task.agent_persona
+        "#{task.agent_persona.emoji || '🤖'} #{task.agent_persona.name}"
+      else
+        "none"
+      end
+
+    model = task.model.presence || Task::DEFAULT_MODEL
+    send_webhook(task, "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona})")
   end
 
   private
@@ -40,14 +58,27 @@ class OpenclawWebhookService
     }.to_json
 
     response = http.request(request)
-    Rails.logger.info "OpenClaw webhook sent for task #{task.id}: #{response.code}"
+
+    # Wake failures should never be fatal to task claiming. Log and move on.
+    code = response.code.to_i
+    if code >= 200 && code < 300
+      Rails.logger.info("[OpenClawWebhook] wake ok task_id=#{task.id} code=#{response.code}")
+    else
+      Rails.logger.warn("[OpenClawWebhook] wake non-2xx task_id=#{task.id} code=#{response.code}")
+    end
+
     response
   rescue StandardError => e
-    Rails.logger.error "OpenClaw webhook failed for task #{task.id}: #{e.message}"
+    Rails.logger.error("[OpenClawWebhook] wake failed task_id=#{task.id} err=#{e.class}: #{e.message}")
     nil
   end
 
   def configured?
-    @user.openclaw_gateway_url.present? && @user.openclaw_gateway_token.present?
+    url = @user.openclaw_gateway_url.to_s.strip
+    token = @user.openclaw_gateway_token.to_s.strip
+    return false if url.blank? || token.blank?
+    return false if url.match?(/example/i)
+    true
   end
 end
+

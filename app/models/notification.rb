@@ -17,6 +17,7 @@ class Notification < ApplicationRecord
     auto_runner
     auto_runner_error
     auto_pull_claimed
+    auto_pull_ready
     auto_pull_spawned
     auto_pull_error
     zombie_task
@@ -60,7 +61,7 @@ class Notification < ApplicationRecord
       "🎉"
     when "review_failed"
       "⚠️"
-    when "agent_claimed", "auto_runner", "auto_pull_claimed", "auto_pull_spawned"
+    when "agent_claimed", "auto_runner", "auto_pull_claimed", "auto_pull_ready", "auto_pull_spawned"
       "🤖"
     when "auto_runner_error", "auto_pull_error"
       "❌"
@@ -80,7 +81,7 @@ class Notification < ApplicationRecord
       "text-status-success"
     when "task_errored", "review_failed", "validation_failed"
       "text-status-error"
-    when "agent_claimed", "auto_runner", "auto_pull_claimed", "auto_pull_spawned"
+    when "agent_claimed", "auto_runner", "auto_pull_claimed", "auto_pull_ready", "auto_pull_spawned"
       "text-accent"
     when "auto_runner_error", "auto_pull_error"
       "text-status-error"
