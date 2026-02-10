@@ -32,6 +32,11 @@ export default class extends Controller {
     this.connectWebSocket()
     this.updateRealtimeBadge()
 
+    // Always keep polling enabled as a safety net.
+    // If a server-side process updates tasks without broadcasting on KanbanChannel,
+    // this prevents the UI from getting "stuck" until a manual refresh.
+    this.startPolling()
+
     // Pause when tab is not visible
     this.handleVisibilityChange = this.handleVisibilityChange.bind(this)
     document.addEventListener("visibilitychange", this.handleVisibilityChange)
@@ -69,11 +74,8 @@ export default class extends Controller {
         const sub = subscribeToKanban(boardId, {
           onConnected: () => {
             this.wsConnectedCount += 1
-            if (this.wsConnectedCount === 1) {
-              this.stopPolling() // Disable polling when WebSocket is active
-              this.updateRealtimeBadge()
-              console.log("[KanbanRefresh] WebSocket connected, polling disabled")
-            }
+            this.updateRealtimeBadge()
+            console.log("[KanbanRefresh] WebSocket connected")
           },
           onDisconnected: () => {
             this.wsConnectedCount = Math.max(0, this.wsConnectedCount - 1)

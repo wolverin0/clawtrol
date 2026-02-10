@@ -13,7 +13,14 @@
 %>
 
 <%# Subscribe to real-time updates for this board %>
-<%= turbo_stream_from "board_#{@board.id}" %>
+<%# Aggregator boards should also receive Turbo Stream updates from underlying boards. %>
+<% if @is_aggregator %>
+  <% @boards.reject(&:aggregator?).each do |b| %>
+    <%= turbo_stream_from "board_#{b.id}" %>
+  <% end %>
+<% else %>
+  <%= turbo_stream_from "board_#{@board.id}" %>
+<% end %>
 
 <div class="h-full flex flex-col pb-16 md:pb-0" 
      data-controller="board kanban-refresh mobile-columns drag-assign"

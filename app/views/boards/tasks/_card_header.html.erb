@@ -60,7 +60,7 @@
   <% end %>
 
   <%# Assigned Agent Persona Badge (outside the link so X is clickable) %>
-  <div data-persona-badge class="<%= 'hidden' unless task.agent_persona.present? %> mt-1.5 px-0 flex items-center">
+  <div data-persona-badge class="<%= 'hidden' unless task.agent_persona.present? %> mt-1.5 px-0 flex items-center relative z-10 pointer-events-auto">
     <% if task.agent_persona.present? %>
       <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-accent/15 text-accent border border-accent/20">
         <span><%= task.agent_persona.emoji || '🤖' %></span>

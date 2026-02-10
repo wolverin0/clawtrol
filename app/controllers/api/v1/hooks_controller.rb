@@ -51,7 +51,17 @@ module Api
 
         updates[:description] = updated_description(task.description.to_s, findings, activity[:activity_markdown])
 
+        old_status = task.status
         task.update!(updates)
+
+        # Notify board clients (KanbanRefresh) that a background agent completed work.
+        KanbanChannel.broadcast_refresh(
+          task.board_id,
+          task_id: task.id,
+          action: "update",
+          old_status: old_status,
+          new_status: task.status
+        )
 
         render json: { success: true, task_id: task.id, status: task.status }
       end
@@ -110,6 +120,8 @@ module Api
         if existing
           return render json: { success: true, idempotent: true, task_id: task.id, run_number: existing.run_number, status: task.status }
         end
+
+        old_status = task.status
 
         Task.transaction do
           task.lock!
@@ -175,6 +187,14 @@ module Api
             )
           end
         end
+
+        KanbanChannel.broadcast_refresh(
+          task.board_id,
+          task_id: task.id,
+          action: "update",
+          old_status: old_status,
+          new_status: task.status
+        )
 
         if wake_after_commit
           # Best-effort; don't fail the hook if wake fails.

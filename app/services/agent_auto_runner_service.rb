@@ -160,6 +160,8 @@ class AgentAutoRunnerService
       expires_at: now + RunnerLease::LEASE_DURATION
     )
 
+    old_status = task.status
+
     updates = {
       assigned_to_agent: true,
       assigned_at: task.assigned_at || now,
@@ -168,6 +170,14 @@ class AgentAutoRunnerService
     }
 
     task.update!(updates)
+
+    KanbanChannel.broadcast_refresh(
+      task.board_id,
+      task_id: task.id,
+      action: "update",
+      old_status: old_status,
+      new_status: task.status
+    )
   end
 
   def revert_auto_pull_claim!(task)
@@ -181,6 +191,7 @@ class AgentAutoRunnerService
     # Release any active lease so the invariant stays truthful.
     task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
 
+    old_status = task.status
     task.update!(
       status: :up_next,
       assigned_to_agent: false,
@@ -188,6 +199,14 @@ class AgentAutoRunnerService
       agent_claimed_at: nil,
       agent_session_id: nil,
       agent_session_key: nil
+    )
+
+    KanbanChannel.broadcast_refresh(
+      task.board_id,
+      task_id: task.id,
+      action: "update",
+      old_status: old_status,
+      new_status: task.status
     )
   end
 
@@ -243,6 +262,7 @@ class AgentAutoRunnerService
     # 1) Expired leases
     RunnerLease.expired.joins(:task).where(tasks: { user_id: user.id, status: Task.statuses[:in_progress] }).find_each do |lease|
       task = lease.task
+      old_status = task.status
 
       task.activity_source = "system"
       task.actor_name = "Auto-Runner"
@@ -251,6 +271,14 @@ class AgentAutoRunnerService
 
       lease.release!
       task.update!(status: :up_next, agent_claimed_at: nil, agent_session_id: nil, agent_session_key: nil)
+
+      KanbanChannel.broadcast_refresh(
+        task.board_id,
+        task_id: task.id,
+        action: "update",
+        old_status: old_status,
+        new_status: task.status
+      )
 
       Notification.create_deduped!(
         user: user,
@@ -275,12 +303,21 @@ class AgentAutoRunnerService
       .where.not(id: active_lease_task_ids)
 
     tasks.find_each do |task|
+      old_status = task.status
       task.activity_source = "system"
       task.actor_name = "Auto-Runner"
       task.actor_emoji = "🤖"
       task.activity_note = "Auto-demoted: in_progress without Runner Lease for > #{NO_FAKE_IN_PROGRESS_GRACE.inspect}"
 
       task.update!(status: :up_next, agent_claimed_at: nil)
+
+      KanbanChannel.broadcast_refresh(
+        task.board_id,
+        task_id: task.id,
+        action: "update",
+        old_status: old_status,
+        new_status: task.status
+      )
 
       Notification.create_deduped!(
         user: user,
