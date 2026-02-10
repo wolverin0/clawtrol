@@ -1,4 +1,5 @@
 require "fileutils"
+require "diffy"
 
 module Api
   module V1
@@ -53,6 +54,9 @@ module Api
 
         old_status = task.status
         task.update!(updates)
+
+        # Generate diffs for output files (async to avoid blocking the response)
+        GenerateDiffsJob.perform_later(task.id, merged_files) if merged_files.any?
 
         # Notify board clients (KanbanRefresh) that a background agent completed work.
         KanbanChannel.broadcast_refresh(

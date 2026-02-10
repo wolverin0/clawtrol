@@ -1,6 +1,6 @@
 class Boards::TasksController < ApplicationController
   before_action :set_board
-  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file, :generate_validation_suggestion]
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file, :diff_file, :generate_validation_suggestion]
 
   def show
     @api_token = current_user.api_token
@@ -292,6 +292,23 @@ class Boards::TasksController < ApplicationController
     end
 
     render layout: false
+  end
+
+  def diff_file
+    file_path = params[:path].to_s
+    if file_path.blank?
+      render plain: "Path parameter required", status: :bad_request
+      return
+    end
+
+    task_diff = @task.task_diffs.find_by(file_path: file_path)
+    unless task_diff
+      render plain: "No diff available for this file", status: :not_found
+      return
+    end
+
+    @task_diff = task_diff
+    render partial: "boards/tasks/diff_viewer", locals: { task_diff: task_diff }, layout: false
   end
 
   def run_debate

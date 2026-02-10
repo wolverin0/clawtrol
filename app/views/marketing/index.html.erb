@@ -1,6 +1,21 @@
 <% content_for :title, "Marketing Docs - ClawTrol" %>
 
 <div class="py-6" data-controller="marketing-tree">
+  <%# Studio Banner %>
+  <div class="mb-6">
+    <%= link_to marketing_playground_path, class: "block p-4 bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-blue-600/20 border border-accent/30 rounded-lg hover:border-accent transition-colors group" do %>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">🎨</span>
+          <div>
+            <h3 class="font-semibold text-content group-hover:text-accent transition-colors">Social Media Studio</h3>
+            <p class="text-sm text-content-muted">Create, preview, and schedule social media posts</p>
+          </div>
+        </div>
+        <span class="text-content-muted group-hover:text-accent transition-colors">→</span>
+      </div>
+    <% end %>
+  </div>
   <%# Header %>
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <div>

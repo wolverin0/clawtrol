@@ -166,6 +166,22 @@
           ></textarea>
         </div>
 
+        <%# Template Selector %>
+        <div>
+          <label class="block text-sm font-medium text-content-muted mb-2">Template Style</label>
+          <select 
+            data-playground-target="template"
+            class="w-full px-3 py-2 bg-bg-elevated border border-border rounded-lg text-sm text-content focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+          >
+            <option value="none">📷 No Template (Custom)</option>
+            <option value="ad-creative">📢 Ad Creative (bold, CTA-focused)</option>
+            <option value="carousel-slide">📑 Carousel Slide (clean, minimal)</option>
+            <option value="lifestyle-shot">🏠 Lifestyle Shot (real-world context)</option>
+            <option value="background-swap">🎨 Background Swap (product focus)</option>
+            <option value="feature-highlight">🔍 Feature Highlight (annotated UI)</option>
+          </select>
+        </div>
+
         <%# Model Selector %>
         <div>
           <label class="block text-sm font-medium text-content-muted mb-2">Model</label>
@@ -174,8 +190,8 @@
             class="w-full px-3 py-2 bg-bg-elevated border border-border rounded-lg text-sm text-content focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
           >
             <option value="gpt-image-1">🎨 GPT-Image-1 (OpenAI)</option>
-            <option value="comfyui-sdxl" disabled>🖼️ ComfyUI SDXL (Coming Soon)</option>
-            <option value="nano-banana" disabled>🍌 Nano Banana (Coming Soon)</option>
+            <option value="comfyui-sdxl" disabled class="text-content-muted">🖼️ ComfyUI SDXL — <span class="text-xs bg-yellow-600/30 text-yellow-400 px-1 rounded">Coming Soon</span></option>
+            <option value="nano-banana" disabled class="text-content-muted">🍌 Nano Banana Pro — <span class="text-xs bg-yellow-600/30 text-yellow-400 px-1 rounded">Coming Soon</span></option>
           </select>
         </div>
 
@@ -223,6 +239,29 @@
         >
           ✅ Use This Image
         </button>
+
+        <%# Generate Variants Button %>
+        <button 
+          data-playground-target="variantsBtn"
+          data-action="click->playground#generateVariants"
+          class="hidden w-full px-4 py-2 bg-purple-600/20 text-purple-400 border border-purple-500/50 rounded-lg hover:bg-purple-600/30 transition-colors text-sm flex items-center justify-center gap-2"
+        >
+          <span data-playground-target="variantsText">🔄 Generate Variants (3)</span>
+          <span data-playground-target="variantsSpinner" class="hidden">
+            <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+            </svg>
+          </span>
+        </button>
+
+        <%# Variants Display Row %>
+        <div data-playground-target="variantsContainer" class="hidden">
+          <label class="block text-sm font-medium text-content-muted mb-2">Generated Variants</label>
+          <div data-playground-target="variantsRow" class="grid grid-cols-3 gap-2">
+            <%# Variants populated by JS %>
+          </div>
+        </div>
 
         <%# Gallery %>
         <div>
