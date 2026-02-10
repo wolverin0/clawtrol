@@ -179,7 +179,10 @@ Rails.application.routes.draw do
 
   # Marketing docs file browser
   get "marketing", to: "marketing#index", as: :marketing
-  get "marketing/*path", to: "marketing#show", as: :marketing_show
+  get "marketing/playground", to: "marketing#playground", as: :marketing_playground
+  get "marketing/generated_content", to: "marketing#generated_content", as: :marketing_generated_content
+  post "marketing/generate_image", to: "marketing#generate_image", as: :marketing_generate_image
+  get "marketing/*path", to: "marketing#show", as: :marketing_show, format: false
 
   # Defines the root path route ("/")
   root "pages#home"
