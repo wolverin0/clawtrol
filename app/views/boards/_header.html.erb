@@ -6,14 +6,20 @@
     <div class="flex items-center gap-3 min-w-0">
       <%# Logo %>
       <% if current_user&.theme == 'vaporwave' %>
-        <span class="text-base md:text-lg font-semibold text-content whitespace-nowrap flex-shrink-0 vaporwave-glitch" data-text="CLAWTROL">🦞 CLAWTROL</span>
+        <div class="text-base md:text-lg font-semibold text-content whitespace-nowrap flex-shrink-0 vaporwave-glitch" data-text="CLAWTROL">
+          <span>🦞</span>
+          <span class="hidden md:inline">CLAWTROL</span>
+        </div>
       <% else %>
-        <span class="text-base md:text-lg font-semibold text-content font-display whitespace-nowrap flex-shrink-0">🦞 ClawTrol</span>
+        <div class="text-base md:text-lg font-semibold text-content font-display whitespace-nowrap flex-shrink-0">
+          <span>🦞</span>
+          <span class="hidden md:inline"> ClawTrol</span>
+        </div>
       <% end %>
     </div>
 
     <%# Right section: Quick nav + Controls %>
-    <div class="flex items-center gap-2 flex-shrink-0">
+    <div class="flex items-center gap-x-1 md:gap-x-2 flex-shrink-0">
       <%# Quick Nav Icons - Dashboard, Analytics, Personas, Roster %>
       <%= link_to dashboard_path,
           class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
@@ -253,7 +259,7 @@
   <%# Row 1b: Board Tabs (full-width row) %>
   <div class="px-4 md:px-6 py-2 border-t border-border/50 bg-bg-base w-full">
     <div class="w-full">
-      <div class="flex flex-nowrap items-center gap-1.5 w-full max-w-full overflow-x-auto scrollbar-hide">
+      <div class="flex flex-nowrap items-center gap-1.5 w-full max-w-full overflow-x-auto scrollbar-hide [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]">
       <% @boards.each do |board| %>
         <% active = board.id == @board.id %>
         <% task_count = board.tasks.where.not(status: :done).count %>

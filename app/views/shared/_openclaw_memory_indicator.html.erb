@@ -24,13 +24,21 @@ end %>
   else "bg-bg-elevated text-content-muted hover:bg-bg-hover"
 end %>
 
+<% icon_only = case status
+  when "ok" then "✅"
+  when "degraded" then "⚠️"
+  when "down" then "🔥"
+  else "?"
+end %>
+
 <div data-controller="openclaw-memory-indicator" class="relative">
   <button type="button"
           data-action="click->openclaw-memory-indicator#toggle"
           class="px-2 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer <%= badge_classes %>"
           aria-haspopup="dialog"
           aria-expanded="false">
-    <%= label %>
+    <span class="md:hidden"><%= icon_only %></span>
+    <span class="hidden md:inline"><%= label %></span>
   </button>
 
   <div data-openclaw-memory-indicator-target="panel"
