@@ -1,6 +1,4 @@
 class NightshiftController < ApplicationController
-  before_action :authenticate_user!
-
   def index
     @missions = nightshift_missions
     @total_time = @missions.sum { |m| m[:time] }
