@@ -59,6 +59,9 @@ group :development, :test do
 end
 
 group :development do
+  # Detect N+1 queries and unused eager loading
+  gem "bullet"
+
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
 

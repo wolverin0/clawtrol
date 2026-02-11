@@ -158,11 +158,19 @@ class Task < ApplicationRecord
 
   # Blocking/dependency state methods
   def blocked?
-    dependencies.where.not(status: [:done, :archived]).exists?
+    if dependencies.loaded?
+      dependencies.any? { |d| !d.status.in?(%w[done archived]) }
+    else
+      dependencies.where.not(status: [:done, :archived]).exists?
+    end
   end
 
   def blocking_tasks
-    dependencies.where.not(status: [:done, :archived])
+    if dependencies.loaded?
+      dependencies.select { |d| !d.status.in?(%w[done archived]) }
+    else
+      dependencies.where.not(status: [:done, :archived])
+    end
   end
 
   def add_dependency!(other_task)

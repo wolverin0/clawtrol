@@ -92,4 +92,11 @@ Rails.application.configure do
   # Allow ngrok hosts for remote access
   config.hosts << /.*\.ngrok-free\.app/
   config.hosts << /.*\.ngrok\.io/
+
+  # Bullet: detect N+1 queries
+  config.after_initialize do
+    Bullet.enable = true
+    Bullet.rails_logger = true
+    Bullet.add_footer = true
+  end
 end
