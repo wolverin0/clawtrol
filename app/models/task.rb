@@ -1,6 +1,10 @@
-require "open3"
-
 class Task < ApplicationRecord
+  include Task::Broadcasting
+  include Task::Recurring
+  include Task::TranscriptParsing
+  include Task::DependencyManagement
+  include Task::AgentIntegration
+
   belongs_to :user
   belongs_to :board
   belongs_to :agent_persona, optional: true
@@ -35,10 +39,7 @@ class Task < ApplicationRecord
   DEFAULT_MODEL = "opus".freeze
 
   # Map ClawTrol task.model -> OpenClaw sessions_spawn model alias.
-  # This prevents OpenClaw from silently falling back to its default model when
-  # given a task-level model name that is not a valid sessions_spawn identifier.
   OPENCLAW_MODEL_ALIASES = {
-    # Route task.model=gemini to Gemini 3 Pro Preview (OpenClaw alias: gemini3)
     "gemini" => "gemini3"
   }.freeze
 
@@ -75,41 +76,17 @@ class Task < ApplicationRecord
   validates :model, inclusion: { in: MODELS }, allow_nil: true, allow_blank: true
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
-  validate :agent_output_required_for_done_transition, if: :moving_to_done?
-  validate :in_progress_requires_active_lease, if: :moving_to_in_progress?
-
-  # Returns the model identifier that OpenClaw should receive for sessions_spawn.
-  # (OpenClaw supports model *aliases* such as gemini3.)
-  def openclaw_spawn_model
-    OPENCLAW_MODEL_ALIASES.fetch(model.to_s, model.presence || DEFAULT_MODEL)
-  end
 
   # Activity tracking - must be declared before callbacks that use it
   attr_accessor :activity_source, :actor_name, :actor_emoji, :activity_note
 
-  # Store activity_source before commit so it survives the transaction
-  before_save :store_activity_source_for_broadcast
-
-  # Real-time broadcasts to user's board (only for API/background changes)
-  # Skip broadcasts when activity_source is "web" since the UI already handles it
-  after_create_commit :broadcast_create
-  after_update_commit :broadcast_update
-  after_destroy_commit :broadcast_destroy
   after_create :record_creation_activity
-  after_create :try_auto_claim
   after_update :record_update_activities
-  after_update :handle_recurring_completion, if: :saved_change_to_status?
-  after_update :notify_openclaw_if_urgent, if: -> { saved_change_to_status? || saved_change_to_assigned_to_agent? }
-  after_update :warn_if_review_without_session, if: :saved_change_to_status?
   after_update :create_status_notification, if: :saved_change_to_status?
-  after_update :try_transcript_capture, if: :saved_change_to_status?
-  after_update :heartbeat_lease_from_activity_evidence
-  after_update :reset_auto_pull_guardrails_if_manual_change
 
-  # Position management - acts_as_list functionality without the gem
+  # Position management
   before_create :set_position
   before_save :sync_completed_with_status
-  before_save :set_initial_recurrence, if: :will_save_change_to_recurring?
   before_update :track_completion_time, if: :will_save_change_to_status?
 
   # Order incomplete tasks by position, completed tasks by completion time (most recent first)
@@ -135,486 +112,18 @@ class Task < ApplicationRecord
     when "in_review"
       order(updated_at: :desc, id: :desc)
     when "done"
-      # NOTE: must qualify columns because board queries eager-load self-referential
-      # associations (parent_task/followup_task) which join the tasks table twice.
-      #
-      # DONE is auto-sorted purely by task id (newest task number first).
       order(Arel.sql("#{table_name}.id DESC"))
     else
       order(position: :asc, id: :asc)
     end
   }
-  # NOTE: default_scope was removed intentionally to avoid implicit ordering
-  # surprises. All queries that need ordering must specify it explicitly.
 
-  # Agent assignment methods
-  def assign_to_agent!
-    update!(assigned_to_agent: true, assigned_at: Time.current)
-  end
-
-  def unassign_from_agent!
-    update!(assigned_to_agent: false, assigned_at: nil)
-  end
-
-  # Blocking/dependency state methods
-  def blocked?
-    if dependencies.loaded?
-      dependencies.any? { |d| !d.status.in?(%w[done archived]) }
-    else
-      dependencies.where.not(status: [:done, :archived]).exists?
-    end
-  end
-
-  def blocking_tasks
-    if dependencies.loaded?
-      dependencies.select { |d| !d.status.in?(%w[done archived]) }
-    else
-      dependencies.where.not(status: [:done, :archived])
-    end
-  end
-
-  def add_dependency!(other_task)
-    task_dependencies.create!(depends_on: other_task)
-  end
-
-  def remove_dependency!(other_task)
-    task_dependencies.find_by(depends_on: other_task)&.destroy!
-  end
-
-  # Error state methods
-  def errored?
-    error_at.present?
-  end
-
-  def clear_error!
-    update!(error_message: nil, error_at: nil)
-  end
-
-  def set_error!(message)
-    update!(error_message: message, error_at: Time.current)
-  end
-
-  # Handoff to a different model - clears error and resets for retry
-  def handoff!(new_model:, include_transcript: false)
-    updates = {
-      error_message: nil,
-      error_at: nil,
-      retry_count: 0,  # Reset retry count on handoff
-      status: :in_progress,
-      model: new_model,
-      agent_claimed_at: nil  # Allow re-claim by agent
-    }
-    
-    # Optionally preserve session for context continuity
-    unless include_transcript
-      updates[:agent_session_id] = nil
-      updates[:agent_session_key] = nil
-      updates[:context_usage_percent] = nil
-    end
-    
-    update!(updates)
-  end
-
-  # Increment retry count (for auto-retry feature)
-  def increment_retry!
-    increment!(:retry_count)
-  end
-
-  # Check if max retries exceeded
-  def max_retries_exceeded?(max_retries = nil)
-    max = max_retries || user.auto_retry_max || 3
-    retry_count >= max
-  end
-
-  # Recurring task methods
-  def recurring_template?
-    recurring? && parent_task_id.nil?
-  end
-
-  def recurring_instance?
-    parent_task_id.present? && parent_task&.recurring?
-  end
-
-  def followup_task?
-    parent_task_id.present? && !parent_task&.recurring?
-  end
-
-  def schedule_next_recurrence!
-    return unless recurring_template?
-
-    next_time = calculate_next_recurrence
-    update!(next_recurrence_at: next_time) if next_time
-  end
-
-  def create_recurring_instance!
-    return nil unless recurring_template?
-
-    instance = dup
-    instance.parent_task_id = id
-    instance.recurring = false
-    instance.recurrence_rule = nil
-    instance.recurrence_time = nil
-    instance.next_recurrence_at = nil
-    instance.status = :inbox
-    instance.completed = false
-    instance.completed_at = nil
-    instance.assigned_to_agent = false
-    instance.assigned_at = nil
-    instance.agent_claimed_at = nil
-    instance.position = nil
-    instance.save!
-    instance
-  end
-
-  def calculate_next_recurrence
-    return nil unless recurrence_rule.present?
-
-    base_time = recurrence_time || Time.current.beginning_of_day
-    today = Date.current
-
-    case recurrence_rule
-    when "daily"
-      next_date = today + 1.day
-    when "weekly"
-      next_date = today + 1.week
-    when "monthly"
-      next_date = today + 1.month
-    else
-      return nil
-    end
-
-    Time.zone.local(next_date.year, next_date.month, next_date.day, base_time.hour, base_time.min)
-  end
-
-  # Follow-up task methods
-  def generate_followup_suggestion
-    # Try AI-powered suggestion first
-    ai_suggestion = AiSuggestionService.new(user).generate_followup(self)
-    return ai_suggestion if ai_suggestion.present?
-
-    # Fallback to keyword-based suggestion
-    case status
-    when "in_review"
-      generate_review_followup
-    when "done"
-      generate_done_followup
-    else
-      generate_generic_followup
-    end
-  end
-
-  def generate_review_followup
-    suggestions = []
-    
-    # Check for common patterns in description
-    desc = description.to_s.downcase
-    
-    if desc.include?("bug") || desc.include?("issue") || desc.include?("error")
-      suggestions << "Fix the identified bugs/issues"
-    end
-    
-    if desc.include?("security") || desc.include?("exposed") || desc.include?("credential")
-      suggestions << "Rotate exposed credentials and implement fixes"
-    end
-    
-    if desc.include?("api") || desc.include?("endpoint")
-      suggestions << "Update API documentation"
-    end
-    
-    if desc.include?("test") || desc.include?("✅")
-      suggestions << "Write additional tests for edge cases"
-    end
-    
-    if desc.include?("ui") || desc.include?("modal") || desc.include?("menu")
-      suggestions << "Polish UI/UX based on testing feedback"
-    end
-    
-    # Default review suggestions
-    suggestions << "Test the implementation manually" if suggestions.empty?
-    suggestions << "Document changes for future reference"
-    
-    "## Suggested Next Steps\n\n#{suggestions.map { |s| "- #{s}" }.join("\n")}"
-  end
-
-  def generate_done_followup
-    suggestions = [
-      "Iterate based on user feedback",
-      "Add tests if not already covered",
-      "Update documentation",
-      "Consider performance optimizations"
-    ]
-    
-    "## Suggested Next Steps\n\n#{suggestions.map { |s| "- #{s}" }.join("\n")}"
-  end
-
-  def generate_generic_followup
-    "## Follow-up\n\nContinue work on: #{name}\n\nDescribe what you want to do next."
-  end
-
-  # Review methods
-  def review_in_progress?
-    review_status == "running"
-  end
-
-  def review_passed?
-    review_status == "passed"
-  end
-
-  def review_failed?
-    review_status == "failed"
-  end
-
-  def has_review?
-    review_type.present?
-  end
-
-  def debate_review?
-    review_type == "debate"
-  end
-
-  def command_review?
-    review_type == "command"
-  end
-
-  def debate_storage_path
-    File.expand_path("~/clawdeck/storage/debates/task_#{id}")
-  end
-
-  def debate_synthesis_path
-    File.join(debate_storage_path, "synthesis.md")
-  end
-
-  def debate_synthesis_content
-    return nil unless File.exist?(debate_synthesis_path)
-    File.read(debate_synthesis_path)
-  end
-
-  def start_review!(type:, config: {})
-    update!(
-      review_type: type,
-      review_config: config,
-      review_status: "pending",
-      review_result: {}
-    )
-  end
-
-  def complete_review!(status:, result: {})
-    updates = {
-      review_status: status,
-      review_result: result.merge(completed_at: Time.current.iso8601)
-    }
-
-    if status == "passed"
-      updates[:status] = "in_review"
-    end
-
-    update!(updates)
-
-    # Create follow-up task if failed
-    if status == "failed" && result[:error_summary].present?
-      create_followup_task!(
-        followup_name: "Fix: #{name.truncate(40)}",
-        followup_description: "## Review Failed\n\n#{result[:error_summary]}\n\n---\n\n### Original Task\n#{description}"
-      )
-    end
-  end
-
-  def create_followup_task!(followup_name:, followup_description: nil)
-    followup = board.tasks.new(
-      user: user,
-      name: followup_name,
-      description: followup_description,
-      parent_task_id: id,
-      status: :inbox,
-      priority: priority,
-      model: model  # Inherit model from parent
-    )
-    followup.activity_source = activity_source
-    followup.actor_name = actor_name
-    followup.actor_emoji = actor_emoji
-    followup.save!
-
-    # Link this task to the followup
-    update!(followup_task_id: followup.id)
-    followup
-  end
-
-  # Runner lease helpers (truthfulness invariant)
-  def active_runner_lease
-    runner_leases.active.order(expires_at: :desc).first
-  end
-
-  def runner_lease_active?
-    active_runner_lease.present?
-  end
-
-  def runner_last_heartbeat_at
-    active_runner_lease&.last_heartbeat_at
-  end
-
-  def runner_started_at
-    active_runner_lease&.started_at
-  end
-
-  def runner_age_seconds
-    return nil unless runner_started_at
-    (Time.current - runner_started_at).to_i
-  end
-
-  def runner_heartbeat_age_seconds
-    return nil unless runner_last_heartbeat_at
-    (Time.current - runner_last_heartbeat_at).to_i
-  end
-
-  def heartbeat_runner_lease!
-    lease = active_runner_lease
-    lease&.heartbeat!
-  end
-
-  # Agent activity visibility: show panel even when session_id is missing
-  # if we can infer an agent run happened.
-  def show_agent_activity?
-    agent_session_id.present? ||
-      has_agent_output_marker? ||
-      (in_progress? && assigned_to_agent?)
-  end
-
-  def has_agent_output_marker?
-    description.to_s.include?("## Agent Output")
-  end
-
-  def requires_agent_output_for_done?
-    assigned_to_agent? || agent_session_id.present? || assigned_at.present?
-  end
-
-  def missing_agent_output?
-    requires_agent_output_for_done? && !has_agent_output_marker?
-  end
-
-  def agent_output_posted_at
-    return nil unless has_agent_output_marker?
-
-    # Best signal: when task moved into review (agent_complete default flow)
-    in_review_activity = activities
-      .where(action: "moved", field_name: "status", new_value: "in_review")
-      .order(created_at: :desc)
-      .first
-
-    in_review_activity&.created_at || completed_at || updated_at
-  end
-
-  def transcript_path
-    return nil if agent_session_id.blank?
-    sid = agent_session_id.to_s
-    return nil unless sid.match?(/\A[a-zA-Z0-9_\-]+\z/)
-
-    File.expand_path("~/.openclaw/agents/main/sessions/#{sid}.jsonl")
-  end
-
-  def transcript_exists?
-    path = transcript_path
-    path.present? && File.exist?(path)
-  end
-
-  def normalized_output_files(files)
-    Array(files)
-      .flatten
-      .map(&:to_s)
-      .map(&:strip)
-      .reject(&:blank?)
-      .uniq
-  end
-
-  def extract_output_files_from_findings(findings)
-    text = findings.to_s
-    return [] if text.blank?
-
-    path_regex = %r{(?<![\w./-])(?:\./|/)?[\w@%+=:,~.-]+(?:/[\w@%+=:,~.-]+)+\.[A-Za-z0-9_]{1,10}(?![\w./-])}
-
-    text.scan(path_regex)
-        .map { |path| path.to_s.gsub(%r{\A\./}, "") }
-        .reject { |path| path.include?("//") }
-        .uniq
-  end
-
-  def extract_output_files_from_transcript_commit
-    return [] unless transcript_exists?
-
-    commit = latest_commit_hash_from_transcript
-    return [] if commit.blank?
-
-    project_dir = board&.project_path.presence || File.expand_path("~/.openclaw/workspace")
-    return [] unless Dir.exist?(project_dir)
-    return [] unless Dir.exist?(File.join(project_dir, ".git"))
-
-    stdout, status = Open3.capture2("git", "show", "--name-only", "--pretty=format:", commit, chdir: project_dir)
-    return [] unless status.success?
-
-    stdout.lines
-          .map(&:strip)
-          .reject(&:blank?)
-          .reject { |line| line.start_with?("commit ") }
-          .uniq
-  rescue StandardError => e
-    Rails.logger.warn("[Task##{id}] Failed to extract output_files from git commit: #{e.class}: #{e.message}")
-    []
-  end
-
-  def backfill_output_files_from_transcript_commit!
-    files = extract_output_files_from_transcript_commit
-    return [] if files.blank?
-
-    merged = normalized_output_files((output_files || []) + files)
-    update!(output_files: merged) if merged != (output_files || [])
-    merged
-  end
-
-  def latest_commit_hash_from_transcript
-    path = transcript_path
-    return nil unless path.present? && File.exist?(path)
-
-    commit_hashes = []
-
-    File.foreach(path) do |line|
-      line.scan(/\bcommit\s+([0-9a-f]{7,40})\b/i) { |m| commit_hashes << m.first }
-      line.scan(/\b[0-9a-f]{40}\b/i) { |m| commit_hashes << m }
-    end
-
-    commit_hashes.last&.downcase
-  rescue StandardError => e
-    Rails.logger.warn("[Task##{id}] Failed to parse transcript for commit hash: #{e.class}: #{e.message}")
-    nil
+  # Returns the model identifier that OpenClaw should receive for sessions_spawn.
+  def openclaw_spawn_model
+    OPENCLAW_MODEL_ALIASES.fetch(model.to_s, model.presence || DEFAULT_MODEL)
   end
 
   private
-
-  def moving_to_done?
-    will_save_change_to_status? && status == "done"
-  end
-
-  def moving_to_in_progress?
-    will_save_change_to_status? && status == "in_progress"
-  end
-
-  def agent_output_required_for_done_transition
-    return unless requires_agent_output_for_done?
-    return if has_agent_output_marker?
-
-    errors.add(:status, "Cannot mark as done without Agent Output. Use 'Recuperar del Transcript' in the task panel, or add ## Agent Output manually.")
-  end
-
-  # Truthfulness invariant:
-  # A task may only be in_progress if there is verifiable run evidence.
-  # We enforce this only for agent-assigned tasks to avoid breaking
-  # human-only workflows.
-  def in_progress_requires_active_lease
-    return unless assigned_to_agent?
-
-    # Accept a linked session as legacy/equivalent evidence.
-    return if runner_lease_active? || agent_session_id.present?
-
-    errors.add(:status, "cannot be In Progress without an active Runner Lease (or a linked agent session)")
-  end
 
   # Security: validate that validation_command is safe to execute
   def validation_command_is_safe
@@ -635,17 +144,8 @@ class Task < ApplicationRecord
   def set_position
     return if position.present?
 
-    # Append: set position to end of list
     max_position = board.tasks.where(status: status).maximum(:position) || 0
     self.position = max_position + 1
-  end
-
-  def store_activity_source_for_broadcast
-    @stored_activity_source = activity_source
-  end
-
-  def skip_broadcast?
-    @stored_activity_source == "web" || activity_source == "web"
   end
 
   def sync_completed_with_status
@@ -662,14 +162,6 @@ class Task < ApplicationRecord
     end
   end
 
-  def set_initial_recurrence
-    if recurring? && parent_task_id.nil?
-      self.next_recurrence_at = calculate_next_recurrence
-    elsif !recurring?
-      self.next_recurrence_at = nil
-    end
-  end
-
   def record_creation_activity
     TaskActivity.record_creation(self, source: activity_source || "web", actor_name: actor_name, actor_emoji: actor_emoji, note: activity_note)
   end
@@ -677,141 +169,13 @@ class Task < ApplicationRecord
   def record_update_activities
     source = activity_source || "web"
 
-    # Track status/column changes
     if saved_change_to_status?
       old_status, new_status = saved_change_to_status
       TaskActivity.record_status_change(self, old_status: old_status, new_status: new_status, source: source, actor_name: actor_name, actor_emoji: actor_emoji, note: activity_note)
     end
 
-    # Track field changes
     tracked_changes = saved_changes.slice(*TaskActivity::TRACKED_FIELDS)
     TaskActivity.record_changes(self, tracked_changes, source: source, actor_name: actor_name, actor_emoji: actor_emoji, note: activity_note) if tracked_changes.any?
-  end
-
-  def handle_recurring_completion
-    return unless status == "done" && recurring_instance? && parent_task.present?
-
-    # When a recurring instance is completed, schedule the next one on the template
-    parent_task.schedule_next_recurrence!
-  end
-
-  # Warn if task moves to in_review without a linked session (debugging aid)
-  def warn_if_review_without_session
-    return unless status == "in_review" && agent_session_id.blank?
-    Rails.logger.warn("[Task##{id}] Task '#{name}' moved to in_review WITHOUT agent_session_id — agent output may be lost!")
-  end
-
-  # Auto-capture agent output from transcripts when task completes without proper agent_complete
-  def try_transcript_capture
-    return unless %w[in_review done].include?(status)
-    # Only capture if there's no agent output yet
-    return if description.to_s.include?("## Agent Output")
-    return if output_files.present? && output_files.any?
-
-    TranscriptCaptureJob.perform_later(id)
-  end
-
-  # Any verifiable "agent evidence" should renew the lease, keeping the UI
-  # truthful about what is actually running.
-  def heartbeat_lease_from_activity_evidence
-    return unless in_progress?
-    return unless assigned_to_agent?
-
-    relevant = saved_change_to_agent_session_id? ||
-      saved_change_to_agent_claimed_at? ||
-      saved_change_to_description? ||
-      saved_change_to_output_files? ||
-      saved_change_to_status?
-
-    return unless relevant
-
-    heartbeat_runner_lease!
-  rescue StandardError => e
-    Rails.logger.warn("[Task##{id}] lease heartbeat failed: #{e.class}: #{e.message}")
-  end
-
-
-  # Notify OpenClaw gateway when a task becomes runnable for the orchestrator.
-  #
-  # OpenClaw is the sole orchestrator: ClawTrol should never auto-claim/promote.
-  # We only WAKE OpenClaw so it can poll/claim/spawn based on the task settings.
-  def notify_openclaw_if_urgent
-    return unless user.openclaw_gateway_url.present?
-
-    # Only wake when this task is runnable from the queue.
-    return unless status == "up_next" && assigned_to_agent? && !blocked?
-
-    OpenclawNotifyJob.perform_later(id)
-  end
-
-  # Reset circuit breaker fields on manual (web) edits, so a human can unblock
-  # a task and let auto-pull try again.
-  def reset_auto_pull_guardrails_if_manual_change
-    return unless activity_source == "web"
-    return unless saved_change_to_status? || saved_change_to_assigned_to_agent?
-
-    return unless respond_to?(:auto_pull_failures) && respond_to?(:auto_pull_blocked)
-
-    return unless auto_pull_failures.to_i > 0 || auto_pull_blocked?
-
-    update_columns(
-      auto_pull_failures: 0,
-      auto_pull_blocked: false,
-      auto_pull_last_error_at: nil,
-      auto_pull_last_error: nil
-    )
-  rescue StandardError => e
-    Rails.logger.warn("[Task##{id}] reset_auto_pull_guardrails failed: #{e.class}: #{e.message}")
-  end
-
-
-  # Try to auto-queue this task based on board settings.
-  #
-  # IMPORTANT: ClawTrol does not start work. It may move tasks into Up Next +
-  # assign them, then wake OpenClaw to decide when/how to run.
-  def try_auto_claim
-    return unless status == "inbox"
-    return unless board.can_auto_claim?
-    return unless board.task_matches_auto_claim?(self)
-
-    now = Time.current
-
-    old_status = status
-
-    update!(
-      assigned_to_agent: true,
-      assigned_at: now,
-      agent_claimed_at: nil,
-      status: :up_next
-    )
-
-    # Record the auto-queue time on the board (rate limiting)
-    board.record_auto_claim!
-
-    # Record activity
-    TaskActivity.create!(
-      task: self,
-      user: user,
-      action: "auto_queued",
-      source: "system",
-      actor_name: "Auto-Queue",
-      actor_emoji: "🤖",
-      note: "Task auto-queued based on board settings"
-    )
-
-    # Notify UIs that this card moved columns
-    KanbanChannel.broadcast_refresh(
-      board_id,
-      task_id: id,
-      action: "update",
-      old_status: old_status,
-      new_status: status
-    )
-
-    # Wake the orchestrator
-    if user.openclaw_gateway_url.present?
-      AutoClaimNotifyJob.perform_later(id)
-    end
   end
 
   # Create notification on status change
@@ -819,167 +183,5 @@ class Task < ApplicationRecord
     return unless user
     old_status, new_status = saved_change_to_status
     Notification.create_for_status_change(self, old_status, new_status)
-  end
-
-  # Turbo Streams broadcasts for real-time updates
-  # Note: We reload with includes to avoid N+1 queries when rendering partials
-  def broadcast_create
-    if skip_broadcast?
-      # Still notify WebSocket clients (other tabs/devices) even when the change came from the web UI.
-      KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "create")
-      return
-    end
-
-    # Reload with associations to avoid N+1 when rendering the partial
-    task_with_associations = Task.includes(:board, :user, :agent_persona).find(id)
-
-    if auto_sorted_column?(status)
-      broadcast_sorted_column(status)
-    else
-      broadcast_to_board(
-        action: :prepend,
-        target: "column-#{status}",
-        partial: "boards/task_card",
-        locals: { task: task_with_associations }
-      )
-    end
-
-    broadcast_column_count(status)
-
-    # Also broadcast via ActionCable KanbanChannel for WebSocket clients
-    KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "create")
-  end
-
-  def broadcast_update
-    if skip_broadcast?
-      # Still notify WebSocket clients (other tabs/devices) even when the change came from the web UI.
-      if saved_change_to_status?
-        old_s, new_s = saved_change_to_status
-        KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "update", old_status: old_s, new_status: new_s)
-      else
-        KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "update")
-      end
-      return
-    end
-
-    # Reload with associations to avoid N+1 when rendering the partial
-    task_with_associations = Task.includes(:board, :user, :agent_persona).find(id)
-
-    # If status changed, handle move between columns
-    if saved_change_to_status?
-      old_status, new_status = saved_change_to_status
-      # Remove from old column
-      broadcast_to_board(action: :remove, target: "task_#{id}")
-
-      if auto_sorted_column?(new_status)
-        broadcast_sorted_column(new_status)
-      else
-        broadcast_to_board(
-          action: :prepend,
-          target: "column-#{new_status}",
-          partial: "boards/task_card",
-          locals: { task: task_with_associations }
-        )
-      end
-
-      broadcast_sorted_column(old_status) if auto_sorted_column?(old_status)
-      broadcast_column_count(old_status)
-      broadcast_column_count(new_status)
-    else
-      # For auto-sorted columns, replace the whole list to preserve deterministic order.
-      if auto_sorted_column?(status)
-        broadcast_sorted_column(status)
-      else
-        broadcast_to_board(
-          action: :replace,
-          target: "task_#{id}",
-          partial: "boards/task_card",
-          locals: { task: task_with_associations }
-        )
-      end
-    end
-
-    # Also broadcast via ActionCable KanbanChannel for WebSocket clients
-    # Include status transition for sound effects
-    if saved_change_to_status?
-      old_s, new_s = saved_change_to_status
-      KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "update", old_status: old_s, new_status: new_s)
-    else
-      KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "update")
-    end
-
-    # Broadcast agent activity updates when agent-related fields change
-    if saved_change_to_agent_session_id? || saved_change_to_status? || saved_change_to_agent_claimed_at?
-      AgentActivityChannel.broadcast_status(id, status)
-    end
-  end
-
-  def broadcast_destroy
-    if skip_broadcast?
-      # Still notify WebSocket clients (other tabs/devices) even when the change came from the web UI.
-      KanbanChannel.broadcast_refresh(board_id, task_id: id, action: "destroy")
-      return
-    end
-
-    # Cache values before they become inaccessible
-    cached_board_id = board_id
-    cached_status = status
-    cached_id = id
-    stream = "board_#{cached_board_id}"
-
-    Turbo::StreamsChannel.broadcast_action_to(stream, action: :remove, target: "task_#{cached_id}")
-
-    # Update column count
-    count = Board.find(cached_board_id).tasks.where(status: cached_status).count
-    Turbo::StreamsChannel.broadcast_action_to(
-      stream,
-      action: :replace,
-      target: "column-#{cached_status}-count",
-      html: %(<span id="column-#{cached_status}-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded">#{count}</span>)
-    )
-
-    # Also broadcast via ActionCable KanbanChannel for WebSocket clients
-    KanbanChannel.broadcast_refresh(cached_board_id, task_id: cached_id, action: "destroy")
-  end
-
-  def broadcast_column_count(column_status)
-    count = board.tasks.where(status: column_status).count
-    broadcast_to_board(
-      action: :replace,
-      target: "column-#{column_status}-count",
-      html: %(<span id="column-#{column_status}-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded">#{count}</span>)
-    )
-  end
-
-  def auto_sorted_column?(column_status)
-    %w[in_review done].include?(column_status.to_s)
-  end
-
-  def broadcast_sorted_column(column_status)
-    scope = board.tasks
-      .not_archived
-      .where(status: column_status)
-      .includes(:board, :user, :agent_persona)
-      .ordered_for_column(column_status)
-
-    # Keep kanban columns lightweight: only render first page, and let infinite scroll load more.
-    first_page_plus_one = scope.limit(KANBAN_PER_COLUMN_ITEMS + 1).to_a
-    tasks = first_page_plus_one.first(KANBAN_PER_COLUMN_ITEMS)
-    has_more = first_page_plus_one.length > KANBAN_PER_COLUMN_ITEMS
-
-    broadcast_to_board(
-      action: :replace,
-      target: "column-#{column_status}",
-      partial: "boards/column_tasks",
-      locals: { status: column_status, tasks: tasks, board: board, has_more: has_more }
-    )
-  end
-
-  def board_stream_name
-    "board_#{board_id}"
-  end
-
-  def broadcast_to_board(action:, target:, **options)
-    Turbo::StreamsChannel.broadcast_action_to(board_stream_name, action: action, target: target, **options)
   end
 end
