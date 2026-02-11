@@ -387,14 +387,14 @@ module Task::AgentIntegration
     # Lock the board row to prevent race conditions when two tasks are
     # created simultaneously — both could pass can_auto_claim? before
     # either calls record_auto_claim!.
+    old_status = self.status
+
     board.with_lock do
       # Re-check inside the lock since another transaction may have
       # claimed between our optimistic check above and acquiring the lock.
       return unless board.reload.can_auto_claim?
 
       now = Time.current
-
-      old_status = self.status
 
       update!(
         assigned_to_agent: true,
