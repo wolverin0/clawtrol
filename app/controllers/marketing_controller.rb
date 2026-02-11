@@ -6,6 +6,7 @@ require "base64"
 require "fileutils"
 
 class MarketingController < ApplicationController
+  include MarkdownSanitizationHelper
   MARKETING_ROOT = Rails.root.join("..", ".openclaw", "workspace", "marketing").to_s.freeze
   VIEWABLE_EXTENSIONS = %w[.md .json .html .txt .yml .yaml].freeze
   IMAGE_EXTENSIONS = %w[.png .jpg .jpeg .gif .webp .svg].freeze
@@ -374,21 +375,8 @@ class MarketingController < ApplicationController
   end
 
   def render_markdown(content)
-    renderer = Redcarpet::Render::HTML.new(
-      filter_html: false,
-      hard_wrap: true,
-      link_attributes: { target: "_blank", rel: "noopener" }
-    )
-    markdown = Redcarpet::Markdown.new(renderer,
-      autolink: true,
-      tables: true,
-      fenced_code_blocks: true,
-      strikethrough: true,
-      superscript: true,
-      highlight: true,
-      footnotes: true
-    )
-    markdown.render(content).html_safe
+    # Use shared helper for XSS-safe markdown rendering
+    safe_markdown(content)
   end
 
   def render_json(content)
