@@ -119,6 +119,10 @@ Rails.application.routes.draw do
   # Analytics page
   get "analytics", to: "analytics#show"
 
+  # Nightshift mission control
+  get "nightshift", to: "nightshift#index"
+  post "nightshift/launch", to: "nightshift#launch"
+
   # Nightbeat morning brief
   get "nightbeat", to: "nightbeat#index"
 
