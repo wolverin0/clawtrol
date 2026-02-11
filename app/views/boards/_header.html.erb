@@ -259,7 +259,7 @@
   <%# Row 1b: Board Tabs (full-width row) %>
   <div class="px-4 md:px-6 py-2 border-t border-border/50 bg-bg-base w-full">
     <div class="w-full">
-      <div class="flex flex-nowrap items-center gap-1.5 w-full max-w-full overflow-x-auto scrollbar-hide [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]">
+      <div class="flex flex-nowrap items-center gap-1.5 w-full max-w-full overflow-x-auto [-webkit-overflow-scrolling:touch]">
       <% @boards.each do |board| %>
         <% active = board.id == @board.id %>
         <% task_count = board.tasks.where.not(status: :done).count %>
