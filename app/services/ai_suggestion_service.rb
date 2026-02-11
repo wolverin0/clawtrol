@@ -79,7 +79,7 @@ class AiSuggestionService
     response = http.request(request)
     data = JSON.parse(response.body)
     data.dig("choices", 0, "message", "content") || fallback_suggestion(nil)
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error "AI API error: #{e.message}"
     nil
   end

@@ -121,7 +121,7 @@ class ValidationSuggestionService
   def generate_ai_suggestion(task)
     prompt = build_prompt(task)
     call_api(prompt)
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error "ValidationSuggestionService AI error: #{e.message}"
     nil
   end
