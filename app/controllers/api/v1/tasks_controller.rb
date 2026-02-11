@@ -2,21 +2,7 @@
 module Api
   module V1
     class TasksController < BaseController
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :file, :add_dependency, :remove_dependency, :dependencies ]
-      before_action :set_task_for_agent_log, only: [ :agent_log, :session_health ]
-
-      private
-
-      def set_task_for_agent_log
-        # Public lookup - anyone with the task ID can see agent activity
-        # This is safe because it only shows agent logs, not sensitive data
-        @task = Task.find_by(id: params[:id])
-        unless @task
-          render json: { error: "Task not found" }, status: :not_found
-        end
-      end
-
-      public
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health ]
 
       # GET /api/v1/tasks/:id/agent_log - get agent transcript for this task
       # Returns parsed messages from the OpenClaw session transcript
