@@ -2,8 +2,6 @@
 module Api
   module V1
     class TasksController < BaseController
-      # agent_log is public (no auth required) - secured by task lookup
-      skip_before_action :authenticate_api_token, only: [ :agent_log, :session_health ]
       before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :file, :add_dependency, :remove_dependency, :dependencies ]
       before_action :set_task_for_agent_log, only: [ :agent_log, :session_health ]
 
