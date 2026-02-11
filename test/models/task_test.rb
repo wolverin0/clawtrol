@@ -36,6 +36,41 @@ class TaskTest < ActiveSupport::TestCase
     assert_equal [t3.id, t2.id, t1.id], ordered_ids.first(3)
   end
 
+  test "try_auto_claim locks board to prevent concurrent claims" do
+    board = boards(:one)
+    user = users(:one)
+
+    # Enable auto-claim with a rate limit window
+    board.update_columns(auto_claim_enabled: true, last_auto_claim_at: nil)
+
+    # First task should be auto-claimed
+    t1 = Task.create!(name: "auto-1", board: board, user: user, status: :inbox)
+    t1.reload
+    assert_equal "up_next", t1.status, "First task should be auto-claimed to up_next"
+    assert t1.assigned_to_agent?, "First task should be assigned to agent"
+
+    # Board should now have a recent last_auto_claim_at, blocking the next claim
+    board.reload
+    assert_not_nil board.last_auto_claim_at, "Board should record auto-claim timestamp"
+
+    # Second task created immediately should NOT be auto-claimed (rate limited)
+    t2 = Task.create!(name: "auto-2", board: board, user: user, status: :inbox)
+    t2.reload
+    assert_equal "inbox", t2.status, "Second task should stay inbox (rate limited)"
+    assert_not t2.assigned_to_agent?, "Second task should not be assigned"
+  end
+
+  test "try_auto_claim skips non-inbox tasks" do
+    board = boards(:one)
+    user = users(:one)
+    board.update_columns(auto_claim_enabled: true, last_auto_claim_at: nil)
+
+    task = Task.create!(name: "already progress", board: board, user: user, status: :up_next)
+    task.reload
+    # Should not have been double-promoted; status stays up_next
+    assert_equal "up_next", task.status
+  end
+
   test "assigned tasks cannot move to in_progress without a runner lease (or linked session)" do
     board = boards(:one)
     user = users(:one)
