@@ -36,6 +36,12 @@ Rails.application.routes.draw do
         get :tokens
       end
 
+      resources :saved_links, only: [:index, :create, :update] do
+        collection do
+          get :pending
+        end
+      end
+
       resources :boards, only: [ :index, :show, :create, :update, :destroy ] do
         member do
           get :status
@@ -109,6 +115,9 @@ Rails.application.routes.draw do
     post :regenerate_api_token
     post :test_connection
   end
+
+  # Link Inbox
+  resources :saved_links, only: [:index, :create, :destroy]
 
   # Dashboard overview page
   get "dashboard", to: "dashboard#show"
