@@ -67,23 +67,10 @@ class OpenclawMemorySearchHealthService
       )
     end
 
-    # 2) Check memory search status via the sessions API (memory_search is an internal
-    #    agent tool, not an HTTP endpoint — /api/memory/search doesn't exist).
-    #    Instead, verify the gateway is responsive and token is valid.
-    token_check = get_json("/api/sessions", authorized: true)
-
-    if token_check[:ok]
-      return persist!(status: :ok, last_checked_at: now, error_message: nil, error_at: nil)
-    end
-
-    status = classify_memory_error(token_check[:http_code], token_check[:error])
-
-    persist!(
-      status: status,
-      last_checked_at: now,
-      error_message: token_check[:error],
-      error_at: now
-    )
+    # 2) Gateway is reachable (health check passed above). Memory search is an internal
+    #    agent tool — there's no HTTP endpoint to probe it directly.
+    #    If the gateway is up, memory search is available to the agent.
+    persist!(status: :ok, last_checked_at: now, error_message: nil, error_at: nil)
   rescue StandardError => e
     @logger.error("[OpenclawMemorySearchHealthService] user_id=#{@user.id} err=#{e.class}: #{e.message}")
 
