@@ -36,6 +36,11 @@ class ProcessSavedLinkJob < ApplicationJob
   private
 
   def fetch_content(url)
+    # X/Twitter: use fxtwitter API for tweet content
+    if url.match?(%r{(x\.com|twitter\.com)/.+/status/(\d+)})
+      return fetch_tweet(url)
+    end
+
     uri = URI.parse(url)
     response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: 10, read_timeout: 15) do |http|
       request = Net::HTTP::Get.new(uri)
@@ -59,6 +64,40 @@ class ProcessSavedLinkJob < ApplicationJob
     node = doc.at_css("article") || doc.at_css("main") || doc.at_css("body")
     text = node&.text&.gsub(/\s+/, " ")&.strip || ""
     text[0...15_000]
+  end
+
+  def fetch_tweet(url)
+    # Extract status ID and build fxtwitter API URL
+    status_id = url[/status\/(\d+)/, 1]
+    return "(Could not extract tweet ID from URL)" unless status_id
+
+    api_url = URI("https://api.fxtwitter.com/i/status/#{status_id}")
+    response = Net::HTTP.start(api_url.host, api_url.port, use_ssl: true, open_timeout: 10, read_timeout: 15) do |http|
+      http.request(Net::HTTP::Get.new(api_url))
+    end
+
+    return "(fxtwitter API error: #{response.code})" unless response.is_a?(Net::HTTPSuccess)
+
+    data = JSON.parse(response.body)
+    tweet = data.dig("tweet") || {}
+
+    parts = []
+    parts << "Author: #{tweet.dig('author', 'name')} (@#{tweet.dig('author', 'screen_name')})"
+    parts << "Text: #{tweet['text']}" if tweet["text"].present?
+    parts << "Likes: #{tweet['likes']}, Retweets: #{tweet['retweets']}, Replies: #{tweet['replies']}"
+
+    if (quote = tweet["quote"])
+      parts << "Quoted tweet by @#{quote.dig('author', 'screen_name')}: #{quote['text']}"
+    end
+
+    if (media = tweet.dig("media", "all"))
+      media.each_with_index do |m, i|
+        parts << "Media #{i + 1}: #{m['type']}#{" - #{m['altText']}" if m['altText'].present?}"
+      end
+    end
+
+    result = parts.join("\n")
+    result.presence || "(Tweet content is empty — may have been deleted or is media-only)"
   end
 
   def call_gemini_cli(prompt_text)
