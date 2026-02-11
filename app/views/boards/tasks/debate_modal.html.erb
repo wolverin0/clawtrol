@@ -68,12 +68,23 @@
             <p class="mt-2 text-xs text-content-muted">At least 2 participants recommended for meaningful debate.</p>
           </div>
 
+          <!-- Coming Soon Banner -->
+          <div class="p-3 bg-amber-500/15 border border-amber-500/30 rounded-lg">
+            <div class="flex items-start gap-2">
+              <span class="text-amber-400">🚧</span>
+              <div class="text-xs text-amber-300">
+                <p class="font-semibold mb-1">Coming Soon</p>
+                <p class="text-amber-300/80">Multi-model debate review is not yet implemented. This feature will allow multiple AI models to independently analyze and debate task output quality.</p>
+              </div>
+            </div>
+          </div>
+
           <!-- Info -->
           <div class="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
             <div class="flex items-start gap-2">
               <span class="text-purple-400">🎭</span>
               <div class="text-xs text-purple-300">
-                <p class="font-medium mb-1">How debate review works:</p>
+                <p class="font-medium mb-1">How debate review will work:</p>
                 <ul class="list-disc list-inside space-y-0.5 text-purple-300/80">
                   <li>Multiple AI models independently analyze the task output</li>
                   <li>They debate and challenge each other's findings</li>
@@ -87,7 +98,7 @@
           <!-- Footer -->
           <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
             <%= link_to "Cancel", board_path(@board), class: "px-4 py-2 text-sm font-medium text-content-secondary hover:text-content transition-colors", data: { turbo_frame: "_top" } %>
-            <%= form.submit "🎭 Start Debate", class: "px-4 py-2 text-sm font-semibold rounded-md bg-purple-600 text-white hover:bg-purple-500 transition-colors cursor-pointer" %>
+            <span class="px-4 py-2 text-sm font-semibold rounded-md bg-gray-600 text-gray-400 cursor-not-allowed" title="Coming soon — not yet implemented">🎭 Start Debate</span>
           </div>
         <% end %>
       </div>

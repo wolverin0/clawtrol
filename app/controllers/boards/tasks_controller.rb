@@ -302,6 +302,18 @@ class Boards::TasksController < ApplicationController
   end
 
   def run_debate
+    # Debate review is not yet implemented — return early with notice
+    respond_to do |format|
+      format.turbo_stream do
+        flash.now[:alert] = "🚧 Debate review is not yet implemented. Coming soon!"
+        render turbo_stream: turbo_stream.action(:redirect, board_path(@board))
+      end
+      format.html do
+        redirect_to board_path(@board), alert: "🚧 Debate review is not yet implemented. Coming soon!"
+      end
+    end
+    return
+
     style = params[:style] || "quick"
     focus = params[:focus]
     models = Array(params[:models]).reject(&:blank?)
