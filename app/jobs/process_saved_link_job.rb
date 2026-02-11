@@ -68,7 +68,7 @@ class ProcessSavedLinkJob < ApplicationJob
 
     begin
       # Use gemini CLI with OAuth (model: gemini-3-flash)
-      output = `cat #{tmpfile.to_s.shellescape} | gemini -m gemini-2.5-flash 2>/dev/null`
+      output = `cat #{tmpfile.to_s.shellescape} | gemini -m gemini-3-flash-preview 2>/dev/null`
       raise "Gemini CLI failed (exit #{$?.exitstatus}): #{output[0..300]}" unless $?.success?
       raise "Empty response from Gemini CLI" if output.strip.empty?
       output.strip
