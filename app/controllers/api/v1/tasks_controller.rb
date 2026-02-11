@@ -918,6 +918,13 @@ module Api
       # POST /api/v1/tasks/:id/run_debate
       # Start a debate review
       def run_debate
+        # Debate review is not yet implemented — return early
+        render json: {
+          error: "Debate review is not yet implemented. Coming soon.",
+          not_implemented: true
+        }, status: :service_unavailable
+        return
+
         style = params[:style] || "quick"
         focus = params[:focus]
         models = Array(params[:models]).reject(&:blank?)
