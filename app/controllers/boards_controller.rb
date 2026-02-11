@@ -73,7 +73,14 @@ class BoardsController < ApplicationController
     @boards = current_user.boards.order(position: :asc)
     # Set empty columns for header partial (it expects @columns to exist)
     @columns = { inbox: [], in_progress: [] }
-    tasks = @board.tasks.archived.order(archived_at: :desc, completed_at: :desc)
+    tasks = if @board.aggregator?
+              Task.joins(:board)
+                  .where(boards: { user_id: current_user.id, is_aggregator: false })
+                  .archived
+                  .order(archived_at: :desc, completed_at: :desc)
+            else
+              @board.tasks.archived.order(archived_at: :desc, completed_at: :desc)
+            end
     @pagy, @tasks = pagy(tasks, items: 20)
 
     # Handle AJAX requests for infinite scroll pagination
