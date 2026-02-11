@@ -268,8 +268,20 @@ class Boards::TasksController < ApplicationController
     end
 
     @file_path = path
-    @file_content = File.read(full_path, encoding: "UTF-8")
     @file_extension = File.extname(full_path).delete(".")
+
+    # Serve binary files (images, etc.) directly with proper content-type
+    binary_types = {
+      "png" => "image/png", "jpg" => "image/jpeg", "jpeg" => "image/jpeg",
+      "gif" => "image/gif", "webp" => "image/webp", "svg" => "image/svg+xml",
+      "pdf" => "application/pdf", "zip" => "application/zip"
+    }
+    if binary_types.key?(@file_extension.downcase)
+      send_file full_path, type: binary_types[@file_extension.downcase], disposition: :inline
+      return
+    end
+
+    @file_content = File.read(full_path, encoding: "UTF-8")
 
     # Detect which turbo frame is requesting (desktop vs mobile)
     @frame_id = request.headers["Turbo-Frame"] || "file_viewer"
