@@ -1,0 +1,67 @@
+<%# Mobile Navigation Menu - Full screen overlay %>
+<div data-controller="mobile-nav">
+  <%# Hamburger button - visible only on mobile %>
+  <button type="button"
+          data-action="click->mobile-nav#open"
+          class="md:hidden w-10 h-10 rounded-md bg-bg-elevated hover:bg-bg-hover flex items-center justify-center text-lg transition-colors cursor-pointer"
+          title="Navigation menu">
+    ☰
+  </button>
+
+  <%# Full-screen overlay panel %>
+  <div data-mobile-nav-target="panel"
+       data-action="click->mobile-nav#closeOnOverlay"
+       class="hidden fixed inset-0 z-[200] bg-black/70">
+    <div class="absolute right-0 top-0 bottom-0 w-72 bg-bg-base border-l border-border overflow-y-auto">
+      <%# Header %>
+      <div class="flex items-center justify-between px-4 py-3 border-b border-border">
+        <span class="text-sm font-semibold text-content font-display">🦞 Navigation</span>
+        <button type="button"
+                data-action="click->mobile-nav#close"
+                class="w-10 h-10 rounded-md hover:bg-bg-elevated flex items-center justify-center text-lg text-content-muted hover:text-content transition-colors cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <%# Navigation links %>
+      <nav class="py-2">
+        <%= link_to dashboard_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">📊</span> Dashboard
+        <% end %>
+        <%= link_to analytics_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">📈</span> Analytics
+        <% end %>
+        <%= link_to agent_personas_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🧠</span> Agent Personas
+        <% end %>
+        <%= link_to roster_agent_personas_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">📋</span> Roster
+        <% end %>
+        <%= link_to nightbeat_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🌙</span> Nightbeat
+        <% end %>
+        <%= link_to outputs_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">👁️</span> Outputs
+        <% end %>
+        <%= link_to showcases_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🏆</span> Showcases
+        <% end %>
+        <%= link_to nightshift_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🌑</span> Nightshift
+        <% end %>
+        <%= link_to saved_links_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🔗</span> Saved Links
+        <% end %>
+        <%= link_to marketing_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">📢</span> Marketing
+        <% end %>
+
+        <div class="border-t border-border my-2"></div>
+
+        <%= link_to settings_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">⚙️</span> Settings
+        <% end %>
+      </nav>
+    </div>
+  </div>
+</div>

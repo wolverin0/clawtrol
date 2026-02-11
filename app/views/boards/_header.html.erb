@@ -20,6 +20,8 @@
 
     <%# Right section: Quick nav + Controls %>
     <div class="flex items-center gap-x-1 md:gap-x-2 flex-shrink-0">
+      <%# Mobile hamburger menu %>
+      <%= render "shared/mobile_nav" %>
       <%# Quick Nav Icons - Dashboard, Analytics, Personas, Roster %>
       <%= link_to dashboard_path,
           class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
@@ -55,6 +57,16 @@
           class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
           title: "Showcase" do %>
         🏆
+      <% end %>
+      <%= link_to nightshift_path,
+          class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+          title: "Nightshift" do %>
+        🌑
+      <% end %>
+      <%= link_to saved_links_path,
+          class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+          title: "Saved Links" do %>
+        🔗
       <% end %>
 
       <%# Search %>
