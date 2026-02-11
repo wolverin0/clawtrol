@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_11_145117) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_11_150237) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -156,7 +156,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_145117) do
     t.string "ip_address"
     t.datetime "updated_at", null: false
     t.string "user_agent"
-    t.integer "user_id", null: false
+    t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
@@ -428,7 +428,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_145117) do
     t.text "suggested_followup"
     t.string "tags", default: [], array: true
     t.datetime "updated_at", null: false
-    t.integer "user_id"
+    t.bigint "user_id", null: false
     t.string "validation_command"
     t.text "validation_output"
     t.string "validation_status"
