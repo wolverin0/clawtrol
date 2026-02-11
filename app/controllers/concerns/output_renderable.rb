@@ -4,6 +4,7 @@
 # Used by PreviewsController and ShowcasesController
 module OutputRenderable
   extend ActiveSupport::Concern
+  include MarkdownSanitizationHelper
 
   included do
     helper_method :render_markdown if respond_to?(:helper_method)
@@ -12,33 +13,56 @@ module OutputRenderable
   private
 
   # Security: Validate and resolve path to prevent directory traversal
-  def resolve_safe_path(path)
+  # SECURITY FIX #495: Only allow relative paths within explicitly allowed directories
+  # Rejects: absolute paths, ~/paths, dotfiles/dotdirs, path traversal, null bytes
+  def resolve_safe_path(path, allowed_dirs: nil)
     path = path.to_s.strip
     return nil if path.blank?
 
-    # Workspace base directory
-    workspace = File.expand_path("~/.openclaw/workspace")
+    # SECURITY: Reject paths with null bytes (could bypass checks in some contexts)
+    return nil if path.include?("\x00")
 
-    # Resolve relative or absolute paths
-    full_path = if path.start_with?('/')
-      path
-    elsif path.start_with?('~/')
-      File.expand_path(path)
-    else
-      File.join(workspace, path)
+    # SECURITY: Reject absolute paths and ~/ paths entirely
+    return nil if path.start_with?('/')
+    return nil if path.start_with?('~')
+
+    # SECURITY: Block dotfiles/dotdirs - any path component starting with '.'
+    # This covers .openclaw, .ssh, .gnupg, .env, .config, etc.
+    path_components = path.split('/')
+    return nil if path_components.any? { |component| component.start_with?('.') && component != '.' }
+
+    # Define allowed base directories (project and storage only)
+    project_root = File.expand_path("~/clawdeck")
+    storage_root = File.expand_path("~/clawdeck/storage")
+
+    # Allow caller to override allowed_dirs (for board-specific project paths)
+    allowed_dirs ||= [project_root, storage_root]
+    allowed_dirs = allowed_dirs.map { |d| File.expand_path(d) }
+
+    # Try to resolve against each allowed directory
+    full_path = nil
+    allowed_dirs.each do |base_dir|
+      candidate = File.expand_path(File.join(base_dir, path))
+
+      # SECURITY: Ensure resolved path is still within the allowed directory
+      # This prevents ../ traversal attacks
+      if candidate.start_with?(base_dir + '/') || candidate == base_dir
+        # Check if file exists in this location
+        if File.exist?(candidate)
+          full_path = candidate
+          break
+        elsif full_path.nil?
+          # Keep first candidate as fallback for error messages
+          full_path = candidate
+        end
+      end
     end
 
-    # Normalize and expand to prevent traversal
-    full_path = File.expand_path(full_path)
+    return nil unless full_path
 
-    # Security: Only allow paths under home directory
-    home = File.expand_path("~")
-    return nil unless full_path.start_with?(home)
-
-    # Additional check: block sensitive paths
-    sensitive_dirs = %w[.ssh .gnupg .config/secrets]
-    sensitive_dirs.each do |dir|
-      return nil if full_path.start_with?(File.join(home, dir))
+    # Final safety check: ensure path is within one of the allowed directories
+    unless allowed_dirs.any? { |dir| full_path.start_with?(dir + '/') || full_path == dir }
+      return nil
     end
 
     full_path
@@ -57,26 +81,10 @@ module OutputRenderable
     nil
   end
 
-  # Render markdown content to HTML
+  # Render markdown content to sanitized HTML (XSS-safe)
+  # Uses MarkdownSanitizationHelper for secure rendering
   def render_markdown(content)
-    return "" if content.blank?
-
-    renderer = Redcarpet::Render::HTML.new(
-      hard_wrap: true,
-      link_attributes: { target: "_blank", rel: "noopener noreferrer" }
-    )
-
-    markdown = Redcarpet::Markdown.new(renderer,
-      autolink: true,
-      tables: true,
-      fenced_code_blocks: true,
-      strikethrough: true,
-      superscript: true,
-      highlight: true,
-      no_intra_emphasis: true
-    )
-
-    markdown.render(content).html_safe
+    safe_markdown(content)
   end
 
   # Extract ## Agent Output section from task description
