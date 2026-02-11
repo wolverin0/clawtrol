@@ -384,19 +384,28 @@ module Task::AgentIntegration
     return unless board.can_auto_claim?
     return unless board.task_matches_auto_claim?(self)
 
-    now = Time.current
+    # Lock the board row to prevent race conditions when two tasks are
+    # created simultaneously — both could pass can_auto_claim? before
+    # either calls record_auto_claim!.
+    board.with_lock do
+      # Re-check inside the lock since another transaction may have
+      # claimed between our optimistic check above and acquiring the lock.
+      return unless board.reload.can_auto_claim?
 
-    old_status = self.status
+      now = Time.current
 
-    update!(
-      assigned_to_agent: true,
-      assigned_at: now,
-      agent_claimed_at: nil,
-      status: :up_next
-    )
+      old_status = self.status
 
-    # Record the auto-queue time on the board (rate limiting)
-    board.record_auto_claim!
+      update!(
+        assigned_to_agent: true,
+        assigned_at: now,
+        agent_claimed_at: nil,
+        status: :up_next
+      )
+
+      # Record the auto-queue time on the board (rate limiting)
+      board.record_auto_claim!
+    end
 
     # Record activity
     TaskActivity.create!(
