@@ -16,6 +16,35 @@
 
   <!-- Profile Tab -->
   <div data-tabs-target="panel" data-tab="profile" class="space-y-6">
+    <%# Theme Selector %>
+    <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+      <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">🎨 Theme</h3>
+      <%= form_with model: current_user, url: settings_path, method: :patch, class: "flex gap-3" do |f| %>
+        <label class="cursor-pointer flex-1">
+          <input type="radio" name="user[theme]" value="default" 
+                 <%= 'checked' if current_user.theme == 'default' %>
+                 class="sr-only peer"
+                 onchange="this.form.requestSubmit()">
+          <div class="p-4 rounded-lg border-2 border-border peer-checked:border-accent bg-bg-elevated text-center transition-colors">
+            <div class="text-2xl mb-2">🌑</div>
+            <div class="text-sm font-medium text-content">Default Dark</div>
+            <div class="text-xs text-content-muted">Current theme</div>
+          </div>
+        </label>
+        <label class="cursor-pointer flex-1">
+          <input type="radio" name="user[theme]" value="vaporwave"
+                 <%= 'checked' if current_user.theme == 'vaporwave' %>
+                 class="sr-only peer"
+                 onchange="this.form.requestSubmit()">
+          <div class="p-4 rounded-lg border-2 border-border peer-checked:border-[#FF71CE] bg-bg-elevated text-center transition-colors">
+            <div class="text-2xl mb-2">🌊</div>
+            <div class="text-sm font-medium text-content">Vaporwave</div>
+            <div class="text-xs text-content-muted">Synthwave aesthetic</div>
+          </div>
+        </label>
+      <% end %>
+    </div>
+
     <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
       <h3 class="text-xs font-medium text-content-muted uppercase tracking-wider font-display">Profile</h3>
 

@@ -22,16 +22,31 @@ class AgentActivityChannel < ApplicationCable::Channel
   end
 
   # Class method to broadcast agent activity update
-  # Call this when agent_complete is called or when activity is received
+  # Called by TranscriptWatcher when new messages are available
+  #
+  # Data format:
+  #   {
+  #     type: "activity",
+  #     task_id: Integer,
+  #     messages: Array<Hash>,    # New parsed messages (same format as agent_log endpoint)
+  #     total_lines: Integer,     # Total lines read so far
+  #     timestamp: Integer        # Unix timestamp
+  #   }
+  #
+  # Clients can render messages directly without polling when messages are present.
+  # Falls back to poll() if messages is empty (legacy behavior).
   def self.broadcast_activity(task_id, data = {})
-    ActionCable.server.broadcast(
-      "agent_activity_task_#{task_id}",
-      {
-        type: "activity",
-        task_id: task_id,
-        timestamp: Time.current.to_i
-      }.merge(data)
-    )
+    payload = {
+      type: "activity",
+      task_id: task_id,
+      timestamp: Time.current.to_i
+    }.merge(data)
+
+    ActionCable.server.broadcast("agent_activity_task_#{task_id}", payload)
+
+    if data[:messages].present?
+      Rails.logger.debug "[AgentActivityChannel] Broadcast #{data[:messages].size} messages to task #{task_id}"
+    end
   end
 
   # Broadcast when task status changes (agent started, completed, etc)

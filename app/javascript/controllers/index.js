@@ -29,6 +29,7 @@ import OpenclawMemoryIndicatorController from "controllers/openclaw_memory_indic
 import EvidenceTabsController from "controllers/evidence_tabs_controller"
 import CollapsibleController from "controllers/collapsible_controller"
 import MarketingTreeController from "controllers/marketing_tree_controller"
+import ShowcaseTabsController from "controllers/showcase_tabs_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -54,3 +55,4 @@ application.register("openclaw-memory-indicator", OpenclawMemoryIndicatorControl
 application.register("evidence-tabs", EvidenceTabsController)
 application.register("collapsible", CollapsibleController)
 application.register("marketing-tree", MarketingTreeController)
+application.register("showcase-tabs", ShowcaseTabsController)

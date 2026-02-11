@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { subscribeToAgentActivity } from "channels"
 
 /**
  * Agent Terminal Panel - Codec-style bottom panel for monitoring agent activity
@@ -31,7 +32,7 @@ export default class extends Controller {
   }
 
   connect() {
-    this.pinnedTasks = new Map() // taskId -> { name, lastLine, content, polling }
+    this.pinnedTasks = new Map() // taskId -> { name, lastLine, content, polling, subscription, wsConnected }
     this.activeTabId = null
     this.isCollapsed = false
     this.panelHeight = this.defaultHeightValue
@@ -43,8 +44,9 @@ export default class extends Controller {
     this.setupPinEventListener()
     this.render()
     
-    // Start polling for all pinned tasks
+    // Start WebSocket + polling for all pinned tasks
     this.pinnedTasks.forEach((_, taskId) => {
+      this.connectWebSocket(taskId)
       this.startPolling(taskId)
     })
   }
@@ -54,6 +56,7 @@ export default class extends Controller {
     this.removePinEventListener()
     this.pinnedTasks.forEach((_, taskId) => {
       this.stopPolling(taskId)
+      this.disconnectWebSocket(taskId)
     })
   }
 
@@ -91,13 +94,18 @@ export default class extends Controller {
       boardIcon: boardIcon,
       lastLine: 0,
       content: [],
-      polling: false
+      polling: false,
+      subscription: null,
+      wsConnected: false
     })
     
     this.activeTabId = taskId
     this.isCollapsed = false
     this.saveToStorage()
     this.render()
+    
+    // Connect WebSocket first (polling starts as fallback)
+    this.connectWebSocket(taskId)
     this.startPolling(taskId)
   }
 
@@ -115,6 +123,7 @@ export default class extends Controller {
     }
     
     this.stopPolling(taskId)
+    this.disconnectWebSocket(taskId)
     this.pinnedTasks.delete(taskId)
     
     if (this.activeTabId === taskId) {
@@ -155,13 +164,106 @@ export default class extends Controller {
   }
 
   // ========================================
-  // POLLING
+  // WEBSOCKET
+  // ========================================
+
+  connectWebSocket(taskId) {
+    taskId = parseInt(taskId, 10)
+    const task = this.pinnedTasks.get(taskId)
+    if (!task || task.subscription) return
+
+    try {
+      task.subscription = subscribeToAgentActivity(taskId, {
+        onConnected: () => {
+          console.log(`[agent-terminal] WebSocket connected for task ${taskId}`)
+          task.wsConnected = true
+          // Stop polling when WebSocket is active
+          this.stopPolling(taskId)
+        },
+        onDisconnected: () => {
+          console.log(`[agent-terminal] WebSocket disconnected for task ${taskId}`)
+          task.wsConnected = false
+          // Resume polling on disconnect if task is active
+          if (['in_progress', 'up_next'].includes(task.status)) {
+            this.startPolling(taskId)
+          }
+        },
+        onReceived: (data) => {
+          this.handleWebSocketMessage(taskId, data)
+        }
+      })
+    } catch (error) {
+      console.warn(`[agent-terminal] WebSocket connection failed for task ${taskId}:`, error)
+    }
+  }
+
+  disconnectWebSocket(taskId) {
+    taskId = parseInt(taskId, 10)
+    const task = this.pinnedTasks.get(taskId)
+    if (task?.subscription) {
+      task.subscription.unsubscribe()
+      task.subscription = null
+      task.wsConnected = false
+    }
+  }
+
+  handleWebSocketMessage(taskId, data) {
+    taskId = parseInt(taskId, 10)
+    const task = this.pinnedTasks.get(taskId)
+    if (!task) return
+
+    if (data.type === "activity" && data.messages && data.messages.length > 0) {
+      // Stream mode: render messages directly
+      console.log(`[agent-terminal] Streaming ${data.messages.length} messages for task ${taskId}`)
+      
+      task.content = task.content.concat(data.messages)
+      
+      // Keep only last 200 messages to prevent memory bloat
+      if (task.content.length > 200) {
+        task.content = task.content.slice(-200)
+      }
+      
+      if (data.total_lines) {
+        task.lastLine = data.total_lines
+      }
+      
+      if (this.activeTabId === taskId) {
+        this.renderContent()
+        this.scrollToBottom()
+      }
+      
+      this.saveToStorage()
+    } else if (data.type === "activity") {
+      // Legacy: activity without messages, trigger poll
+      this.poll(taskId)
+    } else if (data.type === "status") {
+      // Status update
+      if (data.status) {
+        task.status = data.status
+        this.renderTabs()
+        
+        // Stop polling if task is done
+        if (!['in_progress', 'up_next'].includes(data.status)) {
+          task.polling = false
+        }
+      }
+    }
+  }
+
+  // ========================================
+  // POLLING (fallback when WebSocket disconnected)
   // ========================================
 
   startPolling(taskId) {
     taskId = parseInt(taskId, 10) // Ensure integer key
     const task = this.pinnedTasks.get(taskId)
     if (!task || task.polling) return
+    
+    // Don't start polling if WebSocket is connected
+    if (task.wsConnected) {
+      console.log(`[agent-terminal] Skipping poll for task ${taskId} - WebSocket active`)
+      return
+    }
     
     task.polling = true
     this.poll(taskId)
@@ -314,7 +416,9 @@ export default class extends Controller {
               boardIcon: parsed.boardIcons?.[id] || parsed.boardIcons?.[taskId] || '📋',
               lastLine: parsed.lastLines?.[taskId] || 0,
               content: parsed.contentCache?.[taskId] || [],
-              polling: false
+              polling: false,
+              subscription: null,
+              wsConnected: false
             })
           })
         }

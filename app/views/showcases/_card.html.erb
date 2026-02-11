@@ -1,0 +1,111 @@
+<div id="showcase-card-<%= task.id %>"
+     class="group relative bg-bg-surface border <%= task.showcase_winner? ? 'border-yellow-500 ring-2 ring-yellow-500/30' : 'border-border' %> rounded-xl overflow-hidden hover:border-accent transition-all hover:shadow-xl hover:shadow-accent/10 hover:-translate-y-1"
+     data-showcase-filter-target="card"
+     data-product="<%= product&.downcase || 'other' %>"
+     data-winner="<%= task.showcase_winner? %>">
+  
+  <%# Winner Toggle Button (top right, overlaps the card) %>
+  <%= button_to toggle_winner_showcase_path(task), 
+      method: :patch,
+      class: "absolute top-3 right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all #{task.showcase_winner? ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/50' : 'bg-bg-surface/90 text-content-muted hover:bg-yellow-500/20 hover:text-yellow-500 border border-border'}",
+      title: task.showcase_winner? ? "Remove winner" : "Pick as winner",
+      data: { turbo_method: :patch } do %>
+    <span class="text-lg"><%= task.showcase_winner? ? '⭐' : '☆' %></span>
+  <% end %>
+  
+  <%# Winner ribbon %>
+  <% if task.showcase_winner? %>
+    <div class="absolute top-0 left-0 bg-yellow-500 text-black text-xs font-bold px-3 py-1 rounded-br-lg z-10">
+      WINNER
+    </div>
+  <% end %>
+
+  <%= link_to showcase_path(task), class: "block" do %>
+    <%# Large Preview Area %>
+    <div class="h-56 bg-bg-elevated flex items-center justify-center relative overflow-hidden">
+      <% if task.output_files.present? %>
+        <% html_file = task.output_files.find { |f| f.to_s.end_with?('.html', '.htm') } %>
+        <% image_file = task.output_files.find { |f| f.to_s.match?(/\.(png|jpe?g|gif|webp|svg)$/i) } %>
+        
+        <% if html_file %>
+          <%# Live iframe thumbnail %>
+          <div class="w-full h-full relative">
+            <div class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-accent/5 to-accent/20">
+              <span class="text-7xl opacity-60 group-hover:opacity-80 group-hover:scale-110 transition-all">🌐</span>
+            </div>
+            <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-bg-elevated to-transparent"></div>
+          </div>
+          <span class="absolute top-3 left-3 text-xs text-white bg-accent/80 px-2 py-1 rounded-full font-medium">
+            HTML Preview
+          </span>
+        <% elsif image_file %>
+          <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500/5 to-pink-500/10">
+            <span class="text-7xl opacity-60 group-hover:opacity-80 group-hover:scale-110 transition-all">🖼️</span>
+          </div>
+          <span class="absolute top-3 left-3 text-xs text-white bg-purple-500/80 px-2 py-1 rounded-full font-medium">
+            Image
+          </span>
+        <% else %>
+          <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500/5 to-cyan-500/10">
+            <span class="text-7xl opacity-60 group-hover:opacity-80 transition-all">📄</span>
+          </div>
+          <span class="absolute top-3 left-3 text-xs text-content-muted bg-bg-surface/80 px-2 py-1 rounded-full">
+            Files
+          </span>
+        <% end %>
+      <% elsif task.description.to_s.include?("## Agent Output") %>
+        <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-500/5 to-emerald-500/10">
+          <span class="text-7xl opacity-60 group-hover:opacity-80 transition-all">📝</span>
+        </div>
+        <span class="absolute top-3 left-3 text-xs text-content-muted bg-bg-surface/80 px-2 py-1 rounded-full">
+          Agent Output
+        </span>
+      <% else %>
+        <div class="w-full h-full flex items-center justify-center">
+          <span class="text-6xl opacity-40">📋</span>
+        </div>
+      <% end %>
+
+      <%# Product Badge (bottom-left) %>
+      <% if product %>
+        <span class="absolute bottom-3 left-3 px-3 py-1 text-xs font-semibold rounded-full bg-bg-surface/90 text-accent border border-accent/30">
+          <%= product %>
+        </span>
+      <% end %>
+    </div>
+    
+    <%# Task Info %>
+    <div class="p-5">
+      <h3 class="font-semibold text-content group-hover:text-accent transition-colors line-clamp-2 mb-3 text-lg">
+        <%= task.name %>
+      </h3>
+      
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <%# Status Badge %>
+          <span class="px-2.5 py-1 rounded-full text-xs font-medium <%= task.in_review? ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400' %>">
+            <%= task.status.humanize %>
+          </span>
+          
+          <%# Board %>
+          <span class="text-xs text-content-muted/70">
+            <%= task.board&.name&.truncate(12) %>
+          </span>
+        </div>
+        
+        <%# Date %>
+        <time datetime="<%= task.updated_at.iso8601 %>" class="text-xs text-content-muted/60">
+          <%= task.updated_at.strftime("%b %d") %>
+        </time>
+      </div>
+      
+      <%# File count %>
+      <% if task.output_files.present? && task.output_files.size > 0 %>
+        <div class="mt-3 pt-3 border-t border-border/50 flex items-center justify-between text-xs text-content-muted">
+          <span>📎 <%= task.output_files.size %> file<%= task.output_files.size == 1 ? '' : 's' %></span>
+          <span class="text-accent group-hover:translate-x-1 transition-transform">View →</span>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
