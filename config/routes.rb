@@ -49,6 +49,10 @@ Rails.application.routes.draw do
         end
       end
 
+      # Nightshift API
+      get "nightshift/tasks", to: "nightshift#tasks"
+      post "nightshift/launch", to: "nightshift#launch"
+
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
 
