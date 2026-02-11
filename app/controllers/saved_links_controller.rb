@@ -12,6 +12,12 @@ class SavedLinksController < ApplicationController
     end
   end
 
+  def process_all
+    pending_links = current_user.saved_links.pending
+    pending_links.each { |link| ProcessSavedLinkJob.perform_later(link.id) }
+    redirect_to saved_links_path, notice: "Processing started for #{pending_links.count} links"
+  end
+
   def destroy
     @saved_link = current_user.saved_links.find(params[:id])
     @saved_link.destroy

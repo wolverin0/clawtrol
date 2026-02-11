@@ -117,7 +117,9 @@ Rails.application.routes.draw do
   end
 
   # Link Inbox
-  resources :saved_links, only: [:index, :create, :destroy]
+  resources :saved_links, only: [:index, :create, :destroy] do
+    post :process_all, on: :collection
+  end
 
   # Dashboard overview page
   get "dashboard", to: "dashboard#show"
