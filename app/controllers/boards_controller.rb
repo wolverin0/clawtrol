@@ -5,7 +5,7 @@ class BoardsController < ApplicationController
 
   def index
     # Redirect to the first board
-    @board = current_user.boards.first
+    @board = current_user.boards.order(position: :asc).first
     if @board
       redirect_to board_path(@board)
     else
@@ -51,7 +51,7 @@ class BoardsController < ApplicationController
     end
 
     # Get all boards for the sidebar
-    @boards = current_user.boards
+    @boards = current_user.boards.order(position: :asc)
 
     # Get API token for agent status display
     @api_token = current_user.api_token
@@ -70,7 +70,7 @@ class BoardsController < ApplicationController
 
   def archived
     @board_page = true
-    @boards = current_user.boards
+    @boards = current_user.boards.order(position: :asc)
     # Set empty columns for header partial (it expects @columns to exist)
     @columns = { inbox: [], in_progress: [] }
     tasks = @board.tasks.archived.order(archived_at: :desc, completed_at: :desc)

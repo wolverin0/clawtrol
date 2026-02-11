@@ -7,9 +7,6 @@ class Board < ApplicationRecord
 
   before_create :set_position
 
-  # Default scope orders by position
-  default_scope { order(position: :asc) }
-
   # Available board colors (Tailwind-compatible)
   COLORS = %w[gray red orange amber yellow lime green emerald teal cyan sky blue indigo violet purple fuchsia pink rose].freeze
 
@@ -126,7 +123,7 @@ class Board < ApplicationRecord
   def set_position
     return if position.present? && position > 0
 
-    max_position = user.boards.unscoped.where(user_id: user_id).maximum(:position) || 0
+    max_position = user.boards.where(user_id: user_id).maximum(:position) || 0
     self.position = max_position + 1
   end
 end

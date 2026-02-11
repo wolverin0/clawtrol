@@ -47,7 +47,7 @@ class AnalyticsController < ApplicationController
     @avg_completion_hours = avg_seconds ? (avg_seconds / 3600.0).round(1) : 0
 
     # Board breakdown
-    @board_stats = current_user.boards
+    @board_stats = current_user.boards.order(position: :asc)
       .left_joins(:tasks)
       .where("tasks.created_at >= ? OR tasks.id IS NULL", @start_date)
       .group("boards.id", "boards.name", "boards.icon")

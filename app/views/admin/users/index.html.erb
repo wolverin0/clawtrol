@@ -47,8 +47,13 @@
     </div>
   </div>
 
+  <!-- Pagination -->
+  <nav class="flex items-center justify-center gap-1 py-2">
+    <%== @pagy.series_nav %>
+  </nav>
+
   <!-- Summary footer -->
   <div class="text-sm text-stone-600 dark:text-purple-100 text-center">
-    Total: <%= pluralize(@users.count, 'user') %>
+    Total: <%= pluralize(@pagy.count, 'user') %>
   </div>
 </section>
