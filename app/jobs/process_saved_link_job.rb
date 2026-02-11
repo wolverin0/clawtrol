@@ -23,12 +23,12 @@ class ProcessSavedLinkJob < ApplicationJob
     content = fetch_content(link.url)
     link.update!(raw_content: content)
 
-    # Call Gemini
+    # Call Gemini via CLI (uses OAuth, no API key needed)
     prompt_text = "#{SYSTEM_PROMPT}\n\n---\nContent from: #{link.url}\nTitle: #{link.title}\n\n#{content}"
-    summary = call_gemini(prompt_text)
+    summary = call_gemini_cli(prompt_text)
 
     link.update!(summary: summary, status: :done, processed_at: Time.current)
-  rescue => e
+  rescue StandardError => e
     link&.update(status: :failed, error_message: "#{e.class}: #{e.message}"[0..500])
     Rails.logger.error("[ProcessSavedLinkJob] Failed for link #{saved_link_id}: #{e.message}")
   end
@@ -54,31 +54,26 @@ class ProcessSavedLinkJob < ApplicationJob
     end
 
     doc = Nokogiri::HTML(response.body)
-    # Remove scripts, styles, nav, footer
     doc.css("script, style, nav, footer, header, aside, .sidebar, .menu, .nav").remove
 
-    # Try article/main first, fall back to body
     node = doc.at_css("article") || doc.at_css("main") || doc.at_css("body")
     text = node&.text&.gsub(/\s+/, " ")&.strip || ""
     text[0...15_000]
   end
 
-  def call_gemini(prompt_text)
-    api_key = ENV.fetch("GEMINI_API_KEY")
-    uri = URI("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=#{api_key}")
+  def call_gemini_cli(prompt_text)
+    # Write prompt to temp file to avoid shell escaping issues
+    tmpfile = Rails.root.join("tmp", "gemini_prompt_#{SecureRandom.hex(8)}.txt")
+    File.write(tmpfile, prompt_text)
 
-    body = { contents: [ { parts: [ { text: prompt_text } ] } ] }.to_json
-
-    response = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 10, read_timeout: 60) do |http|
-      request = Net::HTTP::Post.new(uri)
-      request["Content-Type"] = "application/json"
-      request.body = body
-      http.request(request)
+    begin
+      # Use gemini CLI with OAuth (model: gemini-3-flash)
+      output = `cat #{tmpfile.to_s.shellescape} | gemini -m gemini-2.5-flash 2>/dev/null`
+      raise "Gemini CLI failed (exit #{$?.exitstatus}): #{output[0..300]}" unless $?.success?
+      raise "Empty response from Gemini CLI" if output.strip.empty?
+      output.strip
+    ensure
+      File.delete(tmpfile) if File.exist?(tmpfile)
     end
-
-    raise "Gemini API error #{response.code}: #{response.body[0..300]}" unless response.is_a?(Net::HTTPSuccess)
-
-    data = JSON.parse(response.body)
-    data.dig("candidates", 0, "content", "parts", 0, "text") || raise("No text in Gemini response")
   end
 end
