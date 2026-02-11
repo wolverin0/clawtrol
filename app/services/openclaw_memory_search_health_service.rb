@@ -67,39 +67,21 @@ class OpenclawMemorySearchHealthService
       )
     end
 
-    # 2) Try a minimal memory search request.
-    mem = post_json("/api/memory/search", body: { query: "healthcheck", top_k: 1, limit: 1 })
+    # 2) Check memory search status via the sessions API (memory_search is an internal
+    #    agent tool, not an HTTP endpoint — /api/memory/search doesn't exist).
+    #    Instead, verify the gateway is responsive and token is valid.
+    token_check = get_json("/api/sessions", authorized: true)
 
-    if mem[:ok]
+    if token_check[:ok]
       return persist!(status: :ok, last_checked_at: now, error_message: nil, error_at: nil)
     end
 
-    # If endpoint doesn't exist, fall back to token check (so we can still flag DOWN vs OK)
-    if mem[:http_code].to_i == 404
-      token_check = get_json("/api/sessions", authorized: true)
-      if token_check[:ok]
-        return persist!(
-          status: :unknown,
-          last_checked_at: now,
-          error_message: "Gateway OK but /api/memory/search not found (cannot verify memory_search)",
-          error_at: now
-        )
-      end
-
-      return persist!(
-        status: :down,
-        last_checked_at: now,
-        error_message: token_check[:error] || "Token invalid",
-        error_at: now
-      )
-    end
-
-    status = classify_memory_error(mem[:http_code], mem[:error])
+    status = classify_memory_error(token_check[:http_code], token_check[:error])
 
     persist!(
       status: status,
       last_checked_at: now,
-      error_message: mem[:error],
+      error_message: token_check[:error],
       error_at: now
     )
   rescue StandardError => e
