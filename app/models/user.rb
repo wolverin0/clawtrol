@@ -1,6 +1,8 @@
 class User < ApplicationRecord
   has_secure_password validations: false
 
+  THEMES = %w[default vaporwave].freeze
+
   has_many :sessions, dependent: :destroy
   has_many :boards, dependent: :destroy
   has_many :tasks, dependent: :destroy
@@ -32,6 +34,7 @@ class User < ApplicationRecord
   validate :acceptable_avatar, if: :avatar_changed?
   validates :password, length: { minimum: 8 }, if: :password_required?
   validates :password, confirmation: true, if: :password_required?
+  validates :theme, inclusion: { in: THEMES }
 
   after_create_commit :create_onboarding_board
 

@@ -1,0 +1,97 @@
+<% content_for :title, "Outputs - ClawTrol" %>
+
+<div class="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+  <%# Header %>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div>
+      <h1 class="text-2xl font-display font-bold text-content flex items-center gap-2">
+        <span>👁️</span>
+        <span>Agent Outputs</span>
+      </h1>
+      <p class="text-sm text-content-muted mt-1">
+        All agent-generated outputs in one place
+      </p>
+    </div>
+    
+    <div class="flex items-center gap-2 text-sm text-content-muted">
+      <span class="px-2 py-1 bg-bg-elevated rounded-md">
+        <%= @tasks.size %> tasks with output
+      </span>
+    </div>
+  </div>
+
+  <% if @tasks.empty? %>
+    <%# Empty State %>
+    <div class="bg-bg-surface border border-border rounded-lg p-12 text-center">
+      <span class="text-5xl mb-4 block">📭</span>
+      <h2 class="text-lg font-semibold text-content mb-2">No Outputs Yet</h2>
+      <p class="text-content-muted max-w-md mx-auto">
+        Tasks with HTML files, images, or agent output will appear here once they're in review or done.
+      </p>
+    </div>
+  <% else %>
+    <%# Gallery Grid %>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <% @tasks.each do |task| %>
+        <%= link_to output_path(task), class: "group block bg-bg-surface border border-border rounded-lg overflow-hidden hover:border-accent transition-all hover:shadow-lg hover:shadow-accent/10" do %>
+          <%# Output Thumbnail Area %>
+          <div class="h-40 bg-bg-elevated flex items-center justify-center relative overflow-hidden">
+            <% if task.output_files.present? %>
+              <% html_file = task.output_files.find { |f| f.to_s.end_with?('.html', '.htm') } %>
+              <% image_file = task.output_files.find { |f| f.to_s.match?(/\.(png|jpe?g|gif|webp|svg)$/i) } %>
+              
+              <% if html_file %>
+                <div class="text-6xl opacity-50 group-hover:opacity-75 transition-opacity">🌐</div>
+                <span class="absolute bottom-2 right-2 text-xs text-content-muted bg-bg-surface/80 px-2 py-1 rounded">HTML</span>
+              <% elsif image_file %>
+                <div class="text-6xl opacity-50 group-hover:opacity-75 transition-opacity">🖼️</div>
+                <span class="absolute bottom-2 right-2 text-xs text-content-muted bg-bg-surface/80 px-2 py-1 rounded">Image</span>
+              <% else %>
+                <div class="text-6xl opacity-50 group-hover:opacity-75 transition-opacity">📄</div>
+                <span class="absolute bottom-2 right-2 text-xs text-content-muted bg-bg-surface/80 px-2 py-1 rounded">Files</span>
+              <% end %>
+            <% elsif task.description.to_s.include?("## Agent Output") %>
+              <div class="text-6xl opacity-50 group-hover:opacity-75 transition-opacity">📝</div>
+              <span class="absolute bottom-2 right-2 text-xs text-content-muted bg-bg-surface/80 px-2 py-1 rounded">Agent Output</span>
+            <% else %>
+              <div class="text-6xl opacity-50 group-hover:opacity-75 transition-opacity">📋</div>
+            <% end %>
+          </div>
+          
+          <%# Task Info %>
+          <div class="p-4">
+            <h3 class="font-semibold text-content group-hover:text-accent transition-colors line-clamp-2 mb-2">
+              <%= task.name %>
+            </h3>
+            
+            <div class="flex items-center justify-between text-xs text-content-muted">
+              <div class="flex items-center gap-2">
+                <%# Status Badge %>
+                <span class="px-2 py-0.5 rounded-full <%= task.in_review? ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400' %>">
+                  <%= task.status.humanize %>
+                </span>
+                
+                <%# Board %>
+                <span class="text-content-muted/70">
+                  <%= task.board&.name&.truncate(15) %>
+                </span>
+              </div>
+              
+              <%# Date %>
+              <time datetime="<%= task.updated_at.iso8601 %>" class="text-content-muted/60">
+                <%= time_ago_in_words(task.updated_at) %> ago
+              </time>
+            </div>
+            
+            <%# File count if applicable %>
+            <% if task.output_files.present? && task.output_files.size > 0 %>
+              <div class="mt-2 text-xs text-content-muted/70">
+                📎 <%= task.output_files.size %> file<%= task.output_files.size == 1 ? '' : 's' %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+</div>

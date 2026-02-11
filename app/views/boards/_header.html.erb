@@ -1,11 +1,15 @@
 <%# Board Header - Redesigned with tabs + expanded filters per Snake's specs %>
-<header class="flex-shrink-0 bg-bg-base border-b border-border">
+<header class="flex-shrink-0 bg-bg-base border-b border-border <%= 'vaporwave-header' if current_user&.theme == 'vaporwave' %>">
   <%# Row 1: Logo + Board Tabs (responsive wrap) + Controls %>
   <div class="flex items-center justify-between px-4 md:px-6 py-2.5 gap-4">
     <%# Left section: Logo %>
     <div class="flex items-center gap-3 min-w-0">
       <%# Logo %>
-      <span class="text-base md:text-lg font-semibold text-content font-display whitespace-nowrap flex-shrink-0">🦞 ClawTrol</span>
+      <% if current_user&.theme == 'vaporwave' %>
+        <span class="text-base md:text-lg font-semibold text-content whitespace-nowrap flex-shrink-0 vaporwave-glitch" data-text="CLAWTROL">🦞 CLAWTROL</span>
+      <% else %>
+        <span class="text-base md:text-lg font-semibold text-content font-display whitespace-nowrap flex-shrink-0">🦞 ClawTrol</span>
+      <% end %>
     </div>
 
     <%# Right section: Quick nav + Controls %>
@@ -36,6 +40,16 @@
           title: "Morning Brief" do %>
         🌙
       <% end %>
+      <%= link_to outputs_path,
+          class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+          title: "Preview Gallery" do %>
+        👁️
+      <% end %>
+      <%= link_to showcases_path,
+          class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+          title: "Showcase" do %>
+        🏆
+      <% end %>
 
       <%# Search %>
       <div data-controller="search" data-search-url-value="<%= search_path %>" class="relative">
@@ -65,8 +79,8 @@
       <%# Board header status cluster: Realtime, Queue, OpenClaw %>
       <div class="hidden md:flex items-center gap-2">
         <span data-kanban-refresh-target="realtimeBadge"
-              class="px-2 py-1 rounded-md text-xs font-semibold bg-bg-elevated text-content-muted">
-          Realtime: …
+              class="px-2 py-1 rounded-md text-xs font-semibold <%= current_user&.theme == 'vaporwave' ? 'vaporwave-live-badge' : 'bg-bg-elevated text-content-muted' %>">
+          <% if current_user&.theme == 'vaporwave' %>⚡ LIVE<% else %>Realtime: …<% end %>
         </span>
 
         <% queue_count = defined?(@queue_count) ? @queue_count.to_i : (@column_counts&.dig(:up_next) || 0) %>
@@ -243,8 +257,13 @@
       <% @boards.each do |board| %>
         <% active = board.id == @board.id %>
         <% task_count = board.tasks.where.not(status: :done).count %>
+        <% tab_class = if active
+          current_user&.theme == 'vaporwave' ? 'vaporwave-tab-active' : 'bg-accent text-content'
+        else
+          'bg-bg-elevated text-content-secondary hover:bg-bg-hover hover:text-content'
+        end %>
         <%= link_to board_path(board),
-            class: "inline-flex flex-shrink-0 items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap #{active ? 'bg-accent text-content' : 'bg-bg-elevated text-content-secondary hover:bg-bg-hover hover:text-content'}",
+            class: "inline-flex flex-shrink-0 items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap #{tab_class}",
             data: { turbo_frame: "_top" } do %>
           <span><%= board.icon %></span>
           <span class="max-w-[140px] truncate"><%= board.name %></span>

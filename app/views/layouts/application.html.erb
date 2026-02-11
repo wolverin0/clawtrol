@@ -27,8 +27,19 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
     <%= render "application/plausible_analytics" %>
+    <% if current_user&.theme == 'vaporwave' %>
+      <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <% end %>
   </head>
-  <body class="h-screen overflow-hidden bg-bg-base font-body" data-controller="turbo-progress keyboard-shortcuts sound">
+  <body class="h-screen overflow-hidden bg-bg-base font-body" data-controller="turbo-progress keyboard-shortcuts sound" data-theme="<%= current_user&.theme || 'default' %>">
+    <% if current_user&.theme == 'vaporwave' %>
+      <%# Vaporwave V2: Floating Color Blobs %>
+      <div class="vaporwave-blob vaporwave-blob-1"></div>
+      <div class="vaporwave-blob vaporwave-blob-2"></div>
+      <div class="vaporwave-blob vaporwave-blob-3"></div>
+      <%# CRT Scanlines and Grid are handled via CSS ::before/::after on body %>
+    <% end %>
     <% if @board_page %>
       <%# Board page - full screen, no wrapper %>
       <div class="h-screen flex flex-col bg-bg-base">

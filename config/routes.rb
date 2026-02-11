@@ -178,6 +178,21 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
+  # Output gallery for agent-generated content
+  resources :outputs, only: [:index, :show], controller: 'previews' do
+    member do
+      get :raw
+    end
+  end
+
+  # Showcase gallery for redesign mockups
+  resources :showcases, only: [:index, :show] do
+    member do
+      get :raw
+      patch :toggle_winner
+    end
+  end
+
   # Marketing docs file browser
   get "marketing", to: "marketing#index", as: :marketing
   get "marketing/playground", to: "marketing#playground", as: :marketing_playground

@@ -15,7 +15,8 @@
   }
 %>
 
-<div class="w-full md:w-72 lg:flex-1 lg:min-w-[240px] lg:max-w-[320px] flex-shrink-0 flex flex-col bg-bg-surface rounded-lg border border-border transition-colors column-<%= status.dasherize %>"
+<% vaporwave_theme = defined?(current_user) && current_user&.theme == 'vaporwave' %>
+<div class="w-full md:w-72 lg:flex-1 lg:min-w-[240px] lg:max-w-[320px] flex-shrink-0 flex flex-col bg-bg-surface <%= vaporwave_theme ? 'rounded-xl vaporwave-column' : 'rounded-lg border border-border' %> transition-colors column-<%= status.dasherize %>"
      data-controller="inline-add"
      data-inline-add-status-value="<%= status %>"
      data-inline-add-url-value="<%= board_tasks_path(@board) %>"
@@ -26,7 +27,7 @@
   <div class="flex items-center gap-2 px-3 py-3">
     <div class="w-2 h-2 rounded-full <%= column_colors[status] %>"></div>
     <h2 class="text-sm font-semibold text-content font-display"><%= column_labels[status] %></h2>
-    <span id="column-<%= status %>-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded"><%= total_count || tasks.count %></span>
+    <span id="column-<%= status %>-count" class="ml-auto text-xs px-1.5 py-0.5 rounded <%= vaporwave_theme ? 'vaporwave-count-badge' : 'text-content-secondary bg-bg-elevated' %>"><%= total_count || tasks.count %></span>
     <% if status == "done" && (total_count || tasks.count).to_i > 0 %>
       <button type="button"
               data-archive-done-btn

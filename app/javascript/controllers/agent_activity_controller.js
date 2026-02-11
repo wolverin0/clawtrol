@@ -408,13 +408,65 @@ export default class extends Controller {
           console.log("[AgentActivity] WebSocket disconnected, polling enabled")
         },
         onReceived: (data) => {
-          if (data.type === "activity" || data.type === "status") {
-            this.poll()
-          }
+          this.handleWebSocketMessage(data)
         }
       })
     } catch (error) {
       console.warn("[AgentActivity] WebSocket connection failed:", error)
+    }
+  }
+
+  // Handle incoming WebSocket messages
+  // If messages are present, render them directly (no polling needed)
+  // Falls back to poll() for legacy/status messages
+  handleWebSocketMessage(data) {
+    if (data.type === "activity" && data.messages && data.messages.length > 0) {
+      // Stream mode: render messages directly without polling
+      console.log(`[AgentActivity] Streaming ${data.messages.length} messages via WebSocket`)
+      
+      this.hideEmptyState()
+      this.hideLoadingState()
+      
+      // Add to all messages and render
+      data.messages.forEach(msg => {
+        this.allMessages.push(msg)
+        this.renderMessage(msg)
+      })
+      
+      // Update position tracker
+      if (data.total_lines) {
+        this.lastLine = data.total_lines
+      }
+      
+      this.scrollToBottom()
+      
+      // Update timeline
+      this.parseTimelineSteps()
+      
+      // Re-apply search if active
+      if (this.searchQueryValue && this.searchQueryValue.length >= 2) {
+        this.performSearch()
+      }
+    } else if (data.type === "activity") {
+      // Legacy: activity without messages, fall back to poll
+      this.poll()
+    } else if (data.type === "status") {
+      // Status update (task started, completed, etc.)
+      if (data.status) {
+        this.taskStatusValue = data.status
+        this.updateStatusBadge(data.status)
+      }
+      
+      // If session just linked, start watching for content
+      if (data.session_linked) {
+        this.poll()
+      }
+      
+      // Update polling state based on new status
+      if (!this.shouldPoll()) {
+        this.stopPolling()
+        this.parseTimelineSteps()  // Final timeline update
+      }
     }
   }
 
