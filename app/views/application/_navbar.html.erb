@@ -68,6 +68,10 @@
 
     <%# Right section: Controls %>
     <div class="flex items-center gap-2">
+      <%# Mobile hamburger menu %>
+      <% if authenticated? %>
+        <%= render "shared/mobile_nav" %>
+      <% end %>
       <%# Flash messages (compact) %>
       <% if notice.present? %>
         <div data-controller="flash" class="hidden md:block py-1 px-2.5 bg-status-success/20 text-status-success text-xs font-medium rounded-md">
