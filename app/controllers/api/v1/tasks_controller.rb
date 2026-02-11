@@ -423,7 +423,7 @@ module Api
         @task.status = :up_next
         @task.assigned_to_agent = true
         # Auto-detect board based on task name if not specified
-        @task.board_id ||= detect_board_for_task(@task.name, current_user)&.id || current_user.boards.first&.id
+        @task.board_id ||= detect_board_for_task(@task.name, current_user)&.id || current_user.boards.order(position: :asc).first&.id
         set_task_activity_info(@task)
 
         # Auto-fallback: check if requested model is available, otherwise use fallback
@@ -607,7 +607,7 @@ module Api
         board = if board_id.present?
           current_user.boards.find(board_id)
         else
-          current_user.boards.first || current_user.boards.create!(name: "Personal", icon: "📋", color: "gray")
+          current_user.boards.order(position: :asc).first || current_user.boards.create!(name: "Personal", icon: "📋", color: "gray")
         end
 
         @task = board.tasks.new(task_params)
@@ -1365,7 +1365,7 @@ module Api
         end
 
         # Fallback: find first non-aggregator board
-        user.boards.find_by(is_aggregator: false) || user.boards.first
+        user.boards.find_by(is_aggregator: false) || user.boards.order(position: :asc).first
       end
 
       # Simulate context usage based on session age (mock for now)

@@ -4,9 +4,12 @@ module Admin
     require_admin
 
     def index
-      @users = User.includes(:sessions, :tasks)
-                   .order(created_at: :desc)
-                   .map do |user|
+      @pagy, users = pagy(
+        User.includes(:sessions, :tasks).order(created_at: :desc),
+        limit: 25
+      )
+
+      @users = users.map do |user|
         {
           user: user,
           email: user.email_address,

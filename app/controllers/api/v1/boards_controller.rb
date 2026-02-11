@@ -5,7 +5,7 @@ module Api
 
       # GET /api/v1/boards
       def index
-        @boards = current_user.boards
+        @boards = current_user.boards.order(position: :asc)
           .left_joins(:tasks)
           .select("boards.*, COUNT(tasks.id) as tasks_count_cache")
           .group("boards.id")

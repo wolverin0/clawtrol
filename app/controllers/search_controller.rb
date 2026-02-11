@@ -1,7 +1,7 @@
 class SearchController < ApplicationController
   def index
     @query = params[:q].to_s.strip
-    @boards = current_user.boards
+    @boards = current_user.boards.order(position: :asc)
 
     if @query.present?
       search_term = "%#{@query}%"
