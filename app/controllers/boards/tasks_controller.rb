@@ -1,4 +1,7 @@
 class Boards::TasksController < ApplicationController
+  include MarkdownSanitizationHelper
+  include OutputRenderable
+
   before_action :set_board
   before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file, :diff_file, :generate_validation_suggestion]
 
@@ -225,37 +228,24 @@ class Boards::TasksController < ApplicationController
       return
     end
 
-    # Resolve file path - try multiple locations for relative paths
-    workspace_root = File.expand_path("~/.openclaw/workspace")
+    # SECURITY FIX #495: Use resolve_safe_path for strict path validation
+    # Build allowed directories list
     project_root = Rails.root.to_s
+    storage_root = Rails.root.join("storage").to_s
+    allowed_dirs = [project_root, storage_root]
 
-    if Pathname.new(path).absolute?
-      full_path = File.expand_path(path)
-    else
-      # Try multiple candidate locations for relative paths
-      candidates = [
-        File.expand_path(File.join(workspace_root, path)),
-        File.expand_path(File.join(project_root, path)),
-      ]
-      # Also try task's board project path if the board has one
-      board_project_path = @task.board.try(:project_path)
-      if board_project_path.present?
-        candidates.unshift(File.expand_path(File.join(board_project_path, path)))
-      end
-
-      full_path = candidates.find { |p| File.exist?(p) && File.file?(p) }
-      full_path ||= candidates.first # fallback for error message
+    # Include board's project path if configured
+    board_project_path = @task.board.try(:project_path)
+    if board_project_path.present?
+      allowed_dirs.unshift(File.expand_path(board_project_path))
     end
 
-    # Security: must be in output_files list OR within allowed directories
-    allowed_dirs = [project_root, workspace_root]
-    board_project_path ||= @task.board.try(:project_path)
-    allowed_dirs << board_project_path if board_project_path.present?
-    in_output_files = (@task.output_files || []).include?(path)
-    in_allowed_dir = allowed_dirs.any? { |dir| full_path.start_with?(dir) }
+    # Use secure path resolution (rejects absolute paths, ~/, dotfiles, traversal)
+    full_path = resolve_safe_path(path, allowed_dirs: allowed_dirs)
 
-    unless in_output_files || in_allowed_dir
-      render plain: "Access denied", status: :forbidden
+    # Security: path must resolve AND be in output_files list OR within allowed directories
+    unless full_path
+      render plain: "Access denied: invalid path", status: :forbidden
       return
     end
 
@@ -286,21 +276,9 @@ class Boards::TasksController < ApplicationController
     # Detect which turbo frame is requesting (desktop vs mobile)
     @frame_id = request.headers["Turbo-Frame"] || "file_viewer"
 
-    # Render markdown if applicable
+    # Render markdown if applicable (using safe_markdown for XSS protection)
     if %w[md markdown].include?(@file_extension)
-      renderer = Redcarpet::Render::HTML.new(
-        hard_wrap: true,
-        link_attributes: { target: "_blank", rel: "noopener" }
-      )
-      markdown = Redcarpet::Markdown.new(renderer,
-        fenced_code_blocks: true,
-        tables: true,
-        autolink: true,
-        strikethrough: true,
-        highlight: true,
-        no_intra_emphasis: true
-      )
-      @rendered_html = markdown.render(@file_content).html_safe
+      @rendered_html = safe_markdown(@file_content)
     end
 
     render layout: false

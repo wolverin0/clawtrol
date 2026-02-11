@@ -2,6 +2,7 @@
 module Api
   module V1
     class TasksController < BaseController
+      include OutputRenderable
       before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health ]
 
       # GET /api/v1/tasks/:id/agent_log - get agent transcript for this task
@@ -820,7 +821,7 @@ module Api
 
       # GET /api/v1/tasks/:id/file?path=docs/PROJECT_REVIEW.md
       # Returns file content for a task's output file
-      # Validates path to prevent directory traversal
+      # SECURITY FIX #495: Strict path validation - only relative paths within allowed dirs
       def file
         path = params[:path].to_s
         if path.blank?
@@ -828,35 +829,22 @@ module Api
           return
         end
 
-        # Determine roots for path resolution
+        # Build allowed directories list
         project_root = Rails.root.to_s
-        workspace_root = File.expand_path("~/.openclaw/workspace")
+        storage_root = Rails.root.join("storage").to_s
+        allowed_dirs = [project_root, storage_root]
 
-        # Resolve the file path - try multiple locations for relative paths
-        if Pathname.new(path).absolute?
-          full_path = File.expand_path(path)
-        else
-          candidates = [
-            File.expand_path(File.join(workspace_root, path)),
-            File.expand_path(File.join(project_root, path)),
-          ]
-          board_project_path = @task.board.try(:project_path)
-          if board_project_path.present?
-            candidates.unshift(File.expand_path(File.join(board_project_path, path)))
-          end
-          full_path = candidates.find { |p| File.exist?(p) && File.file?(p) }
-          full_path ||= candidates.first
+        # Include board's project path if configured
+        board_project_path = @task.board.try(:project_path)
+        if board_project_path.present?
+          allowed_dirs.unshift(File.expand_path(board_project_path))
         end
 
-        # Security: prevent directory traversal - must be in allowed dirs or output_files
-        allowed_dirs = [project_root, workspace_root]
-        board_project_path ||= @task.board.try(:project_path)
-        allowed_dirs << board_project_path if board_project_path.present?
-        in_output_files = (@task.output_files || []).include?(path)
-        in_allowed_dir = allowed_dirs.any? { |dir| full_path.start_with?(dir) }
+        # Use secure path resolution (rejects absolute paths, ~/, dotfiles, traversal)
+        full_path = resolve_safe_path(path, allowed_dirs: allowed_dirs)
 
-        unless in_output_files || in_allowed_dir
-          render json: { error: "Access denied: path outside project directory" }, status: :forbidden
+        unless full_path
+          render json: { error: "Access denied: invalid path" }, status: :forbidden
           return
         end
 

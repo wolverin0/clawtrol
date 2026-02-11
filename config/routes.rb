@@ -201,6 +201,9 @@ Rails.application.routes.draw do
   post "marketing/publish", to: "marketing#publish_to_n8n", as: :marketing_publish
   get "marketing/*path", to: "marketing#show", as: :marketing_show, format: false
 
+  # File viewer (workspace files, no auth)
+  get "view", to: "file_viewer#show"
+
   # Defines the root path route ("/")
   root "pages#home"
 end
