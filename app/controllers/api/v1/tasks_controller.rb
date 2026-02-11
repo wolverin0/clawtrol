@@ -57,16 +57,10 @@ module Api
           return
         end
 
-        # Build path to the transcript file
-        transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl")
+        # Build path to the transcript file (active + archived fallback)
+        transcript_path = TranscriptParser.transcript_path(session_id)
 
-        # Fallback: look for archived transcript (.jsonl.deleted.*)
-        unless File.exist?(transcript_path)
-          archived = Dir.glob(File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl.deleted.*")).first
-          transcript_path = archived if archived
-        end
-
-        unless File.exist?(transcript_path.to_s)
+        unless transcript_path
           # Fallback: extract "## Agent Output" from task description if present
           if @task.description.present? && @task.description.include?("## Agent Output")
             output_match = @task.description.match(/## Agent Output.*?\n(.*)/m)
@@ -87,70 +81,11 @@ module Api
 
         # Read and parse the JSONL file
         since_line = params[:since].to_i
-        messages = []
-        line_number = 0
-
-        File.foreach(transcript_path) do |line|
-          line_number += 1
-          next if line_number <= since_line
-
-          begin
-            data = JSON.parse(line.strip)
-            # Only include message types that are interesting for the UI
-            if data["type"] == "message"
-              msg = data["message"]
-              next unless msg
-
-              parsed = {
-                id: data["id"],
-                line: line_number,
-                timestamp: data["timestamp"],
-                role: msg["role"]
-              }
-
-              # Extract content based on type
-              content = msg["content"]
-              if content.is_a?(Array)
-                # Handle array content (assistant messages with thinking/text/toolCall)
-                parsed[:content] = content.map do |item|
-                  case item["type"]
-                  when "text"
-                    { type: "text", text: item["text"]&.slice(0, 2000) }
-                  when "thinking"
-                    { type: "thinking", text: item["thinking"]&.slice(0, 500) }
-                  when "toolCall"
-                    { type: "tool_call", name: item["name"], id: item["id"] }
-                  else
-                    { type: item["type"] || "unknown" }
-                  end
-                end
-              elsif content.is_a?(String)
-                # Handle string content (user messages)
-                parsed[:content] = [{ type: "text", text: content.slice(0, 2000) }]
-              end
-
-              # For tool results, extract useful info
-              if msg["role"] == "toolResult"
-                parsed[:tool_call_id] = msg["toolCallId"]
-                parsed[:tool_name] = msg["toolName"]
-                tool_content = msg["content"]
-                if tool_content.is_a?(Array) && tool_content.first
-                  text = tool_content.first["text"]
-                  parsed[:content] = [{ type: "tool_result", text: text&.slice(0, 1000) }]
-                end
-              end
-
-              messages << parsed
-            end
-          rescue JSON::ParserError
-            # Skip malformed lines
-            next
-          end
-        end
+        result = TranscriptParser.parse_messages(transcript_path, since: since_line)
 
         render json: {
-          messages: messages,
-          total_lines: line_number,
+          messages: result[:messages],
+          total_lines: result[:total_lines],
           since: since_line,
           has_session: true,
           task_status: @task.status
@@ -393,8 +328,8 @@ module Api
 
         # Fetch transcript snippet if requested
         if include_transcript && @task.agent_session_id.present?
-          transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{@task.agent_session_id}.jsonl")
-          if File.exist?(transcript_path)
+          transcript_path = TranscriptParser.transcript_path(@task.agent_session_id)
+          if transcript_path
             # Get last 50 lines of transcript for context
             lines = File.readlines(transcript_path).last(50)
             context[:transcript_preview] = lines.join
@@ -802,9 +737,9 @@ module Api
           return
         end
 
-        transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl")
+        transcript_path = TranscriptParser.transcript_path(session_id)
 
-        unless File.exist?(transcript_path)
+        unless transcript_path
           render json: { error: "No transcript found. Use manual edit." }, status: :unprocessable_entity
           return
         end
@@ -1106,46 +1041,10 @@ module Api
       private
 
       def extract_recoverable_agent_output(transcript_path)
-        keywords = /\b(completed|done|summary|what i changed|findings|changes made|implemented|fixed)\b/i
-        candidate = nil
-
-        File.foreach(transcript_path) do |line|
-          next if line.blank?
-
-          begin
-            entry = JSON.parse(line)
-            next unless entry["type"] == "message"
-
-            msg = entry["message"] || {}
-            next unless msg["role"] == "assistant"
-
-            text = flatten_message_text(msg["content"])
-            next if text.blank?
-
-            candidate = text if text.match?(keywords)
-          rescue JSON::ParserError
-            next
-          end
-        end
-
-        candidate&.strip
+        TranscriptParser.extract_summary(transcript_path)
       rescue => e
         Rails.logger.warn("[recover_output] Failed parsing transcript for task #{@task&.id}: #{e.message}")
         nil
-      end
-
-      def flatten_message_text(content)
-        case content
-        when String
-          content
-        when Array
-          content
-            .select { |item| item.is_a?(Hash) && item["type"] == "text" }
-            .map { |item| item["text"].to_s }
-            .join("\n")
-        else
-          ""
-        end
       end
 
       def set_task
@@ -1189,29 +1088,19 @@ module Api
       def extract_tokens_from_session(task)
         return nil unless task.agent_session_id.present?
 
-        session_id = task.agent_session_id.to_s
-        return nil unless session_id.match?(/\A[a-zA-Z0-9_\-]+\z/)
-
-        transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl")
-        return nil unless File.exist?(transcript_path)
+        transcript_file = TranscriptParser.transcript_path(task.agent_session_id)
+        return nil unless transcript_file
 
         input_tokens = 0
         output_tokens = 0
         model = nil
 
-        File.foreach(transcript_path) do |line|
-          next if line.blank?
-          begin
-            entry = JSON.parse(line)
-            if entry["usage"].is_a?(Hash)
-              input_tokens += entry["usage"]["input_tokens"].to_i
-              output_tokens += entry["usage"]["output_tokens"].to_i
-            end
-            # Try to capture model from entries
-            model ||= entry["model"] if entry["model"].present?
-          rescue JSON::ParserError
-            next
+        TranscriptParser.each_entry(transcript_file) do |entry, _line_num|
+          if entry["usage"].is_a?(Hash)
+            input_tokens += entry["usage"]["input_tokens"].to_i
+            output_tokens += entry["usage"]["output_tokens"].to_i
           end
+          model ||= entry["model"] if entry["model"].present?
         end
 
         return nil if input_tokens == 0 && output_tokens == 0
@@ -1227,7 +1116,7 @@ module Api
       # NOTE: The session_key UUID is NOT in the file, but the Task ID IS!
       # Subagent prompts start with "## Task #ID:" which we can match
       def resolve_session_id_from_key(session_key, task = nil)
-        sessions_dir = File.expand_path("~/.openclaw/agents/main/sessions")
+        sessions_dir = TranscriptParser::SESSIONS_DIR
         return nil unless Dir.exist?(sessions_dir)
         return nil if session_key.blank?
 
@@ -1294,7 +1183,7 @@ module Api
       # Used as a last-resort fallback when agent_session_key is not available
       # Agents include the task ID in their curl commands and prompt context
       def scan_transcripts_for_task(task_id)
-        sessions_dir = File.expand_path("~/.openclaw/agents/main/sessions")
+        sessions_dir = TranscriptParser::SESSIONS_DIR
         return nil unless Dir.exist?(sessions_dir)
 
         # Look at the 30 most recent .jsonl files
