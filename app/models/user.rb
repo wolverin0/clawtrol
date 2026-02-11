@@ -8,6 +8,7 @@ class User < ApplicationRecord
   has_many :tasks, dependent: :destroy
   has_many :task_templates, dependent: :destroy
   has_many :api_tokens, dependent: :destroy
+  has_many :saved_links, dependent: :destroy
   has_many :model_limits, dependent: :destroy
   has_many :notifications, dependent: :destroy
   has_many :agent_personas, dependent: :destroy

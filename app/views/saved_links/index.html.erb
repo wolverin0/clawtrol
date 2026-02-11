@@ -1,0 +1,107 @@
+<% content_for :title, "Link Inbox - clawdeck" %>
+<% content_for :breadcrumb_standalone, "📥 Link Inbox" %>
+
+<div class="py-6 space-y-6">
+  <%# Save Link Form %>
+  <div class="bg-bg-elevated border border-border rounded-xl p-5">
+    <%= form_with model: SavedLink.new, url: saved_links_path, class: "flex flex-col sm:flex-row gap-3" do |f| %>
+      <div class="flex-1">
+        <%= f.url_field :url, placeholder: "Paste a URL — article, YouTube, X/Twitter, Reddit…",
+            class: "w-full bg-bg-base border border-border rounded-lg px-4 py-3 text-content placeholder-content-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors",
+            required: true, autofocus: true %>
+      </div>
+      <div class="flex gap-2">
+        <%= f.text_field :title, placeholder: "Title (optional)",
+            class: "bg-bg-base border border-border rounded-lg px-4 py-3 text-content placeholder-content-muted focus:outline-none focus:border-accent w-full sm:w-48" %>
+        <%= f.submit "Save Link", class: "bg-accent hover:bg-accent/80 text-white font-medium px-6 py-3 rounded-lg cursor-pointer transition-colors whitespace-nowrap" %>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Stats %>
+  <div class="flex gap-4 text-sm text-content-muted">
+    <span><%= @saved_links.count %> links</span>
+    <span>·</span>
+    <span><%= @saved_links.count(&:pending?) %> pending</span>
+    <span>·</span>
+    <span><%= @saved_links.count(&:done?) %> processed</span>
+  </div>
+
+  <%# Links List %>
+  <% if @saved_links.any? %>
+    <div class="space-y-3">
+      <% @saved_links.each do |link| %>
+        <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/30 transition-colors group">
+          <div class="flex items-start gap-3">
+            <%# Favicon %>
+            <div class="flex-shrink-0 mt-1">
+              <img src="https://www.google.com/s2/favicons?domain=<%= URI.parse(link.url).host rescue 'unknown' %>&sz=32"
+                   alt="" class="w-6 h-6 rounded" loading="lazy"
+                   onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect fill=%22%23333%22 width=%2232%22 height=%2232%22 rx=%224%22/><text x=%2216%22 y=%2222%22 text-anchor=%22middle%22 fill=%22%23888%22 font-size=%2218%22>🔗</text></svg>'">
+            </div>
+
+            <%# Content %>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <%# Source badge %>
+                <% badge = case link.source_type
+                     when "youtube" then "🎬 YouTube"
+                     when "x" then "🐦 X"
+                     when "reddit" then "🤖 Reddit"
+                     else "📄 Article"
+                   end %>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-bg-base border border-border text-content-muted"><%= badge %></span>
+
+                <%# Status %>
+                <% status_style = case link.status
+                     when "pending" then "text-yellow-400"
+                     when "processing" then "text-blue-400 animate-pulse"
+                     when "done" then "text-green-400"
+                     when "failed" then "text-red-400"
+                   end %>
+                <span class="text-xs <%= status_style %>">● <%= link.status.capitalize %></span>
+
+                <span class="text-xs text-content-muted"><%= time_ago_in_words(link.created_at) %> ago</span>
+              </div>
+
+              <a href="<%= link.url %>" target="_blank" rel="noopener" class="block mt-1 text-content hover:text-accent transition-colors truncate">
+                <%= link.title.present? ? link.title : link.url %>
+              </a>
+              <% if link.title.present? %>
+                <div class="text-xs text-content-muted truncate mt-0.5"><%= link.url %></div>
+              <% end %>
+
+              <%# Expandable summary %>
+              <% if link.done? && link.summary.present? %>
+                <details class="mt-2">
+                  <summary class="text-xs text-accent cursor-pointer hover:underline">View Summary</summary>
+                  <div class="mt-2 text-sm text-content-muted bg-bg-base rounded-lg p-3 border border-border">
+                    <%= simple_format(link.summary) %>
+                  </div>
+                </details>
+              <% end %>
+
+              <% if link.failed? && link.error_message.present? %>
+                <div class="mt-1 text-xs text-red-400"><%= link.error_message %></div>
+              <% end %>
+            </div>
+
+            <%# Delete %>
+            <div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <%= button_to saved_link_path(link), method: :delete, class: "text-content-muted hover:text-red-400 transition-colors p-1", data: { turbo_confirm: "Remove this link?" } do %>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-12 text-center">
+      <div class="text-4xl mb-3">📥</div>
+      <div class="text-content-muted">No saved links yet. Paste a URL above to get started.</div>
+    </div>
+  <% end %>
+</div>
