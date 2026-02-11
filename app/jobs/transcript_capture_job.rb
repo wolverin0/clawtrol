@@ -6,7 +6,7 @@
 class TranscriptCaptureJob < ApplicationJob
   queue_as :default
 
-  SESSIONS_DIR = File.expand_path("~/.openclaw/agents/main/sessions")
+  SESSIONS_DIR = TranscriptParser::SESSIONS_DIR
   WORKSPACE_DIR = File.expand_path("~/.openclaw/workspace")
 
   def perform(task_id)
@@ -46,13 +46,8 @@ class TranscriptCaptureJob < ApplicationJob
   end
 
   def extract_from_transcript(session_id, task)
-    path = File.join(SESSIONS_DIR, "#{session_id}.jsonl")
-    # Also check archived
-    unless File.exist?(path)
-      archived = Dir.glob(File.join(SESSIONS_DIR, "#{session_id}.jsonl.deleted.*")).first
-      path = archived if archived
-    end
-    return nil unless path && File.exist?(path)
+    path = TranscriptParser.transcript_path(session_id)
+    return nil unless path
 
     parse_transcript(path, task)
   end
@@ -90,48 +85,42 @@ class TranscriptCaptureJob < ApplicationJob
     output_text = nil
     written_files = []
 
-    File.foreach(path) do |line|
-      begin
-        data = JSON.parse(line.strip)
-        next unless data["type"] == "message"
-        msg = data["message"]
-        next unless msg
+    TranscriptParser.each_entry(path) do |data, _line_num|
+      next unless data["type"] == "message"
+      msg = data["message"]
+      next unless msg
 
-        # Extract last assistant text as output summary
-        if msg["role"] == "assistant"
-          content = msg["content"]
-          if content.is_a?(Array)
-            texts = content.select { |c| c["type"] == "text" }.map { |c| c["text"] }
-            output_text = texts.last if texts.any?
+      # Extract last assistant text as output summary
+      if msg["role"] == "assistant"
+        content = msg["content"]
+        if content.is_a?(Array)
+          texts = content.select { |c| c["type"] == "text" }.map { |c| c["text"] }
+          output_text = texts.last if texts.any?
 
-            # Extract files from tool calls (Write/Edit tools)
-            content.each do |item|
-              if item["type"] == "toolCall" && %w[Write Edit write edit].include?(item["name"])
-                input = item["input"] || {}
-                fp = input["file_path"] || input["path"] || input["file"]
-                written_files << fp if fp.present?
-              end
+          # Extract files from tool calls (Write/Edit tools)
+          content.each do |item|
+            if item["type"] == "toolCall" && %w[Write Edit write edit].include?(item["name"])
+              input = item["input"] || {}
+              fp = input["file_path"] || input["path"] || input["file"]
+              written_files << fp if fp.present?
             end
-          elsif content.is_a?(String) && content.length > 20
-            output_text = content
           end
+        elsif content.is_a?(String) && content.length > 20
+          output_text = content
         end
+      end
 
-        # Also extract from tool results that write files
-        if msg["role"] == "toolResult"
-          content = msg["content"]
-          if content.is_a?(Array)
-            content.each do |item|
-              if item["type"] == "text" && item["text"].to_s.include?("Successfully")
-                # Try to extract file path from success messages
-                match = item["text"].match(/(?:wrote|created|edited|saved)\s+(?:to\s+)?[`"']?([^\s`"']+)[`"']?/i)
-                written_files << match[1] if match
-              end
+      # Also extract from tool results that write files
+      if msg["role"] == "toolResult"
+        content = msg["content"]
+        if content.is_a?(Array)
+          content.each do |item|
+            if item["type"] == "text" && item["text"].to_s.include?("Successfully")
+              match = item["text"].match(/(?:wrote|created|edited|saved)\s+(?:to\s+)?[`"']?([^\s`"']+)[`"']?/i)
+              written_files << match[1] if match
             end
           end
         end
-      rescue JSON::ParserError
-        next
       end
     end
 

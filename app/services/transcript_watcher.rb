@@ -15,7 +15,7 @@ require "listen"
 class TranscriptWatcher
   include Singleton
 
-  SESSIONS_DIR = File.expand_path("~/.openclaw/agents/main/sessions")
+  SESSIONS_DIR = TranscriptParser::SESSIONS_DIR
   DEBOUNCE_MS = 100  # Debounce rapid file changes
 
   def initialize
@@ -129,54 +129,7 @@ class TranscriptWatcher
   end
 
   def parse_transcript_line(line, line_number)
-    return nil if line.blank?
-
-    data = JSON.parse(line.strip)
-    return nil unless data["type"] == "message"
-
-    msg = data["message"]
-    return nil unless msg
-
-    parsed = {
-      id: data["id"],
-      line: line_number,
-      timestamp: data["timestamp"],
-      role: msg["role"]
-    }
-
-    # Extract content based on type (same logic as agent_log endpoint)
-    content = msg["content"]
-    if content.is_a?(Array)
-      parsed[:content] = content.map do |item|
-        case item["type"]
-        when "text"
-          { type: "text", text: item["text"]&.slice(0, 2000) }
-        when "thinking"
-          { type: "thinking", text: item["thinking"]&.slice(0, 500) }
-        when "toolCall"
-          { type: "tool_call", name: item["name"], id: item["id"] }
-        else
-          { type: item["type"] || "unknown" }
-        end
-      end
-    elsif content.is_a?(String)
-      parsed[:content] = [{ type: "text", text: content.slice(0, 2000) }]
-    end
-
-    # For tool results, extract useful info
-    if msg["role"] == "toolResult"
-      parsed[:tool_call_id] = msg["toolCallId"]
-      parsed[:tool_name] = msg["toolName"]
-      tool_content = msg["content"]
-      if tool_content.is_a?(Array) && tool_content.first
-        text = tool_content.first["text"]
-        parsed[:content] = [{ type: "tool_result", text: text&.slice(0, 1000) }]
-      end
-    end
-
-    parsed
-  rescue JSON::ParserError
-    nil
+    TranscriptParser.parse_line(line, line_number)
   end
 
   def broadcast_to_task(task_id, messages, total_lines)
