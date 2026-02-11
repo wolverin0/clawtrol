@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_11_012428) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_11_145117) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pg_trgm"
   enable_extension "pgcrypto"
 
   create_table "active_storage_attachments", force: :cascade do |t|
@@ -438,8 +439,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_012428) do
     t.index ["blocked"], name: "index_tasks_on_blocked"
     t.index ["board_id", "status", "position"], name: "index_tasks_on_board_status_position"
     t.index ["board_id"], name: "index_tasks_on_board_id"
+    t.index ["description"], name: "index_tasks_on_description_trigram", opclass: :gin_trgm_ops, using: :gin
     t.index ["error_at"], name: "index_tasks_on_error_at", where: "(error_at IS NOT NULL)"
     t.index ["followup_task_id"], name: "index_tasks_on_followup_task_id"
+    t.index ["name"], name: "index_tasks_on_name_trigram", opclass: :gin_trgm_ops, using: :gin
     t.index ["next_recurrence_at"], name: "index_tasks_on_next_recurrence_at"
     t.index ["nightly"], name: "index_tasks_on_nightly"
     t.index ["parent_task_id"], name: "index_tasks_on_parent_task_id"
