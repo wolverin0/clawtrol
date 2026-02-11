@@ -1042,7 +1042,7 @@ module Api
 
       def extract_recoverable_agent_output(transcript_path)
         TranscriptParser.extract_summary(transcript_path)
-      rescue => e
+      rescue StandardError => e
         Rails.logger.warn("[recover_output] Failed parsing transcript for task #{@task&.id}: #{e.message}")
         nil
       end
@@ -1080,7 +1080,7 @@ module Api
           },
           session_key: task.agent_session_key
         )
-      rescue => e
+      rescue StandardError => e
         Rails.logger.error("[Foxhound] Failed to record token usage for task #{task.id}: #{e.message}")
       end
 
@@ -1106,7 +1106,7 @@ module Api
         return nil if input_tokens == 0 && output_tokens == 0
 
         { input_tokens: input_tokens, output_tokens: output_tokens, model: model }
-      rescue => e
+      rescue StandardError => e
         Rails.logger.error("[Foxhound] Failed to extract tokens from session: #{e.message}")
         nil
       end
@@ -1174,7 +1174,7 @@ module Api
 
         Rails.logger.info("[resolve_session_id] No session file found for task #{task_id}")
         nil
-      rescue => e
+      rescue StandardError => e
         Rails.logger.warn "resolve_session_id_from_key error: #{e.message}"
         nil
       end
@@ -1209,7 +1209,7 @@ module Api
         end
 
         nil
-      rescue => e
+      rescue StandardError => e
         Rails.logger.warn "[scan_transcripts] Error scanning for task #{task_id}: #{e.message}"
         nil
       end

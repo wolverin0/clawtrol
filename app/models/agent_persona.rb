@@ -106,7 +106,7 @@ class AgentPersona < ApplicationRecord
     
     persona.save!
     persona
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error "Failed to import persona from #{file_path}: #{e.message}"
     nil
   end
@@ -179,7 +179,7 @@ class AgentPersona < ApplicationRecord
     
     persona.save!
     persona
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error "Failed to import persona from #{file_path}: #{e.message}"
     nil
   end

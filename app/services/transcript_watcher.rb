@@ -46,7 +46,7 @@ class TranscriptWatcher
 
     @listener.start
     Rails.logger.info "[TranscriptWatcher] Watcher started successfully"
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error "[TranscriptWatcher] Failed to start: #{e.message}"
     @running = false
   end
@@ -87,7 +87,7 @@ class TranscriptWatcher
     tasks.each do |task|
       broadcast_to_task(task.id, new_messages, total_lines)
     end
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error "[TranscriptWatcher] Error processing #{file_path}: #{e.message}"
   end
 
@@ -97,7 +97,7 @@ class TranscriptWatcher
     Task.where(agent_session_id: session_id)
         .where(status: [:in_progress, :up_next])
         .to_a
-  rescue => e
+  rescue StandardError => e
     Rails.logger.warn "[TranscriptWatcher] Failed to find tasks for session #{session_id}: #{e.message}"
     []
   end
@@ -123,7 +123,7 @@ class TranscriptWatcher
     end
 
     [messages, total_lines]
-  rescue => e
+  rescue StandardError => e
     Rails.logger.warn "[TranscriptWatcher] Failed to read #{file_path}: #{e.message}"
     [[], 0]
   end
@@ -139,7 +139,7 @@ class TranscriptWatcher
     })
     
     Rails.logger.debug "[TranscriptWatcher] Broadcast #{messages.size} messages to task #{task_id}"
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error "[TranscriptWatcher] Broadcast failed for task #{task_id}: #{e.message}"
   end
 

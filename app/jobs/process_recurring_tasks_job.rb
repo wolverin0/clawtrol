@@ -24,7 +24,7 @@ class ProcessRecurringTasksJob < ApplicationJob
         Rails.logger.info "[RecurringTasks] Next recurrence for ##{task.id} scheduled at #{task.next_recurrence_at}"
 
         tasks_processed += 1
-      rescue => e
+      rescue StandardError => e
         Rails.logger.error "[RecurringTasks] Error processing task ##{task.id}: #{e.message}"
         Rails.logger.error e.backtrace.first(5).join("\n")
       end
