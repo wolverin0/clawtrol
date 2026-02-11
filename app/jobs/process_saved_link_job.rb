@@ -65,7 +65,7 @@ class ProcessSavedLinkJob < ApplicationJob
 
   def call_gemini(prompt_text)
     api_key = ENV.fetch("GEMINI_API_KEY")
-    uri = URI("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=#{api_key}")
+    uri = URI("https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=#{api_key}")
 
     body = { contents: [ { parts: [ { text: prompt_text } ] } ] }.to_json
 
