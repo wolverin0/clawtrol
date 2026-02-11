@@ -157,6 +157,12 @@ module Api
         }
       end
 
+      TASK_JSON_INCLUDES = {
+        task_dependencies: :depends_on,
+        inverse_dependencies: :task,
+        agent_persona: {}
+      }.freeze
+
       # GET /api/v1/tasks/errored_count - count of errored tasks for badge
       def errored_count
         count = current_user.tasks.errored.count
@@ -167,6 +173,7 @@ module Api
       def recurring
         @tasks = current_user.tasks
           .recurring_templates
+          .includes(TASK_JSON_INCLUDES)
           .order(created_at: :desc)
 
         render json: @tasks.map { |task| task_json(task) }
@@ -183,6 +190,7 @@ module Api
         end
 
         @task = current_user.tasks
+          .includes(TASK_JSON_INCLUDES)
           .where(status: :up_next, blocked: false, agent_claimed_at: nil)
           .order(priority: :desc, position: :asc)
           .first
@@ -204,6 +212,7 @@ module Api
 
         # Tasks in progress that agent claimed
         @tasks = current_user.tasks
+          .includes(TASK_JSON_INCLUDES)
           .where(status: :in_progress)
           .where.not(agent_claimed_at: nil)
 
@@ -585,6 +594,8 @@ module Api
         else
           @tasks = @tasks.order(status: :asc, position: :asc)
         end
+
+        @tasks = @tasks.includes(TASK_JSON_INCLUDES)
 
         render json: @tasks.map { |task| task_json(task) }
       end
