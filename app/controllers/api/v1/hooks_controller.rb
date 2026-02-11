@@ -6,7 +6,7 @@ module Api
     class HooksController < ActionController::API
       # POST /api/v1/hooks/agent_complete
       def agent_complete
-        token = request.headers["X-Hook-Token"] || params[:token]
+        token = request.headers["X-Hook-Token"]
         unless ActiveSupport::SecurityUtils.secure_compare(token.to_s, Rails.application.config.hooks_token.to_s)
           return render json: { error: "unauthorized" }, status: :unauthorized
         end
@@ -75,15 +75,20 @@ module Api
       # OpenClaw completion hook (OutcomeContract v1). This is intentionally
       # idempotent via run_id (UUID).
       def task_outcome
-        token = request.headers["X-Hook-Token"] || params[:token]
+        token = request.headers["X-Hook-Token"]
         unless ActiveSupport::SecurityUtils.secure_compare(token.to_s, Rails.application.config.hooks_token.to_s)
           return render json: { error: "unauthorized" }, status: :unauthorized
         end
 
-        task = Task.find_by(id: params[:task_id])
+        task = find_task_from_params
         return render json: { error: "task not found" }, status: :not_found unless task
 
-        payload = params.to_unsafe_h
+        payload = params.permit(
+          :version, :run_id, :ended_at, :needs_follow_up, :recommended_action,
+          :next_prompt, :summary, :model_used, :openclaw_session_id,
+          :openclaw_session_key, :task_id,
+          achieved: [], evidence: [], remaining: []
+        ).to_h
 
         version = payload["version"].to_s
         run_id = payload["run_id"].to_s
