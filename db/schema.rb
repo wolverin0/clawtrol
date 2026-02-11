@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_11_150237) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_11_150602) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -389,16 +389,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_150237) do
     t.bigint "board_id", null: false
     t.boolean "completed", default: false, null: false
     t.datetime "completed_at"
-    t.integer "confidence", default: 0, null: false
     t.integer "context_usage_percent"
     t.datetime "created_at", null: false
     t.text "description"
     t.date "due_date"
-    t.integer "effort", default: 0, null: false
     t.datetime "error_at"
     t.text "error_message"
     t.bigint "followup_task_id"
-    t.integer "impact", default: 0, null: false
     t.boolean "last_needs_follow_up"
     t.datetime "last_outcome_at"
     t.string "last_recommended_action"
@@ -408,12 +405,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_150237) do
     t.datetime "next_recurrence_at"
     t.boolean "nightly", default: false, null: false
     t.integer "nightly_delay_hours"
-    t.integer "original_position"
     t.jsonb "output_files", default: [], null: false
     t.bigint "parent_task_id"
     t.integer "position"
     t.integer "priority", default: 0, null: false
-    t.integer "reach", default: 0, null: false
     t.string "recurrence_rule"
     t.time "recurrence_time"
     t.boolean "recurring", default: false, null: false
