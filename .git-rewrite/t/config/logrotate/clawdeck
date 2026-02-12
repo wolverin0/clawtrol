@@ -1,0 +1,36 @@
+# Logrotate configuration for Cardy application
+# Deploy this file to the server with:
+#   scp config/logrotate/clawdeck root@104.236.193.0:/etc/logrotate.d/clawdeck
+#   ssh root@104.236.193.0 'chmod 644 /etc/logrotate.d/clawdeck'
+
+# Application logs
+/var/www/clawdeck/log/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root root
+    sharedscripts
+    postrotate
+        # Reopen log files by sending USR1 signal to Puma
+        systemctl reload puma > /dev/null 2>&1 || true
+    endscript
+}
+
+# Service logs (systemd journals handle these, but if custom log files exist)
+/var/log/clawdeck/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 root root
+    sharedscripts
+    postrotate
+        systemctl reload puma > /dev/null 2>&1 || true
+        systemctl reload solid_queue > /dev/null 2>&1 || true
+    endscript
+}

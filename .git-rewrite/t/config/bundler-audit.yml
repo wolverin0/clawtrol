@@ -1,0 +1,5 @@
+# Temporarily ignored - need to run bundle update on a machine with Ruby
+# TODO: Run `bundle update action_text-trix httparty` to fix these
+ignore:
+  - GHSA-g9jg-w8vm-g96v  # action_text-trix XSS - update to >= 2.1.16
+  - GHSA-hm5p-x4rq-38w4  # httparty SSRF - update to >= 0.24.0
