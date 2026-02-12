@@ -13,7 +13,7 @@ class MarketingController < ApplicationController
   VIDEO_EXTENSIONS = %w[.mp4 .webm .mov .avi].freeze
   MEDIA_EXTENSIONS = IMAGE_EXTENSIONS + VIDEO_EXTENSIONS
 
-  OPENAI_API_KEY = ENV.fetch("OPENAI_API_KEY", "REDACTED")
+  OPENAI_API_KEY = ENV.fetch("OPENAI_API_KEY", "")
   PLAYGROUND_OUTPUT_DIR = File.expand_path("~/.openclaw/workspace/marketing/generated/playground-live").freeze
 
   PRODUCT_CONTEXTS = {
