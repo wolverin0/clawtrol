@@ -1,20 +1,41 @@
 class NightshiftController < ApplicationController
+  skip_forgery_protection only: :launch
+
   def index
     @missions = nightshift_missions
+    @selections = NightshiftSelection.for_tonight.index_by(&:mission_id)
     @total_time = @missions.sum { |m| m[:time] }
   end
 
   def launch
-    selected_ids = params[:mission_ids] || []
-    missions = nightshift_missions.select { |m| selected_ids.include?(m[:id].to_s) }
+    selected_ids = params[:mission_ids]&.map(&:to_i) || []
+    missions = nightshift_missions.select { |m| selected_ids.include?(m[:id]) }
+    
+    existing_selections = NightshiftSelection.for_tonight.where(mission_id: selected_ids).index_by(&:mission_id)
 
-    redirect_to nightshift_path, notice: "#{missions.size} missions launched!"
+    missions_to_create = missions.reject { |m| existing_selections[m[:id]] }
+
+    new_selections = missions_to_create.map do |mission|
+      {
+        mission_id: mission[:id],
+        title: mission[:title],
+        scheduled_date: Date.current,
+        created_at: Time.current,
+        updated_at: Time.current
+      }
+    end
+
+    if new_selections.any?
+      NightshiftSelection.insert_all(new_selections)
+    end
+    
+    NightshiftSelection.for_tonight.where(mission_id: selected_ids).update_all(enabled: true)
+    NightshiftSelection.for_tonight.where.not(mission_id: selected_ids).update_all(enabled: false)
+
+    render json: { success: true, armed_count: selected_ids.count }, status: :ok
   end
 
-  private
-
-  def nightshift_missions
-    [
+  MISSIONS = [
       { id: 1, title: "Dependency Updates", desc: "Scan 12 active projects for outdated deps, run npm audit. Only on new commits.", model: "codex", time: 45, icon: "🔧" },
       { id: 2, title: "ISP Network Health Report", desc: "Pull UISP metrics + MikroTik data, analyze signal quality, predict failures.", model: "gemini", time: 20, icon: "📡" },
       { id: 3, title: "Customer Churn Analysis", desc: "Analyze UISP billing + usage patterns, identify at-risk customers.", model: "gemini", time: 30, icon: "💰" },
@@ -33,6 +54,11 @@ class NightshiftController < ApplicationController
       { id: 16, title: "Project Documentation (RAG)", desc: "Generate detailed technical docs for all active projects, index in Qdrant.", model: "glm", time: 45, icon: "📚" },
       { id: 17, title: "ISP Response Templates", desc: "Generate/update customer response templates for common ISP situations.", model: "glm", time: 15, icon: "💬" },
       { id: 18, title: "Dependency Mapper", desc: "Map which services each project uses (DB, APIs, queues) for blast radius analysis.", model: "glm", time: 20, icon: "🔗" },
-    ]
+  ].freeze
+
+  private
+
+  def nightshift_missions
+    MISSIONS
   end
 end

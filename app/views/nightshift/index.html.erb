@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nightshift — Mission Control</title>
     <meta name="csrf-token" content="<%= form_authenticity_token %>">
+    <script src="https://cdn.jsdelivr.net/npm/stimulus/dist/stimulus.umd.js"></script>
     <style>
         * {
             margin: 0;
@@ -93,17 +94,6 @@
             color: var(--terminal-cyan);
             font-weight: 600;
         }
-
-        <% if flash[:notice] %>
-        .flash-notice {
-            background: rgba(0, 255, 65, 0.1);
-            border: 1px solid var(--terminal-green);
-            color: var(--terminal-green);
-            padding: 1rem 2rem;
-            text-align: center;
-            font-weight: 600;
-        }
-        <% end %>
 
         .mission-grid {
             display: grid;
@@ -213,6 +203,15 @@
         .badge-model-gemini { color: var(--terminal-green); border-color: rgba(0, 255, 65, 0.3); background: rgba(0, 255, 65, 0.1); }
         .badge-model-opus { color: var(--terminal-purple); border-color: rgba(163, 113, 247, 0.3); background: rgba(163, 113, 247, 0.1); }
         .badge-model-glm { color: var(--terminal-amber); border-color: rgba(255, 176, 0, 0.3); background: rgba(255, 176, 0, 0.1); }
+        
+        .badge-status {
+          margin-left: 8px;
+        }
+        .badge-status-pending { color: var(--terminal-amber); border-color: rgba(255, 176, 0, 0.3); background: rgba(255, 176, 0, 0.1); }
+        .badge-status-running { color: var(--terminal-blue); border-color: rgba(47, 129, 247, 0.3); background: rgba(47, 129, 247, 0.1); }
+        .badge-status-completed { color: var(--terminal-green); border-color: rgba(0, 255, 65, 0.3); background: rgba(0, 255, 65, 0.1); }
+        .badge-status-failed { color: var(--terminal-red); border-color: rgba(255, 49, 49, 0.3); background: rgba(255, 49, 49, 0.1); }
+
 
         .time-est {
             font-size: 0.8rem;
@@ -366,7 +365,7 @@
         }
     </style>
 </head>
-<body>
+<body data-controller="nightshift">
 
     <header>
         <div class="brand">
@@ -376,27 +375,31 @@
         </div>
         <div class="header-meta">
             <div class="date-display" id="current-date"><%= Date.today.iso8601 %></div>
-            <div>STATUS: ONLINE</div>
+            <div>STATUS: <span data-nightshift-target="systemStatus">ONLINE</span></div>
         </div>
     </header>
 
-    <% if flash[:notice] %>
-    <div class="flash-notice"><%= flash[:notice] %></div>
-    <% end %>
-
-    <form id="nightshift-form" action="/nightshift/launch" method="post">
-        <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-        
-        <main class="mission-grid" id="task-grid">
-            <% @missions.each do |mission| %>
-            <div class="task-card" data-id="<%= mission[:id] %>" data-time="<%= mission[:time] %>" onclick="toggleTask(<%= mission[:id] %>)">
-                <input type="checkbox" name="mission_ids[]" value="<%= mission[:id] %>" style="display:none" class="mission-checkbox" id="mission_<%= mission[:id] %>">
+    <main class="mission-grid" data-nightshift-target="grid">
+        <% @missions.each do |mission| %>
+            <% selection = @selections[mission[:id]] %>
+            <% is_selected = selection&.enabled? %>
+            <div class="task-card <%= 'selected' if is_selected %>" 
+                 data-action="click->nightshift#toggle"
+                 data-mission-id-param="<%= mission[:id] %>"
+                 data-mission-time-param="<%= mission[:time] %>"
+                 data-nightshift-target="card">
+                 
                 <div class="card-header">
                     <div class="checkbox-container">
                         <span class="checkmark">✓</span>
                     </div>
                     <div>
-                        <div class="task-title"><%= mission[:icon] %> <%= mission[:title] %></div>
+                        <div class="task-title">
+                            <%= mission[:icon] %> <%= mission[:title] %>
+                            <% if selection %>
+                                <span class="badge badge-status badge-status-<%= selection.status %>"><%= selection.status %></span>
+                            <% end %>
+                        </div>
                     </div>
                 </div>
                 <div class="task-desc"><%= mission[:desc] %></div>
@@ -405,9 +408,8 @@
                     <span class="time-est">⏱ ~<%= mission[:time] %>min</span>
                 </div>
             </div>
-            <% end %>
-        </main>
-    </form>
+        <% end %>
+    </main>
     
     <div class="powered-by">
         Powered by Otacon 📟 + OpenClaw
@@ -415,104 +417,22 @@
 
     <div class="control-panel">
         <div class="panel-stats">
-            <button type="button" class="toggle-all" id="toggle-all-btn" onclick="toggleAll()">Select All</button>
+            <button type="button" class="toggle-all" data-action="click->nightshift#toggleAll">Select All</button>
             
             <div class="stat-group">
                 <div class="stat-label">Missions</div>
-                <div class="stat-value"><span id="count-selected">0</span> / <span id="count-total"><%= @missions.size %></span></div>
+                <div class="stat-value"><span data-nightshift-target="count">0</span> / <%= @missions.size %></div>
             </div>
             
             <div class="stat-group">
                 <div class="stat-label">Est. Time</div>
-                <div class="stat-value highlight" id="time-total">0m</div>
+                <div class="stat-value highlight" data-nightshift-target="time">0m</div>
             </div>
         </div>
         
-        <button type="button" class="launch-btn" id="launch-btn" disabled onclick="launchMissions()">
+        <button type="button" class="launch-btn" data-action="click->nightshift#launch" data-nightshift-target="launchButton" disabled>
             <span>Launch Nightshift</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>
     </div>
-
-    <script>
-        const selectedIds = new Set();
-        const totalMissions = <%= @missions.size %>;
-
-        function toggleTask(id) {
-            const card = document.querySelector(`[data-id="${id}"]`);
-            const checkbox = document.getElementById(`mission_${id}`);
-            
-            if (selectedIds.has(id)) {
-                selectedIds.delete(id);
-                card.classList.remove('selected');
-                checkbox.checked = false;
-            } else {
-                selectedIds.add(id);
-                card.classList.add('selected');
-                checkbox.checked = true;
-            }
-            updateStats();
-        }
-
-        function toggleAll() {
-            const btn = document.getElementById('toggle-all-btn');
-            if (selectedIds.size === totalMissions) {
-                document.querySelectorAll('.task-card').forEach(card => {
-                    const id = parseInt(card.dataset.id);
-                    selectedIds.delete(id);
-                    card.classList.remove('selected');
-                    document.getElementById(`mission_${id}`).checked = false;
-                });
-                btn.textContent = "Select All";
-            } else {
-                document.querySelectorAll('.task-card').forEach(card => {
-                    const id = parseInt(card.dataset.id);
-                    selectedIds.add(id);
-                    card.classList.add('selected');
-                    document.getElementById(`mission_${id}`).checked = true;
-                });
-                btn.textContent = "Deselect All";
-            }
-            updateStats();
-        }
-
-        function updateStats() {
-            const count = selectedIds.size;
-            document.getElementById('count-selected').textContent = count;
-            
-            let totalMin = 0;
-            document.querySelectorAll('.task-card').forEach(card => {
-                if (selectedIds.has(parseInt(card.dataset.id))) {
-                    totalMin += parseInt(card.dataset.time);
-                }
-            });
-
-            const timeTotalEl = document.getElementById('time-total');
-            if (totalMin < 60) {
-                timeTotalEl.textContent = `${totalMin}m`;
-            } else {
-                const h = Math.floor(totalMin / 60);
-                const m = totalMin % 60;
-                timeTotalEl.textContent = `${h}h ${m}m`;
-            }
-
-            const launchBtn = document.getElementById('launch-btn');
-            if (count > 0) {
-                launchBtn.disabled = false;
-                launchBtn.innerHTML = `<span>Launch ${count} Missions</span> <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
-            } else {
-                launchBtn.disabled = true;
-                launchBtn.innerHTML = `<span>Launch Nightshift</span>`;
-            }
-        }
-
-        function launchMissions() {
-            if (selectedIds.size === 0) return;
-            const btn = document.getElementById('launch-btn');
-            btn.disabled = true;
-            btn.innerHTML = `<span>Initiating Sequence...</span>`;
-            document.getElementById('nightshift-form').submit();
-        }
-    </script>
 </body>
 </html>

@@ -58,6 +58,9 @@ Rails.application.routes.draw do
       # Nightshift API
       get "nightshift/tasks", to: "nightshift#tasks"
       post "nightshift/launch", to: "nightshift#launch"
+      post "nightshift/arm", to: "nightshift#arm"
+      get "nightshift/selections", to: "nightshift#selections"
+      patch "nightshift/selections/:id", to: "nightshift#update_selection"
 
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
