@@ -144,6 +144,9 @@ Rails.application.routes.draw do
     end
   end
 
+  # Token usage
+  resources :tokens, only: [:index]
+
   # Workflows
   resources :workflows, only: [:index, :new, :create, :edit, :update] do
     collection do
