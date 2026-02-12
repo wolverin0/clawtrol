@@ -157,8 +157,20 @@ class ModelLimit < ApplicationRecord
         return Time.current + hours.hours if hours > 0
       end
 
+      # Try "in ~N min" format (Codex/ChatGPT Plus): "Try again in ~3682 min"
+      if error_message =~ /in\s+~?(\d+)\s*min/i
+        minutes = $1.to_i
+        return Time.current + minutes.minutes if minutes > 0
+      end
+
+      # Try "usage limit" with minutes (ChatGPT Plus format)
+      if error_message =~ /usage\s+limit.*?(\d+)\s*min/i
+        minutes = $1.to_i
+        return Time.current + minutes.minutes if minutes > 0
+      end
+
       # Default: assume 1 hour if we can't parse
-      if error_message =~ /rate\s*limit/i
+      if error_message =~ /rate\s*limit|usage\s*limit/i
         return Time.current + 1.hour
       end
 
