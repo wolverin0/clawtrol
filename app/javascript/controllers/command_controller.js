@@ -109,11 +109,17 @@ export default class extends Controller {
     const timeRunning = this.formatDuration(session.startedAt)
     const tokenPercent = Math.min((session.tokens / 128000) * 100, 100) // Arbitrary scale for visual
     
-    // Extract last message safely
-    let lastMsg = "No messages yet"
-    if (session.messages && session.messages.length > 0) {
+    // Extract last message safely. Newer backend returns lastMessageSnippet
+    // even when messages are not included in the session list.
+    let lastMsg = session.lastMessageSnippet
+
+    if (!lastMsg && session.messages && session.messages.length > 0) {
       lastMsg = session.messages[session.messages.length - 1].content || ""
       if (lastMsg.length > 100) lastMsg = lastMsg.substring(0, 100) + "..."
+    }
+
+    if (!lastMsg) {
+      lastMsg = session.updatedAt ? `Last active: ${session.updatedAt}` : "No messages yet"
     }
 
     return `
@@ -141,7 +147,7 @@ export default class extends Controller {
         </div>
 
         <div class="bg-black/30 rounded p-2 text-xs text-muted font-mono overflow-hidden h-16 relative">
-          ${lastMsg.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+          ${String(lastMsg).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}
           <div class="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-black/30 to-transparent"></div>
         </div>
       </div>

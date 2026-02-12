@@ -127,32 +127,57 @@ class CommandController < ApplicationController
   end
 
   def openclaw_sessions_dir
-    ENV["OPENCLAW_SESSIONS_DIR"].presence || File.expand_path("~/.openclaw/agents/main/sessions")
+    File.expand_path(ENV["OPENCLAW_SESSIONS_DIR"].presence || "~/.openclaw/agents/main/sessions")
   end
 
   def fetch_last_message_snippet(session)
     session_id = session[:sessionId].presence || session[:id].presence
     key = session[:key].to_s
 
-    candidates = []
-    candidates << File.join(openclaw_sessions_dir, "#{session_id}.jsonl") if session_id.present?
+    filenames = []
+
+    # Security: never allow path traversal. Only allow safe filenames.
+    if session_id.present? && safe_session_filename?(session_id)
+      filenames << "#{session_id}.jsonl"
+    end
 
     if key.present?
       safe_key = key.gsub(/[^a-zA-Z0-9_.-]+/, "_")
-      candidates << File.join(openclaw_sessions_dir, "#{safe_key}.jsonl")
+      filenames << "#{safe_key}.jsonl"
     end
 
-    path = candidates.find { |p| File.file?(p) }
-    return nil unless path
+    base = openclaw_sessions_dir
 
-    read_last_message_from_jsonl(path)
+    filenames.each do |filename|
+      path = safe_join_sessions_path(base, filename)
+      next unless path
+      next unless File.file?(path)
+      return read_last_message_from_jsonl(path)
+    end
+
+    nil
   rescue StandardError => e
     Rails.logger.debug("command_center: snippet fetch failed: #{e.class}: #{e.message}")
     nil
   end
 
+  def safe_session_filename?(name)
+    name.to_s.match?(/\A[a-zA-Z0-9_.-]+\z/)
+  end
+
+  def safe_join_sessions_path(base, filename)
+    base = File.expand_path(base)
+    path = File.expand_path(File.join(base, filename))
+    return nil unless path.start_with?(base + File::SEPARATOR)
+    path
+  rescue ArgumentError
+    nil
+  end
+
   def read_last_message_from_jsonl(path)
     max_bytes = Integer(ENV.fetch("OPENCLAW_SESSION_TAIL_BYTES", "8192"))
+    max_bytes = 1024 if max_bytes < 1024
+    max_bytes = 64 * 1024 if max_bytes > 64 * 1024
 
     File.open(path, "rb") do |f|
       size = f.size
