@@ -1,0 +1,54 @@
+<% content_for :title, "Workflows" %>
+<% content_for :breadcrumb_standalone, "Workflows" %>
+
+<div class="mt-8">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-lg font-semibold text-content font-display">Workflows</h1>
+      <p class="text-xs text-content-muted mt-1">Build and edit DAG workflows</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= link_to editor_workflows_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-surface border border-border rounded-md hover:bg-bg-elevated transition-colors" do %>
+        Open Editor
+      <% end %>
+      <%= link_to new_workflow_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content bg-accent hover:bg-accent-hover rounded-md transition-colors" do %>
+        New Workflow
+      <% end %>
+    </div>
+  </div>
+
+  <% if @workflows.any? %>
+    <div class="space-y-2">
+      <% @workflows.each do |workflow| %>
+        <div class="bg-bg-surface border border-border rounded-lg p-4 flex items-center justify-between">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm font-semibold text-content truncate font-display"><%= workflow.title %></h3>
+              <% if workflow.active? %>
+                <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-green-500/20 text-green-400">Active</span>
+              <% else %>
+                <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-gray-500/20 text-gray-400">Inactive</span>
+              <% end %>
+            </div>
+            <p class="text-xs text-content-muted mt-1">Updated <%= time_ago_in_words(workflow.updated_at) %> ago</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <%= link_to "Edit", edit_workflow_path(workflow), class: "px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-elevated border border-border rounded-md hover:bg-bg-hover transition-colors" %>
+            <%= link_to "Open editor", editor_workflow_path(workflow), class: "px-3 py-1.5 text-xs font-medium text-content bg-accent hover:bg-accent-hover rounded-md transition-colors" %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="bg-bg-surface border border-border rounded-lg p-8 text-center">
+      <span class="text-4xl mb-4 block">🧩</span>
+      <h3 class="text-sm font-semibold text-content mb-2">No workflows yet</h3>
+      <p class="text-xs text-content-muted mb-4">Create your first workflow and build a DAG.</p>
+      <div class="flex justify-center gap-2">
+        <%= link_to "New Workflow", new_workflow_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content bg-accent hover:bg-accent-hover rounded-md transition-colors" %>
+        <%= link_to "Open Editor", editor_workflows_path, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-elevated border border-border rounded-md hover:bg-bg-hover transition-colors" %>
+      </div>
+    </div>
+  <% end %>
+</div>

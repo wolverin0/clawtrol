@@ -48,6 +48,12 @@ Rails.application.routes.draw do
         end
       end
 
+      resources :workflows, only: [] do
+        member do
+          post :run
+        end
+      end
+
       # Task templates for slash commands
       resources :task_templates, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
@@ -129,6 +135,16 @@ Rails.application.routes.draw do
 
   # Agent Swarm View
   get "command", to: "command#index"
+
+  # Workflows
+  resources :workflows, only: [:index, :new, :create, :edit, :update] do
+    collection do
+      get :editor
+    end
+    member do
+      get :editor
+    end
+  end
 
   # Global search
   get "search", to: "search#index"
