@@ -128,7 +128,6 @@ Rails.application.routes.draw do
   get "dashboard", to: "dashboard#show"
 
   # Agent Swarm View
-  get "swarm", to: "swarm#index"
 
   # Global search
   get "search", to: "search#index"
