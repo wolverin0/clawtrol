@@ -1,498 +1,175 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nightshift — Mission Control</title>
-    <meta name="csrf-token" content="<%= form_authenticity_token %>">
-    <script src="https://cdn.jsdelivr.net/npm/@hotwired/stimulus@3.2.2/dist/stimulus.umd.js"></script>
-    <script>
-    (() => {
-      const app = Stimulus.Application.start();
-      app.register("nightshift", class extends Stimulus.Controller {
-        static targets = ["card", "count", "time", "launchButton", "systemStatus", "grid"]
+<style>
+  :root {
+    --terminal-green: #00FF41;
+    --terminal-amber: #FFB000;
+    --terminal-red: #FF3131;
+    --terminal-cyan: #00D4FF;
+    --terminal-blue: #2f81f7;
+    --terminal-purple: #a371f7;
+  }
 
-        connect() { this.updateStats() }
+  .ns-header {
+    padding: 1.5rem 2rem 1rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .ns-brand {
+    font-size: 1.5rem; font-weight: 700; color: var(--terminal-green);
+    display: flex; align-items: center; gap: 0.75rem;
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .ns-brand-icon { animation: ns-pulse 3s infinite; }
+  @keyframes ns-pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.7; }
+  }
+  .ns-meta { text-align: right; font-size: 0.85rem; color: var(--text-muted, #8B949E); }
+  .ns-date { color: var(--terminal-cyan); font-weight: 600; }
 
-        toggle(event) {
-          const card = event.currentTarget;
-          card.classList.toggle("selected");
-          this.updateStats();
-        }
+  .ns-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem; padding: 1rem 2rem; max-width: 1400px; margin: 0 auto;
+    padding-bottom: 200px;
+  }
 
-        toggleAll() {
-          const allSelected = this.selectedCards.length === this.cardTargets.length;
-          this.cardTargets.forEach(c => c.classList.toggle("selected", !allSelected));
-          this.updateStats();
-        }
+  .ns-card {
+    background: var(--bg-card, #161B22); border: 1px solid var(--border, #30363D);
+    border-radius: 8px; padding: 1.25rem; cursor: pointer;
+    transition: all 0.2s; display: flex; flex-direction: column; gap: 0.75rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .ns-card:hover { border-color: var(--text-muted, #8B949E); transform: translateY(-2px); }
+  .ns-card.selected {
+    border-color: var(--terminal-green); background: rgba(0, 255, 65, 0.03);
+    box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
+  }
 
-        launch() {
-          this.launchButtonTarget.disabled = true;
-          this.launchButtonTarget.innerHTML = "<span>ARMING...</span>";
-          const ids = this.selectedCards.map(c => parseInt(c.dataset.missionId));
-          const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
-          fetch("/nightshift/launch", {
-            method: "POST",
-            headers: {"Content-Type":"application/json","X-CSRF-Token":csrf,"Accept":"application/json"},
-            body: JSON.stringify({mission_ids: ids})
-          }).then(r => r.json()).then(d => {
-            if (d.success) {
-              this.systemStatusTarget.textContent = "ARMED (" + d.armed_count + " missions)";
-              this.systemStatusTarget.style.color = "var(--terminal-green)";
-              this.launchButtonTarget.innerHTML = "<span>✅ ARMED</span>";
-            } else {
-              this.launchButtonTarget.innerHTML = "<span>ERROR</span>";
-            }
-          }).catch(() => {
-            this.launchButtonTarget.disabled = false;
-            this.launchButtonTarget.innerHTML = "<span>RETRY</span>";
-          });
-        }
+  .ns-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+  .ns-checkbox {
+    width: 24px; height: 24px; border: 2px solid var(--border, #30363D);
+    border-radius: 4px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.2s; background: var(--bg-dark, #0A0E14);
+  }
+  .ns-card.selected .ns-checkbox { border-color: var(--terminal-green); background: var(--terminal-green); }
+  .ns-checkmark { color: var(--bg-dark, #0A0E14); opacity: 0; font-weight: bold; transition: all 0.2s; }
+  .ns-card.selected .ns-checkmark { opacity: 1; }
 
-        updateStats() {
-          const n = this.selectedCards.length;
-          const t = this.selectedCards.reduce((s,c) => s + parseInt(c.dataset.missionTime), 0);
-          this.countTarget.textContent = n;
-          this.timeTarget.textContent = t < 60 ? t + "m" : Math.floor(t/60) + "h " + (t%60) + "m";
-          this.launchButtonTarget.disabled = n === 0;
-          this.launchButtonTarget.innerHTML = n > 0
-            ? "<span>ARM " + n + " MISSIONS 🚀</span>"
-            : "<span>SELECT MISSIONS</span>";
-        }
+  .ns-title { font-size: 1rem; font-weight: 600; color: var(--text, #C9D1D9); }
+  .ns-desc { font-size: 0.85rem; color: var(--text-muted, #8B949E); line-height: 1.5; flex-grow: 1; }
 
-        get selectedCards() { return this.cardTargets.filter(c => c.classList.contains("selected")) }
-      });
-    })();
-    </script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        :root {
-            --terminal-green: #00FF41;
-            --terminal-amber: #FFB000;
-            --terminal-red: #FF3131;
-            --terminal-cyan: #00D4FF;
-            --terminal-blue: #2f81f7;
-            --terminal-purple: #a371f7;
-            --bg-dark: #0A0E14;
-            --bg-panel: #0D1117;
-            --bg-card: #161B22;
-            --border: #30363D;
-            --text: #C9D1D9;
-            --text-muted: #8B949E;
-            --glow-strength: 0px;
-        }
-        
-        body {
-            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-            background: var(--bg-dark);
-            color: var(--text);
-            line-height: 1.6;
-            min-height: 100vh;
-            padding-bottom: 220px;
-        }
-        
-        /* Scanline effect — disabled on mobile (blocks touch) */
-        @media (min-width: 769px) {
-          body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(0, 0, 0, 0.1) 0px,
-                rgba(0, 0, 0, 0.1) 1px,
-                transparent 1px,
-                transparent 2px
-            );
-            pointer-events: none;
-            z-index: 1000;
-            opacity: 0.3;
-          }
-        }
+  .ns-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(48, 54, 61, 0.5);
+  }
+  .ns-badge {
+    font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px;
+    text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; border: 1px solid transparent;
+  }
+  .ns-badge-codex { color: var(--terminal-cyan); border-color: rgba(0, 212, 255, 0.3); background: rgba(0, 212, 255, 0.1); }
+  .ns-badge-gemini { color: var(--terminal-green); border-color: rgba(0, 255, 65, 0.3); background: rgba(0, 255, 65, 0.1); }
+  .ns-badge-opus { color: var(--terminal-purple); border-color: rgba(163, 113, 247, 0.3); background: rgba(163, 113, 247, 0.1); }
+  .ns-badge-glm { color: var(--terminal-amber); border-color: rgba(255, 176, 0, 0.3); background: rgba(255, 176, 0, 0.1); }
+  .ns-badge-status { margin-left: 8px; }
+  .ns-badge-pending { color: var(--terminal-amber); border-color: rgba(255, 176, 0, 0.3); background: rgba(255, 176, 0, 0.1); }
+  .ns-badge-running { color: var(--terminal-blue); border-color: rgba(47, 129, 247, 0.3); background: rgba(47, 129, 247, 0.1); }
+  .ns-badge-completed { color: var(--terminal-green); border-color: rgba(0, 255, 65, 0.3); background: rgba(0, 255, 65, 0.1); }
+  .ns-time { font-size: 0.8rem; color: var(--text-muted, #8B949E); }
 
-        header {
-            background: var(--bg-panel);
-            border-bottom: 1px solid var(--border);
-            padding: 1.5rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+  .ns-panel {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg-panel, #0D1117); border-top: 1px solid var(--border, #30363D);
+    padding: 1rem 2rem; z-index: 200;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+    display: flex; justify-content: space-between; align-items: center;
+    backdrop-filter: blur(10px); font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .ns-stats { display: flex; gap: 2rem; align-items: center; }
+  .ns-stat-label { font-size: 0.7rem; color: var(--text-muted, #8B949E); text-transform: uppercase; letter-spacing: 1px; }
+  .ns-stat-value { font-size: 1.2rem; font-weight: 700; }
+  .ns-stat-highlight { color: var(--terminal-cyan); }
 
-        .brand {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--terminal-green);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            text-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
-        }
+  .ns-launch {
+    background: var(--terminal-green); color: #0A0E14; border: none;
+    padding: 0.8rem 1.5rem; font-weight: 700; font-size: 0.9rem;
+    text-transform: uppercase; letter-spacing: 1px; border-radius: 4px;
+    cursor: pointer; transition: all 0.3s; font-family: inherit;
+  }
+  .ns-launch:hover { box-shadow: 0 0 25px rgba(0, 255, 65, 0.6); }
+  .ns-launch:disabled { background: var(--border, #30363D); color: var(--text-muted, #8B949E); cursor: not-allowed; box-shadow: none; }
 
-        .brand-icon {
-            animation: pulse-slow 3s infinite;
-        }
+  .ns-toggle-all {
+    background: transparent; border: 1px solid var(--text-muted, #8B949E);
+    color: var(--text-muted, #8B949E); padding: 0.5rem 1rem; border-radius: 4px;
+    font-family: inherit; font-size: 0.8rem; cursor: pointer;
+  }
+  .ns-toggle-all:hover { border-color: var(--text, #C9D1D9); color: var(--text, #C9D1D9); }
 
-        .header-meta {
-            text-align: right;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
+  @media (max-width: 768px) {
+    .ns-header { padding: 1rem; }
+    .ns-brand { font-size: 1.1rem; }
+    .ns-meta { display: none; }
+    .ns-grid { padding: 1rem; gap: 1rem; }
+    .ns-panel { flex-direction: column; gap: 1rem; padding: 0.75rem 1rem; }
+    .ns-stats { width: 100%; justify-content: space-between; }
+    .ns-launch { width: 100%; text-align: center; }
+  }
+</style>
 
-        .date-display {
-            color: var(--terminal-cyan);
-            font-weight: 600;
-        }
-
-        .mission-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-            padding: 2rem;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .task-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.25rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .task-card:hover {
-            border-color: var(--text-muted);
-            transform: translateY(-2px);
-        }
-
-        .task-card.selected {
-            border-color: var(--terminal-green);
-            background: rgba(0, 255, 65, 0.03);
-            box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 1rem;
-        }
-
-        .checkbox-container {
-            width: 24px;
-            height: 24px;
-            border: 2px solid var(--border);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all 0.2s;
-            background: var(--bg-dark);
-        }
-
-        .task-card.selected .checkbox-container {
-            border-color: var(--terminal-green);
-            background: var(--terminal-green);
-        }
-
-        .checkmark {
-            color: var(--bg-dark);
-            opacity: 0;
-            font-weight: bold;
-            transform: scale(0.5);
-            transition: all 0.2s;
-        }
-
-        .task-card.selected .checkmark {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        .task-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text);
-            line-height: 1.3;
-        }
-
-        .task-desc {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-            flex-grow: 1;
-        }
-
-        .card-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 0.5rem;
-            padding-top: 0.75rem;
-            border-top: 1px solid rgba(48, 54, 61, 0.5);
-        }
-
-        .badge {
-            font-size: 0.7rem;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            border: 1px solid transparent;
-        }
-
-        .badge-model-codex { color: var(--terminal-cyan); border-color: rgba(0, 212, 255, 0.3); background: rgba(0, 212, 255, 0.1); }
-        .badge-model-gemini { color: var(--terminal-green); border-color: rgba(0, 255, 65, 0.3); background: rgba(0, 255, 65, 0.1); }
-        .badge-model-opus { color: var(--terminal-purple); border-color: rgba(163, 113, 247, 0.3); background: rgba(163, 113, 247, 0.1); }
-        .badge-model-glm { color: var(--terminal-amber); border-color: rgba(255, 176, 0, 0.3); background: rgba(255, 176, 0, 0.1); }
-        
-        .badge-status {
-          margin-left: 8px;
-        }
-        .badge-status-pending { color: var(--terminal-amber); border-color: rgba(255, 176, 0, 0.3); background: rgba(255, 176, 0, 0.1); }
-        .badge-status-running { color: var(--terminal-blue); border-color: rgba(47, 129, 247, 0.3); background: rgba(47, 129, 247, 0.1); }
-        .badge-status-completed { color: var(--terminal-green); border-color: rgba(0, 255, 65, 0.3); background: rgba(0, 255, 65, 0.1); }
-        .badge-status-failed { color: var(--terminal-red); border-color: rgba(255, 49, 49, 0.3); background: rgba(255, 49, 49, 0.1); }
-
-
-        .time-est {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-
-        .control-panel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-panel);
-            border-top: 1px solid var(--border);
-            padding: 1.5rem 2rem;
-            z-index: 200;
-            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
-        }
-
-        .panel-stats {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .stat-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.2rem;
-        }
-
-        .stat-label {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .stat-value {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .stat-value.highlight {
-            color: var(--terminal-cyan);
-            text-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
-        }
-
-        .launch-btn {
-            background: var(--terminal-green);
-            color: var(--bg-dark);
-            border: none;
-            padding: 1rem 2rem;
-            font-family: inherit;
-            font-weight: 700;
-            font-size: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .launch-btn:hover {
-            box-shadow: 0 0 25px rgba(0, 255, 65, 0.6);
-            transform: translateY(-2px);
-        }
-        
-        .launch-btn:active {
-            transform: translateY(0);
-        }
-
-        .launch-btn:disabled {
-            background: var(--border);
-            color: var(--text-muted);
-            cursor: not-allowed;
-            box-shadow: none;
-            transform: none;
-        }
-
-        .toggle-all {
-            background: transparent;
-            border: 1px solid var(--text-muted);
-            color: var(--text-muted);
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            font-family: inherit;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .toggle-all:hover {
-            border-color: var(--text);
-            color: var(--text);
-        }
-
-        @keyframes pulse-slow {
-            0%, 100% { opacity: 1; text-shadow: 0 0 10px rgba(0, 255, 65, 0.3); }
-            50% { opacity: 0.7; text-shadow: 0 0 5px rgba(0, 255, 65, 0.1); }
-        }
-
-        @media (max-width: 768px) {
-            header {
-                padding: 1rem;
-            }
-            .brand { font-size: 1.2rem; }
-            .header-meta { display: none; }
-            
-            .mission-grid {
-                padding: 1rem;
-                gap: 1rem;
-            }
-
-            .control-panel {
-                flex-direction: column;
-                gap: 1.5rem;
-                padding: 1rem;
-            }
-
-            .panel-stats {
-                width: 100%;
-                justify-content: space-between;
-                gap: 1rem;
-            }
-
-            .launch-btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
-        
-        .powered-by {
-            text-align: center;
-            padding: 1rem;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            opacity: 0.7;
-        }
-    </style>
-</head>
-<body data-controller="nightshift">
-
-    <header>
-        <div class="brand">
-            <span class="brand-icon">🌑</span>
-            NIGHTSHIFT
-            <span style="color: var(--text-muted); font-weight: 400;">// MISSION CONTROL</span>
-        </div>
-        <div class="header-meta">
-            <div class="date-display" id="current-date"><%= Date.today.iso8601 %></div>
-            <div>STATUS: <span data-nightshift-target="systemStatus">ONLINE</span></div>
-        </div>
-    </header>
-
-    <main class="mission-grid" data-nightshift-target="grid">
-        <% @missions.each do |mission| %>
-            <% selection = @selections[mission[:id]] %>
-            <% is_selected = selection&.enabled? %>
-            <div class="task-card <%= 'selected' if is_selected %>" 
-                 data-action="click->nightshift#toggle"
-                 data-mission-id="<%= mission[:id] %>"
-                 data-mission-time="<%= mission[:time] %>"
-                 data-nightshift-target="card">
-                 
-                <div class="card-header">
-                    <div class="checkbox-container">
-                        <span class="checkmark">✓</span>
-                    </div>
-                    <div>
-                        <div class="task-title">
-                            <%= mission[:icon] %> <%= mission[:title] %>
-                            <% if selection %>
-                                <span class="badge badge-status badge-status-<%= selection.status %>"><%= selection.status %></span>
-                            <% end %>
-                        </div>
-                    </div>
-                </div>
-                <div class="task-desc"><%= mission[:desc] %></div>
-                <div class="card-footer">
-                    <span class="badge badge-model-<%= mission[:model] %>"><%= mission[:model] %></span>
-                    <span class="time-est">⏱ ~<%= mission[:time] %>min</span>
-                </div>
-            </div>
-        <% end %>
-    </main>
-    
-    <div class="powered-by">
-        Powered by Otacon 📟 + OpenClaw
+<div data-controller="nightshift">
+  <div class="ns-header">
+    <div class="ns-brand">
+      <span class="ns-brand-icon">🌑</span>
+      NIGHTSHIFT
+      <span style="color: var(--text-muted); font-weight: 400; font-size: 0.8em;">// MISSION CONTROL</span>
     </div>
-
-    <div class="control-panel">
-        <div class="panel-stats">
-            <button type="button" class="toggle-all" data-action="click->nightshift#toggleAll">Select All</button>
-            
-            <div class="stat-group">
-                <div class="stat-label">Missions</div>
-                <div class="stat-value"><span data-nightshift-target="count">0</span> / <%= @missions.size %></div>
-            </div>
-            
-            <div class="stat-group">
-                <div class="stat-label">Est. Time</div>
-                <div class="stat-value highlight" data-nightshift-target="time">0m</div>
-            </div>
-        </div>
-        
-        <button type="button" class="launch-btn" data-action="click->nightshift#launch" data-nightshift-target="launchButton" disabled>
-            <span>Launch Nightshift</span>
-        </button>
+    <div class="ns-meta">
+      <div class="ns-date"><%= Date.today.iso8601 %></div>
+      <div>STATUS: <span data-nightshift-target="systemStatus">ONLINE</span></div>
     </div>
-</body>
-</html>
+  </div>
+
+  <div class="ns-grid" data-nightshift-target="grid">
+    <% @missions.each do |mission| %>
+      <% selection = @selections[mission[:id]] %>
+      <% is_selected = selection&.enabled? %>
+      <div class="ns-card <%= 'selected' if is_selected %>"
+           data-action="click->nightshift#toggle"
+           data-mission-id="<%= mission[:id] %>"
+           data-mission-time="<%= mission[:time] %>"
+           data-nightshift-target="card">
+        <div class="ns-card-header">
+          <div class="ns-checkbox"><span class="ns-checkmark">✓</span></div>
+          <div>
+            <div class="ns-title">
+              <%= mission[:icon] %> <%= mission[:title] %>
+              <% if selection %>
+                <span class="ns-badge ns-badge-status ns-badge-<%= selection.status %>"><%= selection.status %></span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        <div class="ns-desc"><%= mission[:desc] %></div>
+        <div class="ns-footer">
+          <span class="ns-badge ns-badge-<%= mission[:model] %>"><%= mission[:model] %></span>
+          <span class="ns-time">⏱ ~<%= mission[:time] %>min</span>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="ns-panel">
+    <div class="ns-stats">
+      <button type="button" class="ns-toggle-all" data-action="click->nightshift#toggleAll">Select All</button>
+      <div>
+        <div class="ns-stat-label">Missions</div>
+        <div class="ns-stat-value"><span data-nightshift-target="count">0</span> / <%= @missions.size %></div>
+      </div>
+      <div>
+        <div class="ns-stat-label">Est. Time</div>
+        <div class="ns-stat-value ns-stat-highlight" data-nightshift-target="time">0m</div>
+      </div>
+    </div>
+    <button type="button" class="ns-launch" data-action="click->nightshift#launch" data-nightshift-target="launchButton" disabled>
+      SELECT MISSIONS
+    </button>
+  </div>
+</div>
