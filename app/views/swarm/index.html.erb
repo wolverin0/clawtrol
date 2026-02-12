@@ -1,0 +1,45 @@
+<div data-controller="swarm-refresh">
+  <h1 class="text-2xl font-bold mb-4">Agent Swarm</h1>
+
+  <% if @error %>
+    <div class="bg-red-800 border border-red-600 text-white p-4 rounded-lg">
+      <h2 class="font-bold">Gateway Error</h2>
+      <p><%= @error %></p>
+    </div>
+  <% elsif @sessions.empty? %>
+    <div class="text-center py-12">
+      <p class="text-gray-400">No active agent sessions in the last hour.</p>
+    </div>
+  <% else %>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <% @sessions.each do |session| %>
+        <div class="bg-gray-800 border border-gray-700 rounded-lg p-4 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start">
+              <h3 class="font-bold text-lg mb-2"><%= session['label'] || 'Unnamed Session' %></h3>
+              <span class="px-2 py-1 text-xs font-semibold rounded-full <%= session['status'] == 'active' ? 'bg-green-600 text-green-100' : 'bg-yellow-600 text-yellow-100' %>">
+                <%= session['status'] %>
+              </span>
+            </div>
+            <p class="text-sm text-gray-400 mb-1"><strong>Model:</strong> <%= session['model'] %></p>
+            <p class="text-sm text-gray-400 mb-1"><strong>Tokens:</strong> <%= number_with_delimiter(session.dig('usage', 'totalTokens') || 0) %></p>
+          </div>
+          <div>
+            <% context_tokens = session.dig('usage', 'contextTokens') || 0 %>
+            <% max_tokens = session.dig('modelContextLimit') || 100000 %>
+            <% context_percent = max_tokens > 0 ? (context_tokens.to_f / max_tokens.to_f) * 100 : 0 %>
+            <div class="w-full bg-gray-700 rounded-full h-2.5 mt-4">
+              <div class="bg-blue-600 h-2.5 rounded-full" style="width: <%= context_percent %>%;"></div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1 text-right">
+              Context: <%= number_with_delimiter(context_tokens) %> / <%= number_with_delimiter(max_tokens) %> (<%= number_to_percentage(context_percent, precision: 1) %>)
+            </p>
+            <p class="text-xs text-gray-500 mt-2">
+              Last updated: <%= time_ago_in_words(Time.parse(session['updatedAt'])) %> ago
+            </p>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

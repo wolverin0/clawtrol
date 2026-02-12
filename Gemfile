@@ -80,3 +80,4 @@ end
 gem 'pagy'
 gem 'redcarpet'
 gem 'diffy'
+gem 'httparty'
