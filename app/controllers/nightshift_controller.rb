@@ -54,6 +54,7 @@ class NightshiftController < ApplicationController
       { id: 16, title: "Project Documentation (RAG)", desc: "Generate detailed technical docs for all active projects, index in Qdrant.", model: "glm", time: 45, icon: "📚" },
       { id: 17, title: "ISP Response Templates", desc: "Generate/update customer response templates for common ISP situations.", model: "glm", time: 15, icon: "💬" },
       { id: 18, title: "Dependency Mapper", desc: "Map which services each project uses (DB, APIs, queues) for blast radius analysis.", model: "glm", time: 20, icon: "🔗" },
+      { id: 19, title: "Toolchain Version Checker", desc: "Check for updates: OpenClaw, Claude Code, Gemini CLI, Codex CLI, Node.js, Ruby, Rails, n8n. Compare installed vs latest, report upgrades available.", model: "glm", time: 10, icon: "🔄" },
   ].freeze
 
   private
