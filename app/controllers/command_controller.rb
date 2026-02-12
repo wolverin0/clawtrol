@@ -42,6 +42,12 @@ class CommandController < ApplicationController
     raw = JSON.parse(stdout)
     sessions = Array(raw["sessions"]).map { |s| normalize_session(s) }
 
+    # Best-effort enrichment: try to show a last message snippet even when
+    # `openclaw sessions --json` does not include messages.
+    sessions.each do |s|
+      s[:lastMessageSnippet] = fetch_last_message_snippet(s)
+    end
+
     {
       status: "online",
       source: "cli",
@@ -106,6 +112,7 @@ class CommandController < ApplicationController
 
     {
       id: session["sessionId"] || key,
+      sessionId: session["sessionId"],
       key: key,
       label: key,
       kind: kind,
@@ -117,5 +124,90 @@ class CommandController < ApplicationController
       status: "running",
       abortedLastRun: session["abortedLastRun"]
     }
+  end
+
+  def openclaw_sessions_dir
+    ENV["OPENCLAW_SESSIONS_DIR"].presence || File.expand_path("~/.openclaw/agents/main/sessions")
+  end
+
+  def fetch_last_message_snippet(session)
+    session_id = session[:sessionId].presence || session[:id].presence
+    key = session[:key].to_s
+
+    candidates = []
+    candidates << File.join(openclaw_sessions_dir, "#{session_id}.jsonl") if session_id.present?
+
+    if key.present?
+      safe_key = key.gsub(/[^a-zA-Z0-9_.-]+/, "_")
+      candidates << File.join(openclaw_sessions_dir, "#{safe_key}.jsonl")
+    end
+
+    path = candidates.find { |p| File.file?(p) }
+    return nil unless path
+
+    read_last_message_from_jsonl(path)
+  rescue StandardError => e
+    Rails.logger.debug("command_center: snippet fetch failed: #{e.class}: #{e.message}")
+    nil
+  end
+
+  def read_last_message_from_jsonl(path)
+    max_bytes = Integer(ENV.fetch("OPENCLAW_SESSION_TAIL_BYTES", "8192"))
+
+    File.open(path, "rb") do |f|
+      size = f.size
+      f.seek([size - max_bytes, 0].max, IO::SEEK_SET)
+      tail = f.read.to_s
+
+      tail.lines.reverse_each do |line|
+        line = line.strip
+        next if line.blank?
+
+        obj = JSON.parse(line) rescue nil
+        next unless obj.is_a?(Hash)
+
+        msg = extract_message_payload(obj)
+        next unless msg
+
+        role = msg["role"] || msg[:role]
+        next unless %w[user assistant system].include?(role.to_s)
+
+        content = msg["content"] || msg[:content]
+        text = normalize_content_to_text(content)
+        next if text.blank?
+
+        # Ignore tool-ish emissions if present.
+        next if msg["tool"] || msg["tool_name"] || msg["tool_call_id"]
+
+        text = text.gsub(/\s+/, " ").strip
+        return text.length > 140 ? (text[0, 140] + "...") : text
+      end
+    end
+
+    nil
+  rescue Errno::ENOENT
+    nil
+  end
+
+  def extract_message_payload(obj)
+    return obj if obj.key?("role") && obj.key?("content")
+
+    inner = obj["message"] || obj[:message]
+    return inner if inner.is_a?(Hash) && (inner.key?("role") || inner.key?(:role))
+
+    nil
+  end
+
+  def normalize_content_to_text(content)
+    case content
+    when String
+      content
+    when Array
+      content.map { |p| p.is_a?(Hash) ? (p["text"] || p[:text] || p["content"] || p[:content]) : p }.join(" ")
+    when Hash
+      content["text"] || content[:text] || content["content"] || content[:content]
+    else
+      content.to_s
+    end
   end
 end

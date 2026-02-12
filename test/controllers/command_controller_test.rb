@@ -1,4 +1,5 @@
 require "test_helper"
+require "tmpdir"
 
 class CommandControllerTest < ActionDispatch::IntegrationTest
   setup do
@@ -50,6 +51,52 @@ class CommandControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, body["sessions"].length
     assert_equal "agent:main:main", body["sessions"][0]["key"]
     assert_equal 42, body["sessions"][0]["totalTokens"]
+  end
+
+  test "enriches session with lastMessageSnippet from jsonl when available" do
+    sign_in_as(@user)
+
+    Dir.mktmpdir do |dir|
+      ENV["OPENCLAW_SESSIONS_DIR"] = dir
+
+      File.write(
+        File.join(dir, "abc.jsonl"),
+        [
+          { type: "tool", name: "web_search", input: { q: "x" } }.to_json,
+          { type: "message", role: "assistant", content: "hello from assistant" }.to_json
+        ].join("\n") + "\n"
+      )
+
+      sample = {
+        path: "/tmp/sessions.json",
+        count: 1,
+        activeMinutes: 120,
+        sessions: [
+          {
+            key: "agent:main:main",
+            kind: "direct",
+            updatedAt: 1_700_000_000_000,
+            ageMs: 12_345,
+            sessionId: "abc",
+            totalTokens: 42,
+            model: "gpt-5.3-codex",
+            abortedLastRun: false
+          }
+        ]
+      }.to_json
+
+      fake_status = Struct.new(:success?, :exitstatus).new(true, 0)
+
+      with_stubbed_capture3([sample, "", fake_status]) do
+        get command_path(format: :json)
+      end
+
+      assert_response :success
+      body = JSON.parse(response.body)
+      assert_equal "hello from assistant", body.dig("sessions", 0, "lastMessageSnippet")
+    ensure
+      ENV.delete("OPENCLAW_SESSIONS_DIR")
+    end
   end
 
   test "returns 503 offline when openclaw is missing" do
