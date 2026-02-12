@@ -99,6 +99,47 @@ class CommandControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "does not allow sessionId path traversal when reading jsonl" do
+    sign_in_as(@user)
+
+    Dir.mktmpdir do |dir|
+      ENV["OPENCLAW_SESSIONS_DIR"] = dir
+
+      # Create a jsonl file *outside* the sessions directory.
+      outside = File.join(dir, "..", "evil.jsonl")
+      File.write(outside, { role: "assistant", content: "pwnd" }.to_json + "
+")
+
+      sample = {
+        path: "/tmp/sessions.json",
+        count: 1,
+        activeMinutes: 120,
+        sessions: [
+          {
+            key: "agent:main:main",
+            updatedAt: 1_700_000_000_000,
+            sessionId: "../evil",
+            totalTokens: 0,
+            model: "gpt-5.3-codex",
+            abortedLastRun: false
+          }
+        ]
+      }.to_json
+
+      fake_status = Struct.new(:success?, :exitstatus).new(true, 0)
+
+      with_stubbed_capture3([sample, "", fake_status]) do
+        get command_path(format: :json)
+      end
+
+      assert_response :success
+      body = JSON.parse(response.body)
+      assert_nil body.dig("sessions", 0, "lastMessageSnippet")
+    ensure
+      ENV.delete("OPENCLAW_SESSIONS_DIR")
+    end
+  end
+
   test "returns 503 offline when openclaw is missing" do
     sign_in_as(@user)
 
