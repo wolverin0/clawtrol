@@ -1,54 +1,93 @@
+require "open3"
+require "timeout"
+
 class CommandController < ApplicationController
   def index
     respond_to do |format|
       format.html
       format.json do
-        begin
-          data = fetch_gateway_data
+        data = fetch_command_center_data
+        if data[:status] == "offline"
+          render json: data, status: :service_unavailable
+        else
           render json: data
-        rescue StandardError => e
-          render json: { error: e.message, status: "offline" }, status: :service_unavailable
         end
+      rescue StandardError => e
+        Rails.logger.error("COMMAND CENTER ERROR: #{e.message}\n#{e.backtrace.join("\n")}")
+        render json: { status: "offline", error: e.message }, status: :service_unavailable
       end
     end
   end
 
   private
 
-  def fetch_gateway_data
-    # 1. Get Token
-    token = ENV['OPENCLAW_GATEWAY_TOKEN'] || ENV['CLAWTROL_GATEWAY_TOKEN'] || fetch_token_from_env_file
+  def fetch_command_center_data
+    active_minutes = Integer(ENV.fetch("OPENCLAW_SESSIONS_ACTIVE_MINUTES", "120"))
 
-    # 2. Setup Request
-    uri = URI("http://localhost:4818/api/sessions?activeMinutes=120&messageLimit=1")
-    req = Net::HTTP::Get.new(uri)
-    req['Authorization'] = "Bearer #{token}"
+    stdout, stderr, status = run_openclaw_sessions(active_minutes)
 
-    # 3. Fetch
-    res = Net::HTTP.start(uri.hostname, uri.port, open_timeout: 2, read_timeout: 3) do |http|
-      http.request(req)
+    unless status&.success?
+      msg = "openclaw sessions failed"
+      msg += " (exit=#{status.exitstatus})" if status
+      msg += ": #{stderr.strip}" if stderr.present?
+      return { status: "offline", error: msg }
     end
 
-    if res.is_a?(Net::HTTPSuccess)
-      JSON.parse(res.body)
-    else
-      { error: "Gateway returned #{res.code}", status: "error" }
-    end
-  rescue Errno::ECONNREFUSED
-    { error: "Connection refused", status: "offline" }
+    raw = JSON.parse(stdout)
+    sessions = Array(raw["sessions"]).map { |s| normalize_session(s) }
+
+    {
+      status: "online",
+      source: "cli",
+      activeMinutes: raw["activeMinutes"] || active_minutes,
+      count: raw["count"] || sessions.length,
+      path: raw["path"],
+      generatedAt: Time.current.iso8601(3),
+      sessions: sessions
+    }
+  rescue Errno::ENOENT
+    { status: "offline", error: "openclaw CLI not found" }
+  rescue Timeout::Error
+    { status: "offline", error: "openclaw sessions timed out" }
+  rescue JSON::ParserError
+    { status: "offline", error: "invalid JSON from openclaw sessions" }
   end
 
-  def fetch_token_from_env_file
-    env_path = File.expand_path("~/.openclaw/.env")
-    return nil unless File.exist?(env_path)
-
-    token = nil
-    File.foreach(env_path) do |line|
-      if line =~ /^(?:OPENCLAW|CLAWTROL)_GATEWAY_TOKEN=(.+)$/
-        token = $1.strip.gsub(/["']/, '') # Remove quotes if present
-        break if line.start_with?('OPENCLAW_') # Prefer OPENCLAW prefix if both exist
-      end
+  def run_openclaw_sessions(active_minutes)
+    Timeout.timeout(4) do
+      Open3.capture3(
+        "openclaw",
+        "sessions",
+        "--active",
+        active_minutes.to_s,
+        "--json"
+      )
     end
-    token
+  end
+
+  def normalize_session(session)
+    key = session["key"].to_s
+    kind = key.include?(":cron:") ? "cron" : "agent"
+
+    updated_at_ms = session["updatedAt"]
+    updated_at = begin
+      updated_at_ms ? Time.at(updated_at_ms.to_f / 1000.0) : nil
+    rescue StandardError
+      nil
+    end
+
+    {
+      id: session["sessionId"] || key,
+      key: key,
+      label: key,
+      kind: kind,
+      model: session["model"],
+      totalTokens: session["totalTokens"],
+      tokens: session["totalTokens"],
+      updatedAt: updated_at&.iso8601(3),
+      lastActive: updated_at&.iso8601(3),
+      status: "running",
+      abortedLastRun: session["abortedLastRun"]
+    }
   end
 end
