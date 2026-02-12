@@ -25,9 +25,27 @@ class WorkflowsController < ApplicationController
 
   def update
     if @workflow.update(workflow_params)
-      redirect_to editor_workflow_path(@workflow), notice: "Workflow saved."
+      respond_to do |format|
+        format.html { redirect_to editor_workflow_path(@workflow), notice: "Workflow saved." }
+        format.json do
+          render json: {
+            ok: true,
+            workflow: {
+              id: @workflow.id,
+              title: @workflow.title,
+              active: @workflow.active,
+              definition: @workflow.definition
+            }
+          }
+        end
+      end
     else
-      render :edit, status: :unprocessable_entity
+      respond_to do |format|
+        format.html { render :edit, status: :unprocessable_entity }
+        format.json do
+          render json: { ok: false, errors: @workflow.errors.full_messages }, status: :unprocessable_entity
+        end
+      end
     end
   end
 
