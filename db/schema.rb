@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_12_000052) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_12_011551) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -448,6 +448,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_000052) do
     t.string "review_type"
     t.integer "run_count", default: 0, null: false
     t.boolean "showcase_winner", default: false, null: false
+    t.jsonb "state_data", default: {}, null: false
     t.integer "status", default: 0, null: false
     t.text "suggested_followup"
     t.string "tags", default: [], array: true

@@ -1321,6 +1321,7 @@ module Api
           run_count: task.respond_to?(:run_count) ? task.run_count : 0,
           last_run_id: task.respond_to?(:last_run_id) ? task.last_run_id : nil,
           last_outcome_at: task.respond_to?(:last_outcome_at) ? task.last_outcome_at&.iso8601 : nil,
+          state_data: task.state_data,
           last_needs_follow_up: task.respond_to?(:last_needs_follow_up) ? task.last_needs_follow_up : nil,
           last_recommended_action: task.respond_to?(:last_recommended_action) ? task.last_recommended_action : nil,
           suggested_followup: task.suggested_followup,

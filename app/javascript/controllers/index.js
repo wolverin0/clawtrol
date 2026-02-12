@@ -32,6 +32,7 @@ import MarketingTreeController from "controllers/marketing_tree_controller"
 import ShowcaseTabsController from "controllers/showcase_tabs_controller"
 import MobileNavController from "controllers/mobile_nav_controller"
 import NightshiftController from "controllers/nightshift_controller"
+import SwarmRefreshController from "controllers/swarm_refresh_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -60,3 +61,4 @@ application.register("marketing-tree", MarketingTreeController)
 application.register("showcase-tabs", ShowcaseTabsController)
 application.register("mobile-nav", MobileNavController)
 application.register("nightshift", NightshiftController)
+application.register("swarm-refresh", SwarmRefreshController)
