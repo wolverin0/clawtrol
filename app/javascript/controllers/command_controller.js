@@ -104,11 +104,29 @@ export default class extends Controller {
     `
   }
 
+  copySession(event) {
+    const el = event.currentTarget
+    const sessionId = el?.dataset?.sessionId
+
+    if (!sessionId) return
+
+    // Best-effort copy; no hard failure on unsupported browsers.
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(sessionId).catch(() => {})
+    }
+
+    // Visual feedback (brief)
+    el.classList.add("ring", "ring-accent/30")
+    window.setTimeout(() => {
+      el.classList.remove("ring", "ring-accent/30")
+    }, 350)
+  }
+
   buildSessionCard(session) {
     const modelColor = this.getModelColor(session.model)
     const timeRunning = this.formatDuration(session.startedAt)
     const tokenPercent = Math.min((session.tokens / 128000) * 100, 100) // Arbitrary scale for visual
-    
+
     // Extract last message safely. Newer backend returns lastMessageSnippet
     // even when messages are not included in the session list.
     let lastMsg = session.lastMessageSnippet
@@ -122,20 +140,31 @@ export default class extends Controller {
       lastMsg = session.updatedAt ? `Last active: ${session.updatedAt}` : "No messages yet"
     }
 
+    const safeLastMsg = String(lastMsg)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+
+    const sessionId = session.sessionId || session.id
+
     return `
-      <div class="bg-card border border-border rounded-lg p-4 flex flex-col gap-3 shadow-sm hover:border-accent/50 transition-colors">
+      <button type="button"
+              data-action="click->command#copySession"
+              data-session-id="${sessionId}"
+              class="text-left w-full bg-card border border-border rounded-lg p-4 flex flex-col gap-3 shadow-sm hover:border-accent/50 transition-colors cursor-pointer active:scale-[1.02]">
         <div class="flex justify-between items-start">
           <div class="flex flex-col">
             <h3 class="font-medium text-text truncate max-w-[200px]" title="${session.label || session.id}">
               ${session.label || session.id.substring(0, 8)}
             </h3>
             <span class="text-xs text-muted font-mono">${session.kind || 'agent'}</span>
+            <span class="text-[10px] text-muted/70">Tap to copy session id</span>
           </div>
           <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${modelColor}">
             ${session.model || 'unknown'}
           </span>
         </div>
-        
+
         <div class="space-y-1">
           <div class="flex justify-between text-xs text-muted">
             <span>Tokens: <span class="font-mono text-text">${session.tokens || 0}</span></span>
@@ -147,10 +176,10 @@ export default class extends Controller {
         </div>
 
         <div class="bg-black/30 rounded p-2 text-xs text-muted font-mono overflow-hidden h-16 relative">
-          ${String(lastMsg).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}
-          <div class="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-black/30 to-transparent"></div>
+          ${safeLastMsg}
+          <div class="pointer-events-none absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-black/30 to-transparent"></div>
         </div>
-      </div>
+      </button>
     `
   }
 
