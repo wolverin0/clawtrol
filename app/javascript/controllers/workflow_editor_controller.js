@@ -5,7 +5,8 @@ import { Controller } from "@hotwired/stimulus"
 // { nodes: [{id,type,label,x,y,props}], edges: [{from,to}] }
 export default class extends Controller {
   static values = {
-    initialDefinition: String
+    initialDefinition: String,
+    workflowId: String
   }
 
   static targets = [
@@ -14,7 +15,8 @@ export default class extends Controller {
     "definitionInput",
     "selectedSummary",
     "labelInput",
-    "typeDisplay"
+    "typeDisplay",
+    "autosaveIndicator"
   ]
 
   connect() {
@@ -25,18 +27,34 @@ export default class extends Controller {
 
     this.dragging = null // { id, startX, startY, originX, originY }
 
+    this.dirty = false
+    this.saving = false
+    this.lastSavedDefinition = null
+
     this.loadInitial()
+    this.persist() // ensure hidden input matches initial
+    this.lastSavedDefinition = this.definitionInputTarget?.value
+    this.dirty = false
+    if (this.autosaveTimer) window.clearTimeout(this.autosaveTimer)
     this.render()
 
     this.boundOnPointerMove = this.onPointerMove.bind(this)
     this.boundOnPointerUp = this.onPointerUp.bind(this)
     window.addEventListener("pointermove", this.boundOnPointerMove)
     window.addEventListener("pointerup", this.boundOnPointerUp)
+
+    this.boundBeforeUnload = this.beforeUnload.bind(this)
+    window.addEventListener("beforeunload", this.boundBeforeUnload)
+
+    this.updateAutosaveIndicator()
   }
 
   disconnect() {
     window.removeEventListener("pointermove", this.boundOnPointerMove)
     window.removeEventListener("pointerup", this.boundOnPointerUp)
+    window.removeEventListener("beforeunload", this.boundBeforeUnload)
+
+    if (this.autosaveTimer) window.clearTimeout(this.autosaveTimer)
   }
 
   loadInitial() {
@@ -340,6 +358,95 @@ export default class extends Controller {
     }
 
     this.definitionInputTarget.value = JSON.stringify(def)
+    this.markDirty()
+    this.scheduleAutosave()
+  }
+
+  markDirty() {
+    // New workflows (not persisted) can't autosave yet.
+    const current = this.definitionInputTarget?.value
+    if (current && this.lastSavedDefinition && current === this.lastSavedDefinition) {
+      this.dirty = false
+    } else {
+      this.dirty = true
+    }
+    this.updateAutosaveIndicator()
+  }
+
+  beforeUnload(event) {
+    if (!this.dirty) return
+    // Modern browsers ignore custom messages but require returnValue set.
+    event.preventDefault()
+    event.returnValue = "You have unsaved workflow changes."
+  }
+
+  scheduleAutosave() {
+    if (!this.workflowIdValue) return
+
+    if (this.autosaveTimer) window.clearTimeout(this.autosaveTimer)
+    this.autosaveTimer = window.setTimeout(() => {
+      this.autosave().catch(() => {})
+    }, 800)
+  }
+
+  async autosave() {
+    if (!this.workflowIdValue) return
+    if (!this.dirty) return
+    if (this.saving) return
+
+    this.saving = true
+    this.updateAutosaveIndicator()
+
+    const tokenEl = document.querySelector("meta[name='csrf-token']")
+    const csrfToken = tokenEl ? tokenEl.getAttribute("content") : null
+
+    const res = await fetch(`/workflows/${this.workflowIdValue}.json`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {})
+      },
+      body: JSON.stringify({
+        workflow: {
+          definition: this.definitionInputTarget.value
+        }
+      })
+    })
+
+    const payload = await res.json().catch(() => ({}))
+
+    this.saving = false
+
+    if (!res.ok || payload.ok === false) {
+      this.updateAutosaveIndicator({ error: true })
+      return
+    }
+
+    this.lastSavedDefinition = this.definitionInputTarget.value
+    this.dirty = false
+    this.updateAutosaveIndicator()
+  }
+
+  updateAutosaveIndicator(opts = {}) {
+    if (!this.hasAutosaveIndicatorTarget) return
+
+    if (!this.workflowIdValue) {
+      this.autosaveIndicatorTarget.textContent = "(save to enable autosave)"
+      return
+    }
+
+    if (opts.error) {
+      this.autosaveIndicatorTarget.textContent = "Autosave failed"
+      return
+    }
+
+    if (this.saving) {
+      this.autosaveIndicatorTarget.textContent = "Saving…"
+      return
+    }
+
+    this.autosaveIndicatorTarget.textContent = this.dirty ? "Unsaved changes" : "Saved"
   }
 
   // --- UI helpers ---

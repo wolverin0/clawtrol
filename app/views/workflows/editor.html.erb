@@ -2,7 +2,8 @@
 <% content_for :breadcrumb_standalone, "Workflow Editor" %>
 
 <div class="mt-6" data-controller="workflow-editor"
-     data-workflow-editor-initial-definition-value="<%= j(@workflow.definition.to_json) %>">
+     data-workflow-editor-initial-definition-value="<%= j(@workflow.definition.to_json) %>"
+     data-workflow-editor-workflow-id-value="<%= @workflow.persisted? ? @workflow.id : '' %>">
 
   <div class="flex items-center justify-between mb-4">
     <div class="min-w-0">
@@ -31,6 +32,7 @@
         <button type="button" data-action="workflow-editor#addRouter" class="px-2.5 py-1 text-xs font-medium bg-bg-elevated border border-border rounded hover:bg-bg-hover">+ Router</button>
         <button type="button" data-action="workflow-editor#addTrigger" class="px-2.5 py-1 text-xs font-medium bg-bg-elevated border border-border rounded hover:bg-bg-hover">+ Trigger</button>
         <span class="text-[11px] text-content-muted ml-2" data-workflow-editor-status></span>
+        <span class="text-[11px] text-content-muted ml-2" data-workflow-editor-target="autosaveIndicator"></span>
         <div class="ml-auto flex items-center gap-2">
           <button type="button" data-action="workflow-editor#clear" class="px-2.5 py-1 text-xs font-medium bg-red-500/10 text-red-300 border border-red-500/30 rounded hover:bg-red-500/15">Clear</button>
         </div>
