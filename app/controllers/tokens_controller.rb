@@ -2,6 +2,8 @@ require "open3"
 require "timeout"
 
 class TokensController < ApplicationController
+  before_action :require_authentication
+
   def index
     respond_to do |format|
       format.html
@@ -72,14 +74,27 @@ class TokensController < ApplicationController
   def normalize_session(session)
     updated_at = ms_to_time(session["updatedAt"])
 
-    total_tokens = session["totalTokens"]
+    total_tokens = session["totalTokens"].to_i
+    context_tokens = session["contextTokens"].to_i
+    input_tokens = session["inputTokens"].to_i
+    output_tokens = session["outputTokens"].to_i
+
+    context_usage_pct = if context_tokens.positive?
+      ((total_tokens.to_f / context_tokens) * 100)
+    else
+      0.0
+    end
 
     {
       id: session["sessionId"] || session["key"],
       sessionId: session["sessionId"],
       key: session["key"].to_s,
       model: session["model"],
+      contextTokens: context_tokens,
       totalTokens: total_tokens,
+      inputTokens: input_tokens,
+      outputTokens: output_tokens,
+      contextUsagePct: context_usage_pct.round(1),
       updatedAt: updated_at&.iso8601(3),
       abortedLastRun: session["abortedLastRun"],
       kind: session["key"].to_s.include?(":cron:") ? "cron" : "agent"

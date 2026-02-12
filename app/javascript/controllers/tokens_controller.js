@@ -4,6 +4,7 @@ export default class extends Controller {
   static targets = ["status", "error", "summary", "list", "empty"]
 
   connect() {
+    this.expanded = new Set()
     this.refresh()
     this.timer = setInterval(() => this.refresh(), 15000)
   }
@@ -38,7 +39,21 @@ export default class extends Controller {
     }
   }
 
+  toggle(event) {
+    const id = event.currentTarget?.dataset?.sessionId
+    if (!id) return
+
+    if (this.expanded.has(id)) this.expanded.delete(id)
+    else this.expanded.add(id)
+
+    const details = this.element.querySelector(`[data-session-details='${CSS.escape(id)}']`)
+    if (details) details.classList.toggle("hidden")
+  }
+
   copy(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
     const el = event.currentTarget
     const id = el?.dataset?.sessionId
     if (!id) return
@@ -91,39 +106,89 @@ export default class extends Controller {
     sessions.sort((a, b) => (b.totalTokens || 0) - (a.totalTokens || 0))
 
     this.listTarget.innerHTML = sessions.map(s => this.buildRow(s)).join("")
+
+    // Restore expanded state after rerender
+    this.expanded.forEach(id => {
+      const details = this.element.querySelector(`[data-session-details='${CSS.escape(id)}']`)
+      if (details) details.classList.remove("hidden")
+    })
   }
 
   buildRow(s) {
-    const tokens = Number(s.totalTokens || 0)
-    const pct = Math.min(Math.round((tokens / 128000) * 100), 100)
+    const sessionId = s.sessionId || s.id
+    const totalTokens = Number(s.totalTokens || 0)
+    const ctx = Number(s.contextTokens || 0)
+
+    const pct = ctx > 0 ? Math.min(Math.round((totalTokens / ctx) * 100), 100) : 0
+    const color = this.pctColor(pct)
+
     const badge = this.modelBadge(s.model)
+    const updated = this.formatTime(s.updatedAt)
 
     return `
-      <button type="button"
-              class="w-full text-left bg-card border border-border rounded-lg px-4 py-3 hover:border-accent/50 transition-colors"
-              data-action="click->tokens#copy"
-              data-session-id="${this.escapeAttr(s.sessionId || s.id)}">
-        <div class="flex justify-between items-start gap-3">
-          <div class="min-w-0">
-            <div class="font-medium text-text truncate">${this.escapeHtml(s.key || s.sessionId || s.id)}</div>
-            <div class="text-xs text-muted font-mono truncate">${this.escapeHtml(s.sessionId || s.id)}</div>
+      <div class="bg-card border border-border rounded-lg hover:border-accent/50 transition-colors">
+        <button type="button"
+                class="w-full text-left px-4 py-3"
+                data-action="click->tokens#toggle"
+                data-session-id="${this.escapeAttr(sessionId)}">
+          <div class="flex justify-between items-start gap-3">
+            <div class="min-w-0">
+              <div class="font-medium text-text truncate">${this.escapeHtml(s.key || sessionId)}</div>
+              <div class="text-xs text-muted font-mono truncate">${this.escapeHtml(sessionId)}</div>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${badge}">
+                ${this.escapeHtml(s.model || "unknown")}
+              </span>
+              <button type="button"
+                      class="px-2 py-1 rounded-md bg-gray-500/10 hover:bg-gray-500/20 text-muted text-[10px] font-semibold"
+                      title="Copy session id"
+                      data-action="click->tokens#copy"
+                      data-session-id="${this.escapeAttr(sessionId)}">
+                COPY
+              </button>
+            </div>
           </div>
-          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${badge}">
-            ${this.escapeHtml(s.model || "unknown")}
-          </span>
-        </div>
 
-        <div class="mt-2 space-y-1">
-          <div class="flex justify-between text-xs text-muted">
-            <span>Tokens: <span class="font-mono text-text">${this.formatInt(tokens)}</span></span>
-            <span class="font-mono">${pct}% ctx</span>
+          <div class="mt-2 space-y-1">
+            <div class="flex justify-between text-xs text-muted">
+              <span>Total: <span class="font-mono text-text">${this.formatInt(totalTokens)}</span></span>
+              <span class="font-mono">${pct}% ctx</span>
+            </div>
+            <div class="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+              <div class="h-full rounded-full ${color}" style="width:${pct}%"></div>
+            </div>
           </div>
-          <div class="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-            <div class="h-full bg-accent/70 rounded-full" style="width:${pct}%"></div>
+        </button>
+
+        <div class="hidden px-4 pb-4" data-session-details="${this.escapeAttr(sessionId)}">
+          <div class="mt-2 grid grid-cols-2 gap-3 text-xs">
+            <div class="bg-gray-500/5 border border-white/5 rounded-md p-2">
+              <div class="text-muted">Context Tokens</div>
+              <div class="font-mono text-text mt-0.5">${this.formatInt(ctx)}</div>
+            </div>
+            <div class="bg-gray-500/5 border border-white/5 rounded-md p-2">
+              <div class="text-muted">Last Updated</div>
+              <div class="font-mono text-text mt-0.5">${this.escapeHtml(updated)}</div>
+            </div>
+            <div class="bg-gray-500/5 border border-white/5 rounded-md p-2">
+              <div class="text-muted">Input / Output</div>
+              <div class="font-mono text-text mt-0.5">${this.formatInt(s.inputTokens)} / ${this.formatInt(s.outputTokens)}</div>
+            </div>
+            <div class="bg-gray-500/5 border border-white/5 rounded-md p-2">
+              <div class="text-muted">Kind</div>
+              <div class="font-mono text-text mt-0.5">${this.escapeHtml(s.kind || "—")}${s.abortedLastRun ? " · aborted" : ""}</div>
+            </div>
           </div>
         </div>
-      </button>
+      </div>
     `
+  }
+
+  pctColor(pct) {
+    if (pct >= 80) return "bg-red-500/80"
+    if (pct >= 50) return "bg-yellow-500/80"
+    return "bg-green-500/80"
   }
 
   modelBadge(model) {
