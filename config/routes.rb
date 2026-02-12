@@ -136,6 +136,14 @@ Rails.application.routes.draw do
   # Agent Swarm View
   get "command", to: "command#index"
 
+  # Cron jobs (OpenClaw Gateway)
+  resources :cronjobs, only: [:index] do
+    member do
+      post :toggle
+      post :run
+    end
+  end
+
   # Workflows
   resources :workflows, only: [:index, :new, :create, :edit, :update] do
     collection do
