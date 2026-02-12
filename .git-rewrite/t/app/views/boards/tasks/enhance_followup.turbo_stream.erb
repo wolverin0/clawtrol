@@ -1,9 +1,0 @@
-<%= turbo_stream.replace "followup_description" do %>
-  <%= text_area_tag :followup_description,
-      @enhanced,
-      id: "followup_description",
-      placeholder: "Add notes for the follow-up task...",
-      rows: 4,
-      data: { enhance_followup_target: "textarea" },
-      class: "w-full text-sm leading-snug bg-bg-elevated border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/50 text-content-secondary placeholder-content-muted resize-none px-3 py-3" %>
-<% end %>
