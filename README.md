@@ -77,6 +77,9 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - `?` — Help modal with all shortcuts
 
 ### 📱 Mobile Responsive
+- **Hamburger Menu** — Slide-out navigation panel (md:hidden) with all 11 nav links + Settings
+- **Board Tabs as Dropdown** — `<select>` dropdown on mobile instead of horizontal scroll
+- **Memory Panel** — Fixed positioning on mobile, absolute on desktop
 - **Column Switcher** — Swipeable tab bar for kanban columns on mobile
 - **Bottom Nav** — Fixed navigation (Dashboard/Board/Terminal/Settings)
 - **Slide-in Panel** — Task modal slides from right on mobile, centered overlay on desktop
@@ -85,7 +88,8 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Card Progressive Disclosure** — Model-colored left borders (purple=Opus, green=Gemini, etc), hover badges
 - **Undo Toast** — 5-second countdown on status changes with undo revert
 - **Dark Theme** — WCAG-compliant contrast, column tints, done card dimming
-- **File Viewer** — Browse agent output files in-modal with fullscreen expand + markdown rendering
+- **File Viewer** — Browse agent output files in-modal with fullscreen expand + markdown rendering (`/view?file=path`)
+- **Search** — Full-text search across all tasks with trigram indexing
 - **Task Templates** — Slash commands in add-card: `/review`, `/bug`, `/doc`, `/test`, `/research`
 - **Done Counter** — Today's completed tasks in header
 - **Copy URL** — One-click copy task URL for sharing
@@ -94,6 +98,22 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 ### ⏰ Scheduling
 - **Nightly Tasks** — Delay execution until night hours
 - **Recurring Tasks** — Daily/weekly/monthly templates with time picker
+
+### 🌙 Nightshift Mission Control
+- **18 Automated Missions** — Pre-configured nightly tasks: security scans, dependency updates, financial reports, network monitoring, email triage, tech news, RAG reindexing, and more
+- **Mission Selector UI** — Terminal-themed `/nightshift` page with checkboxes, model indicators (Codex/Gemini/GLM), and estimated time per mission
+- **Persistent Selections** — Mission picks saved to DB per night via `NightshiftSelection` model
+- **Orchestrator Cron** — Central 1am cron reads selections and launches only chosen missions
+- **Status Tracking** — Each mission reports back: pending → running → completed/failed
+- **API Integration** — `GET /api/v1/nightshift/selections` + `PATCH` for agent status reporting
+- **Evening Planning** — 21:00 cron sends day review + nightshift planner via Telegram
+
+### 🔗 Link Inbox (Saved Links)
+- **Save & Process URLs** — `/saved_links` page to save URLs for AI analysis
+- **Gemini Processing** — One-click "Process with Gemini" button runs analysis via Gemini CLI (OAuth, no API key)
+- **Batch Processing** — Process all pending links at once
+- **Nightshift Integration** — Auto-process pending links during nightly runs
+- **X/Twitter Support** — Uses fxtwitter API for tweet content extraction
 
 ### 🌙 Nightbeat Integration
 - **Moon-Marked Tasks** — Nightly tasks are marked with a moon 🌙 icon
@@ -177,7 +197,7 @@ If you're integrating manually:
 - **ActionCable** — WebSocket for real-time kanban + agent activity
 - **Hotwire** (Turbo + Stimulus) + **Tailwind CSS v4**
 - **Propshaft** — Asset pipeline with importmap-rails
-- **41 Stimulus Controllers** — Full client-side interactivity
+- **45+ Stimulus Controllers** — Full client-side interactivity
 - **Authentication** via GitHub OAuth or email/password
 - **Docker Compose** — Production-ready setup with `install.sh`
 
@@ -501,6 +521,41 @@ POST /api/v1/models/:name/limit
 ```
 
 ---
+
+### Nightshift
+
+```bash
+# List tonight's mission selections
+GET /api/v1/nightshift/selections
+
+# Update mission status (for agents reporting back)
+PATCH /api/v1/nightshift/selections/:id
+{ "status": "completed", "result": "All checks passed" }
+
+# List all available missions
+GET /api/v1/nightshift/tasks
+
+# Launch selected missions
+POST /api/v1/nightshift/launch
+{ "task_ids": [1, 3, 5] }
+```
+
+### Saved Links
+
+```bash
+# List saved links
+GET /api/v1/saved_links
+
+# Create saved link
+POST /api/v1/saved_links
+{ "url": "https://github.com/example/repo", "title": "Example Repo" }
+
+# Update saved link
+PATCH /api/v1/saved_links/:id
+
+# Get pending links
+GET /api/v1/saved_links/pending
+```
 
 ### Recurring Tasks
 
