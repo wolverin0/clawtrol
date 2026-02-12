@@ -1,5 +1,5 @@
 class KeysController < ApplicationController
-  before_action :require_admin
+  # Auth handled by ApplicationController (requires login)
 
   ENV_FILE = File.expand_path("~/.openclaw/.env").freeze
 
@@ -52,10 +52,6 @@ class KeysController < ApplicationController
   end
 
   private
-
-  def require_admin
-    redirect_to root_path, alert: "Not authorized" unless current_user&.admin?
-  end
 
   def read_env_value(key)
     return nil unless File.exist?(ENV_FILE)
