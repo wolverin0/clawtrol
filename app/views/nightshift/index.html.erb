@@ -15,7 +15,8 @@
         connect() { this.updateStats() }
 
         toggle(event) {
-          event.currentTarget.classList.toggle("selected");
+          const card = event.currentTarget;
+          card.classList.toggle("selected");
           this.updateStats();
         }
 
@@ -28,7 +29,7 @@
         launch() {
           this.launchButtonTarget.disabled = true;
           this.launchButtonTarget.innerHTML = "<span>ARMING...</span>";
-          const ids = this.selectedCards.map(c => parseInt(c.dataset.missionIdParam));
+          const ids = this.selectedCards.map(c => parseInt(c.dataset.missionId));
           const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
           fetch("/nightshift/launch", {
             method: "POST",
@@ -50,7 +51,7 @@
 
         updateStats() {
           const n = this.selectedCards.length;
-          const t = this.selectedCards.reduce((s,c) => s + parseInt(c.dataset.missionTimeParam), 0);
+          const t = this.selectedCards.reduce((s,c) => s + parseInt(c.dataset.missionTime), 0);
           this.countTarget.textContent = n;
           this.timeTarget.textContent = t < 60 ? t + "m" : Math.floor(t/60) + "h " + (t%60) + "m";
           this.launchButtonTarget.disabled = n === 0;
@@ -92,7 +93,7 @@
             color: var(--text);
             line-height: 1.6;
             min-height: 100vh;
-            padding-bottom: 120px;
+            padding-bottom: 220px;
         }
         
         /* Scanline effect — disabled on mobile (blocks touch) */
@@ -444,8 +445,8 @@
             <% is_selected = selection&.enabled? %>
             <div class="task-card <%= 'selected' if is_selected %>" 
                  data-action="click->nightshift#toggle"
-                 data-mission-id-param="<%= mission[:id] %>"
-                 data-mission-time-param="<%= mission[:time] %>"
+                 data-mission-id="<%= mission[:id] %>"
+                 data-mission-time="<%= mission[:time] %>"
                  data-nightshift-target="card">
                  
                 <div class="card-header">

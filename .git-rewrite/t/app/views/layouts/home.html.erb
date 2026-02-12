@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ClawDeck - Mission Control for Your AI Agents</title>
+    <meta name="description" content="Open source dashboard to manage, monitor, and orchestrate your AI agent. Built for OpenClaw.">
+
+    <%# Open Graph / Facebook %>
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://clawdeck.io/">
+    <meta property="og:title" content="ClawDeck - Mission Control for Your AI Agents">
+    <meta property="og:description" content="Open source dashboard to manage, monitor, and orchestrate your AI agent. Built for OpenClaw.">
+    <meta property="og:image" content="<%= image_url('og-image.png') %>">
+
+    <%# Twitter %>
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://clawdeck.io/">
+    <meta property="twitter:title" content="ClawDeck - Mission Control for Your AI Agents">
+    <meta property="twitter:description" content="Open source dashboard to manage, monitor, and orchestrate your AI agent. Built for OpenClaw.">
+    <meta property="twitter:image" content="<%= image_url('og-image.png') %>">
+    <meta name="twitter:creator" content="@andresmax">
+
+    <%# Canonical URL %>
+    <link rel="canonical" href="https://clawdeck.io/">
+
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ClawDeck">
+    <meta name="application-name" content="ClawDeck">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#050810">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%# Schema.org structured data %>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "ClawDeck",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Open source dashboard to manage, monitor, and orchestrate your AI agent. Built for OpenClaw.",
+      "url": "https://clawdeck.io/"
+    }
+    </script>
+
+    <%# Fonts: Clash Display (headlines) + Satoshi (body) %>
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@700,600,500&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+
+    <%= yield :head %>
+    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+
+    <%# Favicons %>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+    <%= render "application/plausible_analytics" %>
+  </head>
+  <body class="bg-bg-base min-h-screen text-content" style="font-family: 'Satoshi', sans-serif;">
+    <%# Starry background effect %>
+    <div class="stars"></div>
+    <div class="nebula"></div>
+    <%= yield %>
+  </body>
+</html>

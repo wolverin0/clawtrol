@@ -1,5 +1,6 @@
 class NightshiftController < ApplicationController
   skip_forgery_protection only: :launch
+  layout false, only: :index
 
   def index
     @missions = nightshift_missions

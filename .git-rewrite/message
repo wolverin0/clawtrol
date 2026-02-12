@@ -1,0 +1,4 @@
+fix: NEXT button persists after drag between columns
+
+Root cause: SortableJS was moving DOM elements without re-rendering.
+Now update_task_status returns HTML and sortable_controller replaces the card.

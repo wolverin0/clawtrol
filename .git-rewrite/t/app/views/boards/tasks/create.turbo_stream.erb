@@ -1,0 +1,18 @@
+<%# Append the new task to the bottom of the appropriate column %>
+<%= turbo_stream.append "column-#{@task.status}" do %>
+  <%= render "boards/task_card", task: @task %>
+<% end %>
+
+<%# Close the modal by replacing the frame with empty content %>
+<%= turbo_stream.update "new_task_modal", "" %>
+
+<%# Update the column count %>
+<% column_count = @board.tasks.where(status: @task.status).count %>
+<%= turbo_stream.replace "column-#{@task.status}-count" do %>
+  <span id="column-<%= @task.status %>-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded"><%= column_count %></span>
+<% end %>
+
+<%# Update the header count if it's inbox or in_progress %>
+<% if %w[inbox in_progress].include?(@task.status) %>
+  <%= turbo_stream.update "header-#{@task.status}-count", column_count.to_s %>
+<% end %>

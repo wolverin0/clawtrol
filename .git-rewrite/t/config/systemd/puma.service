@@ -1,0 +1,21 @@
+[Unit]
+Description=Puma HTTP Server for ClawDeck
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/clawdeck
+Environment=RAILS_ENV=production
+EnvironmentFile=/var/www/clawdeck/.env.production
+ExecStart=/root/.rbenv/shims/bundle exec puma -C config/puma.rb
+ExecReload=/bin/kill -USR1 $MAINPID
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/clawdeck/puma.log
+StandardError=append:/var/log/clawdeck/puma_error.log
+SyslogIdentifier=clawdeck-puma
+
+[Install]
+WantedBy=multi-user.target

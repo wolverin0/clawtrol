@@ -1,0 +1,20 @@
+[Unit]
+Description=Solid Queue Worker for ClawDeck
+After=network.target postgresql.service puma.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/clawdeck
+Environment=RAILS_ENV=production
+EnvironmentFile=/var/www/clawdeck/.env.production
+ExecStart=/root/.rbenv/shims/bundle exec rake solid_queue:start
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/clawdeck/solid_queue.log
+StandardError=append:/var/log/clawdeck/solid_queue_error.log
+SyslogIdentifier=clawdeck-solid-queue
+
+[Install]
+WantedBy=multi-user.target
