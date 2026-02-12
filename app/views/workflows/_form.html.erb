@@ -1,0 +1,40 @@
+<%= form_with model: workflow, class: "space-y-6" do |f| %>
+  <% if workflow.errors.any? %>
+    <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+      <p class="text-sm font-semibold text-red-300">Please fix the following:</p>
+      <ul class="text-xs text-red-200 mt-2 list-disc ml-5 space-y-1">
+        <% workflow.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :title, class: "block text-xs font-medium text-content-muted" %>
+    <%= f.text_field :title, class: "mt-1 w-full px-3 py-2 text-sm bg-bg-surface border border-border rounded-md text-content focus:outline-none focus:ring-2 focus:ring-accent/50" %>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <%= f.check_box :active, class: "rounded border-border bg-bg-surface" %>
+    <%= f.label :active, "Active", class: "text-xs text-content" %>
+  </div>
+
+  <div>
+    <%= f.label :definition, "Definition (JSON)", class: "block text-xs font-medium text-content-muted" %>
+    <%= f.text_area :definition, value: workflow.definition.to_json, rows: 10, class: "mt-1 w-full px-3 py-2 text-xs font-mono bg-bg-surface border border-border rounded-md text-content focus:outline-none focus:ring-2 focus:ring-accent/50" %>
+    <p class="text-[11px] text-content-muted mt-1">You usually don’t need to edit this directly — use the editor.</p>
+  </div>
+
+  <div class="flex items-center justify-between">
+    <%= link_to "Back", workflows_path, class: "text-xs text-content-secondary hover:text-content" %>
+    <div class="flex items-center gap-2">
+      <% if workflow.persisted? %>
+        <%= link_to "Open editor", editor_workflow_path(workflow), class: "px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-elevated border border-border rounded-md hover:bg-bg-hover transition-colors" %>
+      <% else %>
+        <%= link_to "Open editor", editor_workflows_path, class: "px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-elevated border border-border rounded-md hover:bg-bg-hover transition-colors" %>
+      <% end %>
+      <%= f.submit "Save", class: "px-3 py-1.5 text-xs font-medium text-content bg-accent hover:bg-accent-hover rounded-md transition-colors" %>
+    </div>
+  </div>
+<% end %>

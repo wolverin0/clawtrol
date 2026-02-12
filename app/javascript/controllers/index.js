@@ -34,6 +34,7 @@ import MobileNavController from "controllers/mobile_nav_controller"
 import NightshiftController from "controllers/nightshift_controller"
 import SwarmRefreshController from "controllers/swarm_refresh_controller"
 import CommandController from "controllers/command_controller"
+import WorkflowEditorController from "controllers/workflow_editor_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -64,3 +65,4 @@ application.register("mobile-nav", MobileNavController)
 application.register("nightshift", NightshiftController)
 application.register("swarm-refresh", SwarmRefreshController)
 application.register("command", CommandController)
+application.register("workflow-editor", WorkflowEditorController)
