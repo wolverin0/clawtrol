@@ -3,6 +3,7 @@ require "test_helper"
 class CommandControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
+    Rails.cache.clear
   end
 
   test "unauthenticated request redirects to login" do
@@ -64,6 +65,28 @@ class CommandControllerTest < ActionDispatch::IntegrationTest
     assert_includes body["error"], "openclaw"
   end
 
+  test "uses configurable timeout for openclaw command" do
+    sign_in_as(@user)
+
+    ENV["OPENCLAW_COMMAND_TIMEOUT_SECONDS"] = "15"
+
+    sample = { path: "/tmp/sessions.json", count: 0, activeMinutes: 120, sessions: [] }.to_json
+    fake_status = Struct.new(:success?, :exitstatus).new(true, 0)
+
+    observed = nil
+
+    with_stubbed_timeout(->(seconds, &block) { observed = seconds; block.call }) do
+      with_stubbed_capture3([sample, "", fake_status]) do
+        get command_path(format: :json)
+      end
+    end
+
+    assert_response :success
+    assert_equal 15, observed
+  ensure
+    ENV.delete("OPENCLAW_COMMAND_TIMEOUT_SECONDS")
+  end
+
   private
 
   def with_stubbed_capture3(impl)
@@ -76,5 +99,17 @@ class CommandControllerTest < ActionDispatch::IntegrationTest
     yield
   ensure
     Open3.define_singleton_method(:capture3) { |*args| original.call(*args) }
+  end
+
+  def with_stubbed_timeout(impl)
+    original = Timeout.method(:timeout)
+
+    Timeout.define_singleton_method(:timeout) do |*args, &block|
+      impl.respond_to?(:call) ? impl.call(*args, &block) : impl
+    end
+
+    yield
+  ensure
+    Timeout.define_singleton_method(:timeout) { |*args, &block| original.call(*args, &block) }
   end
 end

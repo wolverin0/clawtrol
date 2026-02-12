@@ -24,11 +24,17 @@ class CommandController < ApplicationController
   def fetch_command_center_data
     active_minutes = Integer(ENV.fetch("OPENCLAW_SESSIONS_ACTIVE_MINUTES", "120"))
 
-    stdout, stderr, status = run_openclaw_sessions(active_minutes)
+    result = Rails.cache.fetch(command_center_cache_key(active_minutes), expires_in: command_center_cache_ttl) do
+      run_openclaw_sessions(active_minutes)
+    end
 
-    unless status&.success?
+    stdout = result.fetch(:stdout)
+    stderr = result.fetch(:stderr)
+    exitstatus = result[:exitstatus]
+
+    unless exitstatus == 0
       msg = "openclaw sessions failed"
-      msg += " (exit=#{status.exitstatus})" if status
+      msg += " (exit=#{exitstatus})" if exitstatus
       msg += ": #{stderr.strip}" if stderr.present?
       return { status: "offline", error: msg }
     end
@@ -54,7 +60,7 @@ class CommandController < ApplicationController
   end
 
   def run_openclaw_sessions(active_minutes)
-    Timeout.timeout(4) do
+    stdout, stderr, status = Timeout.timeout(openclaw_timeout_seconds) do
       Open3.capture3(
         "openclaw",
         "sessions",
@@ -63,6 +69,28 @@ class CommandController < ApplicationController
         "--json"
       )
     end
+
+    {
+      stdout: stdout,
+      stderr: stderr,
+      exitstatus: status&.exitstatus
+    }
+  end
+
+  def openclaw_timeout_seconds
+    Integer(ENV.fetch("OPENCLAW_COMMAND_TIMEOUT_SECONDS", "20"))
+  rescue ArgumentError
+    20
+  end
+
+  def command_center_cache_ttl
+    Integer(ENV.fetch("COMMAND_CENTER_CACHE_TTL_SECONDS", "5")).seconds
+  rescue ArgumentError
+    5.seconds
+  end
+
+  def command_center_cache_key(active_minutes)
+    "command_center/sessions/v1/active_minutes=#{active_minutes}"
   end
 
   def normalize_session(session)
