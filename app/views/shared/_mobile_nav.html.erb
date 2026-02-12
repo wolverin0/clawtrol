@@ -25,26 +25,32 @@
 
       <%# Navigation links %>
       <nav class="py-2">
-        <%= link_to dashboard_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">📊</span> Dashboard
+        <%= link_to command_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🎮</span> Command Center
+        <% end %>
+        <%= link_to workflows_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🔀</span> Workflows
+        <% end %>
+        <%= link_to cronjobs_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🕐</span> Cron Jobs
         <% end %>
         <%= link_to analytics_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">📈</span> Analytics
+          <span class="text-lg w-7 text-center">📊</span> Analytics
+        <% end %>
+        <%= link_to tokens_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🪙</span> Tokens
+        <% end %>
+        <%= link_to nightshift_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🌙</span> Nightshift
+        <% end %>
+        <%= link_to dashboard_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🏠</span> Dashboard
         <% end %>
         <%= link_to agent_personas_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">🧠</span> Agent Personas
         <% end %>
         <%= link_to roster_agent_personas_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">📋</span> Roster
-        <% end %>
-        <%= link_to command_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🎛️</span> Command Center
-        <% end %>
-        <%= link_to workflows_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🧩</span> Workflows
-        <% end %>
-        <%= link_to cronjobs_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🕐</span> Cron Jobs
         <% end %>
         <%= link_to nightbeat_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">🌙</span> Nightbeat
@@ -54,9 +60,6 @@
         <% end %>
         <%= link_to showcases_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">🏆</span> Showcases
-        <% end %>
-        <%= link_to nightshift_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🌑</span> Nightshift
         <% end %>
         <%= link_to saved_links_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">🔗</span> Saved Links

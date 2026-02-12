@@ -13,35 +13,40 @@
         <span class="text-base md:text-lg font-semibold text-content font-display">🦞 ClawTrol</span>
 
         <%# Quick Nav Icons %>
-        <%= link_to dashboard_path,
-            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
-            title: "Dashboard" do %>
-          📊
-        <% end %>
-        <%= link_to analytics_path,
-            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
-            title: "Analytics" do %>
-          📈
-        <% end %>
-        <%= link_to showcases_path,
-            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
-            title: "Showcase" do %>
-          🏆
-        <% end %>
         <%= link_to command_path,
             class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
             title: "Command Center" do %>
-          🎛️
+          🎮
         <% end %>
         <%= link_to workflows_path,
             class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
             title: "Workflows" do %>
-          🧩
+          🔀
         <% end %>
         <%= link_to cronjobs_path,
             class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
             title: "Cron Jobs" do %>
           🕐
+        <% end %>
+        <%= link_to analytics_path,
+            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+            title: "Analytics" do %>
+          📊
+        <% end %>
+        <%= link_to tokens_path,
+            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+            title: "Tokens" do %>
+          🪙
+        <% end %>
+        <%= link_to nightshift_path,
+            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+            title: "Nightshift" do %>
+          🌙
+        <% end %>
+        <%= link_to showcases_path,
+            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
+            title: "Showcase" do %>
+          🏆
         <% end %>
 
         <%# Agent Personas dropdown %>
