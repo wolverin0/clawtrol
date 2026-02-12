@@ -5,7 +5,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nightshift — Mission Control</title>
     <meta name="csrf-token" content="<%= form_authenticity_token %>">
-    <script src="https://cdn.jsdelivr.net/npm/stimulus/dist/stimulus.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@hotwired/stimulus@3.2.2/dist/stimulus.umd.js"></script>
+    <script>
+    (() => {
+      const app = Stimulus.Application.start();
+      app.register("nightshift", class extends Stimulus.Controller {
+        static targets = ["card", "count", "time", "launchButton", "systemStatus", "grid"]
+
+        connect() { this.updateStats() }
+
+        toggle(event) {
+          event.currentTarget.classList.toggle("selected");
+          this.updateStats();
+        }
+
+        toggleAll() {
+          const allSelected = this.selectedCards.length === this.cardTargets.length;
+          this.cardTargets.forEach(c => c.classList.toggle("selected", !allSelected));
+          this.updateStats();
+        }
+
+        launch() {
+          this.launchButtonTarget.disabled = true;
+          this.launchButtonTarget.innerHTML = "<span>ARMING...</span>";
+          const ids = this.selectedCards.map(c => parseInt(c.dataset.missionIdParam));
+          const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
+          fetch("/nightshift/launch", {
+            method: "POST",
+            headers: {"Content-Type":"application/json","X-CSRF-Token":csrf,"Accept":"application/json"},
+            body: JSON.stringify({mission_ids: ids})
+          }).then(r => r.json()).then(d => {
+            if (d.success) {
+              this.systemStatusTarget.textContent = "ARMED (" + d.armed_count + " missions)";
+              this.systemStatusTarget.style.color = "var(--terminal-green)";
+              this.launchButtonTarget.innerHTML = "<span>✅ ARMED</span>";
+            } else {
+              this.launchButtonTarget.innerHTML = "<span>ERROR</span>";
+            }
+          }).catch(() => {
+            this.launchButtonTarget.disabled = false;
+            this.launchButtonTarget.innerHTML = "<span>RETRY</span>";
+          });
+        }
+
+        updateStats() {
+          const n = this.selectedCards.length;
+          const t = this.selectedCards.reduce((s,c) => s + parseInt(c.dataset.missionTimeParam), 0);
+          this.countTarget.textContent = n;
+          this.timeTarget.textContent = t < 60 ? t + "m" : Math.floor(t/60) + "h " + (t%60) + "m";
+          this.launchButtonTarget.disabled = n === 0;
+          this.launchButtonTarget.innerHTML = n > 0
+            ? "<span>ARM " + n + " MISSIONS 🚀</span>"
+            : "<span>SELECT MISSIONS</span>";
+        }
+
+        get selectedCards() { return this.cardTargets.filter(c => c.classList.contains("selected")) }
+      });
+    })();
+    </script>
     <style>
         * {
             margin: 0;
@@ -38,8 +95,9 @@
             padding-bottom: 120px;
         }
         
-        /* Scanline effect */
-        body::before {
+        /* Scanline effect — disabled on mobile (blocks touch) */
+        @media (min-width: 769px) {
+          body::before {
             content: '';
             position: fixed;
             top: 0;
@@ -56,6 +114,7 @@
             pointer-events: none;
             z-index: 1000;
             opacity: 0.3;
+          }
         }
 
         header {
