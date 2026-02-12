@@ -67,6 +67,9 @@ module Api
           new_status: task.status
         )
 
+        # Auto-detect rate limits from findings/error messages and register them
+        detect_and_record_rate_limits(task, findings)
+
         render json: { success: true, task_id: task.id, status: task.status }
       end
 
@@ -263,6 +266,44 @@ module Api
       rescue StandardError => e
         Rails.logger.warn("[HooksController#agent_complete] Failed to persist agent activity for task #{task.id}: #{e.class}: #{e.message}")
         { activity_markdown: "(Failed to persist transcript: #{e.class})", output_files: [] }
+      end
+
+      # Auto-detect rate limit errors in agent findings and register model limits
+      def detect_and_record_rate_limits(task, findings)
+        return if findings.blank?
+
+        # Common rate limit patterns from various providers
+        rate_limit_patterns = [
+          /usage\s+limit.*?\((\w+)\s+plan\)/i,          # "usage limit (plus plan)"
+          /rate\s+limit.*?model[:\s]+(\w+)/i,            # "rate limit... model: codex"
+          /hit\s+.*?limit/i,                              # "hit your ... limit"
+        ]
+
+        is_rate_limit = rate_limit_patterns.any? { |p| findings.match?(p) }
+        return unless is_rate_limit
+
+        # Try to determine which model hit the limit
+        model_name = task.model.presence || detect_model_from_text(findings)
+        return unless model_name.present? && Task::MODELS.include?(model_name)
+
+        # Find the user who owns this task to register the limit
+        user = task.user || User.first
+        return unless user
+
+        ModelLimit.record_limit!(user, model_name, findings)
+        Rails.logger.info("[HooksController] Auto-recorded rate limit for model '#{model_name}' from task ##{task.id}")
+      rescue StandardError => e
+        Rails.logger.warn("[HooksController] Failed to auto-record rate limit: #{e.message}")
+      end
+
+      # Try to extract model name from error text
+      def detect_model_from_text(text)
+        return "codex" if text =~ /codex|chatgpt|gpt-5/i
+        return "opus" if text =~ /opus|claude/i
+        return "gemini" if text =~ /gemini/i
+        return "glm" if text =~ /glm|zhipu|z\.ai/i
+        return "sonnet" if text =~ /sonnet/i
+        nil
       end
 
       def updated_description(current_description, findings, activity_markdown)
