@@ -701,7 +701,7 @@
         </div>
 
         <!-- Mobile: Agent Activity + Output Files (shown below left column on mobile) -->
-        <div class="lg:hidden px-5 py-4 border-t border-border overflow-y-auto">
+        <div class="lg:hidden px-5 py-4 border-t border-border min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
 
           <%# Mobile Output Files %>
           <% if has_output_files %>
@@ -845,7 +845,7 @@
               </div>
 
               <div data-agent-activity-target="log"
-                   class="hidden space-y-2 max-h-64 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+                   class="hidden space-y-2 max-h-64 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent overscroll-contain [-webkit-overflow-scrolling:touch]">
               </div>
             </div>
           <% end %>
