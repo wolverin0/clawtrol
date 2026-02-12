@@ -133,6 +133,10 @@ Rails.application.routes.draw do
   # Analytics page
   get "analytics", to: "analytics#show"
 
+  # API Keys management
+  get "keys", to: "keys#index"
+  patch "keys", to: "keys#update"
+
   # Nightshift mission control
   get "nightshift", to: "nightshift#index"
   post "nightshift/launch", to: "nightshift#launch"
