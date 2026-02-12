@@ -1,6 +1,8 @@
 require "json"
 require "time"
 
+require "timeout"
+
 class AnalyticsController < ApplicationController
   before_action :require_authentication
 

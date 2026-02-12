@@ -37,6 +37,7 @@ import CommandController from "controllers/command_controller"
 import WorkflowEditorController from "controllers/workflow_editor_controller"
 import CronjobsController from "controllers/cronjobs_controller"
 import TokensController from "controllers/tokens_controller"
+import CostAnalyticsController from "controllers/cost_analytics_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -70,3 +71,4 @@ application.register("command", CommandController)
 application.register("workflow-editor", WorkflowEditorController)
 application.register("cronjobs", CronjobsController)
 application.register("tokens", TokensController)
+application.register("cost-analytics", CostAnalyticsController)
