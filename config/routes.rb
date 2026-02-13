@@ -86,6 +86,7 @@ Rails.application.routes.draw do
       post "factory/loops/:id/pause", to: "factory_loops#pause"
       post "factory/loops/:id/stop", to: "factory_loops#stop"
       get "factory/loops/:id/metrics", to: "factory_loops#metrics"
+      post "factory/cycles/:id/complete", to: "factory_cycles#complete"
 
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
