@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = [ "card", "count", "time", "launchButton", "systemStatus", "grid" ]
+  static targets = [ "card", "count", "time", "launchButton", "systemStatus", "grid", "modal" ]
 
   connect() {
     this.updateStats()
@@ -70,5 +70,28 @@ export default class extends Controller {
 
   get selectedCards() {
     return this.cardTargets.filter(card => card.classList.contains("selected"))
+  }
+
+  openModal() {
+    this.modalTarget.classList.add("open")
+  }
+
+  closeModal() {
+    this.modalTarget.classList.remove("open")
+  }
+
+  filterAll(event) {
+    document.querySelectorAll('.ns-filter-btn').forEach(b => b.classList.remove('active'))
+    event.currentTarget.classList.add('active')
+    this.cardTargets.forEach(card => card.style.display = '')
+  }
+
+  filterCategory(event) {
+    const cat = event.currentTarget.dataset.category
+    document.querySelectorAll('.ns-filter-btn').forEach(b => b.classList.remove('active'))
+    event.currentTarget.classList.add('active')
+    this.cardTargets.forEach(card => {
+      card.style.display = card.dataset.missionCategory === cat ? '' : 'none'
+    })
   }
 }

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_12_011551) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_13_024059) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -108,18 +108,40 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_011551) do
     t.index ["user_id"], name: "index_model_limits_on_user_id"
   end
 
+  create_table "nightshift_missions", force: :cascade do |t|
+    t.string "category", default: "general"
+    t.datetime "created_at", null: false
+    t.string "created_by", default: "user"
+    t.jsonb "days_of_week", default: []
+    t.text "description"
+    t.boolean "enabled", default: true
+    t.integer "estimated_minutes", default: 30
+    t.string "frequency", default: "manual"
+    t.string "icon", default: "🔧"
+    t.datetime "last_run_at"
+    t.string "model", default: "gemini"
+    t.string "name", null: false
+    t.integer "position", default: 0
+    t.datetime "updated_at", null: false
+    t.index ["category"], name: "index_nightshift_missions_on_category"
+    t.index ["enabled"], name: "index_nightshift_missions_on_enabled"
+    t.index ["frequency"], name: "index_nightshift_missions_on_frequency"
+  end
+
   create_table "nightshift_selections", force: :cascade do |t|
     t.datetime "completed_at"
     t.datetime "created_at", null: false
     t.boolean "enabled", default: true, null: false
     t.datetime "launched_at"
     t.integer "mission_id", null: false
+    t.bigint "nightshift_mission_id"
     t.text "result"
     t.date "scheduled_date", null: false
     t.string "status", default: "pending", null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.index ["mission_id", "scheduled_date"], name: "index_nightshift_selections_on_mission_id_and_scheduled_date", unique: true
+    t.index ["nightshift_mission_id"], name: "index_nightshift_selections_on_nightshift_mission_id"
   end
 
   create_table "notifications", force: :cascade do |t|
@@ -527,12 +549,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_12_011551) do
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "(provider IS NOT NULL)"
   end
 
+  create_table "workflows", force: :cascade do |t|
+    t.boolean "active", default: false, null: false
+    t.datetime "created_at", null: false
+    t.jsonb "definition", default: {}, null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "agent_personas", "users"
   add_foreign_key "api_tokens", "users"
   add_foreign_key "boards", "users"
   add_foreign_key "model_limits", "users"
+  add_foreign_key "nightshift_selections", "nightshift_missions"
   add_foreign_key "notifications", "tasks"
   add_foreign_key "notifications", "users"
   add_foreign_key "openclaw_integration_statuses", "users"

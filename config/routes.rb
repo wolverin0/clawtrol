@@ -62,6 +62,14 @@ Rails.application.routes.draw do
       get "nightshift/selections", to: "nightshift#selections"
       patch "nightshift/selections/:id", to: "nightshift#update_selection"
 
+      # Nightshift Missions API (v2)
+      get "nightshift/missions", to: "nightshift#missions"
+      post "nightshift/missions", to: "nightshift#create_mission"
+      patch "nightshift/missions/:id", to: "nightshift#update_mission"
+      delete "nightshift/missions/:id", to: "nightshift#destroy_mission"
+      get "nightshift/tonight", to: "nightshift#tonight"
+      post "nightshift/tonight/approve", to: "nightshift#approve_tonight"
+
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
 
@@ -143,6 +151,9 @@ Rails.application.routes.draw do
   # Nightshift mission control
   get "nightshift", to: "nightshift#index"
   post "nightshift/launch", to: "nightshift#launch"
+  post "nightshift/missions", to: "nightshift#create", as: :nightshift_missions
+  patch "nightshift/missions/:id", to: "nightshift#update", as: :nightshift_mission
+  delete "nightshift/missions/:id", to: "nightshift#destroy"
 
   # Nightbeat morning brief
   get "nightbeat", to: "nightbeat#index"
