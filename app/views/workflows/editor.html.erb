@@ -1,20 +1,20 @@
 <% content_for :title, "Workflow Editor" %>
 <% content_for :breadcrumb_standalone, "Workflow Editor" %>
 
-<div class="mt-6" data-controller="workflow-editor"
+<div class="mt-4" data-controller="workflow-editor"
      data-workflow-editor-initial-definition-value="<%= j(@workflow.definition.to_json) %>"
      data-workflow-editor-workflow-id-value="<%= @workflow.persisted? ? @workflow.id : '' %>">
 
-  <div class="flex items-center justify-between mb-4">
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-3">
     <div class="min-w-0">
       <h1 class="text-lg font-semibold text-content font-display truncate">
         <%= @workflow.persisted? ? @workflow.title : "New workflow" %>
       </h1>
-      <p class="text-xs text-content-muted mt-1">
-        Drag nodes, click a node then another node to connect. Select a node to edit properties.
+      <p class="text-[10px] text-content-muted mt-0.5">
+        Drag nodes to position &bull; Shift+click to connect &bull; Click to select &bull; Properties panel on the right
       </p>
     </div>
-
     <div class="flex items-center gap-2">
       <%= link_to "All workflows", workflows_path, class: "px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-surface border border-border rounded-md hover:bg-bg-elevated transition-colors" %>
       <% if @workflow.persisted? %>
@@ -23,76 +23,130 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
-    <!-- Canvas -->
-    <div class="lg:col-span-3 bg-bg-surface border border-border rounded-lg overflow-hidden">
-      <div class="p-3 border-b border-border flex flex-wrap items-center gap-2">
-        <button type="button" data-action="workflow-editor#addAgent" class="px-2.5 py-1 text-xs font-medium bg-bg-elevated border border-border rounded hover:bg-bg-hover">+ Agent</button>
-        <button type="button" data-action="workflow-editor#addTool" class="px-2.5 py-1 text-xs font-medium bg-bg-elevated border border-border rounded hover:bg-bg-hover">+ Tool</button>
-        <button type="button" data-action="workflow-editor#addRouter" class="px-2.5 py-1 text-xs font-medium bg-bg-elevated border border-border rounded hover:bg-bg-hover">+ Router</button>
-        <button type="button" data-action="workflow-editor#addTrigger" class="px-2.5 py-1 text-xs font-medium bg-bg-elevated border border-border rounded hover:bg-bg-hover">+ Trigger</button>
-        <span class="text-[11px] text-content-muted ml-2" data-workflow-editor-status></span>
-        <span class="text-[11px] text-content-muted ml-2" data-workflow-editor-target="autosaveIndicator"></span>
-        <div class="ml-auto flex items-center gap-2">
-          <button type="button" data-action="workflow-editor#clear" class="px-2.5 py-1 text-xs font-medium bg-red-500/10 text-red-300 border border-red-500/30 rounded hover:bg-red-500/15">Clear</button>
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-3">
+    <!-- Canvas (4/5) -->
+    <div class="lg:col-span-4 bg-bg-surface border border-border rounded-xl overflow-hidden">
+      <!-- Toolbar -->
+      <div class="p-2.5 border-b border-border flex flex-wrap items-center gap-1.5">
+        <!-- Node type buttons -->
+        <div class="flex items-center gap-1 mr-2">
+          <button type="button" data-action="workflow-editor#addAgent" class="px-2 py-1 text-[10px] font-medium bg-purple-500/10 text-purple-300 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 transition-colors">&#x1F916; Agent</button>
+          <button type="button" data-action="workflow-editor#addTool" class="px-2 py-1 text-[10px] font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/20 transition-colors">&#x1F527; Tool</button>
+          <button type="button" data-action="workflow-editor#addRouter" class="px-2 py-1 text-[10px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30 rounded-lg hover:bg-amber-500/20 transition-colors">&#x1F500; Router</button>
+          <button type="button" data-action="workflow-editor#addTrigger" class="px-2 py-1 text-[10px] font-medium bg-green-500/10 text-green-300 border border-green-500/30 rounded-lg hover:bg-green-500/20 transition-colors">&#x26A1; Trigger</button>
+        </div>
+        <div class="w-px h-5 bg-border mx-1"></div>
+        <div class="flex items-center gap-1 mr-2">
+          <button type="button" data-action="workflow-editor#addNightshift" class="px-2 py-1 text-[10px] font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/20 transition-colors">&#x1F319; Mission</button>
+          <button type="button" data-action="workflow-editor#addConditional" class="px-2 py-1 text-[10px] font-medium bg-orange-500/10 text-orange-300 border border-orange-500/30 rounded-lg hover:bg-orange-500/20 transition-colors">&#x1F536; If/Else</button>
+          <button type="button" data-action="workflow-editor#addNotification" class="px-2 py-1 text-[10px] font-medium bg-pink-500/10 text-pink-300 border border-pink-500/30 rounded-lg hover:bg-pink-500/20 transition-colors">&#x1F4E2; Notify</button>
+          <button type="button" data-action="workflow-editor#addDelay" class="px-2 py-1 text-[10px] font-medium bg-slate-500/10 text-slate-300 border border-slate-400/30 rounded-lg hover:bg-slate-500/20 transition-colors">&#x23F1;&#xFE0F; Delay</button>
+        </div>
+        <div class="w-px h-5 bg-border mx-1"></div>
+        <!-- Action buttons -->
+        <div class="flex items-center gap-1">
+          <button type="button" data-action="workflow-editor#importNightshift" class="px-2 py-1 text-[10px] font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/25 transition-colors">&#x1F319; Import Missions</button>
+          <button type="button" data-action="workflow-editor#autoLayout" class="px-2 py-1 text-[10px] font-medium bg-bg-elevated text-content-secondary border border-border rounded-lg hover:bg-bg-hover transition-colors">&#x2728; Auto-Layout</button>
+        </div>
+
+        <span class="text-[10px] text-content-muted ml-2" data-workflow-editor-status></span>
+        <span class="text-[10px] text-content-muted ml-auto" data-workflow-editor-target="autosaveIndicator"></span>
+
+        <div class="ml-2 flex items-center gap-1.5">
+          <% if @workflow.persisted? %>
+            <button type="button" data-action="workflow-editor#runWorkflow" data-workflow-editor-target="runBtn"
+                    class="px-2.5 py-1 text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 rounded-lg hover:bg-emerald-500/25 transition-colors">
+              &#x25B6; Run
+            </button>
+          <% end %>
+          <button type="button" data-action="workflow-editor#clear" class="px-2 py-1 text-[10px] font-medium bg-red-500/10 text-red-300 border border-red-500/30 rounded-lg hover:bg-red-500/15 transition-colors">Clear</button>
         </div>
       </div>
 
-      <div class="relative" style="height: 70vh;">
-        <svg data-workflow-editor-target="svg" class="absolute inset-0 w-full h-full"></svg>
-        <div data-workflow-editor-target="canvas" class="absolute inset-0"></div>
+      <!-- Canvas area with grid background -->
+      <div class="relative" style="height: 65vh; background-image: radial-gradient(circle, rgba(148,163,184,0.08) 1px, transparent 1px); background-size: 24px 24px;">
+        <svg data-workflow-editor-target="svg" class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 5;"></svg>
+        <div data-workflow-editor-target="canvas" class="absolute inset-0 overflow-auto" style="z-index: 10;"></div>
+      </div>
+
+      <!-- Execution Log (collapsible) -->
+      <div class="border-t border-border">
+        <details class="group">
+          <summary class="px-3 py-2 text-[10px] font-medium text-content-muted uppercase tracking-wide cursor-pointer hover:bg-bg-elevated/50 select-none">
+            &#x1F4CB; Execution Log
+            <span class="text-content-muted/50 ml-1">(click to expand)</span>
+          </summary>
+          <div data-workflow-editor-target="executionLog"
+               class="px-3 py-2 max-h-32 overflow-y-auto bg-bg-surface/50 space-y-0.5 font-mono">
+            <p class="text-[10px] text-content-muted italic">No execution history</p>
+          </div>
+        </details>
       </div>
     </div>
 
-    <!-- Properties + Save -->
-    <div class="bg-bg-surface border border-border rounded-lg p-4 space-y-4">
+    <!-- Properties Panel (1/5) -->
+    <div class="bg-bg-surface border border-border rounded-xl p-3 space-y-3 h-fit sticky top-4">
       <div>
-        <h2 class="text-sm font-semibold text-content font-display">Properties</h2>
-        <p class="text-[11px] text-content-muted mt-1">Select a node to edit it.</p>
+        <h2 class="text-xs font-semibold text-content font-display">Node Properties</h2>
+        <p class="text-[9px] text-content-muted mt-0.5">Select a node to edit</p>
       </div>
 
-      <div class="space-y-3">
+      <!-- Selected node summary -->
+      <div class="space-y-2">
         <div>
-          <label class="block text-xs font-medium text-content-muted">Selected node</label>
-          <div class="mt-1 text-xs text-content" data-workflow-editor-target="selectedSummary">None</div>
+          <label class="block text-[9px] font-medium text-content-muted uppercase tracking-wide">Selected</label>
+          <div class="mt-0.5 text-xs text-content font-medium" data-workflow-editor-target="selectedSummary">None</div>
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-content-muted">Label</label>
+          <label class="block text-[9px] font-medium text-content-muted uppercase tracking-wide">Label</label>
           <input type="text" data-action="input->workflow-editor#updateSelectedLabel" data-workflow-editor-target="labelInput"
-                 class="mt-1 w-full px-3 py-2 text-sm bg-bg-surface border border-border rounded-md text-content focus:outline-none focus:ring-2 focus:ring-accent/50" />
+                 class="mt-0.5 w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-content-muted">Type</label>
-          <div class="mt-1 text-xs text-content" data-workflow-editor-target="typeDisplay">—</div>
-        </div>
-
-        <div class="pt-2">
-          <button type="button" data-action="workflow-editor#deleteSelected" class="w-full px-3 py-2 text-xs font-medium bg-red-500/10 text-red-300 border border-red-500/30 rounded hover:bg-red-500/15">Delete selected</button>
+          <label class="block text-[9px] font-medium text-content-muted uppercase tracking-wide">Type</label>
+          <div class="mt-0.5 text-xs text-content" data-workflow-editor-target="typeDisplay">&mdash;</div>
         </div>
       </div>
 
-      <div class="border-t border-border pt-4">
+      <!-- Dynamic props editor (populated by JS) -->
+      <div class="border-t border-border pt-2">
+        <label class="block text-[9px] font-medium text-content-muted uppercase tracking-wide mb-1.5">Configuration</label>
+        <div data-workflow-editor-target="propsContainer">
+          <p class="text-[10px] text-content-muted italic">Select a node to configure</p>
+        </div>
+      </div>
+
+      <!-- Delete button -->
+      <div class="pt-1">
+        <button type="button" data-action="workflow-editor#deleteSelected"
+                class="w-full px-2.5 py-1.5 text-[10px] font-medium bg-red-500/10 text-red-300 border border-red-500/30 rounded-lg hover:bg-red-500/15 transition-colors">
+          Delete selected node
+        </button>
+      </div>
+
+      <!-- Save form -->
+      <div class="border-t border-border pt-3">
         <%= form_with model: @workflow, url: (@workflow.persisted? ? workflow_path(@workflow) : workflows_path), method: (@workflow.persisted? ? :patch : :post) do |f| %>
-          <div class="space-y-3">
+          <div class="space-y-2">
             <div>
-              <%= f.label :title, class: "block text-xs font-medium text-content-muted" %>
-              <%= f.text_field :title, value: @workflow.title, class: "mt-1 w-full px-3 py-2 text-sm bg-bg-surface border border-border rounded-md text-content focus:outline-none focus:ring-2 focus:ring-accent/50" %>
+              <%= f.label :title, class: "block text-[9px] font-medium text-content-muted uppercase tracking-wide" %>
+              <%= f.text_field :title, value: @workflow.title, class: "mt-0.5 w-full px-2.5 py-1.5 text-xs bg-bg-surface border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" %>
             </div>
 
             <div class="flex items-center gap-2">
               <%= f.check_box :active, checked: @workflow.active, class: "rounded border-border bg-bg-surface" %>
-              <%= f.label :active, "Active", class: "text-xs text-content" %>
+              <%= f.label :active, "Active", class: "text-[10px] text-content" %>
             </div>
 
             <%= f.hidden_field :definition, value: @workflow.definition.to_json, data: { workflow_editor_target: "definitionInput" } %>
 
-            <%= f.submit "Save workflow", data: { action: "workflow-editor#beforeSubmit" }, class: "w-full px-3 py-2 text-xs font-medium text-content bg-accent hover:bg-accent-hover rounded-md transition-colors" %>
+            <%= f.submit "Save workflow", data: { action: "workflow-editor#beforeSubmit" }, class: "w-full px-3 py-2 text-xs font-medium text-content bg-accent hover:bg-accent-hover rounded-lg transition-colors cursor-pointer" %>
 
             <% if @workflow.persisted? %>
-              <div class="text-[11px] text-content-muted">
-                API run endpoint: <code class="font-mono">POST /api/v1/workflows/<%= @workflow.id %>/run</code>
+              <div class="text-[9px] text-content-muted font-mono">
+                POST /api/v1/workflows/<%= @workflow.id %>/run
               </div>
             <% end %>
           </div>
