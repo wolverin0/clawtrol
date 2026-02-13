@@ -22,3 +22,6 @@ TaskTemplate::DEFAULTS.each do |slug, config|
   end
 end
 puts "Created #{TaskTemplate.global_templates.count} global templates: #{TaskTemplate.global_templates.pluck(:slug).join(', ')}"
+
+# Nightshift missions
+load Rails.root.join("db/seeds/nightshift_missions.rb")
