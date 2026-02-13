@@ -1,7 +1,7 @@
 class FactoryCycleLog < ApplicationRecord
   belongs_to :factory_loop
 
-  STATUSES = %w[running completed failed skipped].freeze
+  STATUSES = %w[pending running completed failed skipped timed_out].freeze
 
   validates :cycle_number, :started_at, :status, presence: true
   validates :status, inclusion: { in: STATUSES }

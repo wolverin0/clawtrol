@@ -1,7 +1,7 @@
 class FactoryLoop < ApplicationRecord
   has_many :factory_cycle_logs, dependent: :destroy
 
-  STATUSES = %w[idle playing paused stopped error].freeze
+  STATUSES = %w[idle playing paused stopped error error_paused].freeze
 
   validates :name, :slug, :interval_ms, :model, presence: true
   validates :slug, uniqueness: true, format: { with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/ }

@@ -22,7 +22,7 @@
   <%= turbo_stream_from "board_#{@board.id}" %>
 <% end %>
 
-<div class="h-full flex flex-col pb-16 md:pb-0" 
+<div class="h-full flex flex-col scroll-safe-bottom-board" 
      data-controller="board kanban-refresh mobile-columns drag-assign"
      data-kanban-refresh-board-id-value="<%= @board.id %>"
      data-kanban-refresh-board-ids-value="<%= (@is_aggregator ? @boards.reject(&:aggregator?).map(&:id) : []).to_json %>"
