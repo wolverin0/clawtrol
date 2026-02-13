@@ -530,6 +530,20 @@ module Api
           @tasks = @tasks.order(status: :asc, position: :asc)
         end
 
+        # Pagination
+        page = [(params[:page] || 1).to_i, 1].max
+        per_page = [(params[:per_page] || 50).to_i.clamp(1, 100), 100].min
+        total = @tasks.count
+        @tasks = @tasks.offset((page - 1) * per_page).limit(per_page)
+
+        # Add pagination headers
+        response.set_header("X-Total-Count", total.to_s)
+        response.set_header("X-Page", page.to_s)
+        response.set_header("X-Per-Page", per_page.to_s)
+        if page * per_page < total
+          response.set_header("X-Next-Page", (page + 1).to_s)
+        end
+
         @tasks = @tasks.includes(TASK_JSON_INCLUDES)
 
         render json: @tasks.map { |task| task_json(task) }

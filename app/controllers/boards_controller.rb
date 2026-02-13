@@ -45,9 +45,20 @@ class BoardsController < ApplicationController
 
     # Get all unique tags for the sidebar filter
     if @board.aggregator?
-      @all_tags = Task.joins(:board).where(boards: { user_id: current_user.id, is_aggregator: false }).where.not(tags: []).pluck(:tags).flatten.uniq.sort
+      @all_tags = Task.joins(:board)
+        .where(boards: { user_id: current_user.id, is_aggregator: false })
+        .where.not(tags: nil)
+        .where("array_length(tags, 1) > 0")
+        .select("DISTINCT unnest(tags) as tag")
+        .map(&:tag)
+        .sort
     else
-      @all_tags = @board.tasks.where.not(tags: []).pluck(:tags).flatten.uniq.sort
+      @all_tags = @board.tasks
+        .where.not(tags: nil)
+        .where("array_length(tags, 1) > 0")
+        .select("DISTINCT unnest(tags) as tag")
+        .map(&:tag)
+        .sort
     end
 
     # Get all boards for the sidebar
@@ -197,12 +208,12 @@ class BoardsController < ApplicationController
         .joins(:board)
         .where(boards: { is_aggregator: false })
         .not_archived
-        .includes(:user, :board, :parent_task, :followup_task, :agent_persona)
+        .includes(:user, :board, :parent_task, :followup_task, :agent_persona, :runner_leases)
     else
       @is_aggregator = false
       board.tasks
         .not_archived
-        .includes(:user, :parent_task, :followup_task, :agent_persona)
+        .includes(:user, :parent_task, :followup_task, :agent_persona, :runner_leases)
     end
   end
 
