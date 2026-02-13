@@ -13,9 +13,10 @@ class FactoryLoop < ApplicationRecord
   scope :playing, -> { where(status: "playing") }
 
   before_validation :normalize_slug
+  after_commit :sync_engine, if: :saved_change_to_status?
 
   def play!
-    update!(status: "playing")
+    update!(status: "playing", last_cycle_at: nil, consecutive_failures: 0)
   end
 
   def pause!
@@ -34,5 +35,13 @@ class FactoryLoop < ApplicationRecord
 
   def normalize_slug
     self.slug = slug.to_s.parameterize if slug.present?
+  end
+
+  def sync_engine
+    if status == "playing"
+      FactoryEngineService.new.start_loop(self)
+    elsif %w[paused stopped idle error error_paused].include?(status)
+      FactoryEngineService.new.stop_loop(self)
+    end
   end
 end
