@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- **workflows:** enhanced visual DAG editor with 8 node types and rich properties (`ec27c7d`)
 - add conventional commits hook, changelog generator, and CI workflow (`fdc3da5`)
 - native task notifications (Telegram + webhook) (`79dfbd9`)
 - add Nightshift execution backend (runner + engine + schema fix) (`8e1ea92`)
@@ -157,6 +158,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`f3359fe`)
 - update CHANGELOG.md [skip ci] (`89cca45`)
 - update CHANGELOG.md [skip ci] (`d979005`)
 - update CHANGELOG.md [skip ci] (`5fd3ee1`)
