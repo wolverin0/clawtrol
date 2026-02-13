@@ -106,6 +106,7 @@ class Notification < ApplicationRecord
         event_type: "task_completed",
         message: "#{task.name.truncate(50)} is ready for review"
       )
+      ExternalNotificationService.new(task.user).notify_task_completion(task)
     when "done"
       create_deduped!(
         user: task.user,
@@ -113,6 +114,7 @@ class Notification < ApplicationRecord
         event_type: "task_completed",
         message: "#{task.name.truncate(50)} completed"
       )
+      ExternalNotificationService.new(task.user).notify_task_completion(task)
     end
   end
 

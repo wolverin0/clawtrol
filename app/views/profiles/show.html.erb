@@ -12,6 +12,8 @@
             class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-content-muted hover:text-content">AI</button>
     <button data-action="click->tabs#switch" data-tabs-target="tab" data-tab="integration"
             class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-content-muted hover:text-content">Integration</button>
+    <button data-action="click->tabs#switch" data-tabs-target="tab" data-tab="notifications"
+            class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-content-muted hover:text-content">Notifications</button>
   </div>
 
   <!-- Profile Tab -->
@@ -326,4 +328,97 @@
     <%= render "profiles/agent_install_prompt", api_token: @api_token %>
     <%= render "profiles/integration_wizard" %>
   </div>
+
+  <!-- Notifications Tab -->
+  <div data-tabs-target="panel" data-tab="notifications" class="hidden space-y-6">
+    <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🔔</span>
+        <h3 class="text-sm font-semibold text-content font-display">External Notifications</h3>
+      </div>
+
+      <p class="text-xs text-content-secondary">
+        Receive push notifications when tasks move to review or complete. Configure Telegram, webhook, or both.
+      </p>
+
+      <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-4") do |form| %>
+        <div class="flex items-center justify-between p-3 bg-bg-elevated rounded-lg">
+          <div>
+            <label class="text-sm font-medium text-content">Notifications enabled</label>
+            <p class="text-xs text-content-muted mt-0.5">Disable to pause all external notifications</p>
+          </div>
+          <%= form.check_box :notifications_enabled,
+              class: "rounded border-border bg-bg-elevated text-accent focus:ring-accent focus:ring-offset-bg-surface" %>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Telegram Bot Token</label>
+          <%= form.password_field :telegram_bot_token,
+              value: @user.telegram_bot_token,
+              placeholder: @user.telegram_bot_token.present? ? "••••••••" : "123456:ABC...",
+              autocomplete: "off",
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Telegram Chat ID</label>
+          <%= form.text_field :telegram_chat_id,
+              placeholder: "e.g. 123456789",
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+          <p class="text-xs text-content-muted mt-1">Send /start to your bot, then use @userinfobot to get your chat ID</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-content-secondary mb-1.5">Webhook URL (optional)</label>
+          <%= form.url_field :webhook_notification_url,
+              placeholder: "https://example.com/hooks/task-status",
+              class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+          <p class="text-xs text-content-muted mt-1">POST with JSON payload on task completion</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <%= form.submit "Save notification settings", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
+          <button type="button"
+                  id="test-notification-button"
+                  class="cursor-pointer px-3 py-1.5 bg-accent text-content hover:bg-accent-hover text-xs font-semibold rounded-md transition-colors duration-200">
+            Test Notification
+          </button>
+          <span id="test-notification-status" class="text-xs text-content-muted"></span>
+        </div>
+      <% end %>
+    </div>
+  </div>
 </div>
+
+<script>
+  (() => {
+    const button = document.getElementById("test-notification-button")
+    const status = document.getElementById("test-notification-status")
+    if (!button || !status) return
+
+    button.addEventListener("click", async () => {
+      status.textContent = "Sending..."
+      try {
+        const response = await fetch("<%= test_notification_settings_path %>", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content
+          }
+        })
+
+        const result = await response.json()
+        if (response.ok && result.success) {
+          status.textContent = "✅ Test sent"
+          status.className = "text-xs text-status-success"
+        } else {
+          status.textContent = `❌ ${result.error || "Failed"}`
+          status.className = "text-xs text-status-error"
+        }
+      } catch (error) {
+        status.textContent = "❌ Request failed"
+        status.className = "text-xs text-status-error"
+      }
+    })
+  })()
+</script>
