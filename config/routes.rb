@@ -76,6 +76,7 @@ Rails.application.routes.draw do
       get "nightshift/tonight", to: "nightshift#tonight"
       post "nightshift/tonight/approve", to: "nightshift#approve_tonight"
       post "nightshift/sync_crons", to: "nightshift#sync_crons"
+            post "nightshift/sync_tonight", to: "nightshift#sync_tonight"
       post "nightshift/report_execution", to: "nightshift#report_execution"
 
       # Factory API

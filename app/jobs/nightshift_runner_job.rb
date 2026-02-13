@@ -1,38 +1,27 @@
 class NightshiftRunnerJob < ApplicationJob
   queue_as :default
 
-  POLL_INTERVAL_SECONDS = 10
-
+  # Fire-and-forget: wake OpenClaw for each armed selection, then return.
+  # Completion is handled by report_execution callback from the cron.
+  # A separate NightshiftTimeoutSweeperJob handles stale "running" selections.
   def perform
     NightshiftSelection.for_tonight.armed.includes(:nightshift_mission).order(:id).find_each do |selection|
-      execute_selection(selection)
+      launch_selection(selection)
     end
   end
 
   private
 
-  def execute_selection(selection)
+  def launch_selection(selection)
     selection.update!(status: "running", launched_at: Time.current)
     wake_openclaw!(selection)
-
-    deadline = NightshiftEngineService::TIMEOUT_MINUTES.minutes.from_now
-    while Time.current < deadline
-      selection.reload
-      return if %w[completed failed].include?(selection.status)
-
-      sleep POLL_INTERVAL_SECONDS
-    end
-
-    NightshiftEngineService.new.complete_selection(
-      selection,
-      status: "failed",
-      result: "Timed out after #{NightshiftEngineService::TIMEOUT_MINUTES} minutes"
-    )
+    Rails.logger.info("[NightshiftRunner] Launched mission '#{selection.title}' (selection ##{selection.id})")
   rescue => e
+    Rails.logger.error("[NightshiftRunner] Failed to launch '#{selection.title}': #{e.message}")
     NightshiftEngineService.new.complete_selection(
       selection,
       status: "failed",
-      result: "Runner error: #{e.message}"
+      result: "Launch error: #{e.message}"
     )
   end
 
@@ -45,7 +34,11 @@ class NightshiftRunnerJob < ApplicationJob
       Description: #{mission.description.presence || "(none)"}
       Model preference: #{mission.model}
 
-      Report results to: PATCH /api/v1/nightshift/selections/#{selection.id} with {status: 'completed'/'failed', result: '...'}
+      When done, report results to:
+      curl -X POST http://192.168.100.186:4001/api/v1/nightshift/report_execution \\
+        -H "X-Hook-Token: $CLAWTROL_HOOKS_TOKEN" \\
+        -H "Content-Type: application/json" \\
+        -d '{"mission_name": "#{mission.name}", "status": "completed", "result": "summary of what was done"}'
     TEXT
 
     uri = URI.parse("#{user.openclaw_gateway_url}/hooks/wake")

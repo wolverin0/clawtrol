@@ -1,9 +1,10 @@
-require "open3"
-require "timeout"
-
 module Api
   module V1
     class NightshiftController < BaseController
+      # Cron-facing endpoints use hook token auth instead of Bearer
+      skip_before_action :authenticate_api_token, only: [:report_execution, :sync_crons, :sync_tonight]
+      before_action :authenticate_hook_token, only: [:report_execution, :sync_crons, :sync_tonight]
+
       # GET /api/v1/nightshift/missions
       def missions
         missions = NightshiftMission.enabled.ordered
@@ -67,10 +68,17 @@ module Api
 
         NightshiftSelection.for_tonight.where(nightshift_mission_id: mission_ids).update_all(enabled: true)
         NightshiftSelection.for_tonight.where.not(nightshift_mission_id: mission_ids).update_all(enabled: false)
-        NightshiftMission.where(id: mission_ids).update_all(last_run_at: Time.current)
+        # NOTE: Do NOT set last_run_at here - missions haven't run yet.
+        # last_run_at is set by NightshiftEngineService#complete_selection on actual completion.
 
         armed = NightshiftSelection.for_tonight.enabled
         render json: { success: true, armed_count: armed.count, selections: armed }
+      end
+
+      def sync_tonight
+        created = NightshiftSyncService.new.sync_tonight_selections
+        due_count = NightshiftMission.enabled.select(&:due_tonight?).size
+        render json: { synced: due_count, created: created, date: Date.current.iso8601 }
       end
 
       # Legacy endpoints for backward compat
@@ -119,78 +127,34 @@ module Api
 
       # POST /api/v1/nightshift/sync_crons
       def sync_crons
-        crons = fetch_nightshift_crons
-        synced = 0
-        selections_created = 0
-
-        crons.each do |cron|
-          # Extract mission name from "🌙 NS: Name" pattern
-          raw_name = cron["name"].to_s
-          mission_name = raw_name.sub(/^🌙\s*NS:\s*/, "").strip
-          next if mission_name.blank?
-
-          mission = NightshiftMission.find_or_initialize_by(name: mission_name)
-          if mission.new_record?
-            mission.assign_attributes(
-              enabled: cron["enabled"] != false,
-              frequency: "always",
-              category: "general",
-              icon: "🌙",
-              description: "Auto-synced from OpenClaw cron: #{raw_name}",
-              estimated_minutes: ((cron.dig("payload", "timeoutSeconds") || 300) / 60.0).ceil
-            )
-            mission.save!
-          end
-          synced += 1
-
-          # Auto-create selection for tonight if mission is due
-          next unless mission.enabled? && mission.due_tonight?
-          next if NightshiftSelection.for_tonight.exists?(nightshift_mission_id: mission.id)
-
-          NightshiftSelection.create!(
-            nightshift_mission_id: mission.id,
-            title: mission.name,
-            scheduled_date: Date.current,
-            enabled: true,
-            status: "pending"
-          )
-          selections_created += 1
-        end
-
-        render json: { synced: synced, selections_created: selections_created }
+        result = NightshiftSyncService.new.sync_crons
+        render json: result
       end
 
       # POST /api/v1/nightshift/report_execution
       def report_execution
-        cron_name = params[:cron_name].to_s.sub(/^🌙\s*NS:\s*/, "").strip
-        status = params[:status].to_s.presence || "completed"
-        result = params[:result].to_s.presence
-
-        mission = NightshiftMission.find_by(name: cron_name)
+        mission = NightshiftMission.find_by(name: params[:mission_name])
         unless mission
-          return render json: { error: "Mission not found: #{cron_name}" }, status: :not_found
+          return render json: { error: "mission not found" }, status: :not_found
         end
 
-        selection = NightshiftSelection.for_tonight.find_by(nightshift_mission_id: mission.id)
-        unless selection
-          # Auto-create selection if missing
-          selection = NightshiftSelection.create!(
-            nightshift_mission_id: mission.id,
-            title: mission.name,
-            scheduled_date: Date.current,
-            enabled: true,
-            status: "pending"
-          )
+        selection = NightshiftSelection.find_or_create_by!(
+          nightshift_mission_id: mission.id,
+          scheduled_date: Date.current
+        ) do |sel|
+          sel.title = mission.name
+          sel.enabled = true
+          sel.status = "pending"
         end
 
-        selection.update!(
+        status = params[:status].to_s
+        NightshiftEngineService.new.complete_selection(
+          selection,
           status: status,
-          result: result,
-          completed_at: Time.current
+          result: params[:result]
         )
-        mission.update!(last_run_at: Time.current)
 
-        render json: { ok: true, selection_id: selection.id, status: selection.status }
+        render json: selection.reload
       end
 
       def selections
@@ -217,17 +181,12 @@ module Api
 
       private
 
-      def fetch_nightshift_crons
-        stdout, _stderr, status = Timeout.timeout(20) do
-          Open3.capture3("openclaw", "cron", "list", "--json")
+      def authenticate_hook_token
+        token = request.headers["X-Hook-Token"].to_s
+        configured_token = Rails.application.config.hooks_token.to_s
+        unless configured_token.present? && token.present? && ActiveSupport::SecurityUtils.secure_compare(token, configured_token)
+          render json: { error: "unauthorized" }, status: :unauthorized
         end
-        return [] unless status&.exitstatus == 0
-
-        raw = JSON.parse(stdout)
-        Array(raw["jobs"]).select { |j| j["name"].to_s.include?("🌙 NS:") }
-      rescue StandardError => e
-        Rails.logger.warn("[Nightshift] Failed to fetch crons: #{e.message}")
-        []
       end
 
       def mission_params

@@ -1,11 +1,11 @@
-require "open3"
-require "timeout"
-
 class NightshiftController < ApplicationController
   skip_forgery_protection only: [ :launch, :create, :update, :destroy ]
 
   def index
-    sync_crons_from_openclaw
+    sync_service = NightshiftSyncService.new
+    sync_service.sync_tonight_selections
+    Rails.cache.fetch("nightshift/sync_crons", expires_in: 5.minutes) { sync_service.sync_crons; true }
+
     @missions = NightshiftMission.enabled.ordered
     @selections = NightshiftSelection.for_tonight.index_by(&:nightshift_mission_id)
     @due_tonight_ids = @missions.select(&:due_tonight?).map(&:id)
@@ -81,55 +81,5 @@ class NightshiftController < ApplicationController
   def nightshift_hours?
     hour = Time.current.hour
     hour >= 23 || hour < 8
-  end
-
-  def sync_crons_from_openclaw
-    Rails.cache.fetch("nightshift/sync_crons", expires_in: 5.minutes) do
-      crons = fetch_nightshift_crons
-      crons.each do |cron|
-        mission_name = cron["name"].to_s.sub(/^🌙\s*NS:\s*/, "").strip
-        next if mission_name.blank?
-
-        mission = NightshiftMission.find_or_initialize_by(name: mission_name)
-        if mission.new_record?
-          mission.assign_attributes(
-            enabled: cron["enabled"] != false,
-            frequency: "always",
-            category: "general",
-            icon: "🌙",
-            description: "Auto-synced from OpenClaw cron",
-            estimated_minutes: ((cron.dig("payload", "timeoutSeconds") || 300) / 60.0).ceil
-          )
-          mission.save!
-        end
-
-        next unless mission.enabled? && mission.due_tonight?
-        next if NightshiftSelection.for_tonight.exists?(nightshift_mission_id: mission.id)
-
-        NightshiftSelection.create!(
-          nightshift_mission_id: mission.id,
-          title: mission.name,
-          scheduled_date: Date.current,
-          enabled: true,
-          status: "pending"
-        )
-      end
-      true
-    end
-  rescue StandardError => e
-    Rails.logger.warn("[Nightshift] sync_crons_from_openclaw failed: #{e.message}")
-  end
-
-  def fetch_nightshift_crons
-    stdout, _stderr, status = Timeout.timeout(20) do
-      Open3.capture3("openclaw", "cron", "list", "--json")
-    end
-    return [] unless status&.exitstatus == 0
-
-    raw = JSON.parse(stdout)
-    Array(raw["jobs"]).select { |j| j["name"].to_s.include?("🌙 NS:") }
-  rescue StandardError => e
-    Rails.logger.warn("[Nightshift] Failed to fetch crons: #{e.message}")
-    []
   end
 end
