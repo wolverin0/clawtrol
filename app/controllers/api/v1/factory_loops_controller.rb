@@ -4,7 +4,7 @@ module Api
       before_action :set_loop, only: [ :show, :update, :destroy, :play, :pause, :stop, :metrics ]
 
       def index
-        loops = FactoryLoop.by_status(params[:status]).ordered
+        loops = current_user.factory_loops.by_status(params[:status]).ordered
         render json: loops
       end
 
@@ -15,7 +15,7 @@ module Api
       end
 
       def create
-        loop = FactoryLoop.new(factory_loop_params)
+        loop = current_user.factory_loops.new(factory_loop_params)
         if loop.save
           render json: loop, status: :created
         else
@@ -66,7 +66,7 @@ module Api
       private
 
       def set_loop
-        @loop = FactoryLoop.find(params[:id])
+        @loop = current_user.factory_loops.find(params[:id])
       end
 
       def factory_loop_params

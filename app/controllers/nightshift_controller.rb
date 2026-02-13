@@ -1,12 +1,11 @@
 class NightshiftController < ApplicationController
-  skip_forgery_protection only: [ :launch, :create, :update, :destroy ]
 
   def index
     sync_service = NightshiftSyncService.new
     sync_service.sync_tonight_selections
     Rails.cache.fetch("nightshift/sync_crons", expires_in: 5.minutes) { sync_service.sync_crons; true }
 
-    @missions = NightshiftMission.enabled.ordered
+    @missions = current_user.nightshift_missions.enabled.ordered
     @selections = NightshiftSelection.for_tonight.index_by(&:nightshift_mission_id)
     @due_tonight_ids = @missions.select(&:due_tonight?).map(&:id)
     @total_time = @missions.sum(&:estimated_minutes)
@@ -16,7 +15,7 @@ class NightshiftController < ApplicationController
 
   def launch
     selected_ids = params[:mission_ids]&.map(&:to_i) || []
-    missions = NightshiftMission.where(id: selected_ids)
+    missions = current_user.nightshift_missions.where(id: selected_ids)
 
     existing_selections = NightshiftSelection.for_tonight
       .where(nightshift_mission_id: selected_ids)
@@ -45,7 +44,7 @@ class NightshiftController < ApplicationController
   end
 
   def create
-    @mission = NightshiftMission.new(mission_params)
+    @mission = current_user.nightshift_missions.new(mission_params)
     if @mission.save
       redirect_to nightshift_path, notice: "Mission created"
     else
@@ -54,7 +53,7 @@ class NightshiftController < ApplicationController
   end
 
   def update
-    @mission = NightshiftMission.find(params[:id])
+    @mission = current_user.nightshift_missions.find(params[:id])
     if @mission.update(mission_params)
       redirect_to nightshift_path, notice: "Mission updated"
     else
@@ -63,7 +62,7 @@ class NightshiftController < ApplicationController
   end
 
   def destroy
-    @mission = NightshiftMission.find(params[:id])
+    @mission = current_user.nightshift_missions.find(params[:id])
     @mission.destroy
     redirect_to nightshift_path, notice: "Mission deleted"
   end

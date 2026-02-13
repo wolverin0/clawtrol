@@ -13,6 +13,8 @@ class ValidationRunnerService
   REVIEW_TIMEOUT  = 120  # seconds for background review jobs
   MAX_OUTPUT_SIZE = 65_535
 
+  ALLOWED_COMMAND_PREFIXES = %w[bin/rails bundle rake npm pnpm npx yarn node ruby python].freeze
+
   def initialize(task, timeout: DEFAULT_TIMEOUT)
     @task = task
     @timeout = timeout
@@ -23,6 +25,9 @@ class ValidationRunnerService
   def call
     command = @task.validation_command
     return Result.new(success?: false, output: "No validation command configured", exit_code: -1) unless command.present?
+    unless allowed_command?(command)
+      return Result.new(success?: false, output: "Command not in allowlist", exit_code: -1, error: "blocked")
+    end
 
     @task.update!(validation_status: "pending")
 
@@ -108,5 +113,12 @@ class ValidationRunnerService
     end
 
     result
+  end
+
+  private
+
+  def allowed_command?(command)
+    cmd_base = command.to_s.strip.split(/\s+/).first.to_s
+    ALLOWED_COMMAND_PREFIXES.any? { |prefix| cmd_base == prefix || cmd_base.start_with?("#{prefix}/") }
   end
 end

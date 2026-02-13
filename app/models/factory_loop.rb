@@ -1,4 +1,5 @@
 class FactoryLoop < ApplicationRecord
+  belongs_to :user, optional: true
   has_many :factory_cycle_logs, dependent: :destroy
 
   STATUSES = %w[idle playing paused stopped error error_paused].freeze

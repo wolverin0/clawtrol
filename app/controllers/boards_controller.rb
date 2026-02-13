@@ -92,6 +92,8 @@ class BoardsController < ApplicationController
         locals: { board: @board }
       )
       response.set_header("X-Has-More", @pagy.next.present?.to_s)
+      # html_safe is appropriate here: content is server-rendered from ERB partials
+      # which auto-escape user input via ERBs default escaping
       render html: html.html_safe
     end
   end
@@ -121,6 +123,8 @@ class BoardsController < ApplicationController
     )
 
     response.set_header("X-Has-More", @pagy.next.present?.to_s)
+    # html_safe is appropriate here: content is server-rendered from ERB partials
+    # which auto-escape user input via ERBs default escaping
     render html: html.html_safe
   end
 

@@ -57,7 +57,7 @@
         </div>
       <% elsif @diff_content.present? %>
         <div class="diff-content text-xs font-mono bg-bg-elevated rounded-lg overflow-x-auto">
-          <%= @diff_content.html_safe %>
+          <%= sanitize(@diff_content, tags: %w[table tr td th span div pre code], attributes: %w[class style]) %>
         </div>
       <% end %>
     </div>

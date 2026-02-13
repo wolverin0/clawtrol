@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_13_153100) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_13_233551) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -141,9 +141,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_153100) do
     t.integer "total_cycles", default: 0
     t.integer "total_errors", default: 0
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["openclaw_cron_id"], name: "index_factory_loops_on_openclaw_cron_id", unique: true, where: "(openclaw_cron_id IS NOT NULL)"
     t.index ["slug"], name: "index_factory_loops_on_slug", unique: true
     t.index ["status"], name: "index_factory_loops_on_status"
+    t.index ["user_id"], name: "index_factory_loops_on_user_id"
   end
 
   create_table "model_limits", force: :cascade do |t|
@@ -175,9 +177,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_153100) do
     t.string "name", null: false
     t.integer "position", default: 0
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["category"], name: "index_nightshift_missions_on_category"
     t.index ["enabled"], name: "index_nightshift_missions_on_enabled"
     t.index ["frequency"], name: "index_nightshift_missions_on_frequency"
+    t.index ["user_id"], name: "index_nightshift_missions_on_user_id"
   end
 
   create_table "nightshift_selections", force: :cascade do |t|
@@ -620,7 +624,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_153100) do
   add_foreign_key "api_tokens", "users"
   add_foreign_key "boards", "users"
   add_foreign_key "factory_cycle_logs", "factory_loops"
+  add_foreign_key "factory_loops", "users"
   add_foreign_key "model_limits", "users"
+  add_foreign_key "nightshift_missions", "users"
   add_foreign_key "nightshift_selections", "nightshift_missions"
   add_foreign_key "notifications", "tasks"
   add_foreign_key "notifications", "users"

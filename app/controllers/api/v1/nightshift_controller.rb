@@ -7,13 +7,13 @@ module Api
 
       # GET /api/v1/nightshift/missions
       def missions
-        missions = NightshiftMission.enabled.ordered
+        missions = current_user.nightshift_missions.enabled.ordered
         render json: missions.map(&:to_mission_hash)
       end
 
       # POST /api/v1/nightshift/missions
       def create_mission
-        mission = NightshiftMission.new(mission_params)
+        mission = current_user.nightshift_missions.new(mission_params)
         if mission.save
           render json: mission.to_mission_hash, status: :created
         else
@@ -23,7 +23,7 @@ module Api
 
       # PATCH /api/v1/nightshift/missions/:id
       def update_mission
-        mission = NightshiftMission.find(params[:id])
+        mission = current_user.nightshift_missions.find(params[:id])
         if mission.update(mission_params)
           render json: mission.to_mission_hash
         else
@@ -33,14 +33,14 @@ module Api
 
       # DELETE /api/v1/nightshift/missions/:id
       def destroy_mission
-        mission = NightshiftMission.find(params[:id])
+        mission = current_user.nightshift_missions.find(params[:id])
         mission.destroy
         render json: { success: true }
       end
 
       # GET /api/v1/nightshift/tonight
       def tonight
-        missions = NightshiftMission.enabled.ordered
+        missions = current_user.nightshift_missions.enabled.ordered
         due = missions.select(&:due_tonight?)
         selections = NightshiftSelection.for_tonight.enabled
 
@@ -53,8 +53,8 @@ module Api
 
       # POST /api/v1/nightshift/tonight/approve
       def approve_tonight
-        mission_ids = params[:mission_ids]&.map(&:to_i) || NightshiftMission.enabled.select(&:due_tonight?).map(&:id)
-        missions = NightshiftMission.where(id: mission_ids)
+        mission_ids = params[:mission_ids]&.map(&:to_i) || current_user.nightshift_missions.enabled.select(&:due_tonight?).map(&:id)
+        missions = current_user.nightshift_missions.where(id: mission_ids)
 
         existing = NightshiftSelection.for_tonight.where(nightshift_mission_id: mission_ids).index_by(&:nightshift_mission_id)
         new_records = missions.reject { |m| existing[m.id] }
@@ -83,7 +83,7 @@ module Api
 
       # Legacy endpoints for backward compat
       def tasks
-        missions = NightshiftMission.enabled.ordered
+        missions = current_user.nightshift_missions.enabled.ordered
         render json: missions.map(&:to_mission_hash)
       end
 
@@ -106,7 +106,7 @@ module Api
 
       def arm
         mission_ids = (params[:mission_ids] || []).map(&:to_i)
-        missions = NightshiftMission.where(id: mission_ids)
+        missions = current_user.nightshift_missions.where(id: mission_ids)
 
         existing = NightshiftSelection.for_tonight.where(nightshift_mission_id: mission_ids).index_by(&:nightshift_mission_id)
         new_records = missions.reject { |m| existing[m.id] }

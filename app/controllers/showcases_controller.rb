@@ -31,6 +31,8 @@ class ShowcasesController < ApplicationController
     end
 
     if content
+      # html_safe is intentional: agent-generated HTML served in sandboxed iframe
+      # Security boundary is sandbox="allow-scripts allow-same-origin" in parent view
       render html: content.html_safe, layout: false
     else
       render plain: "No HTML content available", status: :not_found
