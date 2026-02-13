@@ -83,7 +83,7 @@ Rails.application.configure do
   config.hosts << "clawdeck.onrender.com"
   config.hosts << "app.clawdeck.io"
   config.hosts << ".clawdeck.io"  # Allow all subdomains
-  
+
   # ActionCable / Turbo Streams
   # Allow WebSocket origins for production domains.
   config.action_cable.allowed_request_origins = [

@@ -23,13 +23,13 @@ module OutputRenderable
     return nil if path.include?("\x00")
 
     # SECURITY: Reject absolute paths and ~/ paths entirely
-    return nil if path.start_with?('/')
-    return nil if path.start_with?('~')
+    return nil if path.start_with?("/")
+    return nil if path.start_with?("~")
 
     # SECURITY: Block dotfiles/dotdirs - any path component starting with '.'
     # This covers .openclaw, .ssh, .gnupg, .env, .config, etc.
-    path_components = path.split('/')
-    return nil if path_components.any? { |component| component.start_with?('.') && component != '.' }
+    path_components = path.split("/")
+    return nil if path_components.any? { |component| component.start_with?(".") && component != "." }
 
     # Define allowed base directories (project and storage only)
     project_root = File.expand_path("~/clawdeck")
@@ -46,7 +46,7 @@ module OutputRenderable
 
       # SECURITY: Ensure resolved path is still within the allowed directory
       # This prevents ../ traversal attacks
-      if candidate.start_with?(base_dir + '/') || candidate == base_dir
+      if candidate.start_with?(base_dir + "/") || candidate == base_dir
         # Check if file exists in this location
         if File.exist?(candidate)
           full_path = candidate
@@ -61,7 +61,7 @@ module OutputRenderable
     return nil unless full_path
 
     # Final safety check: ensure path is within one of the allowed directories
-    unless allowed_dirs.any? { |dir| full_path.start_with?(dir + '/') || full_path == dir }
+    unless allowed_dirs.any? { |dir| full_path.start_with?(dir + "/") || full_path == dir }
       return nil
     end
 
@@ -110,7 +110,7 @@ module OutputRenderable
   def read_first_html_file(task)
     return nil unless task.output_files.present?
 
-    html_file = task.output_files.find { |f| f.to_s.end_with?('.html', '.htm') }
+    html_file = task.output_files.find { |f| f.to_s.end_with?(".html", ".htm") }
     return nil unless html_file
 
     read_output_file(html_file)
@@ -120,7 +120,7 @@ module OutputRenderable
   def find_all_html_files(task)
     return [] unless task.output_files.present?
 
-    task.output_files.select { |f| f.to_s.end_with?('.html', '.htm') }
+    task.output_files.select { |f| f.to_s.end_with?(".html", ".htm") }
   end
 
   # Read a specific HTML file by path (for tabbed gallery)
@@ -146,14 +146,14 @@ module OutputRenderable
         files_with_content = html_files.map do |path|
           filename = File.basename(path, File.extname(path))
           # Create user-friendly label (e.g., "variant-1" -> "Variant 1")
-          label = filename.gsub(/[-_]/, ' ').titleize
+          label = filename.gsub(/[-_]/, " ").titleize
           { path: path, label: label }
         end
         # Use first file as default content for backwards compatibility
         first_content = read_output_file(html_files.first)
-        return { 
-          type: :html, 
-          content: first_content, 
+        return {
+          type: :html,
+          content: first_content,
           path: html_files.first,
           all_files: files_with_content,
           multiple: html_files.size > 1
@@ -167,7 +167,7 @@ module OutputRenderable
       end
 
       # Check for markdown files
-      md_file = task.output_files.find { |f| f.to_s.end_with?('.md', '.markdown') }
+      md_file = task.output_files.find { |f| f.to_s.end_with?(".md", ".markdown") }
       if md_file
         content = read_output_file(md_file)
         return { type: :markdown, content: content, path: md_file } if content

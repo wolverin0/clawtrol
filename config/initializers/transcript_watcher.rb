@@ -34,7 +34,7 @@ Rails.application.config.after_initialize do
     # Start after a short delay to ensure ActionCable is ready
     Thread.new do
       sleep 2  # Wait for ActionCable to initialize
-      
+
       begin
         TranscriptWatcher.instance.start
       rescue => e

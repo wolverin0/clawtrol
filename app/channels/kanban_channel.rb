@@ -6,7 +6,7 @@
 class KanbanChannel < ApplicationCable::Channel
   def subscribed
     @board_id = params[:board_id]
-    
+
     # Verify user owns this board
     board = current_user.boards.find_by(id: @board_id)
     if board

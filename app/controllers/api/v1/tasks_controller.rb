@@ -924,14 +924,14 @@ module Api
       # Add a dependency to this task (this task depends on another)
       def add_dependency
         depends_on_id = params[:depends_on_id]
-        
+
         unless depends_on_id.present?
           render json: { error: "depends_on_id parameter required" }, status: :bad_request
           return
         end
 
         depends_on = current_user.tasks.find_by(id: depends_on_id)
-        
+
         unless depends_on
           render json: { error: "Task #{depends_on_id} not found" }, status: :not_found
           return
@@ -962,14 +962,14 @@ module Api
       # Remove a dependency from this task
       def remove_dependency
         depends_on_id = params[:depends_on_id]
-        
+
         unless depends_on_id.present?
           render json: { error: "depends_on_id parameter required" }, status: :bad_request
           return
         end
 
         dependency = @task.task_dependencies.find_by(depends_on_id: depends_on_id)
-        
+
         unless dependency
           render json: { error: "Dependency not found" }, status: :not_found
           return
@@ -977,7 +977,7 @@ module Api
 
         depends_on = dependency.depends_on
         dependency.destroy!
-        
+
         set_task_activity_info(@task)
         @task.activity_note = "Removed dependency on ##{depends_on.id}: #{depends_on.name.truncate(30)}"
         @task.touch  # Trigger activity recording
@@ -1238,7 +1238,7 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, tags: [], output_files: [], review_config: {}, review_result: {})
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, :origin_chat_id, :origin_thread_id, tags: [], output_files: [], review_config: {}, review_result: {})
       end
 
       # Validation command execution delegated to ValidationRunnerService

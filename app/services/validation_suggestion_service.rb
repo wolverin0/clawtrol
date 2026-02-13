@@ -56,12 +56,12 @@ class ValidationSuggestionService
   # Public method for rule-based suggestion (called by class method and instance)
   def generate_rule_based_suggestion(task)
     output_files = task.output_files || []
-    
+
     return nil if output_files.empty?
 
     # Analyze file types
     extensions = output_files.map { |f| File.extname(f).downcase }.uniq
-    
+
     # Check for test files first - run those directly
     test_files = output_files.select { |f| f.include?("_test.rb") || f.include?("_spec.rb") }
     if test_files.any?
@@ -87,7 +87,7 @@ class ValidationSuggestionService
     # Ruby files — find SPECIFIC matching tests (not blanket test suite)
     if extensions.include?(".rb")
       impl_files = output_files.select { |f| f.end_with?(".rb") && !f.include?("test/") && !f.include?("spec/") }
-      
+
       if impl_files.any?
         test_paths = impl_files.filter_map do |f|
           if f.start_with?("app/")
@@ -98,7 +98,7 @@ class ValidationSuggestionService
 
         return "bin/rails test #{test_paths.take(5).join(' ')}" if test_paths.any?
       end
-      
+
       # Ruby files but no matching tests found — run unit tests only (fast)
       return "bin/rails test"
     end
@@ -178,14 +178,14 @@ class ValidationSuggestionService
 
     response = http.request(request)
     data = JSON.parse(response.body)
-    
+
     command = data.dig("choices", 0, "message", "content")&.strip
-    
+
     # Validate the command is safe
     return nil unless command.present?
     return nil if command.match?(Task::UNSAFE_COMMAND_PATTERN)
     return nil unless Task::ALLOWED_VALIDATION_PREFIXES.any? { |prefix| command.start_with?(prefix) }
-    
+
     command
   end
 end

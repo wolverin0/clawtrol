@@ -193,5 +193,4 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     assert_equal 0, FakeWebhookService.wakes.length
     assert_equal "up_next", nightly.reload.status
   end
-
 end

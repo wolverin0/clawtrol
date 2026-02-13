@@ -75,6 +75,8 @@ Rails.application.routes.draw do
       delete "nightshift/missions/:id", to: "nightshift#destroy_mission"
       get "nightshift/tonight", to: "nightshift#tonight"
       post "nightshift/tonight/approve", to: "nightshift#approve_tonight"
+      post "nightshift/sync_crons", to: "nightshift#sync_crons"
+      post "nightshift/report_execution", to: "nightshift#report_execution"
 
       # Factory API
       get "factory/loops", to: "factory_loops#index"
@@ -270,7 +272,7 @@ Rails.application.routes.draw do
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   # Output gallery for agent-generated content
-  resources :outputs, only: [:index, :show], controller: 'previews' do
+  resources :outputs, only: [:index, :show], controller: "previews" do
     member do
       get :raw
     end

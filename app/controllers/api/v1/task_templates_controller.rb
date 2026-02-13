@@ -17,7 +17,7 @@ module Api
       # POST /api/v1/task_templates
       def create
         @template = current_user.task_templates.build(template_params)
-        
+
         if @template.save
           render json: template_json(@template), status: :created
         else

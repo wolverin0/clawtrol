@@ -11,12 +11,12 @@ class AnalyticsController < ApplicationController
     @period = params[:period].presence || "7d"
 
     @start_time = case @period
-                  when "24h" then 24.hours.ago
-                  when "7d" then 7.days.ago
-                  when "30d" then 30.days.ago
-                  when "all" then 10.years.ago
-                  else 7.days.ago
-                  end
+    when "24h" then 24.hours.ago
+    when "7d" then 7.days.ago
+    when "30d" then 30.days.ago
+    when "all" then 10.years.ago
+    else 7.days.ago
+    end
 
     data = Rails.cache.fetch(analytics_cache_key(@period), expires_in: cache_ttl) do
       parse_openclaw_usage(@start_time)

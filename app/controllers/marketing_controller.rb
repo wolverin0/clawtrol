@@ -67,17 +67,17 @@ class MarketingController < ApplicationController
     # Build full prompt with product context and template style
     product_context = PRODUCT_CONTEXTS[product.downcase] || PRODUCT_CONTEXTS["futura"]
     template_style = TEMPLATE_STYLES[template.downcase] || ""
-    
+
     # Combine context + user prompt + template style
     prompt_parts = [product_context, prompt]
     prompt_parts << "Style: #{template_style}" if template_style.present?
-    
+
     # Add subtle variation for variant generation
     if variant_seed > 0
       variations = ["with dynamic composition", "with creative angle", "with alternative lighting", "with fresh perspective"]
       prompt_parts << variations[variant_seed % variations.length]
     end
-    
+
     full_prompt = prompt_parts.join(". ")
 
     begin
@@ -171,7 +171,7 @@ class MarketingController < ApplicationController
     platforms = params[:platforms] || { "facebook" => true, "instagram" => true }
     cta = params[:cta].to_s.strip
     product = params[:product].to_s.strip
-    
+
     if image_url.blank?
       render json: { error: "Image URL is required" }, status: :unprocessable_entity
       return
@@ -180,7 +180,7 @@ class MarketingController < ApplicationController
     # Build full image URL if relative
     base_url = request.base_url
     full_image_url = image_url.start_with?("http") ? image_url : "#{base_url}#{image_url}"
-    
+
     # Prepare payload for n8n webhook
     payload = {
       image_url: full_image_url,
@@ -458,9 +458,9 @@ class MarketingController < ApplicationController
 
       relative_path = if batch_name == "loose-files"
                         "generated/#{filename}"
-                      else
+      else
                         "generated/#{batch_name}/#{filename}"
-                      end
+      end
 
       images << {
         product: product,

@@ -60,12 +60,12 @@ class AgentPersonasController < ApplicationController
 
     # Filter by tier if specified
     @agent_personas = @agent_personas.by_tier(params[:tier]) if params[:tier].present?
-    
+
     # Filter by project if specified
     @agent_personas = @agent_personas.by_project(params[:project]) if params[:project].present?
 
     # Filter active only
-    @agent_personas = @agent_personas.active if params[:active] == 'true'
+    @agent_personas = @agent_personas.active if params[:active] == "true"
   end
 
   def show
@@ -73,15 +73,15 @@ class AgentPersonasController < ApplicationController
 
   def new
     @agent_persona = current_user.agent_personas.build(
-      model: 'sonnet',
-      emoji: '🤖',
+      model: "sonnet",
+      emoji: "🤖",
       active: true
     )
   end
 
   def create
     @agent_persona = current_user.agent_personas.build(agent_persona_params)
-    
+
     if @agent_persona.save
       redirect_to agent_persona_path(@agent_persona), notice: "Persona created successfully."
     else
@@ -107,14 +107,14 @@ class AgentPersonasController < ApplicationController
 
   def import
     personas_dir = File.expand_path("~/.openclaw/workspace/docs/agent-personas")
-    
+
     unless Dir.exist?(personas_dir)
       redirect_to agent_personas_path, alert: "Personas directory not found: #{personas_dir}"
       return
     end
 
     imported = AgentPersona.import_from_directory(personas_dir, user: current_user)
-    
+
     if imported.any?
       redirect_to agent_personas_path, notice: "Imported #{imported.count} personas successfully."
     else

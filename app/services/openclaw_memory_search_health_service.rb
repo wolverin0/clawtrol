@@ -67,9 +67,18 @@ class OpenclawMemorySearchHealthService
       )
     end
 
-    # 2) Gateway is reachable (health check passed above). Memory search is an internal
-    #    agent tool — there's no HTTP endpoint to probe it directly.
-    #    If the gateway is up, memory search is available to the agent.
+    # 2) Probe memory_search to check embeddings provider health
+    search = post_json("/api/memory/search", body: { query: "health check", top_k: 1 })
+    unless search[:ok]
+      status = classify_memory_error(search[:http_code], search[:error])
+      return persist!(
+        status: status,
+        last_checked_at: now,
+        error_message: "memory_search: #{search[:error]}",
+        error_at: now
+      )
+    end
+
     persist!(status: :ok, last_checked_at: now, error_message: nil, error_at: nil)
   rescue StandardError => e
     @logger.error("[OpenclawMemorySearchHealthService] user_id=#{@user.id} err=#{e.class}: #{e.message}")

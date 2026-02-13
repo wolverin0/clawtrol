@@ -108,7 +108,7 @@ class AutoValidationJob < ApplicationJob
 
   def build_followup_description(task, result)
     output_preview = result.output.to_s.truncate(2000)
-    
+
     <<~DESC
       Validation failed for parent task.
 

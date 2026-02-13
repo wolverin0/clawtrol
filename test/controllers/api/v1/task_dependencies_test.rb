@@ -14,12 +14,12 @@ class Api::V1::TaskDependenciesTest < ActionDispatch::IntegrationTest
 
   test "GET dependencies returns task's dependencies" do
     @task1.add_dependency!(@task2)
-    
+
     get dependencies_api_v1_task_path(@task1), headers: @headers
-    
+
     assert_response :success
     json = JSON.parse(response.body)
-    
+
     assert_equal 1, json["dependencies"].count
     assert_equal @task2.id, json["dependencies"].first["id"]
     assert json["blocked"]
@@ -29,10 +29,10 @@ class Api::V1::TaskDependenciesTest < ActionDispatch::IntegrationTest
     post add_dependency_api_v1_task_path(@task1),
       params: { depends_on_id: @task2.id }.to_json,
       headers: @headers
-    
+
     assert_response :success
     json = JSON.parse(response.body)
-    
+
     assert json["success"]
     assert json["blocked"]
     assert_includes @task1.reload.dependencies, @task2
@@ -43,7 +43,7 @@ class Api::V1::TaskDependenciesTest < ActionDispatch::IntegrationTest
     post add_dependency_api_v1_task_path(@task1),
       params: { depends_on_id: @task1.id }.to_json,
       headers: @headers
-    
+
     assert_response :unprocessable_entity
     json = JSON.parse(response.body)
     assert json["error"].present?
@@ -52,13 +52,13 @@ class Api::V1::TaskDependenciesTest < ActionDispatch::IntegrationTest
   test "DELETE remove_dependency removes a dependency" do
     @task1.add_dependency!(@task2)
     assert @task1.blocked?
-    
+
     delete "#{remove_dependency_api_v1_task_path(@task1)}?depends_on_id=#{@task2.id}",
       headers: @headers
-    
+
     assert_response :success
     json = JSON.parse(response.body)
-    
+
     assert json["success"]
     refute json["blocked"]
     refute_includes @task1.reload.dependencies, @task2
@@ -67,18 +67,18 @@ class Api::V1::TaskDependenciesTest < ActionDispatch::IntegrationTest
   test "DELETE remove_dependency returns error for non-existent dependency" do
     delete "#{remove_dependency_api_v1_task_path(@task1)}?depends_on_id=#{@task2.id}",
       headers: @headers
-    
+
     assert_response :not_found
   end
 
   test "task_json includes dependencies info" do
     @task1.add_dependency!(@task2)
-    
+
     get api_v1_task_path(@task1), headers: @headers
-    
+
     assert_response :success
     json = JSON.parse(response.body)
-    
+
     assert json["blocked"]
     assert_equal 1, json["dependencies"].count
     assert_equal @task2.id, json["dependencies"].first["id"]

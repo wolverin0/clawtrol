@@ -38,7 +38,7 @@ class ModelLimit < ApplicationRecord
   # Time until reset in human-readable format
   def time_until_reset
     return nil unless resets_at.present? && resets_at > Time.current
-    
+
     seconds = (resets_at - Time.current).to_i
     if seconds < 60
       "#{seconds}s"
@@ -105,14 +105,14 @@ class ModelLimit < ApplicationRecord
     # Parses reset time from common error formats
     def record_limit!(user, name, error_message)
       limit = for_model(user, name)
-      
+
       # Try to parse reset time from error message
       # Common formats:
       # - "Rate limit exceeded. Resets at 2026-02-09T23:09:00Z"
       # - "Rate limit exceeded. Try again at 2026-02-09 23:09:00"
       # - "Rate limit exceeded. Retry after 3600 seconds"
       resets_at = parse_reset_time(error_message)
-      
+
       limit.set_limit!(error_message: error_message, resets_at: resets_at)
       limit
     end

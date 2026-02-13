@@ -16,7 +16,7 @@ class TaskDependency < ApplicationRecord
 
   def no_circular_dependency
     return if depends_on_id.nil? || task_id.nil?
-    
+
     # Check if adding this dependency would create a cycle
     # (i.e., if depends_on already depends on task, directly or indirectly)
     if would_create_cycle?
@@ -27,20 +27,20 @@ class TaskDependency < ApplicationRecord
   def would_create_cycle?
     visited = Set.new
     queue = [depends_on_id]
-    
+
     while queue.any?
       current_id = queue.shift
       return true if current_id == task_id
       next if visited.include?(current_id)
-      
+
       visited << current_id
-      
+
       # Find all tasks that current_id depends on
       TaskDependency.where(task_id: current_id).pluck(:depends_on_id).each do |dep_id|
         queue << dep_id unless visited.include?(dep_id)
       end
     end
-    
+
     false
   end
 end
