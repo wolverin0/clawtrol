@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_13_142000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_13_143000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -588,14 +588,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_142000) do
     t.datetime "created_at", null: false
     t.string "email_address", null: false
     t.string "fallback_model_chain"
+    t.boolean "notifications_enabled", default: true, null: false
     t.string "openclaw_gateway_token"
     t.string "openclaw_gateway_url"
     t.string "openclaw_hooks_token"
     t.string "password_digest"
     t.string "provider"
+    t.string "telegram_bot_token"
+    t.string "telegram_chat_id"
     t.string "theme", default: "default", null: false
     t.string "uid"
     t.datetime "updated_at", null: false
+    t.string "webhook_notification_url"
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "(provider IS NOT NULL)"
   end

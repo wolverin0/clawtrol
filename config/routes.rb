@@ -143,6 +143,7 @@ Rails.application.routes.draw do
   resource :settings, only: [ :show, :update ], controller: "profiles" do
     post :regenerate_api_token
     post :test_connection
+    post :test_notification
   end
 
   # Link Inbox

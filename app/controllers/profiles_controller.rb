@@ -1,3 +1,5 @@
+require "ostruct"
+
 class ProfilesController < ApplicationController
   def show
     @user = current_user
@@ -55,6 +57,22 @@ class ProfilesController < ApplicationController
     render json: results
   end
 
+  def test_notification
+    svc = ExternalNotificationService.new(current_user)
+    svc.notify_task_completion(
+      OpenStruct.new(
+        id: 0,
+        name: "Test Notification",
+        status: "in_review",
+        description: "This is a test notification from ClawTrol"
+      )
+    )
+
+    render json: { success: true }
+  rescue StandardError => e
+    render json: { success: false, error: e.message }, status: :unprocessable_entity
+  end
+
   def update
     @user = current_user
 
@@ -80,6 +98,6 @@ class ProfilesController < ApplicationController
   private
 
   def profile_params
-    params.expect(user: [ :email_address, :avatar, :openclaw_gateway_url, :openclaw_gateway_token, :openclaw_hooks_token, :ai_suggestion_model, :ai_api_key, :context_threshold_percent, :auto_retry_enabled, :auto_retry_max, :auto_retry_backoff, :fallback_model_chain, :agent_name, :agent_emoji, :theme ])
+    params.expect(user: [ :email_address, :avatar, :openclaw_gateway_url, :openclaw_gateway_token, :openclaw_hooks_token, :ai_suggestion_model, :ai_api_key, :context_threshold_percent, :auto_retry_enabled, :auto_retry_max, :auto_retry_backoff, :fallback_model_chain, :agent_name, :agent_emoji, :theme, :telegram_bot_token, :telegram_chat_id, :webhook_notification_url, :notifications_enabled ])
   end
 end

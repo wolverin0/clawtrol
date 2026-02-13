@@ -17,6 +17,7 @@ class User < ApplicationRecord
 
   # Security: encrypt sensitive fields at rest using Rails 7+ built-in encryption
   encrypts :ai_api_key
+  encrypts :telegram_bot_token
 
   # Primary API token for agent integration
   # Note: raw_token is only available on the returned object if the token was just created
