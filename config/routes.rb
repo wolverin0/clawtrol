@@ -76,6 +76,17 @@ Rails.application.routes.draw do
       get "nightshift/tonight", to: "nightshift#tonight"
       post "nightshift/tonight/approve", to: "nightshift#approve_tonight"
 
+      # Factory API
+      get "factory/loops", to: "factory_loops#index"
+      post "factory/loops", to: "factory_loops#create"
+      get "factory/loops/:id", to: "factory_loops#show"
+      patch "factory/loops/:id", to: "factory_loops#update"
+      delete "factory/loops/:id", to: "factory_loops#destroy"
+      post "factory/loops/:id/play", to: "factory_loops#play"
+      post "factory/loops/:id/pause", to: "factory_loops#pause"
+      post "factory/loops/:id/stop", to: "factory_loops#stop"
+      get "factory/loops/:id/metrics", to: "factory_loops#metrics"
+
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
 
@@ -184,6 +195,13 @@ Rails.application.routes.draw do
 
   # Nightbeat morning brief
   get "nightbeat", to: "nightbeat#index"
+
+  # Factory dashboard
+  get "factory", to: "factory#index"
+  post "factory/loops", to: "factory#create", as: :factory_loops
+  post "factory/:id/play", to: "factory#play", as: :factory_play
+  post "factory/:id/pause", to: "factory#pause", as: :factory_pause
+  post "factory/:id/stop", to: "factory#stop", as: :factory_stop
 
   # Agent Personas
   resources :agent_personas do
