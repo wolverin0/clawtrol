@@ -1,0 +1,119 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Generates CHANGELOG.md from git history using conventional commits.
+# Usage: bin/changelog [--tag-only]
+#   --tag-only  Only include commits between tags (for releases)
+
+require "open3"
+require "date"
+
+TYPE_LABELS = {
+  "feat"     => "🚀 Features",
+  "fix"      => "🐛 Bug Fixes",
+  "docs"     => "📚 Documentation",
+  "refactor" => "♻️  Refactoring",
+  "perf"     => "⚡ Performance",
+  "test"     => "🧪 Tests",
+  "ci"       => "👷 CI",
+  "style"    => "💄 Style",
+  "build"    => "📦 Build",
+  "chore"    => "🔧 Chores"
+}.freeze
+
+CONVENTIONAL_RE = /^(feat|fix|docs|chore|refactor|test|ci|style|perf|build)(\(.+?\))?!?:\s+(.+)$/
+
+def git_log(range = nil)
+  cmd = %w[git log --pretty=format:%H|||%ai|||%s]
+  cmd << range if range
+  out, _, _ = Open3.capture3(*cmd)
+  out.lines.filter_map do |line|
+    hash, date_str, subject = line.strip.split("|||", 3)
+    next unless subject
+    { hash: hash[0..6], date: Date.parse(date_str), subject: subject }
+  end
+end
+
+def parse_commits(commits)
+  grouped = Hash.new { |h, k| h[k] = [] }
+  commits.each do |c|
+    if (m = c[:subject].match(CONVENTIONAL_RE))
+      type, scope, desc = m[1], m[2]&.tr("()", ""), m[3]
+      entry = scope ? "**#{scope}:** #{desc}" : desc
+      grouped[type] << { entry: entry, hash: c[:hash], date: c[:date] }
+    end
+  end
+  grouped
+end
+
+def format_section(type, entries)
+  label = TYPE_LABELS[type] || type.capitalize
+  lines = ["### #{label}\n"]
+  entries.each do |e|
+    lines << "- #{e[:entry]} (`#{e[:hash]}`)"
+  end
+  lines.join("\n")
+end
+
+def generate_changelog
+  tags_out, _, _ = Open3.capture3("git", "tag", "--sort=-version:refname")
+  tags = tags_out.lines.map(&:strip).reject(&:empty?)
+
+  sections = []
+
+  if tags.any?
+    # Unreleased commits (HEAD to latest tag)
+    unreleased = git_log("#{tags.first}..HEAD")
+    if unreleased.any?
+      grouped = parse_commits(unreleased)
+      unless grouped.empty?
+        sections << "## [Unreleased]\n"
+        TYPE_LABELS.each_key do |type|
+          sections << format_section(type, grouped[type]) if grouped[type]
+        end
+        sections << ""
+      end
+    end
+
+    # Each tag range
+    tags.each_with_index do |tag, i|
+      range = i + 1 < tags.size ? "#{tags[i + 1]}..#{tag}" : tag
+      commits = git_log(range)
+      next if commits.empty?
+
+      date = commits.first[:date]
+      grouped = parse_commits(commits)
+      next if grouped.empty?
+
+      sections << "## [#{tag}] — #{date}\n"
+      TYPE_LABELS.each_key do |type|
+        sections << format_section(type, grouped[type]) if grouped[type]
+      end
+      sections << ""
+    end
+  else
+    # No tags — group all commits by month
+    all_commits = git_log
+    by_month = Hash.new { |h, k| h[k] = [] }
+    all_commits.each { |c| by_month[c[:date].strftime("%Y-%m")] << c }
+
+    by_month.sort.reverse.each do |month, commits|
+      grouped = parse_commits(commits)
+      next if grouped.empty?
+
+      date = Date.parse("#{month}-01")
+      sections << "## #{date.strftime('%B %Y')}\n"
+      TYPE_LABELS.each_key do |type|
+        sections << format_section(type, grouped[type]) if grouped[type]
+      end
+      sections << ""
+    end
+  end
+
+  header = "# Changelog\n\nAll notable changes to ClawTrol are documented here.\nGenerated automatically from [conventional commits](https://www.conventionalcommits.org/).\n\n"
+  header + sections.join("\n")
+end
+
+changelog = generate_changelog
+File.write("CHANGELOG.md", changelog)
+puts "✅ CHANGELOG.md generated (#{changelog.lines.count} lines)"

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Git commit-msg hook: validates conventional commit format
+# Install: ln -sf ../../bin/commit-msg-hook .git/hooks/commit-msg
+
+commit_msg_file="$1"
+commit_msg=$(head -1 "$commit_msg_file")
+
+# Allow merge commits and fixup/squash
+if echo "$commit_msg" | grep -qE "^(Merge |fixup! |squash! )"; then
+  exit 0
+fi
+
+# Conventional commit pattern: type(optional scope): description
+pattern="^(feat|fix|docs|chore|refactor|test|ci|style|perf|build)(\(.+\))?!?: .+"
+
+if ! echo "$commit_msg" | grep -qE "$pattern"; then
+  echo "❌ Invalid commit message format!"
+  echo ""
+  echo "Expected: <type>[optional scope]: <description>"
+  echo ""
+  echo "Types: feat, fix, docs, chore, refactor, test, ci, style, perf, build"
+  echo ""
+  echo "Examples:"
+  echo "  feat: add user authentication"
+  echo "  fix(api): handle nil task gracefully"
+  echo "  docs: update README with setup instructions"
+  echo ""
+  exit 1
+fi
