@@ -49,6 +49,6 @@ class FactoryRunnerJob < ApplicationJob
     FactoryCycleTimeoutJob.set(wait: FactoryEngineService::TIMEOUT_MINUTES.minutes).perform_later(cycle_log.id)
 
     # Re-enqueue self for next cycle
-    self.class.set(wait: loop.interval_ms.milliseconds).perform_later(loop_id)
+    self.class.set(wait: (loop.interval_ms / 1000.0).seconds).perform_later(loop_id)
   end
 end

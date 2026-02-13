@@ -12,6 +12,11 @@ class FactoryLoop < ApplicationRecord
   scope :by_status, ->(status) { where(status:) if status.present? }
   scope :playing, -> { where(status: "playing") }
 
+  # Status query methods
+  STATUSES.each do |s|
+    define_method(:"#{s}?") { status == s }
+  end
+
   before_validation :normalize_slug
   after_commit :sync_engine, if: :saved_change_to_status?
 
