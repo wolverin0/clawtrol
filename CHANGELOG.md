@@ -3,10 +3,11 @@
 All notable changes to ClawTrol are documented here.
 Generated automatically from [conventional commits](https://www.conventionalcommits.org/).
 
-## [Unreleased]
+## February 2026
 
 ### 🚀 Features
 
+- add conventional commits hook, changelog generator, and CI workflow (`fdc3da5`)
 - native task notifications (Telegram + webhook) (`79dfbd9`)
 - add Nightshift execution backend (runner + engine + schema fix) (`8e1ea92`)
 - factory loop system prompts seed task (#570) (`14700ee`)
@@ -191,7 +192,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **deps:** bump actions/checkout from 5 to 6 (#1) (`47897eb`)
 - remove debug console.log statements, production ready (`d71c50b`)
 
-## [v1.0.0] — 2026-02-01
+## January 2026
 
 ### 🚀 Features
 
