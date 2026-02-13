@@ -14,9 +14,21 @@ module Api
         task = find_task_from_params
         return render json: { error: "task not found" }, status: :not_found unless task
 
-        findings = params[:findings].presence ||
-                   params[:output].presence ||
-                   "Agent completed (no findings provided)"
+        findings = params[:findings].presence || params[:output].presence
+
+        # If no findings provided, try to extract from transcript
+        transcript_files = []
+        if findings.blank?
+          sid = params[:session_id].presence || params[:agent_session_id].presence || task.agent_session_id
+          if sid.present?
+            tpath = TranscriptParser.transcript_path(sid)
+            if tpath
+              findings = TranscriptParser.extract_summary(tpath)
+              transcript_files = TranscriptParser.extract_output_files(tpath)
+            end
+          end
+          findings = "Agent completed (no findings provided)" if findings.blank?
+        end
 
         updates = {
           # Description gets updated after we determine session_id and (optionally) persist transcript
@@ -42,6 +54,7 @@ module Api
         candidate_files = task.normalized_output_files(provided_files)
         candidate_files = extracted_from_findings if candidate_files.blank?
         candidate_files += Array(activity[:output_files]) if activity[:output_files].present?
+        candidate_files += transcript_files if transcript_files.present?
 
         if task.agent_session_id.present? || updates[:agent_session_id].present?
           candidate_files += task.extract_output_files_from_transcript_commit

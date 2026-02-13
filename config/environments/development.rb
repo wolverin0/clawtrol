@@ -92,6 +92,7 @@ Rails.application.configure do
   # Allow ngrok hosts for remote access
   config.hosts << /.*\.ngrok-free\.app/
   config.hosts << /.*\.ngrok\.io/
+  config.hosts << "clawtrol.lan"
 
   # Bullet: detect N+1 queries
   config.after_initialize do

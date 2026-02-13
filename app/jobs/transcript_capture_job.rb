@@ -13,8 +13,12 @@ class TranscriptCaptureJob < ApplicationJob
     task = Task.find_by(id: task_id)
     return unless task
 
-    # Skip if task already has agent output
-    return if task.description.to_s.include?("## Agent Output")
+    # Skip if task already has real agent output (not the generic fallback)
+    desc = task.description.to_s
+    if desc.include?("## Agent Output")
+      output_section = desc.split("## Agent Output", 2).last.to_s
+      return if output_section.present? && !output_section.include?("Agent completed (no findings provided)")
+    end
     return if task.agent_session_id.present? && transcript_exists?(task.agent_session_id)
 
     Rails.logger.info("[TranscriptCapture] Scanning for output for task ##{task.id}: #{task.title}")
@@ -82,53 +86,27 @@ class TranscriptCaptureJob < ApplicationJob
   end
 
   def parse_transcript(path, task)
-    output_text = nil
-    written_files = []
+    # Use TranscriptParser's extract_summary for output text
+    output_text = TranscriptParser.extract_summary(path)
 
-    TranscriptParser.each_entry(path) do |data, _line_num|
-      next unless data["type"] == "message"
-      msg = data["message"]
-      next unless msg
-
-      # Extract last assistant text as output summary
-      if msg["role"] == "assistant"
-        content = msg["content"]
-        if content.is_a?(Array)
-          texts = content.select { |c| c["type"] == "text" }.map { |c| c["text"] }
-          output_text = texts.last if texts.any?
-
-          # Extract files from tool calls (Write/Edit tools)
-          content.each do |item|
-            if item["type"] == "toolCall" && %w[Write Edit write edit].include?(item["name"])
-              input = item["input"] || {}
-              fp = input["file_path"] || input["path"] || input["file"]
-              written_files << fp if fp.present?
-            end
-          end
-        elsif content.is_a?(String) && content.length > 20
-          output_text = content
-        end
-      end
-
-      # Also extract from tool results that write files
-      if msg["role"] == "toolResult"
-        content = msg["content"]
-        if content.is_a?(Array)
-          content.each do |item|
-            if item["type"] == "text" && item["text"].to_s.include?("Successfully")
-              match = item["text"].match(/(?:wrote|created|edited|saved)\s+(?:to\s+)?[`"']?([^\s`"']+)[`"']?/i)
-              written_files << match[1] if match
-            end
-          end
-        end
+    # Fall back to last assistant text if no summary-keyword match
+    if output_text.blank?
+      TranscriptParser.each_entry(path) do |data, _line_num|
+        next unless data["type"] == "message"
+        msg = data["message"]
+        next unless msg && msg["role"] == "assistant"
+        text = TranscriptParser.flatten_content_text(msg["content"])
+        output_text = text if text.present? && text.length > 20
       end
     end
+
+    written_files = TranscriptParser.extract_output_files(path)
 
     return nil if output_text.blank? && written_files.empty?
 
     {
       output: output_text&.truncate(3000),
-      files: written_files.uniq.reject(&:blank?)
+      files: written_files
     }
   end
 
