@@ -43,7 +43,7 @@
     <% if @board_page %>
       <%# Board page - full screen, no wrapper %>
       <div class="h-screen flex flex-col bg-bg-base">
-        <main class="h-full text-content-secondary font-normal text-sm pb-0" data-agent-terminal-aware>
+        <main class="h-full text-content-secondary font-normal text-sm" data-agent-terminal-aware>
           <%= yield %>
         </main>
       </div>
@@ -82,7 +82,7 @@
       <%# Other pages - centered content with navbar %>
       <div class="h-screen flex flex-col bg-bg-base">
         <%= render "application/navbar" %>
-        <div class="flex-1 overflow-y-auto px-4 pb-8 overscroll-contain [-webkit-overflow-scrolling:touch]">
+        <div class="flex-1 overflow-y-auto px-4 scroll-safe-bottom overscroll-contain [-webkit-overflow-scrolling:touch]">
           <main class="container max-w-7xl mx-auto text-content-secondary font-normal text-sm">
             <%= yield %>
           </main>

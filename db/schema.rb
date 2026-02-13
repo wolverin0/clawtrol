@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_13_025000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_13_134937) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -104,6 +104,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_025000) do
     t.datetime "finished_at"
     t.integer "input_tokens"
     t.string "model_used"
+    t.string "openclaw_session_key"
     t.integer "output_tokens"
     t.datetime "started_at", null: false
     t.jsonb "state_after"
@@ -119,6 +120,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_025000) do
   create_table "factory_loops", force: :cascade do |t|
     t.integer "avg_cycle_duration_ms"
     t.jsonb "config", default: {}, null: false
+    t.integer "consecutive_failures", default: 0, null: false
     t.datetime "created_at", null: false
     t.text "description"
     t.string "fallback_model"

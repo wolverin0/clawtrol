@@ -198,9 +198,22 @@ body.overflow-hidden {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
 
-/* Ensure main content doesn't overlap bottom nav */
-@media (max-width: 768px) {
-  [data-agent-terminal-aware] {
+/* Shared safe bottom spacing for scroll containers behind fixed mobile nav */
+.scroll-safe-bottom {
+  padding-bottom: max(2rem, calc(env(safe-area-inset-bottom) + 5rem));
+}
+
+/* Board pages keep desktop padding at 0 but need mobile safe-bottom spacing */
+.scroll-safe-bottom-board {
+  padding-bottom: max(4rem, calc(env(safe-area-inset-bottom) + 4rem));
+}
+
+@media (min-width: 768px) {
+  .scroll-safe-bottom {
+    padding-bottom: 2rem;
+  }
+
+  .scroll-safe-bottom-board {
     padding-bottom: 0;
   }
 }
