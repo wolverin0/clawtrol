@@ -641,6 +641,26 @@ GET /api/v1/tasks/recurring
 
 ---
 
+## Commit Convention
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/). A git hook validates your commit messages automatically.
+
+**Format:** `<type>[optional scope]: <description>`
+
+**Types:** `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`, `style`, `perf`, `build`
+
+**Setup the hook:**
+```bash
+ln -sf ../../bin/commit-msg-hook .git/hooks/commit-msg
+```
+
+**Generate changelog:**
+```bash
+bin/changelog
+```
+
+The changelog is also auto-generated on pushes to `main` via GitHub Actions.
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

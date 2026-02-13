@@ -1,0 +1,221 @@
+# Changelog
+
+All notable changes to ClawTrol are documented here.
+Generated automatically from [conventional commits](https://www.conventionalcommits.org/).
+
+## [Unreleased]
+
+### 🚀 Features
+
+- native task notifications (Telegram + webhook) (`79dfbd9`)
+- add Nightshift execution backend (runner + engine + schema fix) (`8e1ea92`)
+- factory loop system prompts seed task (#570) (`14700ee`)
+- factory cycle results webhook (#569) (`77957bc`)
+- factory engine model callbacks (#568) (`5ae9f18`)
+- factory engine schema + service + jobs (#567) (`2117362`)
+- agent factory module — DB, API, UI (`8813735`)
+- nightshift v2 — DB-backed missions with frequencies and auto-ticking (`2cc06fa`)
+- rebuild nightshift from hardcoded array to DB-backed missions (`c0989ca`)
+- **workflows:** add DAG workflow editor MVP (`dea2b7e`)
+- **command:** show last message snippet from session jsonl (`fd900ae`)
+- Add Agent Command Center at /command (`1a158ae`)
+- nightshift mission #19 — Toolchain Version Checker (`eae2519`)
+- Add task state_data and agent swarm view (`8c4aa15`)
+- /keys page for secure API key management (`9aed911`)
+- nightshift orchestrator - persistent selections via DB (`11bf0a5`)
+- auto-detect rate limits from agent findings + parse 'in ~N min' format (`3ea3ce7`)
+- use fxtwitter API to fetch X/Twitter post content (`25840ea`)
+- process saved links with Gemini analysis (`f8483b7`)
+- add mobile hamburger menu with all nav links + add nightshift and saved_links to desktop nav (`478d588`)
+- add Link Inbox for nightshift URL processing (`e659a39`)
+- convert nightshift selector from static HTML to dynamic Rails endpoint (`bcfbc67`)
+- add nightshift API endpoints for task selector (`cd957a2`)
+- visual diff viewer for agent output (#363) (`3991892`)
+- **marketing:** real image generation via gpt-image-1 in playground #450 (`43f062f`)
+- /marketing file browser endpoint for marketing docs (`76b1462`)
+- Add MGS codec sound effects Easter egg (#174) (`e576349`)
+- OpenClaw integration wizard — 5-step guided setup (#138) (`2dcc748`)
+- agent terminal improvements — smart filtering, progress timeline, search (#137) (`3aafa8c`)
+- global search + filter bar — search across boards, filter by status/model/priority (#136) (`0f93c9a`)
+- package ClawTrol as OpenClaw skill (#144) (`2005fbe`)
+- auto-validation pipeline — agent_complete triggers background validation (#151) (`def50b0`)
+- AI validation suggestion - auto-generate validation commands (#149) (`cae46b4`)
+- task templates + slash commands - /review /bug /doc /test /research (#130) (`ea3e784`)
+- notification system - bell icon, unread count, browser notifications (#127) (`cabb56f`)
+- complete notification system with bell icon, API, and browser notifications (#127) (`ed4736d`)
+- Docker Compose production setup + install.sh (#125) (`8a62fda`)
+- system tests with Capybara + headless Chrome - 9 tests passing (#141) (`fe22b2b`)
+- tabbed settings page - Profile/Agent/AI/Integration (#124) (`59309f6`)
+- quick wins - done counter, timestamps, parent links, copy URL, confetti (#139) (`1a95295`)
+- undo toast for status changes with 5s countdown (#128) (`d936100`)
+- keyboard shortcuts - n=new task, Ctrl+/=terminal, ?=help modal (#143) (`994a3d5`)
+- expand button for file viewer - fullscreen overlay modal (`11809a5`)
+- file viewer in task modal + full-screen desktop modal (#120) (`9dd4aaf`)
+- Fix archived view scroll + infinite pagination (`3c90931`)
+- Add model rate limit tracking and auto-fallback system (`a7dbebf`)
+- Multi-board support, auto-refresh, and UX improvements (`0df35b5`)
+- add board tabs navbar with task counts and auto-routing (`46d9036`)
+- add spawn_ready and link_session endpoints for automated agent tracking (`ab10ea6`)
+- show parent output in follow-up modal, document session key requirement (`7e4432e`)
+- Extend hover preview to in_review tasks (`524ca29`)
+- Mobile terminal toggle + pin from modal (`7199960`)
+- Mobile-friendly agent preview with bottom sheet modal (Task #32) (`5e593ff`)
+- Always-visible action buttons + Real-time agent preview on hover (`ca2fb34`)
+- Task ID display + Quick action buttons (NEXT, Follow-up) (`07ec84e`)
+- Agent integration enhancements (`42d206b`)
+- Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
+### 🐛 Bug Fixes
+
+- interval_ms conversion (milliseconds not a method) + add status query methods (`181bce4`)
+- unify navbar icons across all pages (#566) (`f6dbc0f`)
+- correct GitHub URL to wolverin0/clawtrol (`85f6936`)
+- eager loading, navbar links, landing page redesign (#564) (`7b979ae`)
+- **command:** avoid /command.json 503 by caching + configurable CLI timeout (`1d2ae9c`)
+- **command:** make Command Center use OpenClaw CLI sessions + add tests (`895fa28`)
+- /keys removes admin check (use login auth only) (`99b6390`)
+- nightshift uses Rails layout (keeps navbar/sidebar) (`fab9bfa`)
+- nightshift mobile — disable layout, fix checkboxes, increase bottom padding (`9739d0b`)
+- remove hardcoded OpenAI key from marketing_controller (`dc5825b`)
+- nightshift UI — inline Stimulus controller + disable scanline on mobile (`87966cc`)
+- use gemini-3-flash-preview model for link processing (`d6092fd`)
+- use Gemini CLI with OAuth instead of API key, gemini-2.5-flash model (`a4144eb`)
+- use Gemini 3 Flash for saved link processing (`9b823bc`)
+- register mobile-nav controller explicitly in Stimulus index (`fb52f14`)
+- remove authenticate_user! from NightshiftController (uses Authentication concern) (`a71d0ff`)
+- archived view for aggregator board shows all boards instead of only board_id=1 (`307feec`)
+- memory health = OK when gateway is reachable (`26e5646`)
+- memory search health check uses /api/sessions instead of nonexistent /api/memory/search (`b15aeb1`)
+- **mobile:** memory panel uses fixed positioning like notifications (`925fbef`)
+- **mobile:** board tabs as dropdown select + memory panel as bottom sheet (`ffc5d85`)
+- **mobile:** board tabs scrollable + memory panel stays in viewport (`ce82409`)
+- **views:** improve mobile responsiveness of board header (`b7c3b11`)
+- catch StandardError not Exception in bare rescue clauses (`c973000`)
+- **security:** reject absolute paths in view_file, tighten allowed_dirs (#495) (`45e2b33`)
+- **security:** require authentication for FileViewerController (#493) (`e7dca98`)
+- **security:** require auth for agent_log and session_health endpoints (#492) (`7259921`)
+- **security:** sanitize all Redcarpet markdown output to prevent XSS (#491) (`eeb6bc0`)
+- serve binary files with proper content-type in view_file (`6258f62`)
+- openclaw-owned orchestration + follow-up approval + UI persona controls (`d75a811`)
+- live kanban refresh + persona controls + hook broadcasts (`d77c443`)
+- auto-pull circuit breaker + outcome runs + notification dedup/cap (`0e8378d`)
+- auto-pull circuit breaker + outcome runs + notification dedup/cap (`d644aa0`)
+- agent_complete sets assigned_to_agent=true so done validation works (`a4d94d6`)
+- auto-link agent_session_id on task update and agent_complete (`0ec7b09`)
+- **mobile:** horizontal scroll for board tabs instead of wrapping (`b279f2c`)
+- restore Personas & Rosters icons in navbar (`ae52fc1`)
+- agent_log finds archived .deleted transcript files (`378d5be`)
+- search — replace Stimulus with plain HTML form (`a871e0e`)
+- 3 UI issues — done counter, search hint, AI model options (`d9df7cd`)
+- NEXT button full page reload — remove turbo_frame '_top' (`758ef7e`)
+- permanent fixes for session linking + validation selection (`f2d2747`)
+- system test broken by slash commands placeholder change (`7a68ff8`)
+- delete drop zone missing <div> tag — raw HTML visible on board (`37e070a`)
+- notifications mark_all_read broken — URL had .json suffix (`0b088b1`)
+- z-index on all sub-modals (z-50 → z-[80]) — were trapped behind task panel (z-[60]/z-[70]) (`06a0017`)
+- agent_activity + kanban_refresh controllers also had channels/index import bug (`1aea1bf`)
+- Turbo not loading - channels/index import mismatch broke entire JS chain (`6162f51`)
+- auto-open task uses setTimeout + better card selector (`2688c72`)
+- auto-open task modal via turbo frame on ?task=ID redirect (`6800121`)
+- redirect direct task visits to board with auto-open via ?task=ID (`97eaedc`)
+- task show renders panel directly on direct visits, turbo_frame on AJAX (`47d7148`)
+- render task show with full layout on direct visits (not just Turbo Frame) (`8823639`)
+- explicitly register new Stimulus controllers (Propshaft digest cache bypass) (`cc692ec`)
+- lock body scroll when fullscreen file viewer is open (`54e8ef0`)
+- populate fullscreen content BEFORE moving to body (targets disconnect after move) (`7cc6d3e`)
+- expand button - move fullscreen modal to body to escape transform containing block (`6568fb7`)
+- rename 'No agent session' to 'Waiting for agent connection' + improve messaging (`250ecec`)
+- auto-routing now matches ClawTrol prefix, defaults to ClawDeck board (`7706f20`)
+- file viewer fetch approach + auto session linking (#121) (`cdb12e9`)
+- set empty @columns in archived action for header partial (`533e510`)
+- auto-done in web controller, done ordering, spinner indicator (`3d6ac4f`)
+- hide preview on click, fix agent output fallback for completed tasks (`ddd2b63`)
+- hide hover preview when context menu opens (`83b20a8`)
+- context menu z-index above hover preview (`d9b62c9`)
+- increase truncation limits in agent terminal panel (`a5cf4be`)
+- use reorder() to override default_scope for correct column ordering (`b0b52f0`)
+- increase truncation limits in agent activity panel (5000/1500/3000 chars) (`8ebdf03`)
+- disable sorting in in_review/done columns, re-prepend on update for date order (`42becfd`)
+- increase content limits, fix fallback regex, verify column ordering (`5096c10`)
+- pin to terminal event dispatch to document instead of window (`50a2c6b`)
+- hover preview uses fixed positioning to avoid overflow clipping (`ec14950`)
+- hover preview uses modal, transcript fallback to description (`2586be5`)
+- Show session continuation UI even without session_key (`0efa03d`)
+- Agent modal now uses same centered pattern as followup modal (`50f1256`)
+- Mobile modal now uses proper bottom sheet pattern (`a6a479f`)
+- Mobile agent modal now slides up correctly (`8d52e8a`)
+- Sort in_review/done columns by most recent first (`43e5bde`)
+- Generate AI suggestion now uses session auth instead of API token (`0ee8cc2`)
+- NEXT button persists after drag between columns (`6b4db1b`)
+- Use link_to instead of button_to for NEXT button (`190d84b`)
+- Follow-up modal improvements (`f34355e`)
+- NEXT button + async follow-up modal + model selector (`4e727f2`)
+- Move action buttons outside link wrapper (`c6c477c`)
+- Disable GLM thinking mode for proper content response (`2a93b83`)
+### 📚 Documentation
+
+- update README with Telegram notifications setup and Nightshift execution backend (`029b399`)
+- update README with Nightshift, Link Inbox, mobile nav, search features (`4903fcb`)
+- update README with Nightbeat, auto-save pipeline, done validation, transcript recovery (`a661cb3`)
+- add AI-assisted installation prompt (`a0e904b`)
+- comprehensive README update — Feb 5 sprint (`c437f55`)
+- Rebrand to ClawTrol with comprehensive feature documentation (`3b3cecf`)
+- comprehensive changelog for PR #16 (`47b01bd`)
+- Add changelog draft for v0.2.0 (`05f8c55`)
+### ♻️  Refactoring
+
+- extract Task concerns from god object (#503) (`b9c7417`)
+### ⚡ Performance
+
+### 🧪 Tests
+
+- add controller + integration tests (#506) (`ff1e29c`)
+### 👷 CI
+
+### 💄 Style
+
+### 📦 Build
+
+### 🔧 Chores
+
+- remove git-rewrite artifacts (`f233ed8`)
+- prompt outcome contract in auto-pull (`e5c01ea`)
+- normalize file modes (`5eca5ff`)
+- pending UI changes (filters, cards, badges, panel) (`529a381`)
+- **deps:** Update gems (importmap-rails, solid_cache, solid_queue, tailwindcss-rails) (`a56a2fb`)
+- **deps:** bump pg from 1.6.2 to 1.6.3 (#11) (`9714073`)
+- **deps-dev:** bump brakeman from 7.1.0 to 8.0.2 (#9) (`4dcca82`)
+- **deps-dev:** bump bundler-audit from 0.9.2 to 0.9.3 (#6) (`faaf6e1`)
+- **deps:** bump puma from 7.1.0 to 7.2.0 (#4) (`8c30b61`)
+- **deps:** bump actions/upload-artifact from 4 to 6 (#3) (`9e3e869`)
+- **deps:** bump actions/cache from 4 to 5 (#2) (`8dceab3`)
+- **deps:** bump actions/checkout from 5 to 6 (#1) (`47897eb`)
+- remove debug console.log statements, production ready (`d71c50b`)
+
+## [v1.0.0] — 2026-02-01
+
+### 🚀 Features
+
+- add onboarding board with starter tasks for new users (`a3b95e0`)
+- add Discord community links (readme, dropdown, footer) (`c6506f6`)
+### 🐛 Bug Fixes
+
+- task drag-and-drop not persisting to database (`519a035`)
+- guard against nil current_user in task card broadcast (`a27a195`)
+### 📚 Documentation
+
+- rewrite agent integration for v2 API (`38fd3fa`)
+### ♻️  Refactoring
+
+### ⚡ Performance
+
+### 🧪 Tests
+
+### 👷 CI
+
+### 💄 Style
+
+### 📦 Build
+
+### 🔧 Chores
+
+- migrate domain from app.clawdeck.io to clawdeck.io (`2e270fd`)
