@@ -14,7 +14,7 @@ class WorkflowDefinitionValidator
     end
   end
 
-  VALID_TYPES = %w[trigger agent tool router].freeze
+  VALID_TYPES = %w[trigger agent tool router nightshift conditional notification delay].freeze
 
   def self.validate(definition)
     new(definition).validate
