@@ -1,5 +1,5 @@
 class NightshiftMission < ApplicationRecord
-  has_many :nightshift_selections, dependent: :nullify
+  has_many :nightshift_selections, dependent: :destroy
 
   validates :name, presence: true
 

@@ -57,7 +57,7 @@ module Api
 
         if new_records.any?
           NightshiftSelection.insert_all(new_records.map { |m|
-            { mission_id: m.id, nightshift_mission_id: m.id, title: m.name, scheduled_date: Date.current,
+            { nightshift_mission_id: m.id, title: m.name, scheduled_date: Date.current,
               enabled: true, status: "pending", created_at: Time.current, updated_at: Time.current }
           })
         end
@@ -102,7 +102,7 @@ module Api
 
         if new_records.any?
           NightshiftSelection.insert_all(new_records.map { |m|
-            { mission_id: m.id, nightshift_mission_id: m.id, title: m.name, scheduled_date: Date.current,
+            { nightshift_mission_id: m.id, title: m.name, scheduled_date: Date.current,
               enabled: true, status: "pending", created_at: Time.current, updated_at: Time.current }
           })
         end
@@ -121,11 +121,19 @@ module Api
 
       def update_selection
         @selection = NightshiftSelection.find(params[:id])
-        if @selection.update(selection_params)
-          render json: @selection
+
+        status = selection_params[:status]
+        result = selection_params[:result]
+
+        if status.present?
+          NightshiftEngineService.new.complete_selection(@selection, status: status, result: result)
         else
-          render json: { errors: @selection.errors.full_messages }, status: :unprocessable_entity
+          @selection.update!(selection_params)
         end
+
+        render json: @selection.reload
+      rescue ActiveRecord::RecordInvalid => e
+        render json: { errors: [e.message] }, status: :unprocessable_entity
       end
 
       private

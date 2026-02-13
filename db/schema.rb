@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_13_134937) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_13_142000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -185,14 +185,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_134937) do
     t.datetime "created_at", null: false
     t.boolean "enabled", default: true, null: false
     t.datetime "launched_at"
-    t.integer "mission_id", null: false
-    t.bigint "nightshift_mission_id"
+    t.bigint "nightshift_mission_id", null: false
     t.text "result"
     t.date "scheduled_date", null: false
     t.string "status", default: "pending", null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
-    t.index ["mission_id", "scheduled_date"], name: "index_nightshift_selections_on_mission_id_and_scheduled_date", unique: true
+    t.index ["nightshift_mission_id", "scheduled_date"], name: "index_nightshift_selections_on_mission_and_scheduled_date", unique: true
     t.index ["nightshift_mission_id"], name: "index_nightshift_selections_on_nightshift_mission_id"
   end
 
