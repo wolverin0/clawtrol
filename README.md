@@ -70,6 +70,35 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Event Types** — Agent claimed, task completed, validation results
 - **Browser Notifications** — Optional browser notification API integration
 - **Mark All Read** — One-click clear all notifications
+- **Telegram Push** — Get instant Telegram messages when tasks move to `in_review` or `done`
+- **Webhook Push** — Generic webhook (JSON POST) for custom integrations (Slack, Discord, etc.)
+- **Settings UI** — Configure Telegram bot token, chat ID, and webhook URL in Settings → Notifications tab
+- **Test Button** — Send a test notification to verify your setup
+- **Zero Dependencies** — Pure Rails, no external services required
+
+#### Setting Up Telegram Notifications
+
+1. Create a Telegram bot via [@BotFather](https://t.me/BotFather) and copy the token
+2. Send `/start` to your bot, then get your chat ID from [@userinfobot](https://t.me/userinfobot)
+3. Go to **Settings → Notifications** in ClawTrol
+4. Paste your bot token and chat ID
+5. Click **Test Notification** to verify
+6. Done — you'll get a Telegram message every time a task completes
+
+#### Webhook Integration
+
+Set a webhook URL in Settings → Notifications. ClawTrol will POST JSON on task completion:
+
+```json
+{
+  "event": "task_status_change",
+  "task_id": 123,
+  "task_name": "Fix login bug",
+  "status": "in_review",
+  "message": "📋 Task #123 → In review\n\nFix login bug\n\n...",
+  "timestamp": "2026-02-13T14:30:00-03:00"
+}
+```
 
 ### ⌨️ Keyboard Shortcuts
 - `n` — New task
@@ -100,12 +129,14 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Recurring Tasks** — Daily/weekly/monthly templates with time picker
 
 ### 🌙 Nightshift Mission Control
-- **18 Automated Missions** — Pre-configured nightly tasks: security scans, dependency updates, financial reports, network monitoring, email triage, tech news, RAG reindexing, and more
+- **19 Automated Missions** — Pre-configured nightly tasks: security scans, dependency updates, financial reports, network monitoring, email triage, tech news, RAG reindexing, and more
 - **Mission Selector UI** — Terminal-themed `/nightshift` page with checkboxes, model indicators (Codex/Gemini/GLM), and estimated time per mission
-- **Persistent Selections** — Mission picks saved to DB per night via `NightshiftSelection` model
-- **Orchestrator Cron** — Central 1am cron reads selections and launches only chosen missions
-- **Status Tracking** — Each mission reports back: pending → running → completed/failed
+- **ARM & Execute** — Select missions → click ARM → `NightshiftRunnerJob` executes them sequentially via OpenClaw wake
+- **SolidQueue Recurring** — Automatic nightly run at 23:00 via `config/recurring.yml`
+- **Engine Service** — `NightshiftEngineService` handles execution orchestration, completion callbacks, and timeout (30 min per mission)
+- **Status Tracking** — Each selection tracks: `pending → running → completed/failed` with `launched_at` and `completed_at` timestamps
 - **API Integration** — `GET /api/v1/nightshift/selections` + `PATCH` for agent status reporting
+- **Completion Callbacks** — Agents report back via `PATCH /api/v1/nightshift/selections/:id` with result text
 - **Evening Planning** — 21:00 cron sends day review + nightshift planner via Telegram
 
 ### 🔗 Link Inbox (Saved Links)

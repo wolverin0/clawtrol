@@ -152,6 +152,46 @@ module TranscriptParser
     candidate&.strip
   end
 
+  # Extract file paths from Write/Edit tool calls in a transcript.
+  # Returns an array of unique file paths.
+  def extract_output_files(path)
+    files = []
+
+    each_entry(path) do |data, _line_num|
+      next unless data["type"] == "message"
+      msg = data["message"]
+      next unless msg
+
+      if msg["role"] == "assistant"
+        content = msg["content"]
+        next unless content.is_a?(Array)
+
+        content.each do |item|
+          if item["type"] == "toolCall" && %w[Write Edit write edit].include?(item["name"])
+            input = item["input"] || {}
+            fp = input["file_path"] || input["path"] || input["file"]
+            files << fp if fp.present?
+          end
+        end
+      end
+
+      # Also extract from tool results that mention successful writes
+      if msg["role"] == "toolResult"
+        tool_content = msg["content"]
+        if tool_content.is_a?(Array)
+          tool_content.each do |item|
+            if item["type"] == "text" && item["text"].to_s.include?("Successfully")
+              match = item["text"].match(/(?:wrote|created|edited|saved)\s+(?:to\s+)?[`"']?([^\s`"']+)[`"']?/i)
+              files << match[1] if match
+            end
+          end
+        end
+      end
+    end
+
+    files.uniq.reject(&:blank?)
+  end
+
   # Flatten message content (Array or String) into plain text.
   def flatten_content_text(content)
     case content
