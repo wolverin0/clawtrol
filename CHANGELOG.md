@@ -67,6 +67,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
 ### 🐛 Bug Fixes
 
+- **nightshift:** async fire-and-forget architecture with hook token auth (`f752626`)
 - **ci:** rubocop auto-fix, hook auth blank token, needs_follow_up default, memory search probe (`78e038e`)
 - **ci:** resolve scan_js and scan_ruby failures (`0c4857a`)
 - interval_ms conversion (milliseconds not a method) + add status query methods (`181bce4`)
@@ -156,6 +157,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`d979005`)
 - update CHANGELOG.md [skip ci] (`5fd3ee1`)
 - update CHANGELOG.md [skip ci] (`69bd35c`)
 - update CHANGELOG.md [skip ci] (`2cf4aea`)
