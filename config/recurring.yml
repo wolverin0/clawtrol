@@ -30,6 +30,11 @@ default: &default
     queue: default
     schedule: at 11pm every day
 
+  nightshift_timeout_sweeper:
+    class: NightshiftTimeoutSweeperJob
+    queue: default
+    schedule: every hour
+
 development:
   <<: *default
 
