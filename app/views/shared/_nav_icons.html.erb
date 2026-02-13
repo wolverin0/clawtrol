@@ -1,0 +1,116 @@
+<% icon_base_class = "hidden md:flex w-8 h-8 rounded-md items-center justify-center transition-colors" %>
+<% icon_inactive_class = "text-content-muted hover:text-content hover:bg-bg-elevated" %>
+<% icon_active_class = "text-content bg-bg-elevated" %>
+<% last_board = session[:last_board_id] && current_user&.boards&.order(position: :asc)&.find_by(id: session[:last_board_id]) %>
+
+<%= link_to dashboard_path,
+    class: "#{icon_base_class} #{controller_name == 'dashboard' ? icon_active_class : icon_inactive_class}",
+    title: "Dashboard" do %>
+  📊
+<% end %>
+
+<%= link_to analytics_path,
+    class: "#{icon_base_class} #{controller_name == 'analytics' ? icon_active_class : icon_inactive_class}",
+    title: "Analytics" do %>
+  📈
+<% end %>
+
+<%= link_to command_path,
+    class: "#{icon_base_class} #{controller_name == 'command' ? icon_active_class : icon_inactive_class}",
+    title: "Command Center" do %>
+  🎮
+<% end %>
+
+<%= link_to(last_board ? board_path(last_board) : boards_path,
+    class: "#{icon_base_class} #{controller_name == 'boards' ? icon_active_class : icon_inactive_class}",
+    title: "Board") do %>
+  📋
+<% end %>
+
+<%= link_to workflows_path,
+    class: "#{icon_base_class} #{controller_name == 'workflows' ? icon_active_class : icon_inactive_class}",
+    title: "Workflows" do %>
+  🔀
+<% end %>
+
+<%= link_to cronjobs_path,
+    class: "#{icon_base_class} #{controller_name == 'cronjobs' ? icon_active_class : icon_inactive_class}",
+    title: "Cron Jobs" do %>
+  🕐
+<% end %>
+
+<%= link_to tokens_path,
+    class: "#{icon_base_class} #{controller_name == 'tokens' ? icon_active_class : icon_inactive_class}",
+    title: "Tokens" do %>
+  🪙
+<% end %>
+
+<%= link_to nightshift_path,
+    class: "#{icon_base_class} #{controller_name == 'nightshift' ? icon_active_class : icon_inactive_class}",
+    title: "Nightshift" do %>
+  🌙
+<% end %>
+
+<%= link_to factory_path,
+    class: "#{icon_base_class} #{controller_name == 'factory' ? icon_active_class : icon_inactive_class}",
+    title: "Factory" do %>
+  🏭
+<% end %>
+
+<%= link_to saved_links_path,
+    class: "#{icon_base_class} #{controller_name == 'saved_links' ? icon_active_class : icon_inactive_class}",
+    title: "Saved Links" do %>
+  🔗
+<% end %>
+
+<%= link_to showcases_path,
+    class: "#{icon_base_class} #{controller_name == 'showcases' ? icon_active_class : icon_inactive_class}",
+    title: "Showcase" do %>
+  🏆
+<% end %>
+
+<%= link_to outputs_path,
+    class: "#{icon_base_class} #{controller_name == 'previews' ? icon_active_class : icon_inactive_class}",
+    title: "Outputs" do %>
+  👁️
+<% end %>
+
+<div class="hidden md:block relative" data-controller="dropdown">
+  <button type="button"
+          data-dropdown-target="button"
+          data-action="click->dropdown#toggle"
+          class="flex items-center gap-1 w-8 h-8 rounded-md justify-center transition-colors cursor-pointer <%= controller_name == 'agent_personas' ? icon_active_class : icon_inactive_class %>"
+          title="Agent Personas">
+    🧠
+  </button>
+  <div data-dropdown-target="menu"
+       class="hidden absolute left-0 top-full mt-1 w-44 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
+    <div class="py-1">
+      <%= link_to agent_personas_path,
+          class: "flex items-center gap-2 px-3 py-2 text-xs #{controller_name == 'agent_personas' && action_name != 'roster' ? 'text-content bg-bg-elevated' : 'text-content-secondary hover:bg-bg-elevated'} transition-colors" do %>
+        🧠 Agent Personas
+      <% end %>
+      <%= link_to roster_agent_personas_path,
+          class: "flex items-center gap-2 px-3 py-2 text-xs #{controller_name == 'agent_personas' && action_name == 'roster' ? 'text-content bg-bg-elevated' : 'text-content-secondary hover:bg-bg-elevated'} transition-colors" do %>
+        📋 Roster
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<div data-controller="search" data-search-url-value="<%= search_path %>" class="relative">
+  <form action="<%= search_path %>" method="get" class="hidden md:block" data-turbo-frame="_top">
+    <div class="relative">
+      <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-content-muted text-xs">🔍</span>
+      <input type="text" name="q" value="<%= params[:q] %>"
+             data-search-target="input"
+             placeholder="Search..."
+             class="w-36 lg:w-44 pl-8 pr-3 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent focus:w-52 text-content placeholder-content-muted transition-all <%= controller_name == 'search' ? 'ring-1 ring-accent' : '' %>">
+    </div>
+  </form>
+  <a href="<%= search_path %>"
+     class="md:hidden w-8 h-8 rounded-md <%= controller_name == 'search' ? 'bg-bg-elevated text-content' : 'bg-bg-elevated hover:bg-bg-hover text-content-muted hover:text-content' %> flex items-center justify-center text-sm transition-colors"
+     title="Search">
+    🔍
+  </a>
+</div>

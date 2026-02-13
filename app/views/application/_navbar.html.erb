@@ -13,70 +13,7 @@
         <span class="text-base md:text-lg font-semibold text-content font-display">🦞 ClawTrol</span>
 
         <%# Quick Nav Icons %>
-        <%= link_to command_path,
-            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
-            title: "Command Center" do %>
-          🎮
-        <% end %>
-        <%= link_to workflows_path,
-            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
-            title: "Workflows" do %>
-          🔀
-        <% end %>
-        <%= link_to cronjobs_path,
-            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
-            title: "Cron Jobs" do %>
-          🕐
-        <% end %>
-        <%= link_to analytics_path,
-            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
-            title: "Analytics" do %>
-          📊
-        <% end %>
-        <%= link_to tokens_path,
-            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
-            title: "Tokens" do %>
-          🪙
-        <% end %>
-        <%= link_to nightshift_path,
-            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
-            title: "Nightshift" do %>
-          🌙
-        <% end %>
-        <%= link_to factory_path,
-            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
-            title: "Factory" do %>
-          🏭
-        <% end %>
-        <%= link_to showcases_path,
-            class: "hidden md:flex w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated items-center justify-center transition-colors",
-            title: "Showcase" do %>
-          🏆
-        <% end %>
-
-        <%# Agent Personas dropdown %>
-        <div class="hidden md:block relative" data-controller="dropdown">
-          <button type="button"
-                  data-dropdown-target="button"
-                  data-action="click->dropdown#toggle"
-                  class="flex items-center gap-1 w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated justify-center transition-colors cursor-pointer"
-                  title="Agent Personas">
-            🤖
-          </button>
-          <div data-dropdown-target="menu"
-               class="hidden absolute left-0 top-full mt-1 w-44 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
-            <div class="py-1">
-              <%= link_to agent_personas_path,
-                  class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-                🧠 Agent Personas
-              <% end %>
-              <%= link_to roster_agent_personas_path,
-                  class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-                📋 Roster
-              <% end %>
-            </div>
-          </div>
-        </div>
+        <%= render "shared/nav_icons" %>
       <% else %>
         <%= link_to root_path, class: "flex items-center gap-2" do %>
           <span class="text-base md:text-lg font-semibold text-content font-display">🦞 ClawTrol</span>
