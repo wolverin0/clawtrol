@@ -22,7 +22,6 @@ class NightshiftController < ApplicationController
 
     new_selections = missions_to_create.map do |mission|
       {
-        mission_id: mission.id,
         nightshift_mission_id: mission.id,
         title: mission.name,
         scheduled_date: Date.current,
@@ -36,8 +35,7 @@ class NightshiftController < ApplicationController
     NightshiftSelection.for_tonight.where(nightshift_mission_id: selected_ids).update_all(enabled: true)
     NightshiftSelection.for_tonight.where.not(nightshift_mission_id: selected_ids).update_all(enabled: false)
 
-    # Update last_run_at for launched missions
-    NightshiftMission.where(id: selected_ids).update_all(last_run_at: Time.current)
+    NightshiftRunnerJob.perform_later if nightshift_hours?
 
     render json: { success: true, armed_count: selected_ids.count }, status: :ok
   end
@@ -74,5 +72,10 @@ class NightshiftController < ApplicationController
       :frequency, :enabled, :created_by, :category, :position,
       days_of_week: []
     )
+  end
+
+  def nightshift_hours?
+    hour = Time.current.hour
+    hour >= 23 || hour < 8
   end
 end

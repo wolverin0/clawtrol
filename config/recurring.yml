@@ -25,6 +25,11 @@ default: &default
     queue: default
     schedule: every hour
 
+  nightshift_runner:
+    class: NightshiftRunnerJob
+    queue: default
+    schedule: at 11pm every day
+
 development:
   <<: *default
 
