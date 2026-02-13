@@ -155,6 +155,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`69bd35c`)
 - update CHANGELOG.md [skip ci] (`2cf4aea`)
 - update CHANGELOG.md [skip ci] (`81d237e`)
 - update README with Telegram notifications setup and Nightshift execution backend (`029b399`)
@@ -181,6 +182,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🔧 Chores
 
+- **deps:** add dependabot config for bundler and npm_and_yarn (`a895cf3`)
 - add dependabot config for bundler npm and actions (`89852dd`)
 - remove git-rewrite artifacts (`f233ed8`)
 - prompt outcome contract in auto-pull (`e5c01ea`)
