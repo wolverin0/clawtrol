@@ -75,6 +75,23 @@
   .ns-title { font-size: 1rem; font-weight: 600; color: var(--text, #C9D1D9); }
   .ns-desc { font-size: 0.85rem; color: var(--text-muted, #8B949E); line-height: 1.5; flex-grow: 1; }
 
+  .ns-card-actions {
+    display: flex;
+    gap: 0.35rem;
+    justify-content: flex-end;
+  }
+  .ns-icon-btn {
+    border: 1px solid var(--border, #30363D);
+    background: transparent;
+    color: var(--text-muted, #8B949E);
+    border-radius: 4px;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .ns-icon-btn:hover { border-color: var(--terminal-cyan); color: var(--terminal-cyan); }
+  .ns-icon-btn.delete:hover { border-color: var(--terminal-red); color: var(--terminal-red); }
+
   .ns-footer {
     display: flex; justify-content: space-between; align-items: center;
     margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(48, 54, 61, 0.5);
@@ -85,9 +102,9 @@
     text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; border: 1px solid transparent;
   }
   .ns-badge-codex { color: var(--terminal-cyan); border-color: rgba(0, 212, 255, 0.3); background: rgba(0, 212, 255, 0.1); }
-  .ns-badge-gemini { color: var(--terminal-green); border-color: rgba(0, 255, 65, 0.3); background: rgba(0, 255, 65, 0.1); }
+  .ns-badge-gemini, .ns-badge-gemini-flash { color: var(--terminal-green); border-color: rgba(0, 255, 65, 0.3); background: rgba(0, 255, 65, 0.1); }
   .ns-badge-opus { color: var(--terminal-purple); border-color: rgba(163, 113, 247, 0.3); background: rgba(163, 113, 247, 0.1); }
-  .ns-badge-glm { color: var(--terminal-amber); border-color: rgba(255, 176, 0, 0.3); background: rgba(255, 176, 0, 0.1); }
+  .ns-badge-glm, .ns-badge-deepseek, .ns-badge-groq, .ns-badge-cerebras { color: var(--terminal-amber); border-color: rgba(255, 176, 0, 0.3); background: rgba(255, 176, 0, 0.1); }
   .ns-badge-freq {
     font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 3px;
     color: var(--terminal-cyan); border-color: rgba(0, 212, 255, 0.2); background: rgba(0, 212, 255, 0.05);
@@ -133,7 +150,6 @@
   }
   .ns-toggle-all:hover { border-color: var(--text, #C9D1D9); color: var(--text, #C9D1D9); }
 
-  /* Add mission modal */
   .ns-modal-overlay {
     display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0,0,0,0.7); z-index: 300; align-items: center; justify-content: center;
@@ -143,6 +159,8 @@
     background: var(--bg-card, #161B22); border: 1px solid var(--border, #30363D);
     border-radius: 8px; padding: 2rem; width: 100%; max-width: 500px;
     font-family: 'SF Mono', 'Fira Code', monospace;
+    max-height: 90vh;
+    overflow-y: auto;
   }
   .ns-modal h3 { color: var(--terminal-green); margin: 0 0 1.5rem; }
   .ns-modal label { display: block; color: var(--text-muted, #8B949E); font-size: 0.8rem; margin-bottom: 0.3rem; }
@@ -159,6 +177,20 @@
     color: var(--text-muted, #8B949E);
   }
   .ns-modal-btn.primary { background: var(--terminal-green); color: #0A0E14; border: none; font-weight: 600; }
+  .ns-days-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+  }
+  .ns-days-grid label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin: 0;
+    font-size: 0.75rem;
+  }
+  .ns-days-grid input { width: auto; margin: 0; }
 
   @media (max-width: 768px) {
     .ns-header { padding: 1rem; }
@@ -173,6 +205,9 @@
 </style>
 
 <div data-controller="nightshift">
+  <% model_options = %w[opus codex gemini gemini-flash glm deepseek groq cerebras] %>
+  <% week_days = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [7, 'Sun']] %>
+
   <div class="ns-header">
     <div class="ns-brand">
       <span class="ns-brand-icon">🌑</span>
@@ -202,8 +237,15 @@
       <div class="ns-card <%= 'selected' if is_selected %> <%= 'due-tonight' if is_due %>"
            data-action="click->nightshift#toggle"
            data-mission-id="<%= mission.id %>"
+           data-mission-name="<%= mission.name %>"
+           data-mission-description="<%= mission.description %>"
+           data-mission-icon="<%= mission.icon %>"
+           data-mission-model="<%= mission.model %>"
            data-mission-time="<%= mission.estimated_minutes %>"
+           data-mission-frequency="<%= mission.frequency %>"
+           data-mission-days="<%= (mission.days_of_week || []).join(',') %>"
            data-mission-category="<%= mission.category %>"
+           data-mission-enabled="<%= mission.enabled %>"
            data-nightshift-target="card">
         <div class="ns-card-header">
           <div class="ns-checkbox"><span class="ns-checkmark">✓</span></div>
@@ -216,6 +258,15 @@
             </div>
           </div>
         </div>
+
+        <div class="ns-card-actions" data-action="click->nightshift#stopPropagation">
+          <button type="button" class="ns-icon-btn" title="Edit mission" data-action="click->nightshift#openEditModal">✏️</button>
+          <%= button_to "🗑️", nightshift_mission_path(mission), method: :delete,
+              class: "ns-icon-btn delete",
+              form: { data: { turbo_confirm: "Delete mission '#{mission.name}'?" } },
+              data: { action: "click->nightshift#stopPropagation" } %>
+        </div>
+
         <div class="ns-desc"><%= mission.description %></div>
         <div class="ns-footer">
           <span class="ns-badge ns-badge-<%= mission.model %>"><%= mission.model %></span>
@@ -244,11 +295,10 @@
     </button>
   </div>
 
-  <!-- Add Mission Modal -->
-  <div class="ns-modal-overlay" data-nightshift-target="modal">
-    <div class="ns-modal">
+  <div class="ns-modal-overlay" data-nightshift-target="modal" data-action="click->nightshift#overlayClose">
+    <div class="ns-modal" data-action="click->nightshift#stopPropagation">
       <h3>➕ Add Mission</h3>
-      <%= form_with url: nightshift_missions_path, method: :post, local: true do |f| %>
+      <%= form_with url: nightshift_missions_path, method: :post, local: true do %>
         <label>Name</label>
         <input type="text" name="nightshift_mission[name]" required>
 
@@ -263,10 +313,9 @@
           <div>
             <label>Model</label>
             <select name="nightshift_mission[model]">
-              <option value="gemini">gemini</option>
-              <option value="codex">codex</option>
-              <option value="glm">glm</option>
-              <option value="opus">opus</option>
+              <% model_options.each do |model| %>
+                <option value="<%= model %>"><%= model %></option>
+              <% end %>
             </select>
           </div>
         </div>
@@ -289,7 +338,7 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
           <div>
             <label>Frequency</label>
-            <select name="nightshift_mission[frequency]">
+            <select name="nightshift_mission[frequency]" data-nightshift-target="createFrequency" data-action="change->nightshift#toggleCreateDays">
               <% @frequencies.each do |freq| %>
                 <option value="<%= freq %>"><%= freq %></option>
               <% end %>
@@ -306,9 +355,96 @@
           </div>
         </div>
 
+        <div data-nightshift-target="createDaysWrap" style="display:none;">
+          <label>Days of Week</label>
+          <div class="ns-days-grid">
+            <% week_days.each do |day_num, day_label| %>
+              <label>
+                <input type="checkbox" name="nightshift_mission[days_of_week][]" value="<%= day_num %>">
+                <span><%= day_label %></span>
+              </label>
+            <% end %>
+          </div>
+        </div>
+
+        <label>
+          <input type="checkbox" name="nightshift_mission[enabled]" value="1" checked style="width:auto; margin-right:0.4rem;">Enabled
+        </label>
+
         <div class="ns-modal-actions">
           <button type="button" class="ns-modal-btn" data-action="click->nightshift#closeModal">Cancel</button>
           <button type="submit" class="ns-modal-btn primary">Create Mission</button>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="ns-modal-overlay" data-nightshift-target="editModal" data-action="click->nightshift#overlayCloseEdit">
+    <div class="ns-modal" data-action="click->nightshift#stopPropagation">
+      <h3>✏️ Edit Mission</h3>
+      <%= form_with url: nightshift_mission_path(0), method: :patch, local: true, data: { nightshift_target: "editForm" } do %>
+        <label>Name</label>
+        <input type="text" name="nightshift_mission[name]" required data-nightshift-target="editName">
+
+        <label>Description</label>
+        <textarea name="nightshift_mission[description]" data-nightshift-target="editDescription"></textarea>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div>
+            <label>Icon</label>
+            <input type="text" name="nightshift_mission[icon]" data-nightshift-target="editIcon">
+          </div>
+          <div>
+            <label>Model</label>
+            <select name="nightshift_mission[model]" data-nightshift-target="editModel">
+              <% model_options.each do |model| %>
+                <option value="<%= model %>"><%= model %></option>
+              <% end %>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div>
+            <label>Category</label>
+            <select name="nightshift_mission[category]" data-nightshift-target="editCategory">
+              <% @categories.each do |cat| %>
+                <option value="<%= cat %>"><%= cat %></option>
+              <% end %>
+            </select>
+          </div>
+          <div>
+            <label>Est. Minutes</label>
+            <input type="number" name="nightshift_mission[estimated_minutes]" data-nightshift-target="editMinutes">
+          </div>
+        </div>
+
+        <label>Frequency</label>
+        <select name="nightshift_mission[frequency]" data-nightshift-target="editFrequency" data-action="change->nightshift#toggleEditDays">
+          <% @frequencies.each do |freq| %>
+            <option value="<%= freq %>"><%= freq %></option>
+          <% end %>
+        </select>
+
+        <div data-nightshift-target="editDaysWrap" style="display:none;">
+          <label>Days of Week</label>
+          <div class="ns-days-grid">
+            <% week_days.each do |day_num, day_label| %>
+              <label>
+                <input type="checkbox" name="nightshift_mission[days_of_week][]" value="<%= day_num %>" data-nightshift-target="editDayCheckbox">
+                <span><%= day_label %></span>
+              </label>
+            <% end %>
+          </div>
+        </div>
+
+        <label>
+          <input type="checkbox" name="nightshift_mission[enabled]" value="1" data-nightshift-target="editEnabled" style="width:auto; margin-right:0.4rem;">Enabled
+        </label>
+
+        <div class="ns-modal-actions">
+          <button type="button" class="ns-modal-btn" data-action="click->nightshift#closeEditModal">Cancel</button>
+          <button type="submit" class="ns-modal-btn primary">Save Mission</button>
         </div>
       <% end %>
     </div>

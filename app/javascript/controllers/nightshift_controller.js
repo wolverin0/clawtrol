@@ -1,10 +1,16 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = [ "card", "count", "time", "launchButton", "systemStatus", "grid", "modal" ]
+  static targets = [
+    "card", "count", "time", "launchButton", "systemStatus", "grid", "modal",
+    "editModal", "editForm", "editName", "editDescription", "editIcon", "editModel",
+    "editMinutes", "editFrequency", "editCategory", "editEnabled", "editDayCheckbox",
+    "editDaysWrap", "createFrequency", "createDaysWrap"
+  ]
 
   connect() {
     this.updateStats()
+    this.toggleCreateDays()
   }
 
   toggle(event) {
@@ -78,6 +84,56 @@ export default class extends Controller {
 
   closeModal() {
     this.modalTarget.classList.remove("open")
+  }
+
+  openEditModal(event) {
+    const card = event.currentTarget.closest(".ns-card")
+    if (!card) return
+
+    const missionId = card.dataset.missionId
+    this.editFormTarget.action = `/nightshift/missions/${missionId}`
+    this.editNameTarget.value = card.dataset.missionName || ""
+    this.editDescriptionTarget.value = card.dataset.missionDescription || ""
+    this.editIconTarget.value = card.dataset.missionIcon || ""
+    this.editModelTarget.value = card.dataset.missionModel || "gemini"
+    this.editMinutesTarget.value = card.dataset.missionTime || 30
+    this.editFrequencyTarget.value = card.dataset.missionFrequency || "always"
+    this.editCategoryTarget.value = card.dataset.missionCategory || "general"
+    this.editEnabledTarget.checked = card.dataset.missionEnabled === "true"
+
+    const selectedDays = (card.dataset.missionDays || "").split(",").filter(Boolean)
+    this.editDayCheckboxTargets.forEach((checkbox) => {
+      checkbox.checked = selectedDays.includes(checkbox.value)
+    })
+
+    this.toggleEditDays()
+    this.editModalTarget.classList.add("open")
+  }
+
+  closeEditModal() {
+    this.editModalTarget.classList.remove("open")
+  }
+
+  toggleCreateDays() {
+    if (!this.hasCreateFrequencyTarget || !this.hasCreateDaysWrapTarget) return
+    this.createDaysWrapTarget.style.display = this.createFrequencyTarget.value === "weekly" ? "block" : "none"
+  }
+
+  toggleEditDays() {
+    if (!this.hasEditFrequencyTarget || !this.hasEditDaysWrapTarget) return
+    this.editDaysWrapTarget.style.display = this.editFrequencyTarget.value === "weekly" ? "block" : "none"
+  }
+
+  overlayClose(event) {
+    if (event.target === this.modalTarget) this.closeModal()
+  }
+
+  overlayCloseEdit(event) {
+    if (event.target === this.editModalTarget) this.closeEditModal()
+  }
+
+  stopPropagation(event) {
+    event.stopPropagation()
   }
 
   filterAll(event) {
