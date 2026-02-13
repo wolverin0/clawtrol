@@ -26,7 +26,7 @@ module ClawDeck
 
     # Token used by the unauthenticated /api/v1/hooks/* endpoints.
     # Must be configured via environment (systemd unit, .env, etc.).
-    config.hooks_token = ENV.fetch("HOOKS_TOKEN")
+    config.hooks_token = ENV.fetch("HOOKS_TOKEN", "")
 
     # Auto-runner / auto-pull settings
     # Nightly window is a simple guardrail for tasks marked nightly=true.
