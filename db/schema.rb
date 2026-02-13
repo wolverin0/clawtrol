@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_13_233551) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_13_235438) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -537,6 +537,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_233551) do
     t.text "validation_output"
     t.string "validation_status"
     t.index ["agent_persona_id"], name: "index_tasks_on_agent_persona_id"
+    t.index ["agent_session_id"], name: "index_tasks_on_agent_session_id_partial", where: "(agent_session_id IS NOT NULL)"
+    t.index ["agent_session_key"], name: "index_tasks_on_agent_session_key_partial", where: "(agent_session_key IS NOT NULL)"
     t.index ["archived_at"], name: "index_tasks_on_archived_at", where: "(archived_at IS NOT NULL)"
     t.index ["assigned_to_agent"], name: "index_tasks_on_assigned_to_agent"
     t.index ["auto_pull_blocked"], name: "index_tasks_on_auto_pull_blocked"

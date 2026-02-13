@@ -14,7 +14,7 @@ class FactoryEngineService
   def stop_loop(loop)
     # Discard any pending FactoryRunnerJob for this loop
     SolidQueue::Job.where(class_name: "FactoryRunnerJob")
-      .where("arguments LIKE ?", "%#{loop.id}%")
+      .where("arguments = ?", [loop.id].to_json)
       .where(finished_at: nil)
       .destroy_all
   end

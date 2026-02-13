@@ -193,22 +193,17 @@ class WorkflowExecutionEngine
       session = nil
 
     when "delay"
-      duration = (prop(node, "duration") || "0").to_i
-      logs << "delay: #{duration}s"
-
-      if duration > 0 && duration <= 300
+      duration = (prop(node, "duration") || "0").to_i.clamp(0, 300)
+      logs << "delay: #{duration}s requested"
+      if duration > 10
+        logs << "delay: capped to 10s in synchronous mode (use async workflows for longer delays)"
+        sleep(10)
+      elsif duration > 0
         sleep(duration)
-        logs << "delay: completed"
-        status = "ok"
-      elsif duration > 300
-        logs << "delay: capped at 300s for safety"
-        sleep(300)
-        status = "ok"
-      else
-        status = "ok"
       end
-
-      output = { "duration" => duration }
+      logs << "delay: completed"
+      status = "ok"
+      output = { "duration_requested" => duration, "duration_actual" => [duration, 10].min }
       session = nil
 
     else
