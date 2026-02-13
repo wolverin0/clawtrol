@@ -31,10 +31,9 @@ class MarketingController < ApplicationController
     "feature-highlight" => "Product screenshot with feature callouts, annotated interface, highlighting key features, clean UI presentation, explanatory overlays"
   }.freeze
 
-  N8N_WEBHOOK_URL = "http://192.168.100.186:5678/webhook/social-media-post".freeze
+  N8N_WEBHOOK_URL = ENV.fetch("N8N_WEBHOOK_URL", "http://localhost:5678/webhook/social-media-post").freeze
 
-  skip_before_action :require_authentication, only: [:index, :show, :playground, :generated_content, :generate_image, :publish_to_n8n]
-  skip_before_action :verify_authenticity_token, only: [:generate_image, :publish_to_n8n]
+  skip_before_action :require_authentication, only: [:index, :show, :playground, :generated_content]
 
   def index
     @search_query = params[:q].to_s.strip

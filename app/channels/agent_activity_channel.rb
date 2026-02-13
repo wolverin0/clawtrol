@@ -8,7 +8,7 @@ class AgentActivityChannel < ApplicationCable::Channel
     @task_id = params[:task_id]
 
     # Verify task exists (we allow viewing agent logs publicly for now)
-    task = Task.find_by(id: @task_id)
+    task = current_user ? Task.joins(:board).where(boards: { user_id: current_user.id }).find_by(id: @task_id) : nil
     if task
       stream_from stream_name
       Rails.logger.info "[AgentActivityChannel] Subscribed to task #{@task_id}"

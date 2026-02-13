@@ -1,12 +1,11 @@
 class FactoryController < ApplicationController
-  skip_forgery_protection only: [ :create, :update, :destroy, :play, :pause, :stop, :bulk_play, :bulk_pause ]
 
   def index
-    @loops = FactoryLoop.ordered
+    @loops = current_user.factory_loops.ordered
   end
 
   def create
-    loop = FactoryLoop.new(factory_loop_params)
+    loop = current_user.factory_loops.new(factory_loop_params)
     if loop.save
       respond_to do |format|
         format.html { redirect_to factory_path, notice: "Factory loop created" }
@@ -21,7 +20,7 @@ class FactoryController < ApplicationController
   end
 
   def update
-    loop = FactoryLoop.find(params[:id])
+    loop = current_user.factory_loops.find(params[:id])
     if loop.update(factory_loop_params)
       respond_to do |format|
         format.html { redirect_to factory_path, notice: "Factory loop updated" }
@@ -36,7 +35,7 @@ class FactoryController < ApplicationController
   end
 
   def destroy
-    loop = FactoryLoop.find(params[:id])
+    loop = current_user.factory_loops.find(params[:id])
     loop.destroy
     respond_to do |format|
       format.html { redirect_to factory_path, notice: "Factory loop deleted" }
@@ -45,31 +44,31 @@ class FactoryController < ApplicationController
   end
 
   def play
-    loop = FactoryLoop.find(params[:id])
+    loop = current_user.factory_loops.find(params[:id])
     loop.play!
     render json: { success: true, status: loop.status }
   end
 
   def pause
-    loop = FactoryLoop.find(params[:id])
+    loop = current_user.factory_loops.find(params[:id])
     loop.pause!
     render json: { success: true, status: loop.status }
   end
 
   def stop
-    loop = FactoryLoop.find(params[:id])
+    loop = current_user.factory_loops.find(params[:id])
     loop.stop!
     render json: { success: true, status: loop.status }
   end
 
   def bulk_play
     ids = params[:ids] || []
-    FactoryLoop.where(id: ids).find_each(&:play!)
+    current_user.factory_loops.where(id: ids).find_each(&:play!)
     render json: { success: true }
   end
 
   def bulk_pause
-    FactoryLoop.where(status: :playing).find_each(&:pause!)
+    current_user.factory_loops.where(status: :playing).find_each(&:pause!)
     render json: { success: true }
   end
 

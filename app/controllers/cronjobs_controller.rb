@@ -22,6 +22,7 @@ class CronjobsController < ApplicationController
 
   def toggle
     id = params[:id].to_s
+    return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
     desired = params.key?(:enabled) ? ActiveModel::Type::Boolean.new.cast(params[:enabled]) : nil
 
     if desired.nil?
@@ -50,6 +51,7 @@ class CronjobsController < ApplicationController
 
   def run
     id = params[:id].to_s
+    return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
 
     stdout, stderr, status = Timeout.timeout(openclaw_timeout_seconds) do
       Open3.capture3("openclaw", "cron", "run", id)

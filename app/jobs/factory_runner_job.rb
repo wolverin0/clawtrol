@@ -16,7 +16,7 @@ class FactoryRunnerJob < ApplicationJob
 
     # Wake OpenClaw
     begin
-      user = User.first
+      user = (loop.respond_to?(:user) && loop.user) || User.find_by(admin: true) || User.first
       webhook = OpenclawWebhookService.new(user)
       wake_text = "Factory cycle ##{cycle_log.id} for loop \"#{loop.name}\" (cycle #{next_cycle}).\n" \
                   "Model: #{loop.model}\n" \

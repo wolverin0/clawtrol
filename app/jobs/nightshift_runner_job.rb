@@ -27,7 +27,7 @@ class NightshiftRunnerJob < ApplicationJob
 
   def wake_openclaw!(selection)
     mission = selection.nightshift_mission
-    user = User.first
+    user = (selection.nightshift_mission.respond_to?(:user) && selection.nightshift_mission.user) || User.find_by(admin: true) || User.first
 
     wake_text = <<~TEXT
       Nightshift mission "#{mission.name}" (selection ##{selection.id})

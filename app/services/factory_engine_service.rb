@@ -2,8 +2,8 @@ class FactoryEngineService
   TIMEOUT_MINUTES = 15
   MAX_CONSECUTIVE_FAILURES = 5
 
-  def initialize(user = User.first)
-    @user = user
+  def initialize(user = nil)
+    @user = user || User.find_by(admin: true) || User.first
   end
 
   def start_loop(loop)

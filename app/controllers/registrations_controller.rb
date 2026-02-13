@@ -1,6 +1,7 @@
 class RegistrationsController < ApplicationController
   allow_unauthenticated_access only: %i[new create]
   redirect_authenticated_users only: %i[new create]
+  before_action :check_registration_allowed, only: [:new, :create]
   layout "auth"
 
   def new
@@ -19,6 +20,12 @@ class RegistrationsController < ApplicationController
   end
 
   private
+
+  def check_registration_allowed
+    unless ENV.fetch("ALLOW_REGISTRATION", "false") == "true"
+      redirect_to new_session_path, alert: "Registration is currently closed."
+    end
+  end
 
   def user_params
     params.require(:user).permit(:email_address, :password, :password_confirmation)

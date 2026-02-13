@@ -20,6 +20,47 @@ bin/rails db:prepare
 bin/dev
 ```
 
+## Conventional Commits
+
+This project enforces [Conventional Commits](https://www.conventionalcommits.org/). A `commit-msg` git hook validates your messages automatically.
+
+**Format:** `<type>[optional scope]: <description>`
+
+**Types:**
+| Type | Purpose |
+|------|---------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `chore` | Maintenance (deps, config) |
+| `refactor` | Code change (no new feature/fix) |
+| `test` | Adding/fixing tests |
+| `ci` | CI/CD changes |
+| `style` | Formatting, whitespace |
+| `perf` | Performance improvement |
+| `build` | Build system changes |
+
+**Examples:**
+```
+feat: add user authentication
+fix(api): handle nil task gracefully
+docs: update README with setup instructions
+chore(deps): bump rails to 8.0.2
+refactor!: restructure task model (breaking change)
+```
+
+**Install the hook** (done automatically on clone, or manually):
+```bash
+ln -sf ../../bin/commit-msg-hook .git/hooks/commit-msg
+```
+
+**Generate CHANGELOG.md** from commit history:
+```bash
+bin/changelog
+```
+
+The changelog is also auto-generated on pushes to `main` via GitHub Actions.
+
 ## Code Style
 
 - Follow existing code patterns

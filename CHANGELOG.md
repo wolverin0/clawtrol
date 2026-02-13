@@ -3,7 +3,7 @@
 All notable changes to ClawTrol are documented here.
 Generated automatically from [conventional commits](https://www.conventionalcommits.org/).
 
-## February 2026
+## [Unreleased]
 
 ### 🚀 Features
 
@@ -206,7 +206,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **deps:** bump actions/checkout from 5 to 6 (#1) (`47897eb`)
 - remove debug console.log statements, production ready (`d71c50b`)
 
-## January 2026
+## [v1.0.0] — 2026-02-01
 
 ### 🚀 Features
 
