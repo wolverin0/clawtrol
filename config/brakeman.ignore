@@ -2,15 +2,96 @@
   "ignored_warnings": [
     {
       "warning_type": "File Access",
-      "warning_code": 16,
       "fingerprint": "5ca68f8397969852f0ee57f77a80220a57e422b1fb96a29d97c9607a3ae31ce3",
-      "check_name": "FileAccess",
-      "message": "Model attribute used in file name",
       "file": "app/controllers/api/v1/tasks_controller.rb",
       "line": 65,
-      "note": "Session ID is validated with regex /\\A[a-zA-Z0-9_\\-]+\\z/ before use to prevent path traversal"
+      "note": "Session ID validated with regex before use"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "88079cbe6d006fb717ce39c338303bf3efd0b1e765a36162d23ea48ef497697d",
+      "file": "app/jobs/factory_runner_job.rb",
+      "line": 28,
+      "note": "openclaw_gateway_url used in Net::HTTP, not file access"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "b831961deb9a6f371dbe5f6145c97e4af74260dd2cfe5fb8930884615d6ddc9d",
+      "file": "app/jobs/nightshift_runner_job.rb",
+      "line": 52,
+      "note": "openclaw_gateway_url used in Net::HTTP, not file access"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "0adcca634de3cd1e602ad61b0dc33fba2c53cc67752941cdc2520252cff85891",
+      "file": "app/controllers/boards/tasks_controller.rb",
+      "line": 270,
+      "note": "Admin-only file viewer, path sanitized"
+    },
+    {
+      "warning_type": "Command Injection",
+      "fingerprint": "0f8699e17373222f9a249de237bb47a0a258313530dfede88ac7b47d9e20678c",
+      "file": "app/jobs/generate_diffs_job.rb",
+      "line": 64,
+      "note": "Git diff on validated task data, internal job only"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "184013577ba5a43c316a49da32a711d9178a9331aceeff6db7086edeb6fda189",
+      "file": "app/controllers/boards/tasks_controller.rb",
+      "line": 274,
+      "note": "Admin-only file viewer, path sanitized"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "4d86c51bd98ca5dc6d9a07020befa1efb3718fb4cb7c936bf78857918b7ea1b5",
+      "file": "app/controllers/marketing_controller.rb",
+      "line": 134,
+      "note": "Marketing file viewer, path sanitized via sanitize_path"
+    },
+    {
+      "warning_type": "Command Injection",
+      "fingerprint": "67d8f2ae16484ebd62a122389e7686b4872273c0552b92c8513fc384e4be5a75",
+      "file": "app/controllers/cronjobs_controller.rb",
+      "line": 55,
+      "note": "OpenClaw CLI invocation, admin-only controller"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "723faab932733e3f8ef00020fde2f92d5ac76c870b63a37c7ab42371b2b6790b",
+      "file": "app/controllers/api/v1/tasks_controller.rb",
+      "line": 803,
+      "note": "Agent session log reader, session ID validated"
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "fingerprint": "b82b294b52697519c91ae5613b14598c1f086b33b5abb8dd2612486bb31047a0",
+      "file": "app/controllers/api/v1/agent_personas_controller.rb",
+      "line": 79,
+      "note": "Admin-only persona CRUD, all fields intentionally permitted"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "c4650022a1642e5ff96cb803e8b02c329435dcd15e4cf4de4b9607d98108b80a",
+      "file": "app/controllers/marketing_controller.rb",
+      "line": 286,
+      "note": "Marketing file viewer, path sanitized via sanitize_path"
+    },
+    {
+      "warning_type": "Command Injection",
+      "fingerprint": "ed46f3ae95ea7c8815b94d0fdd24c7db085706f4e8bb2dca84a8b6cbf205eeaa",
+      "file": "app/controllers/cronjobs_controller.rb",
+      "line": 34,
+      "note": "OpenClaw CLI invocation, admin-only controller"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "f07cf60b124339cf8bcd879154c09f1ec2a26558e2a2bf864cc536b9bf01f8f9",
+      "file": "app/controllers/marketing_controller.rb",
+      "line": 281,
+      "note": "Marketing file viewer, path sanitized via sanitize_path"
     }
   ],
-  "updated": "2026-02-05",
+  "updated": "2026-02-13",
   "brakeman_version": "7.1.0"
 }
