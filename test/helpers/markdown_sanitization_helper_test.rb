@@ -189,7 +189,7 @@ class MarkdownSanitizationHelperTest < ActionView::TestCase
   # === sanitize_html direct tests ===
 
   test "sanitize_html strips dangerous tags" do
-    html = '<p>Safe</p><script>evil()</script>'
+    html = "<p>Safe</p><script>evil()</script>"
     result = sanitize_html(html)
 
     assert_includes result, "<p>"

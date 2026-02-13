@@ -6,8 +6,9 @@ module Api
     class HooksController < ActionController::API
       # POST /api/v1/hooks/agent_complete
       def agent_complete
-        token = request.headers["X-Hook-Token"]
-        unless ActiveSupport::SecurityUtils.secure_compare(token.to_s, Rails.application.config.hooks_token.to_s)
+        token = request.headers["X-Hook-Token"].to_s
+        configured_token = Rails.application.config.hooks_token.to_s
+        unless configured_token.present? && token.present? && ActiveSupport::SecurityUtils.secure_compare(token, configured_token)
           return render json: { error: "unauthorized" }, status: :unauthorized
         end
 
@@ -91,8 +92,9 @@ module Api
       # OpenClaw completion hook (OutcomeContract v1). This is intentionally
       # idempotent via run_id (UUID).
       def task_outcome
-        token = request.headers["X-Hook-Token"]
-        unless ActiveSupport::SecurityUtils.secure_compare(token.to_s, Rails.application.config.hooks_token.to_s)
+        token = request.headers["X-Hook-Token"].to_s
+        configured_token = Rails.application.config.hooks_token.to_s
+        unless configured_token.present? && token.present? && ActiveSupport::SecurityUtils.secure_compare(token, configured_token)
           return render json: { error: "unauthorized" }, status: :unauthorized
         end
 
@@ -109,7 +111,7 @@ module Api
         version = payload["version"].to_s
         run_id = payload["run_id"].to_s
         ended_at_raw = payload["ended_at"].to_s
-        needs_follow_up = ActiveModel::Type::Boolean.new.cast(payload["needs_follow_up"])
+        needs_follow_up = ActiveModel::Type::Boolean.new.cast(payload["needs_follow_up"]) || false
         recommended_action = payload["recommended_action"].to_s.presence || "in_review"
 
         unless version == "1"
@@ -289,7 +291,7 @@ module Api
         rate_limit_patterns = [
           /usage\s+limit.*?\((\w+)\s+plan\)/i,          # "usage limit (plus plan)"
           /rate\s+limit.*?model[:\s]+(\w+)/i,            # "rate limit... model: codex"
-          /hit\s+.*?limit/i,                              # "hit your ... limit"
+          /hit\s+.*?limit/i                              # "hit your ... limit"
         ]
 
         is_rate_limit = rate_limit_patterns.any? { |p| findings.match?(p) }

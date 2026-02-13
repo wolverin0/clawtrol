@@ -12,4 +12,3 @@ class TaskRun < ApplicationRecord
   validates :run_number, presence: true
   validates :recommended_action, presence: true, inclusion: { in: RECOMMENDED_ACTIONS }
 end
-

@@ -10,12 +10,12 @@ module Api
 
         # Filter by tier
         personas = personas.by_tier(params[:tier]) if params[:tier].present?
-        
+
         # Filter by project
         personas = personas.by_project(params[:project]) if params[:project].present?
-        
+
         # Filter active only
-        personas = personas.active if params[:active] == 'true'
+        personas = personas.active if params[:active] == "true"
 
         render json: personas.map { |p| persona_json(p) }
       end
@@ -28,7 +28,7 @@ module Api
       # POST /api/v1/agent_personas
       def create
         persona = current_user.agent_personas.build(agent_persona_params)
-        
+
         if persona.save
           render json: persona_json(persona, full: true), status: :created
         else
@@ -54,14 +54,14 @@ module Api
       # POST /api/v1/agent_personas/import
       def import
         personas_dir = params[:directory] || File.expand_path("~/.openclaw/workspace/docs/agent-personas")
-        
+
         unless Dir.exist?(personas_dir)
           render json: { error: "Directory not found: #{personas_dir}" }, status: :not_found
           return
         end
 
         imported = AgentPersona.import_from_directory(personas_dir, user: current_user)
-        
+
         render json: {
           imported: imported.count,
           personas: imported.map { |p| persona_json(p) }

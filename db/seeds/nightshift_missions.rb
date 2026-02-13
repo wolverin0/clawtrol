@@ -18,7 +18,7 @@ missions = [
   { name: "Project Documentation (RAG)", description: "Generate detailed technical docs for all active projects, index in Qdrant.", model: "glm", estimated_minutes: 45, icon: "📚", frequency: "manual", category: "code", position: 16 },
   { name: "ISP Response Templates", description: "Generate/update customer response templates for common ISP situations.", model: "glm", estimated_minutes: 15, icon: "💬", frequency: "manual", category: "social", position: 17 },
   { name: "Dependency Mapper", description: "Map which services each project uses (DB, APIs, queues) for blast radius analysis.", model: "glm", estimated_minutes: 20, icon: "🔗", frequency: "manual", category: "infra", position: 18 },
-  { name: "Toolchain Version Checker", description: "Check for updates: OpenClaw, Claude Code, Gemini CLI, Codex CLI, Node.js, Ruby, Rails, n8n.", model: "glm", estimated_minutes: 10, icon: "🔄", frequency: "manual", category: "infra", position: 19 },
+  { name: "Toolchain Version Checker", description: "Check for updates: OpenClaw, Claude Code, Gemini CLI, Codex CLI, Node.js, Ruby, Rails, n8n.", model: "glm", estimated_minutes: 10, icon: "🔄", frequency: "manual", category: "infra", position: 19 }
 ]
 
 missions.each do |attrs|

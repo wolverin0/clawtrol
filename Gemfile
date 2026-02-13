@@ -77,7 +77,7 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
-gem 'pagy'
-gem 'redcarpet'
-gem 'diffy'
-gem 'httparty'
+gem "pagy"
+gem "redcarpet"
+gem "diffy"
+gem "httparty"

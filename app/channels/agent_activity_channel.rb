@@ -6,7 +6,7 @@
 class AgentActivityChannel < ApplicationCable::Channel
   def subscribed
     @task_id = params[:task_id]
-    
+
     # Verify task exists (we allow viewing agent logs publicly for now)
     task = Task.find_by(id: @task_id)
     if task

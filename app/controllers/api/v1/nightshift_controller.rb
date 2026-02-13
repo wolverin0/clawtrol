@@ -1,3 +1,6 @@
+require "open3"
+require "timeout"
+
 module Api
   module V1
     class NightshiftController < BaseController
@@ -114,6 +117,82 @@ module Api
         render json: { success: true, armed_count: armed.count, selections: armed }
       end
 
+      # POST /api/v1/nightshift/sync_crons
+      def sync_crons
+        crons = fetch_nightshift_crons
+        synced = 0
+        selections_created = 0
+
+        crons.each do |cron|
+          # Extract mission name from "🌙 NS: Name" pattern
+          raw_name = cron["name"].to_s
+          mission_name = raw_name.sub(/^🌙\s*NS:\s*/, "").strip
+          next if mission_name.blank?
+
+          mission = NightshiftMission.find_or_initialize_by(name: mission_name)
+          if mission.new_record?
+            mission.assign_attributes(
+              enabled: cron["enabled"] != false,
+              frequency: "always",
+              category: "general",
+              icon: "🌙",
+              description: "Auto-synced from OpenClaw cron: #{raw_name}",
+              estimated_minutes: ((cron.dig("payload", "timeoutSeconds") || 300) / 60.0).ceil
+            )
+            mission.save!
+          end
+          synced += 1
+
+          # Auto-create selection for tonight if mission is due
+          next unless mission.enabled? && mission.due_tonight?
+          next if NightshiftSelection.for_tonight.exists?(nightshift_mission_id: mission.id)
+
+          NightshiftSelection.create!(
+            nightshift_mission_id: mission.id,
+            title: mission.name,
+            scheduled_date: Date.current,
+            enabled: true,
+            status: "pending"
+          )
+          selections_created += 1
+        end
+
+        render json: { synced: synced, selections_created: selections_created }
+      end
+
+      # POST /api/v1/nightshift/report_execution
+      def report_execution
+        cron_name = params[:cron_name].to_s.sub(/^🌙\s*NS:\s*/, "").strip
+        status = params[:status].to_s.presence || "completed"
+        result = params[:result].to_s.presence
+
+        mission = NightshiftMission.find_by(name: cron_name)
+        unless mission
+          return render json: { error: "Mission not found: #{cron_name}" }, status: :not_found
+        end
+
+        selection = NightshiftSelection.for_tonight.find_by(nightshift_mission_id: mission.id)
+        unless selection
+          # Auto-create selection if missing
+          selection = NightshiftSelection.create!(
+            nightshift_mission_id: mission.id,
+            title: mission.name,
+            scheduled_date: Date.current,
+            enabled: true,
+            status: "pending"
+          )
+        end
+
+        selection.update!(
+          status: status,
+          result: result,
+          completed_at: Time.current
+        )
+        mission.update!(last_run_at: Time.current)
+
+        render json: { ok: true, selection_id: selection.id, status: selection.status }
+      end
+
       def selections
         @selections = NightshiftSelection.for_tonight.enabled
         render json: @selections
@@ -138,6 +217,19 @@ module Api
 
       private
 
+      def fetch_nightshift_crons
+        stdout, _stderr, status = Timeout.timeout(20) do
+          Open3.capture3("openclaw", "cron", "list", "--json")
+        end
+        return [] unless status&.exitstatus == 0
+
+        raw = JSON.parse(stdout)
+        Array(raw["jobs"]).select { |j| j["name"].to_s.include?("🌙 NS:") }
+      rescue StandardError => e
+        Rails.logger.warn("[Nightshift] Failed to fetch crons: #{e.message}")
+        []
+      end
+
       def mission_params
         params.permit(
           :name, :description, :icon, :model, :estimated_minutes,
@@ -157,8 +249,8 @@ module Api
 
         uri = URI("#{gateway_url}/api/sessions/main/message")
         Net::HTTP.post(uri, { message: message }.to_json,
-          'Content-Type' => 'application/json',
-          'Authorization' => "Bearer #{gateway_token}"
+          "Content-Type" => "application/json",
+          "Authorization" => "Bearer #{gateway_token}"
         )
       rescue => e
         Rails.logger.warn("[Nightshift] Failed to notify OpenClaw: #{e.message}")

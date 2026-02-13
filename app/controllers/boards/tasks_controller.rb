@@ -155,7 +155,7 @@ class Boards::TasksController < ApplicationController
     end
 
     include_transcript = params[:include_transcript] == "1"
-    
+
     @task.activity_source = "web"
     @task.activity_note = "Handoff from #{@task.model || 'default'} to #{new_model}"
     @task.handoff!(new_model: new_model, include_transcript: include_transcript)
@@ -380,7 +380,7 @@ class Boards::TasksController < ApplicationController
     end
 
     tasks = @board.tasks.where(id: task_ids)
-    
+
     if tasks.empty?
       respond_to do |format|
         format.turbo_stream { head :unprocessable_entity }
@@ -474,7 +474,7 @@ class Boards::TasksController < ApplicationController
     )
 
     # Auto-complete parent task when follow-up is created
-    @task.update!(status: 'done', completed: true, completed_at: Time.current)
+    @task.update!(status: "done", completed: true, completed_at: Time.current)
 
     # Override model if specified (otherwise inherits from parent)
     if selected_model.present?

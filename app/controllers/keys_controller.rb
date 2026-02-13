@@ -10,7 +10,7 @@ class KeysController < ApplicationController
     { key: "GEMINI_API_KEY", label: "Gemini (Google)", placeholder: "AIza..." },
     { key: "OPENROUTER_API_KEY", label: "OpenRouter", placeholder: "sk-or-..." },
     { key: "MINIMAX_API_KEY", label: "MiniMax", placeholder: "" },
-    { key: "MEMU_API_KEY", label: "memU", placeholder: "" },
+    { key: "MEMU_API_KEY", label: "memU", placeholder: "" }
   ].freeze
 
   def index

@@ -71,7 +71,7 @@ class TranscriptWatcher
     return unless File.exist?(file_path)
 
     session_id = File.basename(file_path, ".jsonl")
-    
+
     # Skip invalid session IDs
     return unless session_id.match?(/\A[a-zA-Z0-9_\-]+\z/)
 
@@ -105,7 +105,7 @@ class TranscriptWatcher
   def read_new_lines(file_path, session_id)
     messages = []
     total_lines = 0
-    
+
     @mutex.synchronize do
       last_line = @file_offsets[session_id] || 0
       current_line = 0
@@ -137,7 +137,7 @@ class TranscriptWatcher
       messages: messages,
       total_lines: total_lines
     })
-    
+
     Rails.logger.debug "[TranscriptWatcher] Broadcast #{messages.size} messages to task #{task_id}"
   rescue StandardError => e
     Rails.logger.error "[TranscriptWatcher] Broadcast failed for task #{task_id}: #{e.message}"

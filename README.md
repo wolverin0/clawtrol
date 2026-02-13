@@ -674,6 +674,29 @@ MIT License — see [LICENSE](LICENSE) for details.
 - 🐙 **GitHub:** [wolverin0/clawtrol](https://github.com/wolverin0/clawtrol)
 - 🦞 **Upstream:** [clawdeckio/clawdeck](https://github.com/clawdeckio/clawdeck)
 
+## Telegram Notification Routing
+
+Tasks can route completion notifications back to the originating Telegram topic:
+
+- **`origin_chat_id`** (string) — the Telegram chat/group ID the task was created from
+- **`origin_thread_id`** (integer) — the topic/thread ID within that group
+
+### Setup
+
+1. Set `CLAWTROL_TELEGRAM_BOT_TOKEN` env var with your Telegram bot token
+2. When creating tasks via the API, pass `origin_chat_id` and optionally `origin_thread_id`:
+
+```bash
+curl -X POST http://localhost:4001/api/v1/tasks \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"task": {"name": "Fix bug", "origin_chat_id": "-100123456789", "origin_thread_id": 42}}'
+```
+
+3. When the task reaches `in_review` or `done`, a notification is sent to that chat/topic automatically
+4. If no `origin_chat_id` is set, Telegram notification is silently skipped
+5. Webhook notifications (via `webhook_notification_url` on User) still work as a secondary mechanism
+
 ---
 
 Built with 🦞 by the OpenClaw community.

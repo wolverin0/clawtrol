@@ -40,7 +40,7 @@ class ShowcasesController < ApplicationController
   # Toggle winner status via PATCH
   def toggle_winner
     @task.update!(showcase_winner: !@task.showcase_winner)
-    
+
     respond_to do |format|
       format.html { redirect_to showcases_path, notice: @task.showcase_winner ? "⭐ Marked as winner!" : "Winner status removed" }
       format.turbo_stream do
@@ -74,13 +74,13 @@ class ShowcasesController < ApplicationController
     # 1. Tags contain "redesign", "mockup", or "landing-page" (specific tags, not generic)
     # 2. OR board_id=17 (Marketing board)
     # 3. OR name starts with "redesign-" or contains "landing page"
-    # 
+    #
     # REMOVED: generic "design", "marketing", "visual", "ui" — too broad, matches ops tasks
     base_scope
       .where(<<~SQL, board_id: 17)
         (tags::text ILIKE '%redesign%' OR tags::text ILIKE '%mockup%' OR tags::text ILIKE '%landing-page%')
         OR board_id = :board_id
-        OR name ~* '^redesign-' 
+        OR name ~* '^redesign-'#{' '}
         OR name ILIKE '%landing page%'
       SQL
       .order(updated_at: :desc)

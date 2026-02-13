@@ -13,7 +13,7 @@ class SecurityTest < ActionDispatch::IntegrationTest
       search_path,
       nightbeat_path,
       boards_path,
-      board_path(boards(:one)),
+      board_path(boards(:one))
     ]
 
     unauthenticated_routes.each do |path|

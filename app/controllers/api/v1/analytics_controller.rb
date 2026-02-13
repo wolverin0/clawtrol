@@ -5,12 +5,12 @@ module Api
       def tokens
         period = params[:period] || "week"
         start_date = case period
-                     when "today" then Time.current.beginning_of_day
-                     when "week" then 1.week.ago
-                     when "month" then 1.month.ago
-                     when "all" then 1.year.ago
-                     else 1.week.ago
-                     end
+        when "today" then Time.current.beginning_of_day
+        when "week" then 1.week.ago
+        when "month" then 1.month.ago
+        when "all" then 1.year.ago
+        else 1.week.ago
+        end
 
         usages = TokenUsage.for_user(current_user).by_date_range(start_date)
 

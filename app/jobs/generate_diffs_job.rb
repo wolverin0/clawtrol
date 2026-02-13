@@ -22,10 +22,10 @@ class GenerateDiffsJob < ApplicationJob
   def generate_diff_for_file(task, file_path, project_dir)
     # Resolve the full path
     full_path = file_path.start_with?("/") ? file_path : File.join(project_dir, file_path)
-    
+
     # Check if file exists
     file_exists = File.exist?(full_path)
-    
+
     # Try to get git diff
     diff_content = nil
     diff_type = "modified"
@@ -36,7 +36,7 @@ class GenerateDiffsJob < ApplicationJob
         "git", "diff", "HEAD~1", "--", file_path,
         chdir: project_dir
       )
-      
+
       if status.success? && stdout.present?
         diff_content = stdout
         diff_type = "modified"
@@ -46,7 +46,7 @@ class GenerateDiffsJob < ApplicationJob
           "git", "status", "--porcelain", "--", file_path,
           chdir: project_dir
         )
-        
+
         if stdout_status.start_with?("A") || stdout_status.start_with?("??")
           diff_type = "added"
           if file_exists

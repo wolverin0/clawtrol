@@ -78,9 +78,9 @@ class BoardsController < ApplicationController
                   .where(boards: { user_id: current_user.id, is_aggregator: false })
                   .archived
                   .order(archived_at: :desc, completed_at: :desc)
-            else
+    else
               @board.tasks.archived.order(archived_at: :desc, completed_at: :desc)
-            end
+    end
     @pagy, @tasks = pagy(tasks, items: 20)
 
     # Handle AJAX requests for infinite scroll pagination
