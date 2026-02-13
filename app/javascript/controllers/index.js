@@ -32,6 +32,7 @@ import MarketingTreeController from "controllers/marketing_tree_controller"
 import ShowcaseTabsController from "controllers/showcase_tabs_controller"
 import MobileNavController from "controllers/mobile_nav_controller"
 import NightshiftController from "controllers/nightshift_controller"
+import FactoryController from "controllers/factory_controller"
 import SwarmRefreshController from "controllers/swarm_refresh_controller"
 import CommandController from "controllers/command_controller"
 import WorkflowEditorController from "controllers/workflow_editor_controller"
@@ -66,6 +67,7 @@ application.register("marketing-tree", MarketingTreeController)
 application.register("showcase-tabs", ShowcaseTabsController)
 application.register("mobile-nav", MobileNavController)
 application.register("nightshift", NightshiftController)
+application.register("factory", FactoryController)
 application.register("swarm-refresh", SwarmRefreshController)
 application.register("command", CommandController)
 application.register("workflow-editor", WorkflowEditorController)

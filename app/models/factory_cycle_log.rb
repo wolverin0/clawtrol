@@ -1,0 +1,12 @@
+class FactoryCycleLog < ApplicationRecord
+  belongs_to :factory_loop
+
+  STATUSES = %w[running completed failed skipped].freeze
+
+  validates :cycle_number, :started_at, :status, presence: true
+  validates :status, inclusion: { in: STATUSES }
+  validates :cycle_number, uniqueness: { scope: :factory_loop_id }
+
+  scope :recent, -> { order(created_at: :desc) }
+  scope :for_loop, ->(loop_id) { where(factory_loop_id: loop_id) }
+end

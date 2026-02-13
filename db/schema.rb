@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_13_024059) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_13_025000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -92,6 +92,56 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_024059) do
     t.index ["is_aggregator"], name: "index_boards_on_is_aggregator", where: "(is_aggregator = true)"
     t.index ["user_id", "position"], name: "index_boards_on_user_id_and_position"
     t.index ["user_id"], name: "index_boards_on_user_id"
+  end
+
+  create_table "factory_cycle_logs", force: :cascade do |t|
+    t.jsonb "actions_taken", default: []
+    t.datetime "created_at", null: false
+    t.integer "cycle_number", null: false
+    t.integer "duration_ms"
+    t.jsonb "errors", default: []
+    t.bigint "factory_loop_id", null: false
+    t.datetime "finished_at"
+    t.integer "input_tokens"
+    t.string "model_used"
+    t.integer "output_tokens"
+    t.datetime "started_at", null: false
+    t.jsonb "state_after"
+    t.jsonb "state_before"
+    t.string "status", default: "running", null: false
+    t.text "summary"
+    t.index ["factory_loop_id", "created_at"], name: "idx_cycle_logs_loop_recent", order: { created_at: :desc }
+    t.index ["factory_loop_id", "cycle_number"], name: "idx_cycle_logs_loop_cycle", unique: true
+    t.index ["factory_loop_id"], name: "index_factory_cycle_logs_on_factory_loop_id"
+    t.index ["status"], name: "index_factory_cycle_logs_on_status"
+  end
+
+  create_table "factory_loops", force: :cascade do |t|
+    t.integer "avg_cycle_duration_ms"
+    t.jsonb "config", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "fallback_model"
+    t.string "icon", default: "🏭"
+    t.integer "interval_ms", null: false
+    t.datetime "last_cycle_at"
+    t.datetime "last_error_at"
+    t.text "last_error_message"
+    t.jsonb "metrics", default: {}, null: false
+    t.string "model", null: false
+    t.string "name", null: false
+    t.string "openclaw_cron_id"
+    t.string "openclaw_session_key"
+    t.string "slug", null: false
+    t.jsonb "state", default: {}, null: false
+    t.string "status", default: "idle", null: false
+    t.text "system_prompt"
+    t.integer "total_cycles", default: 0
+    t.integer "total_errors", default: 0
+    t.datetime "updated_at", null: false
+    t.index ["openclaw_cron_id"], name: "index_factory_loops_on_openclaw_cron_id", unique: true, where: "(openclaw_cron_id IS NOT NULL)"
+    t.index ["slug"], name: "index_factory_loops_on_slug", unique: true
+    t.index ["status"], name: "index_factory_loops_on_status"
   end
 
   create_table "model_limits", force: :cascade do |t|
@@ -562,6 +612,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_024059) do
   add_foreign_key "agent_personas", "users"
   add_foreign_key "api_tokens", "users"
   add_foreign_key "boards", "users"
+  add_foreign_key "factory_cycle_logs", "factory_loops"
   add_foreign_key "model_limits", "users"
   add_foreign_key "nightshift_selections", "nightshift_missions"
   add_foreign_key "notifications", "tasks"
