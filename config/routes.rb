@@ -199,9 +199,13 @@ Rails.application.routes.draw do
   # Factory dashboard
   get "factory", to: "factory#index"
   post "factory/loops", to: "factory#create", as: :factory_loops
+  patch "factory/loops/:id", to: "factory#update", as: :factory_loop
+  delete "factory/loops/:id", to: "factory#destroy", as: :factory_loop_delete
   post "factory/:id/play", to: "factory#play", as: :factory_play
   post "factory/:id/pause", to: "factory#pause", as: :factory_pause
   post "factory/:id/stop", to: "factory#stop", as: :factory_stop
+  post "factory/bulk_play", to: "factory#bulk_play", as: :factory_bulk_play
+  post "factory/bulk_pause", to: "factory#bulk_pause", as: :factory_bulk_pause
 
   # Agent Personas
   resources :agent_personas do

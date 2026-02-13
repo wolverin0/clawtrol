@@ -1,76 +1,335 @@
-<div data-controller="factory" class="p-6 space-y-6">
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="text-2xl font-semibold text-content">🏭 Factory</h1>
-      <p class="text-sm text-content-secondary">Perpetual agent loops and cycle metrics.</p>
+<% content_for :title, "Factory" %>
+<% content_for :breadcrumb_standalone, "Factory" %>
+
+<% model_options = %w[opus codex gemini gemini-flash glm deepseek groq cerebras] %>
+<% icon_presets = %w[🏭 🔍 🐛 📊 🤖 💼 🔒 📡 🧠 ⚡ 🎯 🔄 📝 🛡️ 🌐 💡] %>
+<% interval_presets = { "5m" => 300000, "15m" => 900000, "30m" => 1800000, "1h" => 3600000, "2h" => 7200000, "4h" => 14400000, "6h" => 21600000, "8h" => 28800000 } %>
+
+<div class="h-full flex flex-col" data-controller="factory"
+     data-factory-loops-value="<%= @loops.map { |l|
+       {
+         id: l.id, name: l.name, slug: l.slug, description: l.description,
+         icon: l.icon.presence || '🏭', status: l.status,
+         interval_ms: l.interval_ms, model: l.model, fallback_model: l.fallback_model,
+         system_prompt: l.system_prompt, config: l.config || {},
+         total_cycles: l.total_cycles || 0, total_errors: l.total_errors || 0,
+         avg_cycle_duration_ms: l.avg_cycle_duration_ms,
+         last_cycle_at: l.last_cycle_at&.iso8601, last_error_message: l.last_error_message,
+         recent_logs: l.factory_cycle_logs.order(started_at: :desc).limit(10).reverse.map { |log| { status: log.status, summary: log.summary.to_s.truncate(80), started_at: log.started_at&.iso8601 } }
+       }
+     }.to_json %>"
+     data-factory-model-options-value="<%= model_options.to_json %>"
+     data-factory-icon-presets-value="<%= icon_presets.to_json %>"
+     data-factory-interval-presets-value="<%= interval_presets.to_json %>">
+
+  <!-- Header Bar -->
+  <div class="flex items-center justify-between mb-4 mt-4 px-1">
+    <div class="flex items-center gap-3">
+      <h1 class="text-lg font-semibold text-content font-display flex items-center gap-2">
+        <span>🏭</span> Factory
+      </h1>
+      <span class="text-xs text-content-muted font-mono" data-factory-target="statusCounts"></span>
     </div>
-    <button class="px-3 py-2 rounded-md bg-bg-elevated text-content-secondary hover:text-content" data-action="click->factory#openModal">+ Create Loop</button>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-content-muted" data-factory-target="statusMsg"></span>
+      <button type="button" data-action="factory#openCreateModal"
+              class="px-3 py-1.5 text-xs font-medium bg-accent/10 text-accent border border-accent/30 rounded-md hover:bg-accent/20 transition-colors">
+        + New Loop
+      </button>
+    </div>
   </div>
 
-  <div class="flex items-center gap-6 text-sm">
-    <div>Selected: <span data-factory-target="count">0</span></div>
-    <div>Playing: <span data-factory-target="playing">0</span></div>
+  <!-- Filter Bar -->
+  <div class="flex items-center gap-3 mb-3 px-1 flex-wrap">
+    <!-- Search -->
+    <div class="relative flex-shrink-0">
+      <input type="text" placeholder="Search loops…" data-factory-target="searchInput" data-action="input->factory#onSearch"
+             class="w-48 pl-8 pr-3 py-1.5 text-xs bg-bg-surface border border-border rounded-md text-content placeholder-content-muted focus:outline-none focus:ring-1 focus:ring-accent/50" />
+      <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-content-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+    </div>
+
+    <!-- Status filters -->
+    <div class="flex items-center gap-1" data-factory-target="filterBar">
+      <button type="button" data-action="factory#setFilter" data-filter="all"
+              class="px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors border" data-factory-target="filterBtn">All</button>
+      <button type="button" data-action="factory#setFilter" data-filter="playing"
+              class="px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors border" data-factory-target="filterBtn">
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-400 mr-1"></span>Playing</button>
+      <button type="button" data-action="factory#setFilter" data-filter="paused"
+              class="px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors border" data-factory-target="filterBtn">
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1"></span>Paused</button>
+      <button type="button" data-action="factory#setFilter" data-filter="stopped"
+              class="px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors border" data-factory-target="filterBtn">
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-gray-400 mr-1"></span>Stopped</button>
+      <button type="button" data-action="factory#setFilter" data-filter="error"
+              class="px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors border" data-factory-target="filterBtn">
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-red-400 mr-1"></span>Error</button>
+    </div>
+
+    <!-- Sort -->
+    <select data-factory-target="sortSelect" data-action="change->factory#onSort"
+            class="px-2 py-1 text-[11px] bg-bg-surface border border-border rounded-md text-content-muted focus:outline-none">
+      <option value="name">Sort: Name</option>
+      <option value="last_run">Sort: Last Run</option>
+      <option value="interval">Sort: Interval</option>
+      <option value="status">Sort: Status</option>
+    </select>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-    <% @loops.each do |loop| %>
-      <div class="rounded-lg border border-border bg-bg-surface p-4 cursor-pointer hover:border-content-muted" data-action="click->factory#toggle" data-factory-target="card" data-loop-id="<%= loop.id %>" data-status="<%= loop.status %>">
-        <div class="flex items-start justify-between">
-          <div>
-            <div class="text-lg font-medium text-content"><%= loop.icon.presence || "🏭" %> <%= loop.name %></div>
-            <div class="text-xs text-content-secondary"><%= loop.slug %></div>
+  <!-- Main Content: List + Detail -->
+  <div class="flex-1 flex min-h-0 relative">
+    <!-- Loop List -->
+    <div class="flex-1 overflow-y-auto pr-1" data-factory-target="loopList">
+      <!-- Rendered by JS -->
+    </div>
+
+    <!-- Detail Panel Backdrop (mobile) -->
+    <div data-factory-target="panelBackdrop" data-action="click->factory#closePanel"
+         class="hidden fixed inset-0 bg-black/50 z-30 lg:hidden transition-opacity"></div>
+
+    <!-- Detail Panel (slide-over) -->
+    <div data-factory-target="detailPanel"
+         class="fixed top-0 right-0 h-full w-full sm:w-[480px] lg:w-[42%] bg-bg-surface border-l border-border z-40 translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+
+      <!-- Panel Header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="text-2xl" data-factory-target="panelIcon">🏭</span>
+          <div class="min-w-0">
+            <h2 class="text-sm font-semibold text-content truncate" data-factory-target="panelName">Loop</h2>
+            <div class="text-[11px] text-content-muted font-mono" data-factory-target="panelSlug">slug</div>
           </div>
-          <span class="text-xs px-2 py-1 rounded bg-bg-elevated" data-factory-status><%= loop.status %></span>
+          <span data-factory-target="panelBadge" class="ml-2 text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide"></span>
         </div>
-
-        <p class="text-sm text-content-secondary mt-2 min-h-[40px]"><%= loop.description %></p>
-
-        <div class="grid grid-cols-3 gap-2 mt-3 text-xs">
-          <div class="rounded bg-bg-elevated p-2">Cycles<br><span class="text-content" data-factory-cycles><%= loop.total_cycles || 0 %></span></div>
-          <div class="rounded bg-bg-elevated p-2">Errors<br><span class="text-content" data-factory-errors><%= loop.total_errors || 0 %></span></div>
-          <div class="rounded bg-bg-elevated p-2">Avg ms<br><span class="text-content" data-factory-avg><%= loop.avg_cycle_duration_ms || 0 %></span></div>
-        </div>
-
-        <div class="flex items-center gap-2 mt-4" data-action="click->factory#overlayClose">
-          <button class="px-2 py-1 text-xs rounded border border-border hover:border-content-muted" data-loop-id="<%= loop.id %>" data-action="click->factory#play">▶ Play</button>
-          <button class="px-2 py-1 text-xs rounded border border-border hover:border-content-muted" data-loop-id="<%= loop.id %>" data-action="click->factory#pause">⏸ Pause</button>
-          <button class="px-2 py-1 text-xs rounded border border-border hover:border-content-muted" data-loop-id="<%= loop.id %>" data-action="click->factory#stop">⏹ Stop</button>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <!-- Status controls -->
+          <button type="button" data-action="factory#playSelected" title="Play"
+                  class="w-7 h-7 flex items-center justify-center rounded-md text-green-400 hover:bg-green-500/10 transition-colors">▶</button>
+          <button type="button" data-action="factory#pauseSelected" title="Pause"
+                  class="w-7 h-7 flex items-center justify-center rounded-md text-amber-400 hover:bg-amber-500/10 transition-colors">⏸</button>
+          <button type="button" data-action="factory#stopSelected" title="Stop"
+                  class="w-7 h-7 flex items-center justify-center rounded-md text-red-400 hover:bg-red-500/10 transition-colors">⏹</button>
+          <span class="w-px h-5 bg-border mx-1"></span>
+          <button type="button" data-action="factory#closePanel" title="Close"
+                  class="w-7 h-7 flex items-center justify-center rounded-md text-content-muted hover:text-content hover:bg-bg-hover transition-colors">✕</button>
         </div>
       </div>
-    <% end %>
+
+      <!-- Tabs -->
+      <div class="flex border-b border-border px-5 flex-shrink-0" data-factory-target="tabBar">
+        <button type="button" data-action="factory#switchTab" data-tab="settings"
+                class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">Settings</button>
+        <button type="button" data-action="factory#switchTab" data-tab="logs"
+                class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">Logs</button>
+        <button type="button" data-action="factory#switchTab" data-tab="metrics"
+                class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">Metrics</button>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="flex-1 overflow-y-auto">
+
+        <!-- Settings Tab -->
+        <div data-factory-target="tabSettings" class="p-5 space-y-4">
+          <!-- Name -->
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Name</label>
+            <input type="text" data-factory-target="propName" data-action="input->factory#markDirty"
+                   class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
+          </div>
+
+          <!-- Slug -->
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Slug</label>
+            <div class="text-xs text-content-muted font-mono bg-bg-elevated px-3 py-2 rounded-md border border-border" data-factory-target="propSlug">—</div>
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Description</label>
+            <textarea data-factory-target="propDesc" data-action="input->factory#markDirty" rows="2"
+                      class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50"></textarea>
+          </div>
+
+          <!-- Icon Picker -->
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Icon</label>
+            <div class="flex flex-wrap gap-1" data-factory-target="iconPicker">
+              <% icon_presets.each do |ic| %>
+                <button type="button" data-action="factory#pickIcon" data-icon="<%= ic %>"
+                        class="w-8 h-8 flex items-center justify-center text-base border border-border rounded-md hover:border-accent/50 transition-colors"><%= ic %></button>
+              <% end %>
+            </div>
+            <input type="text" data-factory-target="propIconCustom" data-action="input->factory#markDirty" placeholder="Or type custom emoji…"
+                   class="mt-1.5 w-full px-3 py-1.5 text-xs bg-bg-elevated border border-border rounded-md text-content" />
+          </div>
+
+          <!-- Model -->
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Model</label>
+            <select data-factory-target="propModel" data-action="change->factory#markDirty"
+                    class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50">
+              <% model_options.each do |m| %><option value="<%= m %>"><%= m %></option><% end %>
+            </select>
+          </div>
+
+          <!-- Fallback Model -->
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Fallback Model</label>
+            <select data-factory-target="propFallback" data-action="change->factory#markDirty"
+                    class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50">
+              <option value="">none</option>
+              <% model_options.each do |m| %><option value="<%= m %>"><%= m %></option><% end %>
+            </select>
+          </div>
+
+          <!-- Interval -->
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Interval</label>
+            <div class="flex flex-wrap gap-1" data-factory-target="intervalPicker">
+              <% interval_presets.each do |label, ms| %>
+                <button type="button" data-action="factory#pickInterval" data-ms="<%= ms %>"
+                        class="px-2.5 py-1 text-xs border border-border rounded-md hover:border-accent/50 text-content-muted transition-colors"><%= label %></button>
+              <% end %>
+            </div>
+            <div class="mt-1.5 text-[11px] text-content-muted font-mono" data-factory-target="intervalDisplay">—</div>
+          </div>
+
+          <!-- System Prompt -->
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">System Prompt</label>
+            <textarea data-factory-target="propPrompt" data-action="input->factory#markDirty" rows="6"
+                      class="w-full px-3 py-2 text-xs font-mono bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50 resize-y"></textarea>
+          </div>
+
+          <!-- Config JSON -->
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Config (JSON)</label>
+            <textarea data-factory-target="propConfig" data-action="input->factory#markDirty" rows="3"
+                      class="w-full px-3 py-2 text-xs font-mono bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50 resize-y" placeholder="{}"></textarea>
+          </div>
+
+          <!-- Save / Revert -->
+          <div class="flex gap-2 pt-2">
+            <button type="button" data-action="factory#saveLoop" data-factory-target="saveBtn"
+                    class="flex-1 px-4 py-2 text-xs font-medium bg-accent/10 text-accent border border-accent/30 rounded-md hover:bg-accent/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+              Save Changes
+            </button>
+            <button type="button" data-action="factory#revertLoop" data-factory-target="revertBtn"
+                    class="px-4 py-2 text-xs font-medium bg-bg-elevated text-content-muted border border-border rounded-md hover:bg-bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+              Revert
+            </button>
+          </div>
+
+          <!-- Delete -->
+          <div class="pt-4 border-t border-border">
+            <button type="button" data-action="factory#deleteSelected"
+                    class="w-full px-3 py-2 text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/30 rounded-md hover:bg-red-500/15 transition-colors">
+              Delete Loop
+            </button>
+          </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div data-factory-target="tabLogs" class="p-5 hidden">
+          <div data-factory-target="logsList" class="space-y-2">
+            <p class="text-xs text-content-muted">No logs yet.</p>
+          </div>
+        </div>
+
+        <!-- Metrics Tab -->
+        <div data-factory-target="tabMetrics" class="p-5 hidden">
+          <div class="grid grid-cols-3 gap-3">
+            <div class="bg-bg-elevated rounded-lg p-4 text-center">
+              <div class="text-[11px] text-content-muted uppercase tracking-wide">Cycles</div>
+              <div class="text-2xl font-bold text-content mt-1" data-factory-target="metricCycles">0</div>
+            </div>
+            <div class="bg-bg-elevated rounded-lg p-4 text-center">
+              <div class="text-[11px] text-content-muted uppercase tracking-wide">Errors</div>
+              <div class="text-2xl font-bold text-red-400 mt-1" data-factory-target="metricErrors">0</div>
+            </div>
+            <div class="bg-bg-elevated rounded-lg p-4 text-center">
+              <div class="text-[11px] text-content-muted uppercase tracking-wide">Avg Duration</div>
+              <div class="text-2xl font-bold text-content mt-1" data-factory-target="metricAvg">—</div>
+            </div>
+          </div>
+          <div class="mt-4" data-factory-target="metricDetails"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="hidden fixed inset-0 bg-black/70 z-50 items-center justify-center" data-factory-target="modal" data-action="click->factory#overlayClose">
-    <div class="w-full max-w-xl rounded-lg border border-border bg-bg-surface p-6" data-action="click->factory#stopPropagation">
-      <h2 class="text-lg font-semibold text-content mb-4">Create Factory Loop</h2>
-      <%= form_with url: factory_loops_path, method: :post, local: true, class: "space-y-3" do |f| %>
+  <!-- Create Modal -->
+  <div data-factory-target="createModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/60" data-action="click->factory#closeCreateModal"></div>
+    <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="px-6 py-4 border-b border-border flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-content font-display">Create New Loop</h3>
+        <button type="button" data-action="factory#closeCreateModal"
+                class="w-7 h-7 flex items-center justify-center rounded-md text-content-muted hover:text-content hover:bg-bg-hover transition-colors">✕</button>
+      </div>
+      <div class="p-6 space-y-4">
         <div>
-          <label class="block text-xs text-content-secondary mb-1">Name</label>
-          <%= f.text_field :name, name: "factory_loop[name]", class: "w-full rounded border border-border bg-bg-base px-3 py-2" %>
+          <label class="block text-xs font-medium text-content-muted mb-1">Name *</label>
+          <input type="text" data-factory-target="createName" placeholder="My Loop"
+                 class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
         </div>
         <div>
-          <label class="block text-xs text-content-secondary mb-1">Slug</label>
-          <%= f.text_field :slug, name: "factory_loop[slug]", class: "w-full rounded border border-border bg-bg-base px-3 py-2" %>
+          <label class="block text-xs font-medium text-content-muted mb-1">Description</label>
+          <textarea data-factory-target="createDesc" rows="2" placeholder="What does this loop do?"
+                    class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50"></textarea>
         </div>
         <div>
-          <label class="block text-xs text-content-secondary mb-1">Description</label>
-          <%= f.text_area :description, name: "factory_loop[description]", class: "w-full rounded border border-border bg-bg-base px-3 py-2" %>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs text-content-secondary mb-1">Interval (ms)</label>
-            <%= f.number_field :interval_ms, name: "factory_loop[interval_ms]", value: 900000, class: "w-full rounded border border-border bg-bg-base px-3 py-2" %>
+          <label class="block text-xs font-medium text-content-muted mb-1">Icon</label>
+          <div class="flex flex-wrap gap-1">
+            <% icon_presets.first(10).each do |ic| %>
+              <button type="button" data-action="factory#pickCreateIcon" data-icon="<%= ic %>"
+                      class="w-8 h-8 flex items-center justify-center text-base border border-border rounded-md hover:border-accent/50 transition-colors" data-factory-target="createIconBtn"><%= ic %></button>
+            <% end %>
           </div>
-          <div>
-            <label class="block text-xs text-content-secondary mb-1">Model</label>
-            <%= f.text_field :model, name: "factory_loop[model]", value: "anthropic/claude-opus-4-6", class: "w-full rounded border border-border bg-bg-base px-3 py-2" %>
-          </div>
         </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" class="px-3 py-2 rounded border border-border" data-action="click->factory#closeModal">Cancel</button>
-          <button type="submit" class="px-3 py-2 rounded bg-bg-elevated">Create</button>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Model</label>
+          <select data-factory-target="createModel"
+                  class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50">
+            <% model_options.each do |m| %><option value="<%= m %>" <%= 'selected' if m == 'opus' %>><%= m %></option><% end %>
+          </select>
         </div>
-      <% end %>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Interval</label>
+          <select data-factory-target="createInterval"
+                  class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50">
+            <% interval_presets.each do |label, ms| %>
+              <option value="<%= ms %>" <%= 'selected' if label == '15m' %>><%= label %></option>
+            <% end %>
+          </select>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-border flex justify-end gap-2">
+        <button type="button" data-action="factory#closeCreateModal"
+                class="px-4 py-2 text-xs font-medium bg-bg-elevated text-content-muted border border-border rounded-md hover:bg-bg-hover transition-colors">Cancel</button>
+        <button type="button" data-action="factory#createLoop"
+                class="px-4 py-2 text-xs font-medium bg-accent/10 text-accent border border-accent/30 rounded-md hover:bg-accent/20 transition-colors">Create Loop</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div data-factory-target="deleteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/60" data-action="click->factory#closeDeleteModal"></div>
+    <div class="relative bg-bg-surface border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4">
+      <div class="p-6 text-center">
+        <div class="text-3xl mb-3">🗑️</div>
+        <h3 class="text-sm font-semibold text-content mb-1">Delete Loop</h3>
+        <p class="text-xs text-content-muted">Are you sure you want to delete <strong data-factory-target="deleteLoopName" class="text-content"></strong>? This cannot be undone.</p>
+      </div>
+      <div class="px-6 py-4 border-t border-border flex justify-end gap-2">
+        <button type="button" data-action="factory#closeDeleteModal"
+                class="px-4 py-2 text-xs font-medium bg-bg-elevated text-content-muted border border-border rounded-md hover:bg-bg-hover transition-colors">Cancel</button>
+        <button type="button" data-action="factory#confirmDelete"
+                class="px-4 py-2 text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/30 rounded-md hover:bg-red-500/15 transition-colors">Delete</button>
+      </div>
     </div>
   </div>
 </div>
