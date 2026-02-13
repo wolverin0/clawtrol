@@ -157,6 +157,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`89cca45`)
 - update CHANGELOG.md [skip ci] (`d979005`)
 - update CHANGELOG.md [skip ci] (`5fd3ee1`)
 - update CHANGELOG.md [skip ci] (`69bd35c`)
@@ -186,6 +187,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🔧 Chores
 
+- **nightshift:** schedule timeout sweeper job hourly (`43b426f`)
 - **deps:** add dependabot config for bundler and npm_and_yarn (`a895cf3`)
 - add dependabot config for bundler npm and actions (`89852dd`)
 - remove git-rewrite artifacts (`f233ed8`)
