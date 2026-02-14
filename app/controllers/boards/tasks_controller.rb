@@ -3,7 +3,7 @@ class Boards::TasksController < ApplicationController
   include OutputRenderable
 
   before_action :set_board
-  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file, :diff_file, :generate_validation_suggestion]
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file, :diff_file, :generate_validation_suggestion, :chat_history]
 
   def show
     @api_token = current_user.api_token
@@ -307,23 +307,17 @@ class Boards::TasksController < ApplicationController
 
     @task_diff = task_diff
 
-    respond_to do |format|
-      format.json do
-        # Return raw unified diff for diff2html.js rendering
-        unified = task_diff.unified_diff_string
-        render json: {
-          file_path: task_diff.file_path,
-          diff_type: task_diff.diff_type,
-          diff_content: unified,
-          stats: task_diff.stats
-        }
-      end
-      format.html do
-        render partial: "boards/tasks/diff_viewer", locals: { task_diff: task_diff }, layout: false
-      end
-      format.any do
-        render partial: "boards/tasks/diff_viewer", locals: { task_diff: task_diff }, layout: false
-      end
+    if params[:format] == "json" || request.headers["Accept"]&.include?("application/json")
+      # Return raw unified diff for diff2html.js rendering
+      unified = task_diff.unified_diff_string
+      render json: {
+        file_path: task_diff.file_path,
+        diff_type: task_diff.diff_type,
+        diff_content: unified,
+        stats: task_diff.stats
+      }
+    else
+      render partial: "boards/tasks/diff_viewer", locals: { task_diff: task_diff }, layout: false
     end
   end
 
@@ -467,7 +461,7 @@ class Boards::TasksController < ApplicationController
       next unless %w[in_review done].include?(status.to_s)
 
       ordered_tasks = @board.tasks.not_archived.where(status: status)
-        .includes(:board, :user, :agent_persona)
+        .includes(:board, :user, :agent_persona, :dependencies)
         .ordered_for_column(status)
       streams << turbo_stream.replace("column-#{status}", partial: "boards/column_tasks", locals: { status: status, tasks: ordered_tasks, board: @board })
     end
@@ -530,6 +524,25 @@ class Boards::TasksController < ApplicationController
     end
   end
 
+  # GET /boards/:board_id/tasks/:id/chat_history
+  # Returns JSON chat history from the OpenClaw gateway session
+  def chat_history
+    unless @task.agent_session_id.present?
+      render json: { messages: [], error: "No agent session" }, status: :ok
+      return
+    end
+
+    begin
+      client = OpenclawGatewayClient.new(current_user)
+      result = client.sessions_history(@task.agent_session_id, limit: params[:limit]&.to_i || 50)
+      messages = result.is_a?(Hash) ? (result["messages"] || result[:messages] || []) : Array(result)
+      render json: { messages: messages }
+    rescue => e
+      Rails.logger.error "[ChatHistory] Failed for task #{@task.id}: #{e.message}"
+      render json: { messages: [], error: e.message }, status: :ok
+    end
+  end
+
   private
 
   def set_board
@@ -537,7 +550,7 @@ class Boards::TasksController < ApplicationController
   end
 
   def set_task
-    @task = @board.tasks.includes(:activities, :parent_task, :followup_task, :task_runs).find(params[:id])
+    @task = @board.tasks.includes(:activities, :parent_task, :followup_task, :task_runs, :dependencies).find(params[:id])
   end
 
   def task_params

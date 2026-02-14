@@ -264,9 +264,25 @@ class MarketingController < ApplicationController
 
   def show
     relative_path = sanitize_path(params[:path])
+
+    if relative_path.blank?
+      render plain: "Invalid path", status: :bad_request
+      return
+    end
+
     @file_path = File.join(MARKETING_ROOT, relative_path)
 
     unless File.exist?(@file_path) && File.file?(@file_path)
+      render plain: "File not found", status: :not_found
+      return
+    end
+
+    # SECURITY: Resolve symlinks and verify final path is still within MARKETING_ROOT.
+    # Without this, a symlink under marketing/ could point anywhere on the filesystem.
+    real_path = File.realpath(@file_path)
+    real_root = File.realpath(MARKETING_ROOT)
+    unless real_path.start_with?(real_root + "/")
+      Rails.logger.warn("[MarketingController] Path escaped root via symlink: #{@file_path} -> #{real_path}")
       render plain: "File not found", status: :not_found
       return
     end
@@ -277,12 +293,12 @@ class MarketingController < ApplicationController
 
     # Serve media files directly (images, videos)
     if MEDIA_EXTENSIONS.include?(@extension)
-      send_file @file_path, type: mime_type_for(@extension), disposition: :inline
+      send_file real_path, type: mime_type_for(@extension), disposition: :inline
       return
     end
 
     if viewable?(@extension)
-      @content = File.read(@file_path, encoding: "UTF-8")
+      @content = File.read(real_path, encoding: "UTF-8")
       @rendered_content = render_content(@content, @extension)
     else
       @is_binary = true
@@ -292,15 +308,33 @@ class MarketingController < ApplicationController
   private
 
   def sanitize_path(path)
-    # Prevent directory traversal attacks
+    # Prevent directory traversal and file disclosure attacks.
+    # This is critical because `show` is unauthenticated.
     return "" if path.blank?
 
-    # Normalize and reject any path containing ..
-    cleaned = path.to_s.gsub("\\", "/")
+    cleaned = path.to_s
+
+    # SECURITY: Reject null bytes (can truncate paths in C-based libs)
+    return "" if cleaned.include?("\x00")
+
+    # Normalize backslashes to forward slashes
+    cleaned = cleaned.gsub("\\", "/")
+
+    # SECURITY: Reject path traversal sequences (literal and url-encoded)
     return "" if cleaned.include?("..")
 
     # Remove leading slashes
-    cleaned.sub(%r{^/+}, "")
+    cleaned = cleaned.sub(%r{^/+}, "")
+
+    # SECURITY: Block dotfiles and dotdirs — any component starting with '.'
+    # Prevents access to .env, .git, .gitignore, .DS_Store etc.
+    components = cleaned.split("/")
+    return "" if components.any? { |c| c.start_with?(".") }
+
+    # SECURITY: Reject empty components (double slashes) which could confuse path resolution
+    return "" if components.any?(&:blank?)
+
+    cleaned
   end
 
   def build_tree(root_path, search_query = "")

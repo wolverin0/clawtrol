@@ -2,17 +2,21 @@ class DashboardController < ApplicationController
   before_action :require_authentication
 
   def show
-    # Status counts (across all boards)
-    @inbox_count = current_user.tasks.where(status: :inbox).count
-    @active_count = current_user.tasks.where(status: :in_progress).count
-    @review_count = current_user.tasks.where(status: :in_review).count
+    # Status counts (single grouped query instead of 3 separate queries)
+    status_counts = current_user.tasks.where.not(status: [:done, :archived]).group(:status).count
+    @inbox_count = status_counts["inbox"] || 0
+    @active_count = status_counts["in_progress"] || 0
+    @review_count = status_counts["in_review"] || 0
     @error_count = current_user.tasks.where.not(error_message: nil).where.not(status: [:done, :archived]).count
 
-    # Today's stats
+    # Today's stats (single pluck instead of 3 separate queries)
     today_start = Time.zone.now.beginning_of_day
-    @done_today = current_user.tasks.where(status: :done).where("updated_at >= ?", today_start).count
-    @spawned_today = current_user.tasks.where("created_at >= ?", today_start).count
-    @failed_today = current_user.tasks.where.not(error_at: nil).where("error_at >= ?", today_start).count
+    today_tasks = current_user.tasks.where("created_at >= ? OR updated_at >= ? OR error_at >= ?", today_start, today_start, today_start)
+      .pluck(:status, :created_at, :updated_at, :error_at)
+
+    @done_today = today_tasks.count { |status, _, updated_at, _| status == "done" && updated_at && updated_at >= today_start }
+    @spawned_today = today_tasks.count { |_, created_at, _, _| created_at && created_at >= today_start }
+    @failed_today = today_tasks.count { |_, _, _, error_at| error_at && error_at >= today_start }
 
     # Active agents (in_progress tasks with models)
     @active_tasks = current_user.tasks

@@ -89,7 +89,7 @@ module Api
 
       def launch
         task_ids = params[:task_ids] || []
-        tasks = Task.where(id: task_ids)
+        tasks = current_user.tasks.where(id: task_ids)
         launched = []
 
         tasks.each do |task|
@@ -158,12 +158,17 @@ module Api
       end
 
       def selections
+        user_mission_ids = current_user.nightshift_missions.pluck(:id)
         @selections = NightshiftSelection.for_tonight.enabled
+          .where(nightshift_mission_id: user_mission_ids)
         render json: @selections
       end
 
       def update_selection
-        @selection = NightshiftSelection.find(params[:id])
+        @selection = NightshiftSelection
+          .joins(:nightshift_mission)
+          .where(nightshift_missions: { user_id: current_user.id })
+          .find(params[:id])
 
         status = selection_params[:status]
         result = selection_params[:result]

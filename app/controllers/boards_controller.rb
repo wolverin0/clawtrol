@@ -208,12 +208,12 @@ class BoardsController < ApplicationController
         .joins(:board)
         .where(boards: { is_aggregator: false })
         .not_archived
-        .includes(:user, :board, :parent_task, :followup_task, :agent_persona, :runner_leases)
+        .includes(:user, :board, :parent_task, :followup_task, :agent_persona, :runner_leases, :dependencies)
     else
       @is_aggregator = false
       board.tasks
         .not_archived
-        .includes(:user, :parent_task, :followup_task, :agent_persona, :runner_leases)
+        .includes(:user, :parent_task, :followup_task, :agent_persona, :runner_leases, :dependencies)
     end
   end
 

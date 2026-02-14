@@ -7,23 +7,22 @@ class SessionsController < ApplicationController
   def new
   end
 
+  GENERIC_LOGIN_ERROR = "Invalid email or password."
+
   def create
     user = User.find_by(email_address: params[:email_address])
 
+    # Use a generic error for all failure paths to prevent user enumeration.
+    # An attacker should NOT be able to distinguish "no account", "OAuth-only",
+    # or "wrong password" from the error message alone.
     if user.nil?
-      redirect_to new_session_path, alert: "No account found with that email. Please sign up first."
+      redirect_to new_session_path, alert: GENERIC_LOGIN_ERROR
       return
     end
 
-    if user.needs_password?
-      # OAuth user without password - suggest they use GitHub or reset password
-      redirect_to new_session_path, alert: "This account uses GitHub login. Please sign in with GitHub or reset your password."
-      return
-    end
-
-    if !user.password_user?
-      # Existing user from before password auth - needs to set password via reset
-      redirect_to new_password_path, alert: "Please set a password using the password reset flow."
+    if user.needs_password? || !user.password_user?
+      # OAuth user or legacy user without password — same generic error
+      redirect_to new_session_path, alert: GENERIC_LOGIN_ERROR
       return
     end
 
@@ -31,7 +30,7 @@ class SessionsController < ApplicationController
       start_new_session_for user
       redirect_to after_authentication_url, notice: "Welcome back!"
     else
-      redirect_to new_session_path, alert: "Invalid email or password."
+      redirect_to new_session_path, alert: GENERIC_LOGIN_ERROR
     end
   end
 
