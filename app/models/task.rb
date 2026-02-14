@@ -18,6 +18,7 @@ class Task < ApplicationRecord
   has_many :task_diffs, dependent: :destroy
 
   has_many :task_runs, dependent: :destroy
+  has_many :agent_transcripts, dependent: :nullify
   has_many :runner_leases, dependent: :destroy
 
   # Task dependencies (blocking relationships)
