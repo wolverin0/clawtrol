@@ -3,10 +3,17 @@
 All notable changes to ClawTrol are documented here.
 Generated automatically from [conventional commits](https://www.conventionalcommits.org/).
 
-## [Unreleased]
+## February 2026
 
 ### 🚀 Features
 
+- default pipeline_enabled to true for all new tasks (#619) (`28dfba2`)
+- Swarm Launcher — curated task idea launcher with pipeline integration (#619) (`84ef6db`)
+- **pipeline:** activate ClawRouter — observation mode off (#618) (`fb6578b`)
+- **pipeline:** ClawRouter 3-layer pipeline -- triage, context compiler, router, advancer (`6810e7e`)
+- agent_transcripts table — persist prompts/outputs to DB (#616) (`8c30b8e`)
+- **features:** sprint 4 — invites, conditional workflows, notifications, search, cron CRUD (`34ac1bc`)
+- **integration:** sprint 3 — OpenClaw gateway health, costs, channels, crons, models sync (`c7aa717`)
 - **workflows:** enhanced visual DAG editor with 8 node types and rich properties (`ec27c7d`)
 - add conventional commits hook, changelog generator, and CI workflow (`fdc3da5`)
 - native task notifications (Telegram + webhook) (`79dfbd9`)
@@ -68,6 +75,10 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
 ### 🐛 Bug Fixes
 
+- **factory:** cherry-pick security, performance, and test improvements from MiniMax factory (`c04aa87`)
+- **security+perf:** cherry-pick OpenClaw bot findings — IDOR, injection, N+1, indexes (`c0553a6`)
+- preserve original_description in tasks (#615) (`81fd7b1`)
+- **security:** sprint 1 — security hardening across 24 findings (`cde1fd5`)
 - **nightshift:** async fire-and-forget architecture with hook token auth (`f752626`)
 - **ci:** rubocop auto-fix, hook auth blank token, needs_follow_up default, memory search probe (`78e038e`)
 - **ci:** resolve scan_js and scan_ruby failures (`0c4857a`)
@@ -158,6 +169,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`1e86992`)
 - update CHANGELOG.md [skip ci] (`f3359fe`)
 - update CHANGELOG.md [skip ci] (`89cca45`)
 - update CHANGELOG.md [skip ci] (`d979005`)
@@ -175,9 +187,11 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Add changelog draft for v0.2.0 (`05f8c55`)
 ### ♻️  Refactoring
 
+- **ux:** sprint 5 — design consistency, controller consolidation, themes, accessibility (`444f979`)
 - extract Task concerns from god object (#503) (`b9c7417`)
 ### ⚡ Performance
 
+- **backend:** sprint 2 — race conditions, indexes, pagination, N+1 fixes (`4ffc6d6`)
 ### 🧪 Tests
 
 - add controller + integration tests (#506) (`ff1e29c`)
@@ -206,7 +220,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **deps:** bump actions/checkout from 5 to 6 (#1) (`47897eb`)
 - remove debug console.log statements, production ready (`d71c50b`)
 
-## [v1.0.0] — 2026-02-01
+## January 2026
 
 ### 🚀 Features
 
