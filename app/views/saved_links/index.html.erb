@@ -11,7 +11,7 @@
             required: true, autofocus: true %>
       </div>
       <div class="flex gap-2">
-        <%= f.text_field :title, placeholder: "Title (optional)",
+        <%= f.text_field :note, placeholder: "Why is this interesting? (optional)",
             class: "bg-bg-base border border-border rounded-lg px-4 py-3 text-content placeholder-content-muted focus:outline-none focus:border-accent w-full sm:w-48" %>
         <%= f.submit "Save Link", class: "bg-accent hover:bg-accent/80 text-white font-medium px-6 py-3 rounded-lg cursor-pointer transition-colors whitespace-nowrap" %>
       </div>
@@ -72,9 +72,9 @@
               </div>
 
               <a href="<%= link.url %>" target="_blank" rel="noopener" class="block mt-1 text-content hover:text-accent transition-colors truncate">
-                <%= link.title.present? ? link.title : link.url %>
+                <%= link.note.present? ? link.note : link.url %>
               </a>
-              <% if link.title.present? %>
+              <% if link.note.present? %>
                 <div class="text-xs text-content-muted truncate mt-0.5"><%= link.url %></div>
               <% end %>
 

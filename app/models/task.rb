@@ -82,7 +82,7 @@ class Task < ApplicationRecord
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
   validates :pipeline_stage, inclusion: { in: PIPELINE_STAGES }, allow_nil: true, allow_blank: true
   validates :description, length: { maximum: 500_000 }, allow_nil: true
-  validates :execution_plan, length: { maximum: 100_000 }, allow_nil: true
+  # validates :execution_plan, length: { maximum: 100_000 }, allow_nil: true  # Column doesn't exist yet - added by factory, needs migration
   validates :error_message, length: { maximum: 50_000 }, allow_nil: true
   validates :validation_command, length: { maximum: 1_000 }, allow_nil: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
