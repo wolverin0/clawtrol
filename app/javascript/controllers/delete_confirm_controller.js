@@ -1,11 +1,14 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Connects to data-controller="delete-confirm"
+// Unified delete confirmation modal controller
+// Supports modes: "single" (default), "all", "completed"
+// Usage: data-controller="delete-confirm" data-delete-confirm-mode-value="all"
 export default class extends Controller {
   static targets = ["modal", "backdrop", "itemName", "form", "description"]
   static values = {
     itemName: String,
-    description: String
+    description: String,
+    mode: { type: String, default: "single" }
   }
 
   connect() {
@@ -16,9 +19,23 @@ export default class extends Controller {
     event.preventDefault()
     event.stopPropagation()
 
+    // For bulk modes, close parent dropdown if present
+    if (this.modeValue !== "single") {
+      const dropdownElement = this.element.closest('[data-controller*="dropdown"]')
+      if (dropdownElement) {
+        const dropdownController = this.application.getControllerForElementAndIdentifier(
+          dropdownElement,
+          "dropdown"
+        )
+        if (dropdownController) {
+          dropdownController.close()
+        }
+      }
+    }
+
     // Update the item name in the modal
     this.itemNameTarget.textContent = this.itemNameValue
-    
+
     // Update description if provided
     if (this.hasDescriptionTarget && this.hasDescriptionValue) {
       this.descriptionTarget.textContent = this.descriptionValue

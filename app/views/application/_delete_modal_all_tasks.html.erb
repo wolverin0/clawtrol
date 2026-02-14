@@ -1,47 +1,49 @@
 <%#
-  Delete confirmation modal for delete-all-tasks
-  Usage: Wrap the delete button in a div with data-controller="delete-confirm-all-tasks"
+  Delete confirmation modal for bulk delete-all-tasks
+  Now uses the unified delete-confirm controller with mode="all"
 
-  <div data-controller="delete-confirm-all-tasks" data-delete-confirm-all-tasks-item-name-value="Item Name">
-    <button type="button" data-action="click->delete-confirm-all-tasks#open">Delete</button>
+  Usage: Wrap the delete button in a div with data-controller="delete-confirm" data-delete-confirm-mode-value="all"
+
+  <div data-controller="delete-confirm" data-delete-confirm-mode-value="all" data-delete-confirm-item-name-value="Item Name">
+    <button type="button" data-action="click->delete-confirm#open">Delete</button>
     render "application/delete_modal_all_tasks", url: some_path
   </div>
 %>
 
 <!-- Backdrop -->
-<div data-delete-confirm-all-tasks-target="backdrop"
-     data-action="click->delete-confirm-all-tasks#closeOnBackdrop"
+<div data-delete-confirm-target="backdrop"
+     data-action="click->delete-confirm#closeOnBackdrop"
      class="hidden opacity-0 fixed inset-0 bg-black/60 transition-opacity duration-200 ease-out z-[90]">
 </div>
 
 <!-- Modal -->
-<div data-delete-confirm-all-tasks-target="modal"
+<div data-delete-confirm-target="modal"
      class="hidden opacity-0 scale-95 fixed inset-0 flex items-center justify-center z-[100] pointer-events-none transition-all duration-200 ease-out">
   <div class="pointer-events-auto bg-bg-surface rounded-lg shadow-xl max-w-sm w-full mx-4 p-6 border border-border">
     <!-- Title -->
     <h3 class="text-lg font-medium text-content mb-2 tracking-tight font-display">
-      Delete "<span data-delete-confirm-all-tasks-target="itemName"></span>"?
+      Delete "<span data-delete-confirm-target="itemName"></span>"?
     </h3>
 
     <!-- Description -->
-    <p class="text-sm text-content-secondary mb-6" data-delete-confirm-all-tasks-target="description">
+    <p class="text-sm text-content-secondary mb-6" data-delete-confirm-target="description">
       This action cannot be undone.
     </p>
 
     <!-- Hidden form (will be submitted on confirm) -->
-    <%= form_with url: url, method: :delete, data: { delete_confirm_all_tasks_target: "form" }, class: "hidden" do |f| %>
+    <%= form_with url: url, method: :delete, data: { delete_confirm_target: "form" }, class: "hidden" do |f| %>
       <%= f.submit "Delete", style: "display: none;" %>
     <% end %>
 
     <!-- Buttons -->
     <div class="flex gap-3 justify-end">
       <button type="button"
-              data-action="click->delete-confirm-all-tasks#close"
+              data-action="click->delete-confirm#close"
               class="px-4 py-2 text-sm rounded-md bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors">
         Cancel
       </button>
       <button type="button"
-              data-action="click->delete-confirm-all-tasks#confirm"
+              data-action="click->delete-confirm#confirm"
               class="px-4 py-2 text-sm rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors">
         Delete
       </button>

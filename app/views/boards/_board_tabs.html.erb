@@ -1,0 +1,71 @@
+  <%# Row 1b: Board Tabs — dropdown on mobile, horizontal tabs on desktop %>
+  <div class="px-4 md:px-6 py-2 border-t border-border/50 bg-bg-base w-full">
+    <%# Mobile: Select dropdown %>
+    <div class="md:hidden flex items-center gap-2">
+      <select onchange="if(this.value) Turbo.visit(this.value)"
+              class="flex-1 px-3 py-2 text-sm bg-bg-elevated border border-border rounded-lg text-content focus:outline-none focus:ring-2 focus:ring-accent appearance-none cursor-pointer">
+        <% @boards.each do |board| %>
+          <% task_count = board.tasks.where.not(status: :done).count %>
+          <option value="<%= board_path(board) %>" <%= 'selected' if board.id == @board.id %>>
+            <%= board.icon %> <%= board.name %> (<%= task_count %>)
+          </option>
+        <% end %>
+        <% archived_count = @board.tasks.archived.count %>
+        <option value="<%= archived_board_path(@board) %>">📦 Archived (<%= archived_count %>)</option>
+      </select>
+      <button type="button"
+              data-action="click->board-modal#open"
+              data-board-modal-target="newBoardTrigger"
+              class="flex-shrink-0 w-8 h-8 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated flex items-center justify-center transition-colors cursor-pointer"
+              title="New Board">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+          <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+        </svg>
+      </button>
+    </div>
+
+    <%# Desktop: Horizontal tabs %>
+    <div class="hidden md:block w-full">
+      <div class="flex flex-nowrap items-center gap-1.5 w-full overflow-x-auto">
+      <% @boards.each do |board| %>
+        <% active = board.id == @board.id %>
+        <% task_count = board.tasks.where.not(status: :done).count %>
+        <% tab_class = if active
+          current_user&.theme == 'vaporwave' ? 'vaporwave-tab-active' : 'bg-accent text-content'
+        else
+          'bg-bg-elevated text-content-secondary hover:bg-bg-hover hover:text-content'
+        end %>
+        <%= link_to board_path(board),
+            class: "inline-flex flex-shrink-0 items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap #{tab_class}",
+            data: { turbo_frame: "_top" } do %>
+          <span><%= board.icon %></span>
+          <span class="max-w-[140px] truncate"><%= board.name %></span>
+          <% if task_count > 0 %>
+            <span class="text-[10px] <%= active ? 'opacity-75' : 'text-content-muted' %>">(<%= task_count %>)</span>
+          <% end %>
+        <% end %>
+      <% end %>
+
+      <%# Archived link %>
+      <% archived_count = @board.tasks.archived.count %>
+      <%= link_to archived_board_path(@board),
+          class: "inline-flex flex-shrink-0 items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-content-muted hover:text-content hover:bg-bg-elevated transition-colors whitespace-nowrap" do %>
+        📦
+        <% if archived_count > 0 %>
+          <span class="text-[10px]">(<%= archived_count %>)</span>
+        <% end %>
+      <% end %>
+
+      <%# New Board button %>
+      <button type="button"
+              data-action="click->board-modal#open"
+              data-board-modal-target="newBoardTrigger"
+              class="inline-flex items-center justify-center w-7 h-7 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer"
+              title="New Board">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+          <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+        </svg>
+      </button>
+      </div>
+    </div>
+  </div>

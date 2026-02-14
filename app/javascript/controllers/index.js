@@ -21,6 +21,7 @@ import SoundController from "controllers/sound_controller"
 import SoundToggleController from "controllers/sound_toggle_controller"
 import AgentCategoriesController from "controllers/agent_categories_controller"
 import MobileFilterController from "controllers/mobile_filter_controller"
+import AgentChatController from "controllers/agent_chat_controller"
 import AgentActivityController from "controllers/agent_activity_controller"
 import AgentTerminalController from "controllers/agent_terminal_controller"
 import AgentModalController from "controllers/agent_modal_controller"
@@ -60,6 +61,7 @@ application.register("sound", SoundController)
 application.register("sound-toggle", SoundToggleController)
 application.register("agent-categories", AgentCategoriesController)
 application.register("mobile-filter", MobileFilterController)
+application.register("agent-chat", AgentChatController)
 application.register("agent-activity", AgentActivityController)
 application.register("agent-terminal", AgentTerminalController)
 application.register("agent-modal", AgentModalController)
@@ -82,3 +84,6 @@ application.register("gateway-health", GatewayHealthController)
 application.register("web-terminal", WebTerminalController)
 application.register("dashboard-refresh", DashboardRefreshController)
 application.register("command-palette", CommandPaletteController)
+
+import ThemeToggleController from "controllers/theme_toggle_controller"
+application.register("theme-toggle", ThemeToggleController)
