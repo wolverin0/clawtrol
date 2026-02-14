@@ -17,8 +17,6 @@ module Api
 
         findings = params[:findings].presence || params[:output].presence
 
-        # If no findings provided, try to extract from transcript
-        transcript_files = []
         if findings.blank?
           sid = params[:session_id].presence || params[:agent_session_id].presence || task.agent_session_id
           if sid.present?
@@ -32,13 +30,11 @@ module Api
         end
 
         updates = {
-          # Description gets updated after we determine session_id and (optionally) persist transcript
           status: "in_review",
           assigned_to_agent: true,
           assigned_at: task.assigned_at || Time.current
         }
 
-        # Auto-link session_id/session_key on first hook
         session_id = params[:session_id].presence || params[:agent_session_id].presence
         session_key = params[:session_key].presence || params[:agent_session_key].presence
         updates[:agent_session_id] = session_id if session_id.present? && task.agent_session_id.blank?
@@ -46,10 +42,8 @@ module Api
 
         effective_session_id = updates[:agent_session_id].presence || task.agent_session_id
 
-        # Persist agent transcript into a stable file within the Rails app (storage/agent_activity)
         activity = persist_agent_activity(task, effective_session_id)
 
-        # Archive transcript to DB
         if effective_session_id.present?
           begin
             tpath = TranscriptParser.transcript_path(effective_session_id)
@@ -77,7 +71,6 @@ module Api
         merged_files = task.normalized_output_files((task.output_files || []) + candidate_files)
         updates[:output_files] = merged_files if merged_files.any?
 
-        # Preserve original description before first hook overwrite
         if task.original_description.blank?
           current = task.description.to_s
           if current.include?("\n\n---\n\n")
@@ -93,10 +86,8 @@ module Api
         old_status = task.status
         task.update!(updates)
 
-        # Generate diffs for output files (async to avoid blocking the response)
         GenerateDiffsJob.perform_later(task.id, merged_files) if merged_files.any?
 
-        # Notify board clients (KanbanRefresh) that a background agent completed work.
         KanbanChannel.broadcast_refresh(
           task.board_id,
           task_id: task.id,
@@ -105,16 +96,12 @@ module Api
           new_status: task.status
         )
 
-        # Auto-detect rate limits from findings/error messages and register them
         detect_and_record_rate_limits(task, findings)
 
         render json: { success: true, task_id: task.id, status: task.status }
       end
 
       # POST /api/v1/hooks/task_outcome
-      #
-      # OpenClaw completion hook (OutcomeContract v1). This is intentionally
-      # idempotent via run_id (UUID).
       def task_outcome
         token = request.headers["X-Hook-Token"].to_s
         configured_token = Rails.application.config.hooks_token.to_s
@@ -176,7 +163,6 @@ module Api
         Task.transaction do
           task.lock!
 
-          # Re-check under lock for race conditions.
           task_run = TaskRun.find_by(run_id: run_id)
           if task_run
             idempotent = true
@@ -203,7 +189,6 @@ module Api
             raw_payload: payload
           )
 
-          # Release any runner lease: the run is over, even if we're requeueing.
           task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
 
           base_updates = {
@@ -217,11 +202,8 @@ module Api
 
           case recommended_action
           when "requeue_same_task"
-            # Follow-up stays on the same card, BUT we do not auto-requeue.
-            # OpenClaw must prompt the user and only requeue on explicit approval.
             task.update!(base_updates.merge(status: :in_review))
           else
-            # Default: keep in review for human decision.
             task.update!(
               base_updates.merge(
                 status: :in_review
@@ -229,6 +211,9 @@ module Api
             )
           end
         end
+
+        # Pipeline advancement on outcome
+        advance_pipeline(task, recommended_action, payload) if task.pipeline_active?
 
         KanbanChannel.broadcast_refresh(
           task.board_id,
@@ -256,6 +241,72 @@ module Api
           (Task.find_by(id: task_id) if task_id.present?)
       end
 
+      # Pipeline advancement logic based on outcome webhook
+      def advance_pipeline(task, recommended_action, payload)
+        config = Pipeline::TriageService.config
+        max_retries = config[:max_retries] || 3
+        escalate = config[:escalate_on_retry] != false
+
+        case recommended_action
+        when "in_review"
+          # Standard completion
+          task.advance_pipeline_stage!("completed", action: "in_review", summary: payload["summary"])
+
+        when "requeue_same_task"
+          # Retry — check retry count
+          retry_count = task.task_runs.count
+          if retry_count >= max_retries
+            if escalate
+              escalate_model_tier!(task)
+            else
+              task.advance_pipeline_stage!("failed", action: "requeue_exceeded_retries", retries: retry_count)
+            end
+          else
+            # Reset to context_ready for re-routing (keeps context, re-routes model)
+            task.advance_pipeline_stage!("context_ready", action: "requeue_retry", retry: retry_count)
+          end
+
+        when "split_into_subtasks"
+          task.advance_pipeline_stage!("completed", action: "split_into_subtasks")
+
+        when "prompt_user"
+          task.advance_pipeline_stage!("completed", action: "prompt_user")
+        end
+      rescue StandardError => e
+        Rails.logger.warn("[HooksController] Pipeline advancement failed for task ##{task.id}: #{e.class}: #{e.message}")
+      end
+
+      # Escalate to next model tier
+      def escalate_model_tier!(task)
+        config = Pipeline::TriageService.config
+        tiers = config[:model_tiers] || {}
+        current_model = task.routed_model || task.model || Task::DEFAULT_MODEL
+
+        # Find current tier
+        current_tier = nil
+        tiers.each do |tier_name, tier_cfg|
+          if Array(tier_cfg[:models]).include?(current_model)
+            current_tier = tier_name.to_s
+            break
+          end
+        end
+
+        if current_tier
+          next_tier = tiers.dig(current_tier.to_sym, :fallback)&.to_s
+          if next_tier.present? && next_tier != "null"
+            next_models = Array(tiers.dig(next_tier.to_sym, :models))
+            if next_models.any?
+              task.update_columns(routed_model: next_models.first)
+              task.advance_pipeline_stage!("context_ready", action: "escalated", from_tier: current_tier, to_tier: next_tier, new_model: next_models.first)
+              return
+            end
+          end
+        end
+
+        # Cannot escalate further
+        task.advance_pipeline_stage!("failed", action: "escalation_exhausted", model: current_model)
+      end
+
       def persist_agent_activity(task, session_id)
         activity_lines = []
         activity_lines << "Session: `#{session_id}`" if session_id.present?
@@ -263,7 +314,6 @@ module Api
 
         return { activity_markdown: activity_lines.join("\n"), output_files: [] } if session_id.blank?
 
-        # Locate transcript file (current or archived)
         transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl")
         unless File.exist?(transcript_path)
           archived = Dir.glob(File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl.deleted.*")).first
@@ -275,7 +325,6 @@ module Api
           return { activity_markdown: activity_lines.join("\n"), output_files: [] }
         end
 
-        # Copy transcript to a stable, UI-accessible location under Rails.root/storage
         rel_dir = "storage/agent_activity"
         abs_dir = Rails.root.join(rel_dir)
         FileUtils.mkdir_p(abs_dir)
@@ -307,25 +356,21 @@ module Api
         { activity_markdown: "(Failed to persist transcript: #{e.class})", output_files: [] }
       end
 
-      # Auto-detect rate limit errors in agent findings and register model limits
       def detect_and_record_rate_limits(task, findings)
         return if findings.blank?
 
-        # Common rate limit patterns from various providers
         rate_limit_patterns = [
-          /usage\s+limit.*?\((\w+)\s+plan\)/i,          # "usage limit (plus plan)"
-          /rate\s+limit.*?model[:\s]+(\w+)/i,            # "rate limit... model: codex"
-          /hit\s+.*?limit/i                              # "hit your ... limit"
+          /usage\s+limit.*?\((\w+)\s+plan\)/i,
+          /rate\s+limit.*?model[:\s]+(\w+)/i,
+          /hit\s+.*?limit/i
         ]
 
         is_rate_limit = rate_limit_patterns.any? { |p| findings.match?(p) }
         return unless is_rate_limit
 
-        # Try to determine which model hit the limit
         model_name = task.model.presence || detect_model_from_text(findings)
         return unless model_name.present? && Task::MODELS.include?(model_name)
 
-        # Find the user who owns this task to register the limit
         user = task.user || User.first
         return unless user
 
@@ -335,7 +380,6 @@ module Api
         Rails.logger.warn("[HooksController] Failed to auto-record rate limit: #{e.message}")
       end
 
-      # Try to extract model name from error text
       def detect_model_from_text(text)
         return "codex" if text =~ /codex|chatgpt|gpt-5/i
         return "opus" if text =~ /opus|claude/i
@@ -354,7 +398,6 @@ module Api
         top_block = "#{activity_marker}\n\n#{activity_markdown}\n\n#{output_marker}\n\n#{findings}"
 
         if current_description.start_with?(activity_marker) || current_description.start_with?(output_marker)
-          # Replace existing top agent sections, preserving remaining description.
           if current_description.include?("\n\n---\n\n")
             _old_top, rest = current_description.split("\n\n---\n\n", 2)
             return "#{top_block}\n\n---\n\n#{rest}"

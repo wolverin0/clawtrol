@@ -1,0 +1,145 @@
+# ClawRouter Pipeline Configuration
+# Controls the 3-layer triage -> context -> route pipeline.
+#
+# observation_mode: true  => pipeline logs decisions but doesn't change behavior
+# observation_mode: false => pipeline actively enriches prompts + selects models
+
+observation_mode: true
+
+# Board name -> default pipeline type mapping
+board_defaults:
+  "Misc": "quick-fix"
+  "Pedrito": "feature"
+  "ClawDeck": "feature"
+  "WhatsApp Bot": "bug-fix"
+  "Douglas Haig": "feature"
+  "Gimnasio": "feature"
+  "Nereidas": "feature"
+  "ISA": "feature"
+  "Marketing": "research"
+
+# Pipeline type definitions
+pipelines:
+  quick-fix:
+    match_rules:
+      tags_any:
+        - quick
+        - hotfix
+        - typo
+        - small
+      name_patterns:
+        - "(?i)fix\\s+(typo|spacing|indent|lint)"
+        - "(?i)^(update|change|rename|remove)\\s"
+      max_description_length: 300
+    context_mode: template
+    model_tier: free
+    prompt_template: quick_fix
+    max_execution_minutes: 15
+
+  bug-fix:
+    match_rules:
+      tags_any:
+        - bug
+        - error
+        - crash
+        - regression
+      name_patterns:
+        - "(?i)(fix|debug|resolve|repair|patch)"
+        - "(?i)(bug|error|crash|broken|failing)"
+      template_slugs:
+        - bug
+    context_mode: template_with_manifest
+    model_tier: subscription
+    prompt_template: bug_fix
+    max_execution_minutes: 30
+
+  feature:
+    match_rules:
+      tags_any:
+        - feature
+        - enhancement
+        - implement
+        - add
+      name_patterns:
+        - "(?i)(add|implement|create|build|develop)"
+        - "(?i)(feature|enhancement|new\\s)"
+      template_slugs:
+        - review
+        - test
+    context_mode: template_with_manifest
+    model_tier: api
+    prompt_template: feature
+    max_execution_minutes: 45
+
+  research:
+    match_rules:
+      tags_any:
+        - research
+        - investigate
+        - explore
+        - analyze
+      name_patterns:
+        - "(?i)(research|investigate|explore|analyze|study)"
+        - "(?i)(evaluate|compare|benchmark|audit)"
+      template_slugs:
+        - research
+    context_mode: template_with_rag
+    model_tier: subscription
+    prompt_template: research
+    max_execution_minutes: 30
+
+  architecture:
+    match_rules:
+      tags_any:
+        - architecture
+        - design
+        - refactor
+        - migration
+      name_patterns:
+        - "(?i)(architect|design|refactor|migrate|restructure)"
+        - "(?i)(system|infrastructure|database|schema)"
+    context_mode: full_compilation
+    model_tier: expensive
+    prompt_template: architecture
+    max_execution_minutes: 60
+
+  nightshift:
+    match_rules:
+      tags_any:
+        - nightshift
+        - nightly
+      name_patterns:
+        - "(?i)(nightshift|nightly|overnight)"
+    context_mode: template_with_manifest
+    model_tier: subscription
+    prompt_template: nightshift
+    max_execution_minutes: 120
+
+# Model tier definitions with fallback chains
+model_tiers:
+  free:
+    models:
+      - glm
+    fallback: subscription
+  subscription:
+    models:
+      - gemini
+      - codex
+    fallback: api
+  api:
+    models:
+      - sonnet
+    fallback: expensive
+  expensive:
+    models:
+      - opus
+    fallback: null
+
+# Default pipeline when no rules match
+default_pipeline: quick-fix
+
+# Maximum pipeline retries before failing
+max_retries: 3
+
+# Escalation: bump model tier on retry
+escalate_on_retry: true

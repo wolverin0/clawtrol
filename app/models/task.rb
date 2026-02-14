@@ -34,8 +34,6 @@ class Task < ApplicationRecord
   KANBAN_PER_COLUMN_ITEMS = 25
 
   # Model options for agent LLM selection
-  # NOTE: These values are the *ClawTrol* UI/task-level model choices.
-  # They intentionally stay small and stable (opus/codex/gemini/glm/sonnet).
   MODELS = %w[opus codex gemini glm sonnet].freeze
   DEFAULT_MODEL = "opus".freeze
 
@@ -52,7 +50,10 @@ class Task < ApplicationRecord
   DEBATE_STYLES = %w[quick thorough adversarial collaborative].freeze
   DEBATE_MODELS = %w[gemini claude glm].freeze
 
-  # Security: allowed validation command prefixes to prevent arbitrary command execution
+  # Pipeline stages
+  PIPELINE_STAGES = %w[triaged context_ready routed executing verifying completed failed].freeze
+
+  # Security: allowed validation command prefixes
   ALLOWED_VALIDATION_PREFIXES = %w[
     bin/rails
     bundle\ exec
@@ -68,7 +69,6 @@ class Task < ApplicationRecord
     ./bin/
   ].freeze
 
-  # Security: pattern to reject shell metacharacters in validation commands
   UNSAFE_COMMAND_PATTERN = /[;|&$`\\!\(\)\{\}<>]|(\$\()|(\|\|)|(&&)/
 
   validates :name, presence: true
@@ -76,21 +76,20 @@ class Task < ApplicationRecord
   validates :status, inclusion: { in: statuses.keys }
   validates :model, inclusion: { in: MODELS }, allow_nil: true, allow_blank: true
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
+  validates :pipeline_stage, inclusion: { in: PIPELINE_STAGES }, allow_nil: true, allow_blank: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
 
-  # Activity tracking - must be declared before callbacks that use it
   attr_accessor :activity_source, :actor_name, :actor_emoji, :activity_note
 
   after_create :record_creation_activity
   after_update :record_update_activities
   after_update :create_status_notification, if: :saved_change_to_status?
+  after_save :enqueue_pipeline_processing, if: :should_trigger_pipeline?
 
-  # Position management
   before_create :set_position
   before_save :sync_completed_with_status
   before_update :track_completion_time, if: :will_save_change_to_status?
 
-  # Order incomplete tasks by position, completed tasks by completion time (most recent first)
   scope :incomplete, -> { where(completed: false).order(position: :asc) }
   scope :completed, -> { where(completed: true).order(Arel.sql("#{table_name}.completed_at DESC")) }
   scope :assigned_to_agent, -> { where(assigned_to_agent: true).order(assigned_at: :asc) }
@@ -108,6 +107,12 @@ class Task < ApplicationRecord
       .where("description IS NULL OR description NOT LIKE ?", "%## Agent Output%")
   }
 
+  # Pipeline scopes
+  scope :pipeline_enabled, -> { where(pipeline_enabled: true) }
+  scope :pipeline_pending, -> { pipeline_enabled.where(pipeline_stage: nil) }
+  scope :pipeline_triaged, -> { pipeline_enabled.where(pipeline_stage: "triaged") }
+  scope :pipeline_routed, -> { pipeline_enabled.where(pipeline_stage: "routed") }
+
   scope :ordered_for_column, ->(column_status) {
     case column_status.to_s
     when "in_review"
@@ -119,24 +124,38 @@ class Task < ApplicationRecord
     end
   }
 
-  # Returns the model identifier that OpenClaw should receive for sessions_spawn.
   def openclaw_spawn_model
     OPENCLAW_MODEL_ALIASES.fetch(model.to_s, model.presence || DEFAULT_MODEL)
   end
 
+  # Pipeline helpers
+  def pipeline_active?
+    pipeline_enabled? && pipeline_stage.present?
+  end
+
+  def pipeline_ready?
+    pipeline_stage == "routed" && routed_model.present? && compiled_prompt.present?
+  end
+
+  def advance_pipeline_stage!(new_stage, log_entry = {})
+    entry = log_entry.merge(stage: new_stage, at: Time.current.iso8601)
+    current_log = Array(pipeline_log)
+    update_columns(
+      pipeline_stage: new_stage,
+      pipeline_log: current_log.push(entry)
+    )
+  end
+
   private
 
-  # Security: validate that validation_command is safe to execute
   def validation_command_is_safe
     cmd = validation_command.to_s.strip
 
-    # Reject shell metacharacters
     if cmd.match?(UNSAFE_COMMAND_PATTERN)
       errors.add(:validation_command, "contains unsafe shell metacharacters (no ;, |, &, $, backticks allowed)")
       return
     end
 
-    # Must start with an allowed prefix
     unless ALLOWED_VALIDATION_PREFIXES.any? { |prefix| cmd.start_with?(prefix) }
       errors.add(:validation_command, "must start with an allowed prefix: #{ALLOWED_VALIDATION_PREFIXES.join(', ')}")
     end
@@ -179,10 +198,22 @@ class Task < ApplicationRecord
     TaskActivity.record_changes(self, tracked_changes, source: source, actor_name: actor_name, actor_emoji: actor_emoji, note: activity_note) if tracked_changes.any?
   end
 
-  # Create notification on status change
   def create_status_notification
     return unless user
     old_status, new_status = saved_change_to_status
     Notification.create_for_status_change(self, old_status, new_status)
+  end
+
+  def should_trigger_pipeline?
+    return false unless pipeline_enabled?
+    return false if pipeline_stage.present?
+    return false unless saved_change_to_status?
+
+    _old, new_status = saved_change_to_status
+    %w[up_next in_progress].include?(new_status)
+  end
+
+  def enqueue_pipeline_processing
+    PipelineProcessorJob.perform_later(id)
   end
 end

@@ -1,0 +1,79 @@
+# Task: <%= task[:name] %>
+
+## Feature Description
+<%= task[:description] %>
+<% if manifest -%>
+
+## Project Context
+<% if manifest.is_a?(Hash) && manifest[:raw] -%>
+<%= manifest[:raw].to_s.truncate(2000) %>
+<% else -%>
+<% if manifest[:project] -%>
+- **Project**: <%= manifest[:project] %>
+<% end -%>
+<% if manifest[:stack] -%>
+- **Stack**: <%= Array(manifest[:stack]).join(", ") %>
+<% end -%>
+<% if manifest[:key_files] -%>
+- **Key files**: <%= Array(manifest[:key_files]).first(15).join(", ") %>
+<% end -%>
+<% if manifest[:integrations] -%>
+- **Integrations**: <%= Array(manifest[:integrations]).join(", ") %>
+<% end -%>
+<% if manifest[:conventions] -%>
+- **Conventions**: <%= Array(manifest[:conventions]).first(5).join("; ") %>
+<% end -%>
+<% end -%>
+<% end -%>
+<% if board[:name].present? -%>
+
+## Board: <%= board[:name] %>
+<%= board[:description] if board[:description].present? %>
+<% end -%>
+<% if dependencies.any? -%>
+
+## Dependencies
+<% dependencies.each do |dep| -%>
+- **<%= dep[:name] %>**: <%= dep[:status] %><%= dep[:completed] ? " (completed)" : "" %>
+<% end -%>
+<% end -%>
+<% if rag.any? -%>
+
+## Related Knowledge
+<% rag.first(3).each do |r| -%>
+<% if r[:content].present? -%>
+> <%= r[:content].to_s.truncate(300) %>
+> — _<%= r[:source] %>_ (relevance: <%= r[:score]&.round(2) %>)
+
+<% end -%>
+<% end -%>
+<% end -%>
+<% if history.any? -%>
+
+## Recent Completed Tasks on This Board
+<% history.first(5).each do |h| -%>
+- <%= h[:name] %> (model: <%= h[:model] || "default" %>, type: <%= h[:pipeline_type] || "unknown" %>)
+<% end -%>
+<% end -%>
+<% if task[:validation_command].present? -%>
+
+## Validation
+Run this command to verify your implementation:
+```bash
+<%= task[:validation_command] %>
+```
+<% end -%>
+
+## Implementation Guidelines
+- Read existing code and match patterns before writing
+- Minimal diffs — change only what's needed
+- Add tests for new functionality
+- No hardcoded secrets — use environment variables
+- Handle errors gracefully
+
+## Completion
+Report:
+1. What was implemented (files changed)
+2. Tests added/passing
+3. Validation results
+4. Any remaining work or follow-ups needed

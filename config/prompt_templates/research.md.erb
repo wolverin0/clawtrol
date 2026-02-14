@@ -1,0 +1,42 @@
+# Research Task: <%= task[:name] %>
+
+## Research Question
+<%= task[:description] %>
+
+## Research Guidelines
+- Focus on answering the specific question, not building anything
+- Cite sources and provide evidence for conclusions
+- Compare alternatives with pros/cons when relevant
+- Be concise but thorough
+- Structure findings with clear headings
+<% if rag.any? -%>
+
+## Existing Knowledge
+The following may be relevant to your research:
+<% rag.each do |r| -%>
+<% if r[:content].present? -%>
+
+### Source: <%= r[:source] || "unknown" %> (relevance: <%= r[:score]&.round(2) %>)
+<%= r[:content].to_s.truncate(500) %>
+<% end -%>
+<% end -%>
+<% end -%>
+<% if manifest -%>
+
+## Project Context
+<% if manifest.is_a?(Hash) && manifest[:raw] -%>
+<%= manifest[:raw].to_s.truncate(1500) %>
+<% elsif manifest[:project] -%>
+- **Project**: <%= manifest[:project] %>
+<% if manifest[:stack] -%>
+- **Stack**: <%= Array(manifest[:stack]).join(", ") %>
+<% end -%>
+<% end -%>
+<% end -%>
+
+## Output Format
+Provide your findings as a structured report with:
+1. **Summary** — Key findings in 2-3 sentences
+2. **Details** — Full analysis
+3. **Recommendations** — Actionable next steps
+4. **Sources** — References used
