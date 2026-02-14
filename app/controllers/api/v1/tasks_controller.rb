@@ -1020,7 +1020,7 @@ module Api
       end
 
       def task_json(task)
-        TaskSerializer.new(task).as_json
+        task.as_json
       end
     end
   end
