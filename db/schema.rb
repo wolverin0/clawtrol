@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_14_164000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_14_192324) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -110,6 +110,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_164000) do
     t.boolean "is_aggregator", default: false, null: false
     t.datetime "last_auto_claim_at"
     t.string "name", null: false
+    t.boolean "pipeline_enabled", default: false
     t.integer "position", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
@@ -436,6 +437,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_164000) do
     t.index ["key"], name: "index_solid_queue_semaphores_on_key", unique: true
   end
 
+  create_table "swarm_ideas", force: :cascade do |t|
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "difficulty"
+    t.boolean "enabled", default: true
+    t.integer "estimated_minutes", default: 15
+    t.string "icon", default: "🚀"
+    t.datetime "last_launched_at"
+    t.string "pipeline_type"
+    t.string "project"
+    t.string "source"
+    t.string "suggested_model"
+    t.integer "times_launched", default: 0
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["category"], name: "index_swarm_ideas_on_category"
+    t.index ["user_id", "enabled"], name: "index_swarm_ideas_on_user_id_and_enabled"
+    t.index ["user_id"], name: "index_swarm_ideas_on_user_id"
+  end
+
   create_table "task_activities", force: :cascade do |t|
     t.string "action", null: false
     t.string "actor_emoji"
@@ -506,6 +529,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_164000) do
     t.string "icon"
     t.string "model"
     t.string "name", null: false
+    t.string "pipeline_type"
     t.integer "priority", default: 0
     t.string "slug", null: false
     t.datetime "updated_at", null: false
@@ -519,6 +543,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_164000) do
 
   create_table "tasks", force: :cascade do |t|
     t.datetime "agent_claimed_at"
+    t.jsonb "agent_context"
     t.bigint "agent_persona_id"
     t.string "agent_session_id"
     t.string "agent_session_key"
@@ -532,6 +557,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_164000) do
     t.datetime "auto_pull_last_error_at"
     t.boolean "blocked", default: false, null: false
     t.bigint "board_id", null: false
+    t.text "compiled_prompt"
     t.boolean "completed", default: false, null: false
     t.datetime "completed_at"
     t.integer "context_usage_percent"
@@ -555,6 +581,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_164000) do
     t.text "original_description"
     t.jsonb "output_files", default: [], null: false
     t.bigint "parent_task_id"
+    t.boolean "pipeline_enabled", default: false
+    t.jsonb "pipeline_log"
+    t.string "pipeline_stage"
+    t.string "pipeline_type"
     t.integer "position"
     t.integer "priority", default: 0, null: false
     t.string "recurrence_rule"
@@ -565,6 +595,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_164000) do
     t.jsonb "review_result", default: {}
     t.string "review_status"
     t.string "review_type"
+    t.string "routed_model"
     t.integer "run_count", default: 0, null: false
     t.boolean "showcase_winner", default: false, null: false
     t.jsonb "state_data", default: {}, null: false
@@ -592,6 +623,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_164000) do
     t.index ["next_recurrence_at"], name: "index_tasks_on_next_recurrence_at"
     t.index ["nightly"], name: "index_tasks_on_nightly"
     t.index ["parent_task_id"], name: "index_tasks_on_parent_task_id"
+    t.index ["pipeline_enabled"], name: "index_tasks_on_pipeline_enabled"
+    t.index ["pipeline_stage"], name: "index_tasks_on_pipeline_stage"
     t.index ["position"], name: "index_tasks_on_position"
     t.index ["recurring"], name: "index_tasks_on_recurring"
     t.index ["review_status"], name: "index_tasks_on_review_status", where: "(review_status IS NOT NULL)"
@@ -685,6 +718,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_164000) do
   add_foreign_key "solid_queue_ready_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_recurring_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_scheduled_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
+  add_foreign_key "swarm_ideas", "users"
   add_foreign_key "task_activities", "tasks"
   add_foreign_key "task_activities", "users"
   add_foreign_key "task_dependencies", "tasks"

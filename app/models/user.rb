@@ -15,6 +15,7 @@ class User < ApplicationRecord
   has_many :nightshift_missions, dependent: :nullify
   has_many :invite_codes, foreign_key: :created_by_id, dependent: :nullify
   has_many :factory_loops, dependent: :nullify
+  has_many :swarm_ideas, dependent: :destroy
   has_one_attached :avatar
   has_one :openclaw_integration_status, dependent: :destroy
 

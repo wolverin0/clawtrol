@@ -338,6 +338,12 @@
                       class="px-2 py-1 rounded-md text-xs font-semibold bg-bg-elevated text-content-muted">
                 Events
               </button>
+              <% if task.agent_session_id.present? %>
+                <button type="button" data-evidence-tabs-target="tab" data-key="chat" data-action="click->evidence-tabs#select"
+                        class="px-2 py-1 rounded-md text-xs font-semibold bg-bg-elevated text-content-muted">
+                  💬 Chat
+                </button>
+              <% end %>
             </div>
 
             <% if task.runner_lease_active? %>
@@ -697,6 +703,11 @@
               <h3 class="text-sm font-semibold text-content mb-3 font-display">Events</h3>
               <%= render "shared/task_activities", task: task %>
             </div>
+
+            <%# === Chat panel === %>
+            <div data-evidence-tabs-target="panel" data-key="chat" class="hidden h-full overflow-hidden">
+              <%= render "boards/tasks/agent_chat", task: task, board: @board %>
+            </div>
           </div>
         </div>
 
@@ -846,6 +857,15 @@
 
               <div data-agent-activity-target="log"
                    class="hidden space-y-2 max-h-64 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent overscroll-contain [-webkit-overflow-scrolling:touch]">
+              </div>
+            </div>
+          <% end %>
+
+          <%# Mobile Agent Chat %>
+          <% if task.agent_session_id.present? %>
+            <div class="mt-4 border-t border-border pt-4">
+              <div class="h-80">
+                <%= render "boards/tasks/agent_chat", task: task, board: @board %>
               </div>
             </div>
           <% end %>

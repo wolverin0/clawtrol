@@ -76,6 +76,8 @@ class ProfilesController < ApplicationController
   def update
     @user = current_user
 
+    normalize_agent_emoji_param!
+
     if params[:user][:remove_avatar] == "1"
       @user.avatar.purge if @user.avatar.attached?
       @user.avatar_url = nil
@@ -99,5 +101,14 @@ class ProfilesController < ApplicationController
 
   def profile_params
     params.expect(user: [ :email_address, :avatar, :openclaw_gateway_url, :openclaw_gateway_token, :openclaw_hooks_token, :ai_suggestion_model, :ai_api_key, :context_threshold_percent, :auto_retry_enabled, :auto_retry_max, :auto_retry_backoff, :fallback_model_chain, :agent_name, :agent_emoji, :theme, :telegram_bot_token, :telegram_chat_id, :webhook_notification_url, :notifications_enabled ])
+  end
+
+  def normalize_agent_emoji_param!
+    return unless params[:user].is_a?(ActionController::Parameters) || params[:user].is_a?(Hash)
+
+    raw = params[:user][:agent_emoji]
+    return if raw.blank?
+
+    params[:user][:agent_emoji] = EmojiShortcodeNormalizer.normalize(raw)
   end
 end

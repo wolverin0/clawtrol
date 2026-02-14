@@ -25,6 +25,29 @@ export function subscribeToKanban(boardId, callbacks = {}) {
   )
 }
 
+export function subscribeToChat(taskId, callbacks = {}) {
+  return consumer.subscriptions.create(
+    { channel: "ChatChannel", task_id: taskId },
+    {
+      connected() {
+        console.log(`[ChatChannel] Connected to task ${taskId}`)
+        callbacks.onConnected?.()
+      },
+      disconnected() {
+        console.log(`[ChatChannel] Disconnected from task ${taskId}`)
+        callbacks.onDisconnected?.()
+      },
+      received(data) {
+        console.log(`[ChatChannel] Received:`, data)
+        callbacks.onReceived?.(data)
+      },
+      send(data) {
+        this.perform("receive", data)
+      }
+    }
+  )
+}
+
 export function subscribeToAgentActivity(taskId, callbacks = {}) {
   return consumer.subscriptions.create(
     { channel: "AgentActivityChannel", task_id: taskId },
