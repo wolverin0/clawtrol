@@ -1,0 +1,21 @@
+# Task: <%= task[:name] %>
+
+## What to do
+<%= task[:description] %>
+
+## Constraints
+- This is a **quick fix** — keep changes minimal and focused
+- Target: 1-3 files changed, under 50 lines modified
+- Do NOT refactor surrounding code
+- Do NOT add new dependencies
+<% if task[:validation_command].present? -%>
+
+## Validation
+Run this command to verify your work:
+```bash
+<%= task[:validation_command] %>
+```
+<% end -%>
+
+## Completion
+Report what you changed and confirm the fix works.

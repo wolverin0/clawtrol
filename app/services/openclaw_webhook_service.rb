@@ -21,10 +21,6 @@ class OpenclawWebhookService
     send_webhook(task, "Auto-claimed task ##{task.id}: #{task.name}")
   end
 
-  # Auto-pull signal from ClawTrol (server-side).
-  #
-  # This is WAKE only. The OpenClaw orchestrator should fetch the task from
-  # ClawTrol's API and decide how/when to spawn work (model/persona).
   def notify_auto_pull_ready(task)
     return unless configured?
 
@@ -39,6 +35,46 @@ class OpenclawWebhookService
     send_webhook(task, "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona})")
   end
 
+  # Pipeline-enriched wake: sends enriched prompt + routed model to OpenClaw
+  def notify_auto_pull_ready_with_pipeline(task)
+    return unless configured?
+    return notify_auto_pull_ready(task) unless task.pipeline_ready?
+
+    persona =
+      if task.agent_persona
+        "#{task.agent_persona.emoji || '🤖'} #{task.agent_persona.name}"
+      else
+        "none"
+      end
+
+    model = task.routed_model.presence || task.model.presence || Task::DEFAULT_MODEL
+
+    # Use gateway client to spawn with enriched prompt
+    gateway = OpenclawGatewayClient.new(@user)
+    result = gateway.spawn_session!(
+      model: model,
+      prompt: task.compiled_prompt
+    )
+
+    if result[:child_session_key].present?
+      task.update_columns(
+        agent_session_key: result[:child_session_key],
+        agent_session_id: result[:session_id],
+        pipeline_stage: "executing"
+      )
+
+      Rails.logger.info("[OpenClawWebhook] pipeline spawn ok task_id=#{task.id} model=#{model} session_key=#{result[:child_session_key]}")
+    else
+      # Fallback to standard wake
+      Rails.logger.warn("[OpenClawWebhook] pipeline spawn returned no session key, falling back to standard wake task_id=#{task.id}")
+      send_webhook(task, "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona})")
+    end
+  rescue StandardError => e
+    Rails.logger.error("[OpenClawWebhook] pipeline spawn failed task_id=#{task.id} err=#{e.class}: #{e.message}, falling back")
+    # Fallback to standard wake on any error
+    send_webhook(task, "Auto-pull ready: ##{task.id} #{task.name} (model: #{task.model.presence || Task::DEFAULT_MODEL})")
+  end
+
   private
 
   def hook_token
@@ -50,7 +86,6 @@ class OpenclawWebhookService
   end
 
   def auth_token
-    # Back-compat: older installs stored the hooks token in openclaw_gateway_token.
     hook_token.presence || @user.openclaw_gateway_token.to_s.strip
   end
 
@@ -72,7 +107,6 @@ class OpenclawWebhookService
 
     response = http.request(request)
 
-    # Wake failures should never be fatal to task claiming. Log and move on.
     code = response.code.to_i
     if code >= 200 && code < 300
       Rails.logger.info("[OpenClawWebhook] wake ok task_id=#{task.id} code=#{response.code}")

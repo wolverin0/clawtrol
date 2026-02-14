@@ -1,22 +1,6 @@
 # frozen_string_literal: true
 
-# AgentAutoRunnerService
-#
-# Purpose:
-# - Keep the agent proactive by periodically waking OpenClaw when there are
-#   runnable `up_next` tasks assigned to the agent.
-# - Enforce a "no-fake-in-progress" invariant: a task may not remain
-#   `in_progress` unless it has either an agent session linked OR the agent has
-#   claimed it (agent_claimed_at acts as a run marker).
-# - Detect likely "zombie" tasks (claimed but stale) and surface a KPI via
-#   Notifications.
-#
-# This service is intended to be run by a lightweight scheduler (cron/systemd
-# timer) via `bin/rails clawdeck:agent_auto_runner`.
 class AgentAutoRunnerService
-  # Lease-based truthfulness invariant:
-  # - in_progress tasks must have an active RunnerLease (or a linked session).
-  # - leases expire if we don't see heartbeats.
   NO_FAKE_IN_PROGRESS_GRACE = 10.minutes
   LEASE_STALE_AFTER = 10.minutes
   ZOMBIE_STALE_AFTER = 30.minutes
@@ -31,7 +15,6 @@ class AgentAutoRunnerService
     @logger = logger
     @cache = cache
     @openclaw_webhook_service = openclaw_webhook_service
-    # Deprecated: direct gateway spawning was removed; keep for backwards compat.
     @openclaw_gateway_client = openclaw_gateway_client
   end
 
@@ -40,7 +23,8 @@ class AgentAutoRunnerService
       users_considered: 0,
       users_woken: 0,
       tasks_demoted: 0,
-      zombie_tasks: 0
+      zombie_tasks: 0,
+      pipeline_processed: 0
     }
 
     User.where(agent_auto_mode: true).find_each do |user|
@@ -53,8 +37,9 @@ class AgentAutoRunnerService
 
       next if agent_currently_working?(user)
 
-      # OpenClaw is the orchestrator. ClawTrol may WAKE OpenClaw, but must not
-      # claim/promote tasks into in_progress.
+      # Pipeline: process pending tasks before wake
+      stats[:pipeline_processed] += process_pipeline_tasks!(user)
+
       if wake_if_work_available!(user)
         stats[:users_woken] += 1
       end
@@ -72,7 +57,6 @@ class AgentAutoRunnerService
   end
 
   def agent_currently_working?(user)
-    # Consider the agent busy if any in_progress task has an active lease.
     RunnerLease.active.joins(:task).where(tasks: { user_id: user.id, status: Task.statuses[:in_progress] }).exists?
   end
 
@@ -82,11 +66,29 @@ class AgentAutoRunnerService
       .where(assigned_to_agent: true)
       .where(auto_pull_blocked: false)
       .where("auto_pull_last_error_at IS NULL OR auto_pull_last_error_at < ?", Time.current - FAILURE_COOLDOWN)
-      .where.not(recurring: true, parent_task_id: nil) # never auto-run recurring templates
+      .where.not(recurring: true, parent_task_id: nil)
 
-    # Apply nightly gating
     tasks = scope.order(priority: :desc, position: :asc, assigned_to_agent: :desc, assigned_at: :asc).to_a
     tasks.find { |t| eligible_for_time_window?(t) }
+  end
+
+  # Pipeline: process tasks that need pipeline advancement
+  def process_pipeline_tasks!(user)
+    count = 0
+    tasks = user.tasks.where(pipeline_enabled: true, status: :up_next)
+                      .where(pipeline_stage: [nil, "triaged", "context_ready"])
+                      .limit(5)
+
+    tasks.find_each do |task|
+      begin
+        Pipeline::Orchestrator.new(task, user: user).process!
+        count += 1
+      rescue StandardError => e
+        @logger.warn("[AgentAutoRunner] pipeline processing failed task_id=#{task.id} err=#{e.class}: #{e.message}")
+      end
+    end
+
+    count
   end
 
   def wake_if_work_available!(user)
@@ -104,15 +106,20 @@ class AgentAutoRunnerService
     )
 
     begin
-      @openclaw_webhook_service.new(user).notify_auto_pull_ready(task)
+      if task.pipeline_ready?
+        # Pipeline active mode: wake with enriched payload
+        @openclaw_webhook_service.new(user).notify_auto_pull_ready_with_pipeline(task)
+      else
+        # Standard wake
+        @openclaw_webhook_service.new(user).notify_auto_pull_ready(task)
+      end
     rescue StandardError => e
-      # Non-fatal: the task is already claimed; OpenClaw can still pick it up via polling/heartbeat.
       @logger.warn("[AgentAutoRunner] wake failed user_id=#{user.id} task_id=#{task.id} err=#{e.class}: #{e.message}")
     end
 
     @cache.write(cache_key, Time.current.to_i, expires_in: SPAWN_COOLDOWN)
 
-    @logger.info("[AgentAutoRunner] wake sent user_id=#{user.id} task_id=#{task.id}")
+    @logger.info("[AgentAutoRunner] wake sent user_id=#{user.id} task_id=#{task.id} pipeline_ready=#{task.pipeline_ready?}")
     true
   rescue StandardError => e
     @logger.error("[AgentAutoRunner] auto-pull wake failed user_id=#{user.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
@@ -125,7 +132,6 @@ class AgentAutoRunnerService
         message: "Auto-pull wake failed: #{e.class}: #{e.message}".truncate(250)
       )
     rescue StandardError
-      # Don't let notification errors break the runner.
     end
 
     false
@@ -141,7 +147,6 @@ class AgentAutoRunnerService
     in_window = if start_hour < end_hour
       now.hour >= start_hour && now.hour < end_hour
     else
-      # window spans midnight (default 23 -> 8)
       now.hour >= start_hour || now.hour < end_hour
     end
 
@@ -150,21 +155,15 @@ class AgentAutoRunnerService
     delay_hours = task.nightly_delay_hours.to_i
     return true if delay_hours <= 0
 
-    # Anchor the "night start" to the current window.
     night_start_date = now.hour >= start_hour ? now.to_date : (now.to_date - 1.day)
     night_start = Time.find_zone!(NIGHT_TZ).local(night_start_date.year, night_start_date.month, night_start_date.day, start_hour, 0, 0)
 
     now >= (night_start + delay_hours.hours)
   end
 
-  # Truthfulness invariant (lease-based):
-  # - if a task is in_progress + assigned_to_agent, it must have an active lease
-  #   (or a linked agent session as legacy evidence).
-  # - expired leases are auto-demoted back to up_next and the lease is released.
   def demote_expired_or_missing_leases!(user)
     count = 0
 
-    # 1) Expired leases
     RunnerLease.expired.joins(:task).where(tasks: { user_id: user.id, status: Task.statuses[:in_progress] }).find_each do |lease|
       task = lease.task
       old_status = task.status
@@ -198,7 +197,6 @@ class AgentAutoRunnerService
       @logger.error("[AgentAutoRunner] failed to demote expired lease_id=#{lease&.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
     end
 
-    # 2) Missing lease (legacy / drift) — keep a short grace window.
     cutoff = Time.current - NO_FAKE_IN_PROGRESS_GRACE
     active_lease_task_ids = RunnerLease.active.where(task_id: user.tasks.select(:id)).select(:task_id)
 
@@ -240,9 +238,6 @@ class AgentAutoRunnerService
     count
   end
 
-  # Zombie KPI:
-  # - Count tasks that are claimed (agent_claimed_at present) but have not been updated in a while.
-  # - Notify at most once per hour per user to avoid spam.
   def notify_zombies_if_any!(user)
     cutoff = Time.current - ZOMBIE_STALE_AFTER
 

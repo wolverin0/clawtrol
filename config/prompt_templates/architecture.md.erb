@@ -1,0 +1,84 @@
+# Architecture Task: <%= task[:name] %>
+
+## Objective
+<%= task[:description] %>
+<% if manifest -%>
+
+## Current Architecture
+<% if manifest.is_a?(Hash) && manifest[:raw] -%>
+<%= manifest[:raw].to_s.truncate(3000) %>
+<% else -%>
+<% if manifest[:project] -%>
+- **Project**: <%= manifest[:project] %>
+<% end -%>
+<% if manifest[:stack] -%>
+- **Stack**: <%= Array(manifest[:stack]).join(", ") %>
+<% end -%>
+<% if manifest[:key_files] -%>
+- **Key files**: <%= Array(manifest[:key_files]).join(", ") %>
+<% end -%>
+<% if manifest[:integrations] -%>
+- **Integrations**: <%= Array(manifest[:integrations]).join(", ") %>
+<% end -%>
+<% if manifest[:conventions] -%>
+
+### Conventions
+<% Array(manifest[:conventions]).each do |conv| -%>
+- <%= conv %>
+<% end -%>
+<% end -%>
+<% end -%>
+<% end -%>
+<% if rag.any? -%>
+
+## Related Documentation
+<% rag.each do |r| -%>
+<% if r[:content].present? -%>
+
+### <%= r[:source] || "Reference" %> (relevance: <%= r[:score]&.round(2) %>)
+<%= r[:content].to_s.truncate(500) %>
+<% end -%>
+<% end -%>
+<% end -%>
+<% if dependencies.any? -%>
+
+## Related Tasks
+<% dependencies.each do |dep| -%>
+- **<%= dep[:name] %>**: <%= dep[:status] %>
+<% end -%>
+<% end -%>
+<% if history.any? -%>
+
+## Recent Work History
+<% history.first(5).each do |h| -%>
+- <%= h[:name] %> (<%= h[:completed_at] || "unknown date" %>)
+<% end -%>
+<% end -%>
+
+## Architecture Decision Record (ADR) Guidelines
+When proposing changes, structure your output as:
+
+### Status
+Proposed / Accepted / Deprecated
+
+### Context
+What is the issue that we're seeing that is motivating this decision?
+
+### Decision
+What is the change that we're proposing and/or doing?
+
+### Consequences
+What becomes easier or more difficult to do because of this change?
+
+## Constraints
+- Maintain backward compatibility unless explicitly asked to break it
+- Consider deployment implications
+- Document trade-offs explicitly
+- Prefer incremental changes over rewrites
+<% if task[:validation_command].present? -%>
+
+## Validation
+```bash
+<%= task[:validation_command] %>
+```
+<% end -%>

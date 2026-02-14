@@ -1,0 +1,53 @@
+# Task: <%= task[:name] %>
+
+## Bug Description
+<%= task[:description] %>
+
+## Debugging Workflow
+1. **Gather context** — read logs, error messages, relevant code BEFORE attempting fixes
+2. **Reproduce** — confirm the bug exists
+3. **Isolate** — find the smallest code path that triggers the issue
+4. **Fix + verify** — run tests after the fix
+5. If stuck after 2 attempts, try a different approach
+<% if manifest -%>
+
+## Project Context
+<% if manifest.is_a?(Hash) && manifest[:raw] -%>
+<%= manifest[:raw].to_s.truncate(2000) %>
+<% else -%>
+<% if manifest[:project] -%>
+- **Project**: <%= manifest[:project] %>
+<% end -%>
+<% if manifest[:stack] -%>
+- **Stack**: <%= Array(manifest[:stack]).join(", ") %>
+<% end -%>
+<% if manifest[:key_files] -%>
+- **Key files**: <%= Array(manifest[:key_files]).first(10).join(", ") %>
+<% end -%>
+<% if manifest[:conventions] -%>
+- **Conventions**: <%= Array(manifest[:conventions]).first(5).join("; ") %>
+<% end -%>
+<% end -%>
+<% end -%>
+<% if dependencies.any? -%>
+
+## Dependencies
+<% dependencies.each do |dep| -%>
+- **<%= dep[:name] %>**: <%= dep[:status] %><%= dep[:completed] ? " (completed)" : "" %>
+<% end -%>
+<% end -%>
+<% if task[:validation_command].present? -%>
+
+## Validation
+Run this command to verify your fix:
+```bash
+<%= task[:validation_command] %>
+```
+<% end -%>
+
+## Completion
+Report:
+1. Root cause identified
+2. Fix applied (files changed)
+3. Verification results
+4. Any remaining risks

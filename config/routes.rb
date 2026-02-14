@@ -1,20 +1,16 @@
 Rails.application.routes.draw do
-  # ActionCable endpoint (required for Turbo Streams + custom channels)
   mount ActionCable.server => "/cable"
 
-  # API routes
   namespace :api do
     namespace :v1 do
       resource :settings, only: [ :show, :update ]
 
-      # Agent Personas
       resources :agent_personas, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
           post :import
         end
       end
 
-      # Notifications
       resources :notifications, only: [:index] do
         collection do
           post :mark_all_read
@@ -25,19 +21,15 @@ Rails.application.routes.draw do
         end
       end
 
-      # Model rate limit tracking
       get "models/status", to: "model_limits#status"
       post "models/best", to: "model_limits#best"
       post "models/:model_name/limit", to: "model_limits#record_limit"
       delete "models/:model_name/limit", to: "model_limits#clear_limit"
 
-      # Analytics
       namespace :analytics do
         get :tokens
       end
 
-
-      # Gateway proxy endpoints
       namespace :gateway do
         get :health
         get :channels
@@ -63,21 +55,18 @@ Rails.application.routes.draw do
         end
       end
 
-      # Task templates for slash commands
       resources :task_templates, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
           post :apply
         end
       end
 
-      # Nightshift API
       get "nightshift/tasks", to: "nightshift#tasks"
       post "nightshift/launch", to: "nightshift#launch"
       post "nightshift/arm", to: "nightshift#arm"
       get "nightshift/selections", to: "nightshift#selections"
       patch "nightshift/selections/:id", to: "nightshift#update_selection"
 
-      # Nightshift Missions API (v2)
       get "nightshift/missions", to: "nightshift#missions"
       post "nightshift/missions", to: "nightshift#create_mission"
       patch "nightshift/missions/:id", to: "nightshift#update_mission"
@@ -85,10 +74,9 @@ Rails.application.routes.draw do
       get "nightshift/tonight", to: "nightshift#tonight"
       post "nightshift/tonight/approve", to: "nightshift#approve_tonight"
       post "nightshift/sync_crons", to: "nightshift#sync_crons"
-            post "nightshift/sync_tonight", to: "nightshift#sync_tonight"
+      post "nightshift/sync_tonight", to: "nightshift#sync_tonight"
       post "nightshift/report_execution", to: "nightshift#report_execution"
 
-      # Factory API
       get "factory/loops", to: "factory_loops#index"
       post "factory/loops", to: "factory_loops#create"
       get "factory/loops/:id", to: "factory_loops#show"
@@ -102,6 +90,13 @@ Rails.application.routes.draw do
 
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
+
+      # Pipeline API
+      get "pipeline/status", to: "pipeline#status"
+      post "pipeline/enable_board/:board_id", to: "pipeline#enable_board"
+      post "pipeline/disable_board/:board_id", to: "pipeline#disable_board"
+      get "pipeline/task/:id/log", to: "pipeline#task_log"
+      post "pipeline/reprocess/:id", to: "pipeline#reprocess"
 
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
@@ -159,18 +154,13 @@ Rails.application.routes.draw do
     post :test_notification
   end
 
-  # Link Inbox
   resources :saved_links, only: [:index, :create, :destroy] do
     post :process_all, on: :collection
   end
 
-  # Dashboard overview page
   get "dashboard", to: "dashboard#show"
-
-  # Web Terminal
   get "terminal", to: "terminal#show"
 
-  # Notifications
   resources :notifications, only: [:index] do
     member do
       patch :mark_read
@@ -180,10 +170,8 @@ Rails.application.routes.draw do
     end
   end
 
-  # Agent Swarm View
   get "command", to: "command#index"
 
-  # Cron jobs (OpenClaw Gateway)
   resources :cronjobs, only: [:index, :create, :destroy] do
     member do
       post :toggle
@@ -191,10 +179,8 @@ Rails.application.routes.draw do
     end
   end
 
-  # Token usage
   resources :tokens, only: [:index]
 
-  # Workflows
   resources :workflows, only: [:index, :new, :create, :edit, :update] do
     collection do
       get :editor
@@ -204,27 +190,19 @@ Rails.application.routes.draw do
     end
   end
 
-  # Global search
   get "search", to: "search#index"
-
-  # Analytics page
   get "analytics", to: "analytics#show"
-
-  # API Keys management
   get "keys", to: "keys#index"
   patch "keys", to: "keys#update"
 
-  # Nightshift mission control
   get "nightshift", to: "nightshift#index"
   post "nightshift/launch", to: "nightshift#launch"
   post "nightshift/missions", to: "nightshift#create", as: :nightshift_missions
   patch "nightshift/missions/:id", to: "nightshift#update", as: :nightshift_mission
   delete "nightshift/missions/:id", to: "nightshift#destroy"
 
-  # Nightbeat morning brief
   get "nightbeat", to: "nightbeat#index"
 
-  # Factory dashboard
   get "factory", to: "factory#index"
   post "factory/loops", to: "factory#create", as: :factory_loops
   patch "factory/loops/:id", to: "factory#update", as: :factory_loop
@@ -235,7 +213,6 @@ Rails.application.routes.draw do
   post "factory/bulk_play", to: "factory#bulk_play", as: :factory_bulk_play
   post "factory/bulk_pause", to: "factory#bulk_pause", as: :factory_bulk_pause
 
-  # Agent Personas
   resources :agent_personas do
     collection do
       post :import
@@ -243,7 +220,6 @@ Rails.application.routes.draw do
     end
   end
 
-  # Boards (multi-board kanban views)
   resources :boards, only: [ :index, :show, :create, :update, :destroy ] do
     member do
       patch :update_task_status
@@ -275,34 +251,24 @@ Rails.application.routes.draw do
         post :generate_validation_suggestion
         get :view_file
         get :diff_file
+        get :chat_history
       end
     end
   end
 
-  # Redirect root board path to first board
-  get "board", to: redirect { |params, request|
-    # This will be handled by the controller for proper user scoping
-    "/boards"
-  }
+  get "board", to: redirect { |params, request| "/boards" }
   get "pages/home"
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
-
-  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
-  # Output gallery for agent-generated content
   resources :outputs, only: [:index, :show], controller: "previews" do
     member do
       get :raw
     end
   end
 
-  # Showcase gallery for redesign mockups
   resources :showcases, only: [:index, :show] do
     member do
       get :raw
@@ -310,7 +276,6 @@ Rails.application.routes.draw do
     end
   end
 
-  # Marketing docs file browser
   get "marketing", to: "marketing#index", as: :marketing
   get "marketing/playground", to: "marketing#playground", as: :marketing_playground
   get "marketing/generated_content", to: "marketing#generated_content", as: :marketing_generated_content
@@ -318,10 +283,8 @@ Rails.application.routes.draw do
   post "marketing/publish", to: "marketing#publish_to_n8n", as: :marketing_publish
   get "marketing/*path", to: "marketing#show", as: :marketing_show, format: false
 
-  # File viewer (workspace files, no auth)
   get "view", to: "file_viewer#show"
   get "files", to: "file_viewer#browse", as: :browse_files
 
-  # Defines the root path route ("/")
   root "pages#home"
 end
