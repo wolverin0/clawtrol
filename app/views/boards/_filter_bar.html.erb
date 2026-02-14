@@ -1,24 +1,27 @@
-<%# Filter Bar - displays below board tabs %>
-<div data-controller="filter" 
-     data-filter-board-id-value="<%= @board.id %>"
-     class="px-4 md:px-6 py-2 bg-bg-base border-b border-border">
-  <div class="flex items-center gap-3 flex-wrap">
-    <%# Filter label %>
-    <span class="text-xs text-content-muted font-medium">Filters:</span>
+<%# Row 2: Expanded Filters Bar (always visible) %>
+  <div data-controller="filter" 
+       data-filter-board-id-value="<%= @board.id %>"
+       class="hidden md:flex items-center gap-3 px-4 md:px-6 py-2 bg-bg-surface/50 border-t border-border/50 flex-wrap">
+    <span class="text-xs text-content-muted font-medium flex-shrink-0">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5 inline mr-1">
+        <path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd" />
+      </svg>
+      Filters:
+    </span>
 
-    <%# Status dropdown %>
+    <%# Status %>
     <select data-filter-target="status"
             data-action="change->filter#filterByStatus"
             class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
       <option value="">All statuses</option>
-      <option value="inbox">Inbox</option>
-      <option value="up_next">Up Next</option>
-      <option value="in_progress">In Progress</option>
-      <option value="in_review">In Review</option>
-      <option value="done">Done</option>
+      <option value="inbox">📥 Inbox</option>
+      <option value="up_next">⏭ Up Next</option>
+      <option value="in_progress">🚀 In Progress</option>
+      <option value="in_review">👀 In Review</option>
+      <option value="done">✅ Done</option>
     </select>
 
-    <%# Model dropdown %>
+    <%# Model %>
     <select data-filter-target="model"
             data-action="change->filter#filterByModel"
             class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
@@ -28,27 +31,27 @@
       <% end %>
     </select>
 
-    <%# Priority dropdown %>
+    <%# Priority %>
     <select data-filter-target="priority"
             data-action="change->filter#filterByPriority"
             class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
       <option value="">All priorities</option>
       <option value="none">None</option>
-      <option value="low">Low</option>
-      <option value="medium">Medium</option>
-      <option value="high">High</option>
+      <option value="low">🟢 Low</option>
+      <option value="medium">🟡 Medium</option>
+      <option value="high">🔴 High</option>
     </select>
 
-    <%# Has agent dropdown %>
+    <%# Agent %>
     <select data-filter-target="agent"
             data-action="change->filter#filterByAgent"
             class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
       <option value="">Agent: Any</option>
-      <option value="true">Has agent 🦞</option>
+      <option value="true">🦞 Has agent</option>
       <option value="false">No agent</option>
     </select>
 
-    <%# Nightly/Nightbeat toggle %>
+    <%# Nightbeat toggle %>
     <button type="button"
             data-filter-target="nightly"
             data-action="click->filter#toggleNightly"
@@ -62,12 +65,106 @@
       <%# Chips will be dynamically inserted here %>
     </div>
 
-    <%# Clear all button (shown when filters are active via JS) %>
+    <%# Clear all %>
     <button type="button"
             data-action="click->filter#clearAll"
             class="hidden text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer"
             data-filter-target="clearButton">
       Clear all
     </button>
+
+    <%# Spacer %>
+    <div class="flex-1"></div>
+
+    <%# Quick stats %>
+    <% nightly_this_week = current_user.tasks.nightly.where("created_at >= ?", 7.days.ago).count %>
+    <% last_nightly = current_user.tasks.nightly.order(created_at: :desc).first %>
+    <div class="flex items-center gap-3 text-xs text-content-muted">
+      <span>📊 <span id="header-inbox-count" class="font-medium text-content"><%= @columns[:inbox]&.count || 0 %></span> inbox</span>
+      <span class="text-border">·</span>
+      <span><span id="header-in_progress-count" class="font-medium text-content"><%= @columns[:in_progress]&.count || 0 %></span> active</span>
+      <span class="text-border">·</span>
+      <span>✅ <span id="header-done_today-count" class="font-medium text-content"><%= current_user.tasks.where("completed_at >= ?", Time.zone.now.beginning_of_day).count %></span> today</span>
+      <% if nightly_this_week > 0 %>
+        <span class="text-border">·</span>
+        <span class="text-indigo-400" title="Last: <%= last_nightly&.created_at&.strftime('%b %d, %H:%M') %>">
+          🌙 <span class="font-medium"><%= nightly_this_week %></span> nightbeats
+        </span>
+      <% end %>
+    </div>
+
+    <%# Auto-refresh indicator %>
+    <span data-kanban-refresh-target="indicator" 
+          class="opacity-0 transition-opacity duration-200 flex items-center gap-1 text-xs text-accent">
+      <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span>syncing</span>
+    </span>
   </div>
-</div>
+
+  <%# Mobile: Compact filter toggle (show filters on tap) %>
+  <div class="md:hidden px-4 py-2 bg-bg-surface/50 border-t border-border/50">
+    <div data-controller="mobile-filter">
+      <button type="button"
+              data-action="click->mobile-filter#toggle"
+              data-mobile-filter-target="toggle"
+              class="flex items-center gap-2 text-xs text-content-muted">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
+          <path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd" />
+        </svg>
+        <span>Filters</span>
+        <svg data-mobile-filter-target="chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3 transition-transform">
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+        </svg>
+      </button>
+
+      <div data-mobile-filter-target="panel"
+           data-controller="filter"
+           data-filter-board-id-value="<%= @board.id %>"
+           class="hidden mt-2 flex flex-wrap gap-2">
+        <select data-filter-target="status"
+                data-action="change->filter#filterByStatus"
+                class="px-2 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content">
+          <option value="">All statuses</option>
+          <option value="inbox">📥 Inbox</option>
+          <option value="up_next">⏭ Up Next</option>
+          <option value="in_progress">🚀 In Progress</option>
+          <option value="in_review">👀 In Review</option>
+          <option value="done">✅ Done</option>
+        </select>
+
+        <select data-filter-target="priority"
+                data-action="change->filter#filterByPriority"
+                class="px-2 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content">
+          <option value="">All priorities</option>
+          <option value="low">🟢 Low</option>
+          <option value="medium">🟡 Medium</option>
+          <option value="high">🔴 High</option>
+        </select>
+
+        <select data-filter-target="agent"
+                data-action="change->filter#filterByAgent"
+                class="px-2 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content">
+          <option value="">Agent: Any</option>
+          <option value="true">🦞 Has agent</option>
+          <option value="false">No agent</option>
+        </select>
+
+        <button type="button"
+                data-filter-target="nightly"
+                data-action="click->filter#toggleNightly"
+                class="px-2 py-1.5 text-xs bg-bg-elevated border border-border rounded-md text-content-secondary">
+          🌙 Nightbeat
+        </button>
+
+        <button type="button"
+                data-action="click->filter#clearAll"
+                class="hidden px-2 py-1.5 text-xs text-accent"
+                data-filter-target="clearButton">
+          Clear
+        </button>
+      </div>
+    </div>
+  </div>

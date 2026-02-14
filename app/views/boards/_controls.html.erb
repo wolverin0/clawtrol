@@ -1,0 +1,207 @@
+  <%# Row 1: Logo + Board Tabs (responsive wrap) + Controls %>
+  <div class="flex items-center justify-between px-4 md:px-6 py-2.5 gap-4">
+    <%# Left section: Logo %>
+    <div class="flex items-center gap-3 min-w-0">
+      <%# Logo %>
+      <% if current_user&.theme == 'vaporwave' %>
+        <div class="text-base md:text-lg font-semibold text-content whitespace-nowrap flex-shrink-0 vaporwave-glitch" data-text="CLAWTROL">
+          <span>🦞</span>
+          <span class="hidden md:inline">CLAWTROL</span>
+        </div>
+      <% else %>
+        <div class="text-base md:text-lg font-semibold text-content font-display whitespace-nowrap flex-shrink-0">
+          <span>🦞</span>
+          <span class="hidden md:inline"> ClawTrol</span>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Right section: Quick nav + Controls %>
+    <div class="flex items-center gap-x-1 md:gap-x-2 flex-shrink-0">
+      <%# Mobile hamburger menu %>
+      <%= render "shared/mobile_nav" %>
+      <%# Quick Nav Icons %>
+      <%= render "shared/nav_icons" %>
+      <%# Theme Toggle %>
+      <%= render "shared/theme_toggle" %>
+
+      <%# Flash messages (compact) %>
+      <% if notice.present? %>
+        <div data-controller="flash" class="hidden md:block py-1 px-2.5 bg-status-success/20 text-status-success text-xs font-medium rounded-md">
+          <%= notice %>
+        </div>
+      <% end %>
+
+      <%# Board header status cluster: Realtime, Queue, OpenClaw %>
+      <div class="hidden md:flex items-center gap-2">
+        <span data-kanban-refresh-target="realtimeBadge"
+              class="px-2 py-1 rounded-md text-xs font-semibold <%= current_user&.theme == 'vaporwave' ? 'vaporwave-live-badge' : 'bg-bg-elevated text-content-muted' %>">
+          <% if current_user&.theme == 'vaporwave' %>⚡ LIVE<% else %>Realtime: …<% end %>
+        </span>
+
+        <% queue_count = defined?(@queue_count) ? @queue_count.to_i : (@column_counts&.dig(:up_next) || 0) %>
+        <span class="px-2 py-1 rounded-md text-xs font-semibold bg-bg-elevated text-content-muted"
+              title="Queued work (Up Next, assigned, not blocked)">
+          Queue: <%= queue_count %>
+        </span>
+
+        <% running = defined?(@running_tasks_count) ? @running_tasks_count.to_i : 0 %>
+        <% oldest_hb_at = defined?(@running_oldest_hb_at) ? @running_oldest_hb_at : nil %>
+        <span class="px-2 py-1 rounded-md text-xs font-semibold <%= running > 0 ? 'bg-accent/20 text-accent' : 'bg-bg-elevated text-content-muted' %>"
+              title="Tasks with an active Runner Lease">
+          Running: <%= running %><% if oldest_hb_at.present? %> · oldest hb <%= time_ago_in_words(oldest_hb_at) %><% end %>
+        </span>
+
+        <% hooks_token = current_user.respond_to?(:openclaw_hooks_token) ? current_user.openclaw_hooks_token : nil %>
+        <% configured = current_user.openclaw_gateway_url.present? && (hooks_token.present? || current_user.openclaw_gateway_token.present?) %>
+        <% active = current_user.agent_last_active_at.present? && current_user.agent_last_active_at > 2.minutes.ago %>
+        <span class="px-2 py-1 rounded-md text-xs font-semibold <%= !configured ? 'bg-status-error/20 text-status-error' : (active ? 'bg-status-success/20 text-status-success' : 'bg-status-warning/20 text-status-warning') %>"
+              title="OpenClaw gateway + agent token activity">
+          OpenClaw: <%= !configured ? 'OFF' : (active ? 'ACTIVE' : 'IDLE') %>
+        </span>
+      </div>
+
+      <%# OpenClaw Memory Search Health (persistent) %>
+      <%= render "shared/openclaw_memory_indicator", health: openclaw_memory_health %>
+
+      <%# Error Badge %>
+      <div data-controller="error-badge" 
+           data-error-badge-url-value="<%= errored_count_api_v1_tasks_path(format: :json) %>"
+           data-error-badge-board-id-value="<%= @board.id %>"
+           data-error-badge-interval-value="30000">
+        <button type="button"
+                data-error-badge-target="button"
+                data-action="click->error-badge#filterErrors"
+                class="hidden relative px-2 py-1 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs font-medium transition-colors cursor-pointer"
+                title="Click to show errored tasks">
+          ⚠️ <span data-error-badge-target="count">0</span>
+        </button>
+      </div>
+
+      <%# Board Settings %>
+      <button type="button"
+              data-action="click->board-modal#open"
+              data-board-modal-target="trigger"
+              class="w-8 h-8 rounded-md bg-bg-elevated hover:bg-bg-hover flex items-center justify-center transition-colors cursor-pointer"
+              title="Board settings">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-content-secondary">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+        </svg>
+      </button>
+
+      <%# Notifications Bell %>
+      <div data-controller="notifications" 
+           data-notifications-url-value="<%= api_v1_notifications_path %>"
+           data-notifications-interval-value="30000"
+           data-notifications-browser-notifications-value="true"
+           class="relative">
+        <button type="button"
+                data-action="click->notifications#toggle"
+                class="relative w-8 h-8 rounded-md bg-bg-elevated hover:bg-bg-hover flex items-center justify-center text-sm transition-colors cursor-pointer"
+                title="Notifications">
+          🔔
+          <span data-notifications-target="badge" 
+                class="absolute -top-1 -right-1 bg-accent text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 hidden">
+            0
+          </span>
+        </button>
+        
+          <%# Notifications Panel %>
+          <div data-notifications-target="panel" 
+             class="hidden absolute right-0 mt-2 w-80 bg-bg-surface border border-border rounded-lg shadow-xl z-[100] overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-3 border-b border-border bg-bg-elevated">
+            <span class="text-sm font-semibold text-content">Notifications</span>
+            <div class="flex items-center gap-2">
+              <button type="button" 
+                      data-action="click->notifications#markAllRead"
+                      class="text-xs text-accent hover:text-accent-hover transition-colors cursor-pointer">
+                Mark all read
+              </button>
+              <button type="button" 
+                      data-action="click->notifications#clearAll"
+                      class="text-xs text-content-muted hover:text-content transition-colors cursor-pointer">
+                Clear all
+              </button>
+            </div>
+          </div>
+          <div data-notifications-target="list" class="max-h-80 overflow-y-auto">
+            <div class="px-4 py-8 text-center text-content-muted text-sm">
+              <span class="text-2xl block mb-2">🔔</span>
+              Loading...
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# User avatar dropdown %>
+      <div class="relative" data-controller="dropdown">
+        <button type="button"
+                data-dropdown-target="button"
+                data-action="click->dropdown#toggle"
+                class="flex items-center cursor-pointer"
+                aria-expanded="false"
+                aria-haspopup="true">
+          <div class="w-8 h-8 rounded-md overflow-hidden bg-bg-surface flex items-center justify-center">
+            <% if current_user.has_avatar? %>
+              <%= image_tag current_user.avatar_source, class: "w-full h-full object-cover", alt: "Your avatar" %>
+            <% else %>
+              <svg class="w-4 h-4 text-content-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            <% end %>
+          </div>
+        </button>
+
+        <div data-dropdown-target="menu"
+             class="hidden absolute right-0 top-full mt-1 w-48 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
+          <div class="px-3 py-2.5 bg-bg-elevated border-b border-border">
+            <p class="text-xs font-medium text-content truncate"><%= current_user.email_address.split('@').first %></p>
+            <% if current_user.agent_last_active_at.present? %>
+              <p class="text-xs text-content-muted flex items-center gap-1">
+                <%= current_user.agent_emoji || "🦞" %>
+                <span><%= current_user.agent_name || 'Agent' %></span>
+                <% if current_user.agent_last_active_at > 5.minutes.ago %>
+                  <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                <% end %>
+              </p>
+            <% end %>
+          </div>
+          <div class="py-1">
+            <%= link_to dashboard_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+              📊 Dashboard
+            <% end %>
+            <%= link_to analytics_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+              📈 Analytics
+            <% end %>
+            <%= link_to agent_personas_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+              🧠 Agent Personas
+            <% end %>
+            <%= link_to roster_agent_personas_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+              📋 Roster
+            <% end %>
+            <%= link_to nightbeat_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+              🌙 Morning Brief
+            <% end %>
+            <%= link_to settings_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Settings
+            <% end %>
+            <div class="border-t border-border my-1"></div>
+            <%= link_to session_path,
+                method: :delete,
+                data: { turbo_method: :delete },
+                class: "flex items-center gap-2 px-3 py-2 text-xs text-accent hover:bg-bg-elevated transition-colors" do %>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Sign out
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

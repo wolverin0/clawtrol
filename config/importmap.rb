@@ -17,3 +17,6 @@ pin_all_from "app/javascript/channels", under: "channels"
 # xterm.js for web terminal
 pin "@xterm/xterm", to: "https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/+esm"
 pin "@xterm/addon-fit", to: "https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/+esm"
+
+# Shared JS utilities
+pin_all_from "app/javascript/utilities", under: "utilities"

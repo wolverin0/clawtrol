@@ -849,3 +849,73 @@
     filter: brightness(1.1);
   }
 }
+
+/* Self-hosted font fallbacks - ensures fonts render even offline */
+@font-face {
+  font-family: 'Clash Display Fallback';
+  src: local('SF Pro Display'), local('Segoe UI'), local('Roboto');
+  font-weight: 500 700;
+  font-display: swap;
+}
+
+/* ========================================
+   LIGHT THEME OVERRIDE
+   Clean, professional light mode
+   ======================================== */
+[data-theme="light"] {
+  --color-bg-base: #f8fafc;
+  --color-bg-surface: #ffffff;
+  --color-bg-elevated: #f1f5f9;
+  --color-bg-hover: #e2e8f0;
+
+  --color-accent: #ef4444;
+  --color-accent-hover: #dc2626;
+  --color-accent-dark: #991b1b;
+  --color-accent-muted: rgba(239, 68, 68, 0.2);
+
+  --color-content: #0f172a;
+  --color-content-secondary: #334155;
+  --color-content-muted: #64748b;
+  --color-content-inverse: #f8fafc;
+
+  --color-border: #e2e8f0;
+  --color-border-accent: rgba(239, 68, 68, 0.3);
+
+  --color-status-success: #16a34a;
+  --color-status-warning: #d97706;
+  --color-status-error: #dc2626;
+  --color-status-info: #2563eb;
+
+  --font-display: "Clash Display", system-ui, sans-serif;
+  --font-body: "Satoshi", system-ui, sans-serif;
+}
+
+/* Light theme adjustments */
+[data-theme="light"] .stars,
+[data-theme="light"] .nebula {
+  display: none;
+}
+
+[data-theme="light"] .task-card-nightly {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%) !important;
+  border: 1px solid rgba(99, 102, 241, 0.2) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .task-card-nightly::before {
+  background: radial-gradient(circle at center, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+}
+
+[data-theme="light"] .task-card-nightly::after {
+  display: none;
+}
+
+[data-theme="light"] .task-card-nightly .task-title,
+[data-theme="light"] .task-card-nightly .text-content {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .task-card-nightly .text-content-secondary,
+[data-theme="light"] .task-card-nightly .text-content-muted {
+  color: #475569 !important;
+}

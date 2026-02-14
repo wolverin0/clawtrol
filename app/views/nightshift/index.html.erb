@@ -1,182 +1,48 @@
 <style>
+  /* Nightshift Terminal Theme - Custom properties for theme-aware colors */
   :root {
-    --terminal-green: #00FF41;
-    --terminal-amber: #FFB000;
-    --terminal-red: #FF3131;
-    --terminal-cyan: #00D4FF;
-    --terminal-blue: #2f81f7;
-    --terminal-purple: #a371f7;
+    --terminal-green: theme(colors.emerald.400);
+    --terminal-amber: theme(colors.amber.400);
+    --terminal-red: theme(colors.red.400);
+    --terminal-cyan: theme(colors.sky.400);
+    --terminal-blue: theme(colors.blue.500);
+    --terminal-purple: theme(colors.purple.400);
   }
 
-  .ns-header {
-    padding: 1.5rem 2rem 1rem;
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .ns-brand {
-    font-size: 1.5rem; font-weight: 700; color: var(--terminal-green);
-    display: flex; align-items: center; gap: 0.75rem;
-    text-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
-    font-family: 'SF Mono', 'Fira Code', monospace;
-  }
-  .ns-brand-icon { animation: ns-pulse 3s infinite; }
+  /* Keyframe animations - must stay in CSS */
   @keyframes ns-pulse {
     0%, 100% { opacity: 1; } 50% { opacity: 0.7; }
   }
-  .ns-meta { text-align: right; font-size: 0.85rem; color: var(--text-muted, #8B949E); }
-  .ns-date { color: var(--terminal-cyan); font-weight: 600; }
+  .ns-brand-icon { animation: ns-pulse 3s infinite; }
 
-  .ns-toolbar {
-    display: flex; gap: 0.5rem; padding: 0 2rem 0.5rem; flex-wrap: wrap; align-items: center;
+  /* Terminal-specific styles that need custom CSS */
+  .ns-brand {
+    text-shadow: 0 0 10px rgba(0, 255, 65, 0.3);
   }
-  .ns-filter-btn {
-    background: transparent; border: 1px solid var(--border, #30363D);
-    color: var(--text-muted, #8B949E); padding: 0.3rem 0.7rem; border-radius: 4px;
-    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.75rem; cursor: pointer;
-    transition: all 0.2s;
-  }
-  .ns-filter-btn:hover, .ns-filter-btn.active { border-color: var(--terminal-cyan); color: var(--terminal-cyan); }
-  .ns-add-btn {
-    background: rgba(0, 255, 65, 0.1); border: 1px solid rgba(0, 255, 65, 0.3);
-    color: var(--terminal-green); padding: 0.3rem 0.7rem; border-radius: 4px;
-    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.75rem; cursor: pointer;
-    margin-left: auto;
-  }
-  .ns-add-btn:hover { background: rgba(0, 255, 65, 0.2); }
-
-  .ns-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem; padding: 1rem 2rem; max-width: 1400px; margin: 0 auto;
-    padding-bottom: 200px;
-  }
-
-  .ns-card {
-    background: var(--bg-card, #161B22); border: 1px solid var(--border, #30363D);
-    border-radius: 8px; padding: 1.25rem; cursor: pointer;
-    transition: all 0.2s; display: flex; flex-direction: column; gap: 0.75rem;
-    font-family: 'SF Mono', 'Fira Code', monospace;
-  }
-  .ns-card:hover { border-color: var(--text-muted, #8B949E); transform: translateY(-2px); }
   .ns-card.selected {
-    border-color: var(--terminal-green); background: rgba(0, 255, 65, 0.03);
     box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
   }
-  .ns-card.due-tonight { border-left: 3px solid var(--terminal-amber); }
-
-  .ns-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
-  .ns-checkbox {
-    width: 24px; height: 24px; border: 2px solid var(--border, #30363D);
-    border-radius: 4px; display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; transition: all 0.2s; background: var(--bg-dark, #0A0E14);
+  .ns-launch:hover {
+    box-shadow: 0 0 25px rgba(0, 255, 65, 0.6);
   }
-  .ns-card.selected .ns-checkbox { border-color: var(--terminal-green); background: var(--terminal-green); }
-  .ns-checkmark { color: var(--bg-dark, #0A0E14); opacity: 0; font-weight: bold; transition: all 0.2s; }
-  .ns-card.selected .ns-checkmark { opacity: 1; }
-
-  .ns-title { font-size: 1rem; font-weight: 600; color: var(--text, #C9D1D9); }
-  .ns-desc { font-size: 0.85rem; color: var(--text-muted, #8B949E); line-height: 1.5; flex-grow: 1; }
-
-  .ns-card-actions {
-    display: flex;
-    gap: 0.35rem;
-    justify-content: flex-end;
-  }
-  .ns-icon-btn {
-    border: 1px solid var(--border, #30363D);
-    background: transparent;
-    color: var(--text-muted, #8B949E);
-    border-radius: 4px;
-    padding: 0.2rem 0.45rem;
-    font-size: 0.8rem;
-    cursor: pointer;
-  }
-  .ns-icon-btn:hover { border-color: var(--terminal-cyan); color: var(--terminal-cyan); }
-  .ns-icon-btn.delete:hover { border-color: var(--terminal-red); color: var(--terminal-red); }
-
-  .ns-footer {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(48, 54, 61, 0.5);
-    flex-wrap: wrap; gap: 0.25rem;
-  }
-  .ns-badge {
-    font-size: 0.7rem; padding: 0.2rem 0.5rem; border-radius: 4px;
-    text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; border: 1px solid transparent;
-  }
-  .ns-badge-codex { color: var(--terminal-cyan); border-color: rgba(0, 212, 255, 0.3); background: rgba(0, 212, 255, 0.1); }
-  .ns-badge-gemini, .ns-badge-gemini-flash { color: var(--terminal-green); border-color: rgba(0, 255, 65, 0.3); background: rgba(0, 255, 65, 0.1); }
-  .ns-badge-opus { color: var(--terminal-purple); border-color: rgba(163, 113, 247, 0.3); background: rgba(163, 113, 247, 0.1); }
-  .ns-badge-glm, .ns-badge-deepseek, .ns-badge-groq, .ns-badge-cerebras { color: var(--terminal-amber); border-color: rgba(255, 176, 0, 0.3); background: rgba(255, 176, 0, 0.1); }
-  .ns-badge-freq {
-    font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 3px;
-    color: var(--terminal-cyan); border-color: rgba(0, 212, 255, 0.2); background: rgba(0, 212, 255, 0.05);
-  }
-  .ns-badge-freq.always { color: var(--terminal-amber); border-color: rgba(255, 176, 0, 0.3); background: rgba(255, 176, 0, 0.1); }
-  .ns-badge-freq.weekly { color: var(--terminal-blue); border-color: rgba(47, 129, 247, 0.3); background: rgba(47, 129, 247, 0.1); }
-  .ns-badge-cat {
-    font-size: 0.6rem; padding: 0.1rem 0.35rem; border-radius: 3px;
-    color: var(--text-muted, #8B949E); border-color: rgba(139, 148, 158, 0.2); background: rgba(139, 148, 158, 0.05);
-  }
-  .ns-badge-status { margin-left: 8px; }
-  .ns-badge-pending { color: var(--terminal-amber); border-color: rgba(255, 176, 0, 0.3); background: rgba(255, 176, 0, 0.1); }
-  .ns-badge-running { color: var(--terminal-blue); border-color: rgba(47, 129, 247, 0.3); background: rgba(47, 129, 247, 0.1); }
-  .ns-badge-completed { color: var(--terminal-green); border-color: rgba(0, 255, 65, 0.3); background: rgba(0, 255, 65, 0.1); }
-  .ns-time { font-size: 0.8rem; color: var(--text-muted, #8B949E); }
-
   .ns-panel {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    background: var(--bg-panel, #0D1117); border-top: 1px solid var(--border, #30363D);
-    padding: 1rem 2rem; z-index: 200;
     box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
-    display: flex; justify-content: space-between; align-items: center;
-    backdrop-filter: blur(10px); font-family: 'SF Mono', 'Fira Code', monospace;
   }
-  .ns-stats { display: flex; gap: 2rem; align-items: center; }
-  .ns-stat-label { font-size: 0.7rem; color: var(--text-muted, #8B949E); text-transform: uppercase; letter-spacing: 1px; }
-  .ns-stat-value { font-size: 1.2rem; font-weight: 700; }
-  .ns-stat-highlight { color: var(--terminal-cyan); }
 
-  .ns-launch {
-    background: var(--terminal-green); color: #0A0E14; border: none;
-    padding: 0.8rem 1.5rem; font-weight: 700; font-size: 0.9rem;
-    text-transform: uppercase; letter-spacing: 1px; border-radius: 4px;
-    cursor: pointer; transition: all 0.3s; font-family: inherit;
-  }
-  .ns-launch:hover { box-shadow: 0 0 25px rgba(0, 255, 65, 0.6); }
-  .ns-launch:disabled { background: var(--border, #30363D); color: var(--text-muted, #8B949E); cursor: not-allowed; box-shadow: none; }
+  /* Badge color variants using CSS custom properties */
+  .ns-badge-codex { color: var(--terminal-cyan); border-color: color-mix(in srgb, var(--terminal-cyan) 30%, transparent); background: color-mix(in srgb, var(--terminal-cyan) 10%, transparent); }
+  .ns-badge-gemini, .ns-badge-gemini-flash { color: var(--terminal-green); border-color: color-mix(in srgb, var(--terminal-green) 30%, transparent); background: color-mix(in srgb, var(--terminal-green) 10%, transparent); }
+  .ns-badge-opus { color: var(--terminal-purple); border-color: color-mix(in srgb, var(--terminal-purple) 30%, transparent); background: color-mix(in srgb, var(--terminal-purple) 10%, transparent); }
+  .ns-badge-glm, .ns-badge-deepseek, .ns-badge-groq, .ns-badge-cerebras { color: var(--terminal-amber); border-color: color-mix(in srgb, var(--terminal-amber) 30%, transparent); background: color-mix(in srgb, var(--terminal-amber) 10%, transparent); }
+  .ns-badge-freq { color: var(--terminal-cyan); border-color: color-mix(in srgb, var(--terminal-cyan) 20%, transparent); background: color-mix(in srgb, var(--terminal-cyan) 5%, transparent); }
+  .ns-badge-freq.always { color: var(--terminal-amber); border-color: color-mix(in srgb, var(--terminal-amber) 30%, transparent); background: color-mix(in srgb, var(--terminal-amber) 10%, transparent); }
+  .ns-badge-freq.weekly { color: var(--terminal-blue); border-color: color-mix(in srgb, var(--terminal-blue) 30%, transparent); background: color-mix(in srgb, var(--terminal-blue) 10%, transparent); }
+  .ns-badge-cat { color: var(--text-muted, #8B949E); border-color: color-mix(in srgb, var(--text-muted, #8B949E) 20%, transparent); background: color-mix(in srgb, var(--text-muted, #8B949E) 5%, transparent); }
+  .ns-badge-pending { color: var(--terminal-amber); border-color: color-mix(in srgb, var(--terminal-amber) 30%, transparent); background: color-mix(in srgb, var(--terminal-amber) 10%, transparent); }
+  .ns-badge-running { color: var(--terminal-blue); border-color: color-mix(in srgb, var(--terminal-blue) 30%, transparent); background: color-mix(in srgb, var(--terminal-blue) 10%, transparent); }
+  .ns-badge-completed { color: var(--terminal-green); border-color: color-mix(in srgb, var(--terminal-green) 30%, transparent); background: color-mix(in srgb, var(--terminal-green) 10%, transparent); }
 
-  .ns-toggle-all {
-    background: transparent; border: 1px solid var(--text-muted, #8B949E);
-    color: var(--text-muted, #8B949E); padding: 0.5rem 1rem; border-radius: 4px;
-    font-family: inherit; font-size: 0.8rem; cursor: pointer;
-  }
-  .ns-toggle-all:hover { border-color: var(--text, #C9D1D9); color: var(--text, #C9D1D9); }
-
-  .ns-modal-overlay {
-    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.7); z-index: 300; align-items: center; justify-content: center;
-  }
-  .ns-modal-overlay.open { display: flex; }
-  .ns-modal {
-    background: var(--bg-card, #161B22); border: 1px solid var(--border, #30363D);
-    border-radius: 8px; padding: 2rem; width: 100%; max-width: 500px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-  .ns-modal h3 { color: var(--terminal-green); margin: 0 0 1.5rem; }
-  .ns-modal label { display: block; color: var(--text-muted, #8B949E); font-size: 0.8rem; margin-bottom: 0.3rem; }
-  .ns-modal input, .ns-modal select, .ns-modal textarea {
-    width: 100%; background: var(--bg-dark, #0A0E14); border: 1px solid var(--border, #30363D);
-    color: var(--text, #C9D1D9); padding: 0.5rem; border-radius: 4px; font-family: inherit;
-    font-size: 0.85rem; margin-bottom: 1rem; box-sizing: border-box;
-  }
-  .ns-modal textarea { min-height: 80px; resize: vertical; }
-  .ns-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
-  .ns-modal-btn {
-    padding: 0.5rem 1rem; border-radius: 4px; font-family: inherit; font-size: 0.8rem;
-    cursor: pointer; border: 1px solid var(--border, #30363D); background: transparent;
-    color: var(--text-muted, #8B949E);
-  }
-  .ns-modal-btn.primary { background: var(--terminal-green); color: #0A0E14; border: none; font-weight: 600; }
+  /* Days grid - custom layout */
   .ns-days-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -191,50 +57,42 @@
     font-size: 0.75rem;
   }
   .ns-days-grid input { width: auto; margin: 0; }
-
-  @media (max-width: 768px) {
-    .ns-header { padding: 1rem; }
-    .ns-brand { font-size: 1.1rem; }
-    .ns-meta { display: none; }
-    .ns-grid { padding: 1rem; gap: 1rem; }
-    .ns-toolbar { padding: 0 1rem 0.5rem; }
-    .ns-panel { flex-direction: column; gap: 1rem; padding: 0.75rem 1rem; }
-    .ns-stats { width: 100%; justify-content: space-between; }
-    .ns-launch { width: 100%; text-align: center; }
-  }
 </style>
 
 <div data-controller="nightshift">
   <% model_options = %w[opus codex gemini gemini-flash glm deepseek groq cerebras] %>
   <% week_days = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [7, 'Sun']] %>
 
-  <div class="ns-header">
-    <div class="ns-brand">
+  <%# Header %>
+  <div class="flex justify-between items-center px-4 md:px-8 pt-6 pb-4">
+    <div class="ns-brand flex items-center gap-3 text-2xl font-bold font-mono text-emerald-400">
       <span class="ns-brand-icon">🌑</span>
       NIGHTSHIFT
-      <span style="color: var(--text-muted); font-weight: 400; font-size: 0.8em;">// MISSION CONTROL v2</span>
+      <span class="text-content-muted font-normal text-sm">// MISSION CONTROL v2</span>
     </div>
-    <div class="ns-meta">
-      <div class="ns-date"><%= Date.today.iso8601 %></div>
+    <div class="text-right text-sm text-content-muted font-mono">
+      <div class="text-sky-400 font-semibold"><%= Date.today.iso8601 %></div>
       <div>STATUS: <span data-nightshift-target="systemStatus">ONLINE</span></div>
-      <div style="font-size: 0.75rem;"><%= @due_tonight_ids.size %> due tonight</div>
+      <div class="text-xs"><%= @due_tonight_ids.size %> due tonight</div>
     </div>
   </div>
 
-  <div class="ns-toolbar">
-    <button class="ns-filter-btn active" data-action="click->nightshift#filterAll">All</button>
+  <%# Toolbar %>
+  <div class="flex gap-2 px-4 md:px-8 pb-2 flex-wrap items-center">
+    <button class="border border-border text-content-muted px-3 py-1 rounded font-mono text-xs cursor-pointer hover:border-sky-400 hover:text-sky-400 transition-all active" data-action="click->nightshift#filterAll">All</button>
     <% @categories.each do |cat| %>
-      <button class="ns-filter-btn" data-action="click->nightshift#filterCategory" data-category="<%= cat %>"><%= cat %></button>
+      <button class="border border-border text-content-muted px-3 py-1 rounded font-mono text-xs cursor-pointer hover:border-sky-400 hover:text-sky-400 transition-all" data-action="click->nightshift#filterCategory" data-category="<%= cat %>"><%= cat %></button>
     <% end %>
-    <button class="ns-add-btn" data-action="click->nightshift#openModal">+ Add Mission</button>
+    <button class="bg-emerald-400/10 border border-emerald-400/30 text-emerald-400 px-3 py-1 rounded font-mono text-xs cursor-pointer hover:bg-emerald-400/20 ml-auto" data-action="click->nightshift#openModal">+ Add Mission</button>
   </div>
 
-  <div class="ns-grid" data-nightshift-target="grid">
+  <%# Card Grid %>
+  <div class="grid grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-6 px-4 md:px-8 py-4 max-w-[1400px] mx-auto pb-[200px]" data-nightshift-target="grid">
     <% @missions.each do |mission| %>
       <% selection = @selections[mission.id] %>
       <% is_due = @due_tonight_ids.include?(mission.id) %>
       <% is_selected = selection&.enabled? || is_due %>
-      <div class="ns-card <%= 'selected' if is_selected %> <%= 'due-tonight' if is_due %>"
+      <div class="ns-card bg-bg-surface border border-border rounded-lg p-5 cursor-pointer transition-all flex flex-col gap-3 font-mono hover:border-content-muted hover:-translate-y-0.5 <%= 'selected border-emerald-400 bg-emerald-400/[0.03]' if is_selected %> <%= 'due-tonight border-l-[3px] border-l-amber-400' if is_due %>"
            data-action="click->nightshift#toggle"
            data-mission-id="<%= mission.id %>"
            data-mission-name="<%= mission.name %>"
@@ -247,72 +105,76 @@
            data-mission-category="<%= mission.category %>"
            data-mission-enabled="<%= mission.enabled %>"
            data-nightshift-target="card">
-        <div class="ns-card-header">
-          <div class="ns-checkbox"><span class="ns-checkmark">✓</span></div>
+        <div class="flex justify-between items-start gap-4">
+          <div class="w-6 h-6 border-2 border-border rounded flex items-center justify-center shrink-0 transition-all bg-bg-base <%= 'border-emerald-400 bg-emerald-400' if is_selected %>">
+            <span class="font-bold transition-all <%= is_selected ? 'text-bg-base opacity-100' : 'opacity-0' %>">&#10003;</span>
+          </div>
           <div>
-            <div class="ns-title">
+            <div class="text-base font-semibold text-content">
               <%= mission.icon %> <%= mission.name %>
               <% if selection %>
-                <span class="ns-badge ns-badge-status ns-badge-<%= selection.status %>"><%= selection.status %></span>
+                <span class="ns-badge ns-badge-status ns-badge-<%= selection.status %> text-xs px-2 py-0.5 rounded font-semibold uppercase tracking-wide border ml-2"><%= selection.status %></span>
               <% end %>
             </div>
           </div>
         </div>
 
-        <div class="ns-card-actions" data-action="click->nightshift#stopPropagation">
-          <button type="button" class="ns-icon-btn" title="Edit mission" data-action="click->nightshift#openEditModal">✏️</button>
-          <%= button_to "🗑️", nightshift_mission_path(mission), method: :delete,
-              class: "ns-icon-btn delete",
+        <div class="flex gap-1 justify-end" data-action="click->nightshift#stopPropagation">
+          <button type="button" class="border border-border bg-transparent text-content-muted rounded px-2 py-1 text-sm cursor-pointer hover:border-sky-400 hover:text-sky-400" title="Edit mission" data-action="click->nightshift#openEditModal">&#9999;&#65039;</button>
+          <%= button_to raw("&#128465;&#65039;"), nightshift_mission_path(mission), method: :delete,
+              class: "border border-border bg-transparent text-content-muted rounded px-2 py-1 text-sm cursor-pointer hover:border-red-400 hover:text-red-400",
               form: { data: { turbo_confirm: "Delete mission '#{mission.name}'?" } },
               data: { action: "click->nightshift#stopPropagation" } %>
         </div>
 
-        <div class="ns-desc"><%= mission.description %></div>
-        <div class="ns-footer">
-          <span class="ns-badge ns-badge-<%= mission.model %>"><%= mission.model %></span>
-          <span class="ns-badge ns-badge-freq <%= mission.frequency %>"><%= mission.frequency %><%= " (#{mission.days_of_week.map { |d| %w[_ Mon Tue Wed Thu Fri Sat Sun][d] }.join(',')})" if mission.frequency == 'weekly' && mission.days_of_week.present? %></span>
-          <span class="ns-badge ns-badge-cat"><%= mission.category %></span>
-          <span class="ns-time">⏱ ~<%= mission.estimated_minutes %>min</span>
+        <div class="text-sm text-content-muted leading-relaxed flex-grow"><%= mission.description %></div>
+        <div class="flex justify-between items-center mt-2 pt-3 border-t border-border/50 flex-wrap gap-1">
+          <span class="ns-badge ns-badge-<%= mission.model %> text-[0.7rem] px-2 py-0.5 rounded uppercase font-semibold tracking-wide border"><%= mission.model %></span>
+          <span class="ns-badge ns-badge-freq <%= mission.frequency %> text-[0.65rem] px-1.5 py-0.5 rounded"><%= mission.frequency %><%= " (#{mission.days_of_week.map { |d| %w[_ Mon Tue Wed Thu Fri Sat Sun][d] }.join(',')})" if mission.frequency == 'weekly' && mission.days_of_week.present? %></span>
+          <span class="ns-badge ns-badge-cat text-[0.6rem] px-1.5 py-0.5 rounded"><%= mission.category %></span>
+          <span class="text-sm text-content-muted">&#9201; ~<%= mission.estimated_minutes %>min</span>
         </div>
       </div>
     <% end %>
   </div>
 
-  <div class="ns-panel">
-    <div class="ns-stats">
-      <button type="button" class="ns-toggle-all" data-action="click->nightshift#toggleAll">Select All</button>
+  <%# Bottom Panel %>
+  <div class="ns-panel fixed bottom-0 left-0 right-0 bg-bg-elevated border-t border-border px-4 md:px-8 py-4 z-[200] flex justify-between items-center backdrop-blur-sm font-mono flex-col md:flex-row gap-4">
+    <div class="flex gap-8 items-center w-full md:w-auto justify-between md:justify-start">
+      <button type="button" class="border border-content-muted text-content-muted px-4 py-2 rounded font-mono text-sm cursor-pointer hover:border-content hover:text-content" data-action="click->nightshift#toggleAll">Select All</button>
       <div>
-        <div class="ns-stat-label">Missions</div>
-        <div class="ns-stat-value"><span data-nightshift-target="count">0</span> / <%= @missions.size %></div>
+        <div class="text-[0.7rem] text-content-muted uppercase tracking-widest">Missions</div>
+        <div class="text-xl font-bold"><span data-nightshift-target="count">0</span> / <%= @missions.size %></div>
       </div>
       <div>
-        <div class="ns-stat-label">Est. Time</div>
-        <div class="ns-stat-value ns-stat-highlight" data-nightshift-target="time">0m</div>
+        <div class="text-[0.7rem] text-content-muted uppercase tracking-widest">Est. Time</div>
+        <div class="text-xl font-bold text-sky-400" data-nightshift-target="time">0m</div>
       </div>
     </div>
-    <button type="button" class="ns-launch" data-action="click->nightshift#launch" data-nightshift-target="launchButton" disabled>
+    <button type="button" class="ns-launch bg-emerald-400 text-bg-base border-none px-6 py-3 font-bold text-sm uppercase tracking-wide rounded cursor-pointer transition-all font-mono w-full md:w-auto disabled:bg-border disabled:text-content-muted disabled:cursor-not-allowed disabled:shadow-none" data-action="click->nightshift#launch" data-nightshift-target="launchButton" disabled>
       SELECT MISSIONS
     </button>
   </div>
 
-  <div class="ns-modal-overlay" data-nightshift-target="modal" data-action="click->nightshift#overlayClose">
-    <div class="ns-modal" data-action="click->nightshift#stopPropagation">
-      <h3>➕ Add Mission</h3>
+  <%# Add Mission Modal %>
+  <div class="fixed inset-0 bg-black/70 z-[300] hidden items-center justify-center" data-nightshift-target="modal" data-action="click->nightshift#overlayClose">
+    <div class="bg-bg-surface border border-border rounded-lg p-8 w-full max-w-[500px] font-mono max-h-[90vh] overflow-y-auto" data-action="click->nightshift#stopPropagation">
+      <h3 class="text-emerald-400 mb-6 text-lg font-bold">&#10133; Add Mission</h3>
       <%= form_with url: nightshift_missions_path, method: :post, local: true do %>
-        <label>Name</label>
-        <input type="text" name="nightshift_mission[name]" required>
+        <label class="block text-content-muted text-sm mb-1">Name</label>
+        <input type="text" name="nightshift_mission[name]" required class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
 
-        <label>Description</label>
-        <textarea name="nightshift_mission[description]"></textarea>
+        <label class="block text-content-muted text-sm mb-1">Description</label>
+        <textarea name="nightshift_mission[description]" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 min-h-[80px] resize-y box-border"></textarea>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <div class="grid grid-cols-2 gap-2">
           <div>
-            <label>Icon</label>
-            <input type="text" name="nightshift_mission[icon]" value="🔧">
+            <label class="block text-content-muted text-sm mb-1">Icon</label>
+            <input type="text" name="nightshift_mission[icon]" value="&#128295;" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
           </div>
           <div>
-            <label>Model</label>
-            <select name="nightshift_mission[model]">
+            <label class="block text-content-muted text-sm mb-1">Model</label>
+            <select name="nightshift_mission[model]" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
               <% model_options.each do |model| %>
                 <option value="<%= model %>"><%= model %></option>
               <% end %>
@@ -320,33 +182,33 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <div class="grid grid-cols-2 gap-2">
           <div>
-            <label>Category</label>
-            <select name="nightshift_mission[category]">
+            <label class="block text-content-muted text-sm mb-1">Category</label>
+            <select name="nightshift_mission[category]" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
               <% @categories.each do |cat| %>
                 <option value="<%= cat %>"><%= cat %></option>
               <% end %>
             </select>
           </div>
           <div>
-            <label>Est. Minutes</label>
-            <input type="number" name="nightshift_mission[estimated_minutes]" value="30">
+            <label class="block text-content-muted text-sm mb-1">Est. Minutes</label>
+            <input type="number" name="nightshift_mission[estimated_minutes]" value="30" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <div class="grid grid-cols-2 gap-2">
           <div>
-            <label>Frequency</label>
-            <select name="nightshift_mission[frequency]" data-nightshift-target="createFrequency" data-action="change->nightshift#toggleCreateDays">
+            <label class="block text-content-muted text-sm mb-1">Frequency</label>
+            <select name="nightshift_mission[frequency]" data-nightshift-target="createFrequency" data-action="change->nightshift#toggleCreateDays" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
               <% @frequencies.each do |freq| %>
                 <option value="<%= freq %>"><%= freq %></option>
               <% end %>
             </select>
           </div>
           <div>
-            <label>Created By</label>
-            <select name="nightshift_mission[created_by]">
+            <label class="block text-content-muted text-sm mb-1">Created By</label>
+            <select name="nightshift_mission[created_by]" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
               <option value="user">user</option>
               <option value="system">system</option>
               <option value="autonomy">autonomy</option>
@@ -356,7 +218,7 @@
         </div>
 
         <div data-nightshift-target="createDaysWrap" style="display:none;">
-          <label>Days of Week</label>
+          <label class="block text-content-muted text-sm mb-1">Days of Week</label>
           <div class="ns-days-grid">
             <% week_days.each do |day_num, day_label| %>
               <label>
@@ -367,36 +229,37 @@
           </div>
         </div>
 
-        <label>
-          <input type="checkbox" name="nightshift_mission[enabled]" value="1" checked style="width:auto; margin-right:0.4rem;">Enabled
+        <label class="block text-content-muted text-sm mb-4">
+          <input type="checkbox" name="nightshift_mission[enabled]" value="1" checked class="w-auto mr-1.5">Enabled
         </label>
 
-        <div class="ns-modal-actions">
-          <button type="button" class="ns-modal-btn" data-action="click->nightshift#closeModal">Cancel</button>
-          <button type="submit" class="ns-modal-btn primary">Create Mission</button>
+        <div class="flex gap-2 justify-end">
+          <button type="button" class="px-4 py-2 rounded font-mono text-sm cursor-pointer border border-border bg-transparent text-content-muted" data-action="click->nightshift#closeModal">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded font-mono text-sm cursor-pointer bg-emerald-400 text-bg-base border-none font-semibold">Create Mission</button>
         </div>
       <% end %>
     </div>
   </div>
 
-  <div class="ns-modal-overlay" data-nightshift-target="editModal" data-action="click->nightshift#overlayCloseEdit">
-    <div class="ns-modal" data-action="click->nightshift#stopPropagation">
-      <h3>✏️ Edit Mission</h3>
+  <%# Edit Mission Modal %>
+  <div class="fixed inset-0 bg-black/70 z-[300] hidden items-center justify-center" data-nightshift-target="editModal" data-action="click->nightshift#overlayCloseEdit">
+    <div class="bg-bg-surface border border-border rounded-lg p-8 w-full max-w-[500px] font-mono max-h-[90vh] overflow-y-auto" data-action="click->nightshift#stopPropagation">
+      <h3 class="text-emerald-400 mb-6 text-lg font-bold">&#9999;&#65039; Edit Mission</h3>
       <%= form_with url: nightshift_mission_path(0), method: :patch, local: true, data: { nightshift_target: "editForm" } do %>
-        <label>Name</label>
-        <input type="text" name="nightshift_mission[name]" required data-nightshift-target="editName">
+        <label class="block text-content-muted text-sm mb-1">Name</label>
+        <input type="text" name="nightshift_mission[name]" required data-nightshift-target="editName" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
 
-        <label>Description</label>
-        <textarea name="nightshift_mission[description]" data-nightshift-target="editDescription"></textarea>
+        <label class="block text-content-muted text-sm mb-1">Description</label>
+        <textarea name="nightshift_mission[description]" data-nightshift-target="editDescription" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 min-h-[80px] resize-y box-border"></textarea>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <div class="grid grid-cols-2 gap-2">
           <div>
-            <label>Icon</label>
-            <input type="text" name="nightshift_mission[icon]" data-nightshift-target="editIcon">
+            <label class="block text-content-muted text-sm mb-1">Icon</label>
+            <input type="text" name="nightshift_mission[icon]" data-nightshift-target="editIcon" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
           </div>
           <div>
-            <label>Model</label>
-            <select name="nightshift_mission[model]" data-nightshift-target="editModel">
+            <label class="block text-content-muted text-sm mb-1">Model</label>
+            <select name="nightshift_mission[model]" data-nightshift-target="editModel" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
               <% model_options.each do |model| %>
                 <option value="<%= model %>"><%= model %></option>
               <% end %>
@@ -404,30 +267,30 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <div class="grid grid-cols-2 gap-2">
           <div>
-            <label>Category</label>
-            <select name="nightshift_mission[category]" data-nightshift-target="editCategory">
+            <label class="block text-content-muted text-sm mb-1">Category</label>
+            <select name="nightshift_mission[category]" data-nightshift-target="editCategory" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
               <% @categories.each do |cat| %>
                 <option value="<%= cat %>"><%= cat %></option>
               <% end %>
             </select>
           </div>
           <div>
-            <label>Est. Minutes</label>
-            <input type="number" name="nightshift_mission[estimated_minutes]" data-nightshift-target="editMinutes">
+            <label class="block text-content-muted text-sm mb-1">Est. Minutes</label>
+            <input type="number" name="nightshift_mission[estimated_minutes]" data-nightshift-target="editMinutes" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
           </div>
         </div>
 
-        <label>Frequency</label>
-        <select name="nightshift_mission[frequency]" data-nightshift-target="editFrequency" data-action="change->nightshift#toggleEditDays">
+        <label class="block text-content-muted text-sm mb-1">Frequency</label>
+        <select name="nightshift_mission[frequency]" data-nightshift-target="editFrequency" data-action="change->nightshift#toggleEditDays" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
           <% @frequencies.each do |freq| %>
             <option value="<%= freq %>"><%= freq %></option>
           <% end %>
         </select>
 
         <div data-nightshift-target="editDaysWrap" style="display:none;">
-          <label>Days of Week</label>
+          <label class="block text-content-muted text-sm mb-1">Days of Week</label>
           <div class="ns-days-grid">
             <% week_days.each do |day_num, day_label| %>
               <label>
@@ -438,13 +301,13 @@
           </div>
         </div>
 
-        <label>
-          <input type="checkbox" name="nightshift_mission[enabled]" value="1" data-nightshift-target="editEnabled" style="width:auto; margin-right:0.4rem;">Enabled
+        <label class="block text-content-muted text-sm mb-4">
+          <input type="checkbox" name="nightshift_mission[enabled]" value="1" data-nightshift-target="editEnabled" class="w-auto mr-1.5">Enabled
         </label>
 
-        <div class="ns-modal-actions">
-          <button type="button" class="ns-modal-btn" data-action="click->nightshift#closeEditModal">Cancel</button>
-          <button type="submit" class="ns-modal-btn primary">Save Mission</button>
+        <div class="flex gap-2 justify-end">
+          <button type="button" class="px-4 py-2 rounded font-mono text-sm cursor-pointer border border-border bg-transparent text-content-muted" data-action="click->nightshift#closeEditModal">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded font-mono text-sm cursor-pointer bg-emerald-400 text-bg-base border-none font-semibold">Save Mission</button>
         </div>
       <% end %>
     </div>
