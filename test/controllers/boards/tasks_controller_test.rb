@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "test_helper"
 
 class Boards::TasksControllerTest < ActionDispatch::IntegrationTest
@@ -188,11 +190,5 @@ class Boards::TasksControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def sign_in_as(user)
-    post session_path, params: { email_address: user.email_address, password: "password123" }
-  end
 
-  def sign_out
-    delete session_path
-  end
 end

@@ -1,8 +1,14 @@
+# frozen_string_literal: true
+
 
 module Api
   module V1
     class TasksController < BaseController
       include OutputRenderable
+      include Api::TaskDependencyManagement
+      include Api::TaskPipelineManagement
+      include Api::TaskAgentLifecycle
+      include Api::TaskValidationManagement
       before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health ]
 
       # GET /api/v1/tasks/:id/agent_log - get agent transcript for this task
@@ -85,141 +91,8 @@ module Api
         render json: @tasks.map { |task| task_json(task) }
       end
 
-      # PATCH /api/v1/tasks/:id/claim - agent claims a task
-      # Accepts optional session_id/session_key to link session at claim time
-      def claim
-        old_status = @task.status
-        set_task_activity_info(@task)
-
-        # Auto-link session if provided
-        sid = params[:session_id] || params[:agent_session_id]
-        skey = params[:session_key] || params[:agent_session_key]
-
-        now = Time.current
-
-        Task.transaction do
-          @task.lock!
-
-          # Ensure a lease exists so status=in_progress is always truthful.
-          unless @task.runner_leases.active.exists?
-            RunnerLease.create!(
-              task: @task,
-              agent_name: @task.user&.agent_name,
-              lease_token: SecureRandom.hex(24),
-              source: "api_claim",
-              started_at: now,
-              last_heartbeat_at: now,
-              expires_at: now + RunnerLease::LEASE_DURATION
-            )
-          end
-
-          updates = { agent_claimed_at: now, status: :in_progress }
-          updates[:agent_session_id] = sid if sid.present?
-          updates[:agent_session_key] = skey if skey.present?
-
-          @task.update!(updates)
-        end
-
-        # Create notification for agent claim
-        Notification.create_for_agent_claim(@task)
-
-        # Broadcast agent activity started via WebSocket
-        AgentActivityChannel.broadcast_status(@task.id, "in_progress", {
-          agent_claimed: true,
-          session_linked: sid.present?
-        })
-
-        broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
-
-        render json: task_json(@task)
-      end
-
-      # PATCH /api/v1/tasks/:id/unclaim - agent releases a task
-      def unclaim
-        old_status = @task.status
-        set_task_activity_info(@task)
-        Task.transaction do
-          @task.lock!
-          @task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
-          @task.update!(agent_claimed_at: nil, status: :up_next)
-        end
-        broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
-        render json: task_json(@task)
-      end
-
-      # POST /api/v1/tasks/:id/requeue - requeue SAME card back to Up Next after explicit approval
-      #
-      # This is used by the OpenClaw orchestrator after it prompts the human
-      # and receives approval to continue.
-      def requeue
-        old_status = @task.status
-        set_task_activity_info(@task)
-
-        Task.transaction do
-          @task.lock!
-          @task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
-          @task.update!(
-            status: :up_next,
-            agent_claimed_at: nil,
-            agent_session_id: nil,
-            agent_session_key: nil
-          )
-        end
-
-        broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
-        render json: task_json(@task)
-      end
-
-      # PATCH /api/v1/tasks/:id/assign - assign task to agent
-      def assign
-        old_status = @task.status
-        set_task_activity_info(@task)
-        @task.update!(assigned_to_agent: true, assigned_at: Time.current)
-        broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
-        render json: task_json(@task)
-      end
-
-      # PATCH /api/v1/tasks/:id/unassign - unassign task from agent
-      def unassign
-        old_status = @task.status
-        set_task_activity_info(@task)
-        @task.update!(assigned_to_agent: false, assigned_at: nil)
-        broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
-        render json: task_json(@task)
-      end
-
-      # GET /api/v1/tasks/:id/session_health - check agent session health for continuation
-      def session_health
-        unless @task.agent_session_key.present?
-          render json: { alive: false, context_percent: 0, recommendation: "fresh", reason: "no_session" }
-          return
-        end
-
-        # Mock the OpenClaw session status API for now
-        # In the future, this will call: GET {gateway_url}/api/sessions/{session_key}/status
-        # The real API returns: { alive: bool, usage: { inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens } }
-
-        # For now, use stored context_usage_percent or simulate based on session age
-        context_percent = @task.context_usage_percent || simulate_context_usage(@task)
-        alive = context_percent < 100  # Session is "alive" if under 100%
-
-        threshold = current_user&.context_threshold_percent || 70  # Default 70% for public access
-        recommendation = if !alive
-          "fresh"
-        elsif context_percent > threshold
-          "fresh"
-        else
-          "continue"
-        end
-
-        render json: {
-          alive: alive,
-          context_percent: context_percent,
-          recommendation: recommendation,
-          threshold: threshold,
-          session_key: @task.agent_session_key
-        }
-      end
+      # claim, unclaim, requeue, assign, unassign, session_health, link_session, spawn_ready
+      # → Api::TaskAgentLifecycle concern
 
       # POST /api/v1/tasks/:id/generate_followup - generate AI suggestion for followup
       def generate_followup
@@ -410,6 +283,46 @@ module Api
         end
       end
 
+      # GET /api/v1/tasks/export
+      # Params: format (json|csv), board_id, statuses[], tag, include_archived
+      def export
+        exporter = TaskExportService.new(
+          current_user,
+          board_id: params[:board_id],
+          statuses: params[:statuses],
+          tag: params[:tag],
+          include_archived: ActiveModel::Type::Boolean.new.cast(params[:include_archived])
+        )
+
+        case params[:format]&.downcase
+        when "csv"
+          send_data exporter.to_csv, filename: "tasks-#{Date.current.iso8601}.csv", type: "text/csv"
+        else
+          render json: exporter.to_json, content_type: "application/json"
+        end
+      end
+
+      # POST /api/v1/tasks/import
+      # Body: JSON export format { tasks: [...] }
+      def import
+        board = current_user.boards.find(params[:board_id])
+        json_body = request.body.read(5.megabytes)
+
+        if json_body.blank?
+          return render json: { error: "Empty request body" }, status: :bad_request
+        end
+
+        importer = TaskImportService.new(current_user, board)
+        result = importer.import_json(json_body)
+
+        render json: {
+          imported: result.imported,
+          skipped: result.skipped,
+          errors: result.errors,
+          task_ids: result.tasks.map(&:id)
+        }, status: result.imported > 0 ? :created : :unprocessable_entity
+      end
+
       # GET /api/v1/tasks - all tasks for current user
       def index
         @tasks = current_user.tasks
@@ -590,88 +503,19 @@ module Api
       def agent_complete
         set_task_activity_info(@task)
 
-        # Auto-link session if provided and not already set
-        sid = params[:session_id] || params[:agent_session_id]
-        skey = params[:session_key] || params[:agent_session_key]
+        # Delegate to AgentCompletionService (DRY — same logic used in HooksController)
+        result = AgentCompletionService.new(
+          @task,
+          params,
+          session_resolver: method(:resolve_session_id_from_key),
+          transcript_scanner: method(:scan_transcripts_for_task)
+        ).call
 
-        # If we have a session_key but no session_id, try to resolve it from transcript files
-        if skey.present? && sid.blank?
-          sid = resolve_session_id_from_key(skey, @task)
-        end
-
-        @task.agent_session_id = sid if sid.present? && @task.agent_session_id.blank?
-        @task.agent_session_key = skey if skey.present? && @task.agent_session_key.blank?
-
-        # Last resort: scan transcript files for task ID
-        if @task.agent_session_id.blank?
-          scanned_id = scan_transcripts_for_task(@task.id)
-          if scanned_id.present?
-            @task.agent_session_id = scanned_id
-            Rails.logger.info("[agent_complete] Auto-resolved session_id=#{scanned_id} for task #{@task.id} from transcript scan")
-          end
-        end
-
-        # Accept ANY reasonable field name for output text
-        output_text = params[:output].presence || params[:description].presence ||
-                      params[:summary].presence || params[:result].presence ||
-                      params[:text].presence || params[:message].presence ||
-                      params[:content].presence
-
-        # Accept ANY reasonable field name for files
-        raw_files = params[:output_files].presence || params[:files].presence ||
-                    params[:created_files].presence || params[:changed_files].presence ||
-                    params[:modified_files].presence
-
-        Rails.logger.info("agent_complete for task #{@task.id}: output=#{output_text.present?} (#{output_text&.length || 0} chars), files=#{Array(raw_files).size}, params_keys=#{params.keys.join(',')}")
-
-        if output_text.blank? && raw_files.blank?
-          Rails.logger.warn("agent_complete called with no output for task #{@task.id}, params: #{params.except(:controller, :action, :id).to_unsafe_h}")
-        end
-
-        updates = { status: params[:status].presence || :in_review }
-
-        if output_text.present?
-          # Append agent output to description (avoid duplicating if already present)
-          new_description = @task.description.to_s
-          unless new_description.include?("## Agent Output")
-            new_description += "\n\n## Agent Output\n"
-          end
-          new_description += output_text
-          updates[:description] = new_description
-        end
-
-        # Store output files if provided (already extracted above from multiple field names)
-        if raw_files.present?
-          files = Array(raw_files).map(&:to_s).reject(&:blank?)
-          updates[:output_files] = ((@task.output_files || []) + files).uniq
-        end
-
-        # Set completed_at if not already set
-        updates[:completed_at] = Time.current unless @task.completed_at.present?
-
-        # Clear agent claim since work is done
-        updates[:agent_claimed_at] = nil
-
-        @task.update!(updates)
-
-        # Record token usage if provided (Foxhound analytics)
-        record_token_usage(@task, params)
-
-        # Broadcast agent activity completion via WebSocket
-        AgentActivityChannel.broadcast_status(@task.id, "in_review", {
-          output_present: output_text.present?,
-          files_count: (@task.output_files || []).size
-        })
-
-        # Run validation command if present (legacy method for pre-set commands)
-        if @task.validation_command.present?
-          ValidationRunnerService.new(@task).call
+        if result.success?
+          render json: task_json(@task.reload)
         else
-          # Enqueue auto-validation job (generates command from output_files, runs async)
-          AutoValidationJob.perform_later(@task.id)
+          render json: { error: result.error }, status: :unprocessable_entity
         end
-
-        render json: task_json(@task)
       end
 
       # POST /api/v1/tasks/:id/recover_output
@@ -868,84 +712,9 @@ module Api
         }
       end
 
-      # GET /api/v1/tasks/:id/dependencies
-      # Returns the task's dependencies and dependents
-      def dependencies
-        render json: {
-          dependencies: @task.dependencies.map { |t| dependency_json(t) },
-          dependents: @task.dependents.map { |t| dependency_json(t) },
-          blocked: @task.blocked?,
-          blocking_tasks: @task.blocking_tasks.map { |t| dependency_json(t) }
-        }
-      end
-
-      # POST /api/v1/tasks/:id/add_dependency
-      # Add a dependency to this task (this task depends on another)
-      def add_dependency
-        depends_on_id = params[:depends_on_id]
-
-        unless depends_on_id.present?
-          render json: { error: "depends_on_id parameter required" }, status: :bad_request
-          return
-        end
-
-        depends_on = current_user.tasks.find_by(id: depends_on_id)
-
-        unless depends_on
-          render json: { error: "Task #{depends_on_id} not found" }, status: :not_found
-          return
-        end
-
-        begin
-          dependency = @task.task_dependencies.create!(depends_on: depends_on)
-          set_task_activity_info(@task)
-          @task.activity_note = "Added dependency on ##{depends_on.id}: #{depends_on.name.truncate(30)}"
-          @task.touch  # Trigger activity recording
-
-          render json: {
-            success: true,
-            dependency: {
-              id: dependency.id,
-              task_id: @task.id,
-              depends_on_id: depends_on.id,
-              depends_on: dependency_json(depends_on)
-            },
-            blocked: @task.reload.blocked?
-          }
-        rescue ActiveRecord::RecordInvalid => e
-          render json: { error: e.message }, status: :unprocessable_entity
-        end
-      end
-
-      # DELETE /api/v1/tasks/:id/remove_dependency
-      # Remove a dependency from this task
-      def remove_dependency
-        depends_on_id = params[:depends_on_id]
-
-        unless depends_on_id.present?
-          render json: { error: "depends_on_id parameter required" }, status: :bad_request
-          return
-        end
-
-        dependency = @task.task_dependencies.find_by(depends_on_id: depends_on_id)
-
-        unless dependency
-          render json: { error: "Dependency not found" }, status: :not_found
-          return
-        end
-
-        depends_on = dependency.depends_on
-        dependency.destroy!
-
-        set_task_activity_info(@task)
-        @task.activity_note = "Removed dependency on ##{depends_on.id}: #{depends_on.name.truncate(30)}"
-        @task.touch  # Trigger activity recording
-
-        render json: {
-          success: true,
-          blocked: @task.reload.blocked?
-        }
-      end
+      # POST /api/v1/tasks/:id/route_pipeline
+      # route_pipeline, pipeline_info → Api::TaskPipelineManagement concern
+      # dependencies, add_dependency, remove_dependency → Api::TaskDependencyManagement concern
 
       # POST /api/v1/tasks/:id/report_rate_limit
       # Called when a task encounters a rate limit error for its model
@@ -1208,7 +977,7 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, :origin_chat_id, :origin_thread_id, :pipeline_enabled, tags: [], output_files: [], review_config: {}, review_result: {})
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :pipeline_stage, :execution_plan, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, :origin_chat_id, :origin_thread_id, tags: [], output_files: [], review_config: {}, review_result: {})
       end
 
       # Validation command execution delegated to ValidationRunnerService
@@ -1247,73 +1016,11 @@ module Api
       end
 
       def dependency_json(task)
-        {
-          id: task.id,
-          name: task.name,
-          status: task.status,
-          done: task.status.in?(%w[done archived]),
-          blocked: task.blocked?
-        }
+        TaskSerializer.dependency_json(task)
       end
 
       def task_json(task)
-        {
-          id: task.id,
-          name: task.name,
-          description: task.description,
-          original_description: task.original_description,
-          priority: task.priority,
-          status: task.status,
-          blocked: task.blocked?,  # Use method instead of column
-          tags: task.tags || [],
-          completed: task.completed,
-          completed_at: task.completed_at&.iso8601,
-          due_date: task.due_date&.iso8601,
-          position: task.position,
-          assigned_to_agent: task.assigned_to_agent,
-          assigned_at: task.assigned_at&.iso8601,
-          agent_claimed_at: task.agent_claimed_at&.iso8601,
-          board_id: task.board_id,
-          model: task.model,
-          openclaw_spawn_model: task.openclaw_spawn_model,
-          recurring: task.recurring,
-          recurrence_rule: task.recurrence_rule,
-          recurrence_time: task.recurrence_time&.strftime("%H:%M"),
-          next_recurrence_at: task.next_recurrence_at&.iso8601,
-          parent_task_id: task.parent_task_id,
-          agent_session_id: task.agent_session_id,
-          agent_session_key: task.agent_session_key,
-          context_usage_percent: task.context_usage_percent,
-          nightly: task.nightly,
-          nightly_delay_hours: task.nightly_delay_hours,
-          error_message: task.error_message,
-          error_at: task.error_at&.iso8601,
-          retry_count: task.retry_count,
-          run_count: task.respond_to?(:run_count) ? task.run_count : 0,
-          last_run_id: task.respond_to?(:last_run_id) ? task.last_run_id : nil,
-          last_outcome_at: task.respond_to?(:last_outcome_at) ? task.last_outcome_at&.iso8601 : nil,
-          state_data: task.state_data,
-          last_needs_follow_up: task.respond_to?(:last_needs_follow_up) ? task.last_needs_follow_up : nil,
-          last_recommended_action: task.respond_to?(:last_recommended_action) ? task.last_recommended_action : nil,
-          suggested_followup: task.suggested_followup,
-          followup_task_id: task.followup_task_id,
-          validation_command: task.validation_command,
-          validation_status: task.validation_status,
-          validation_output: task.validation_output,
-          review_type: task.review_type,
-          review_status: task.review_status,
-          review_config: task.review_config,
-          review_result: task.review_result,
-          agent_persona_id: task.agent_persona_id,
-          agent_persona: task.agent_persona ? { id: task.agent_persona.id, name: task.agent_persona.name, emoji: task.agent_persona.emoji } : nil,
-          output_files: task.output_files || [],
-          dependencies: task.dependencies.map { |t| dependency_json(t) },
-          dependents: task.dependents.map { |t| dependency_json(t) },
-          blocking_tasks: task.blocking_tasks.map { |t| dependency_json(t) },
-          url: "https://clawdeck.io/boards/#{task.board_id}/tasks/#{task.id}",
-          created_at: task.created_at.iso8601,
-          updated_at: task.updated_at.iso8601
-        }
+        TaskSerializer.new(task).as_json
       end
     end
   end

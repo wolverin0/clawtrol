@@ -1,15 +1,17 @@
 <%# Board Header - Decomposed into sub-partials for maintainability %>
 <%# Sub-partials: _controls, _board_tabs, _filter_bar, _board_modals %>
-<header class="flex-shrink-0 bg-bg-base border-b border-border <%= 'vaporwave-header' if current_user&.theme == 'vaporwave' %>">
-  <%# Row 1: Logo + Controls (nav icons, status cluster, notifications, user dropdown) %>
-  <%= render "boards/controls" %>
+<div data-controller="board-modal">
+  <header class="flex-shrink-0 bg-bg-base border-b border-border <%= 'vaporwave-header' if current_user&.theme == 'vaporwave' %>">
+    <%# Row 1: Logo + Controls (nav icons, status cluster, notifications, user dropdown) %>
+    <%= render "boards/controls" %>
 
-  <%# Row 1b: Board Tabs (mobile dropdown + desktop horizontal tabs) %>
-  <%= render "boards/board_tabs" %>
+    <%# Row 1b: Board Tabs (mobile dropdown + desktop horizontal tabs) %>
+    <%= render "boards/board_tabs" %>
 
-  <%# Row 2: Filters Bar (desktop expanded + mobile collapsible) %>
-  <%= render "boards/filter_bar" %>
-</header>
+    <%# Row 2: Filters Bar (desktop expanded + mobile collapsible) %>
+    <%= render "boards/filter_bar" %>
+  </header>
 
-<%# Board Modals (New Board + Board Settings) %>
-<%= render "boards/board_modals" %>
+  <%# Board Modals (New Board + Board Settings) %>
+  <%= render "boards/board_modals" %>
+</div>

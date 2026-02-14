@@ -1,19 +1,47 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Connects to data-controller="flash"
+/**
+ * Flash message controller — auto-dismiss + screen reader announcement.
+ *
+ * Usage:
+ *   <div data-controller="flash"
+ *        data-flash-type-value="notice"
+ *        role="alert">
+ *     Your message here
+ *   </div>
+ */
 export default class extends Controller {
+  static values = {
+    type: { type: String, default: "notice" },  // "notice", "alert", "error"
+    duration: { type: Number, default: 3000 }
+  }
+
   connect() {
-    // Auto-dismiss after 3 seconds
-    setTimeout(() => {
+    // Announce to screen readers via live region
+    const message = this.element.textContent.trim()
+    if (message) {
+      const priority = this.typeValue === "error" || this.typeValue === "alert"
+        ? "assertive"
+        : "polite"
+      window.dispatchEvent(new CustomEvent("announce", {
+        detail: { message, priority }
+      }))
+    }
+
+    // Auto-dismiss after configured duration
+    this._timeout = setTimeout(() => {
       this.dismiss()
-    }, 3000)
+    }, this.durationValue)
+  }
+
+  disconnect() {
+    if (this._timeout) clearTimeout(this._timeout)
   }
 
   dismiss() {
-    // Add fade-out animation
-    this.element.classList.add("opacity-0", "transition-opacity", "duration-500")
+    this.element.classList.add("opacity-0")
+    this.element.style.transition = "opacity 500ms ease-out"
 
-    // Remove element from DOM after animation completes
     setTimeout(() => {
       this.element.remove()
     }, 500)

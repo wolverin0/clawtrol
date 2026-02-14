@@ -1,16 +1,23 @@
-module SessionTestHelper
-  def sign_in_as(user)
-    Current.session = user.sessions.create!
+# frozen_string_literal: true
 
-    ActionDispatch::TestRequest.create.cookie_jar.tap do |cookie_jar|
-      cookie_jar.signed[:session_id] = Current.session.id
-      cookies["session_id"] = cookie_jar[:session_id]
-    end
+# Shared authentication helpers for all test types.
+#
+# Integration tests (ActionDispatch::IntegrationTest) use sign_in_as
+# which performs a real HTTP POST to the session endpoint.
+#
+# Unit tests can override with direct cookie manipulation if needed.
+module SessionTestHelper
+  # Sign in via HTTP POST — exercises the full authentication flow.
+  # Works in ActionDispatch::IntegrationTest (controller/integration tests).
+  def sign_in_as(user, password: "password123")
+    post session_path, params: {
+      email_address: user.email_address,
+      password: password
+    }
   end
 
   def sign_out
-    Current.session&.destroy!
-    cookies.delete("session_id")
+    delete session_path
   end
 end
 

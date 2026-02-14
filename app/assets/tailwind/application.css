@@ -850,6 +850,123 @@
   }
 }
 
+/* === ANIMATED GRADIENT BORDERS ON ACTIVE/FOCUSED ELEMENTS === */
+@keyframes neonBorderRotate {
+  0% { --angle: 0deg; }
+  100% { --angle: 360deg; }
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+[data-theme="vaporwave"] input:focus,
+[data-theme="vaporwave"] textarea:focus,
+[data-theme="vaporwave"] select:focus {
+  border-color: transparent !important;
+  background-image: linear-gradient(var(--color-bg-surface), var(--color-bg-surface)),
+    conic-gradient(from var(--angle), #FF71CE, #01CDFE, #B967FF, #05FFA1, #FF71CE);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  animation: neonBorderRotate 3s linear infinite;
+  box-shadow: 0 0 15px rgba(185, 103, 255, 0.3);
+}
+
+/* === NEON GLOW ON BUTTONS === */
+[data-theme="vaporwave"] button:hover,
+[data-theme="vaporwave"] a.btn:hover,
+[data-theme="vaporwave"] [role="button"]:hover {
+  text-shadow: 0 0 8px rgba(255, 113, 206, 0.6), 0 0 20px rgba(1, 205, 254, 0.3);
+}
+
+[data-theme="vaporwave"] button:active,
+[data-theme="vaporwave"] a.btn:active {
+  text-shadow: 0 0 12px rgba(255, 113, 206, 0.9), 0 0 30px rgba(1, 205, 254, 0.5);
+  transform: scale(0.98);
+}
+
+/* === GRADIENT TEXT ON ACTIVE NAV LINKS === */
+[data-theme="vaporwave"] .nav-active,
+[data-theme="vaporwave"] [aria-current="page"] {
+  background: linear-gradient(90deg, #FF71CE, #01CDFE, #B967FF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 4s ease-in-out infinite;
+  background-size: 200% auto;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+}
+
+/* === NEON SCROLLBAR === */
+[data-theme="vaporwave"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-theme="vaporwave"] ::-webkit-scrollbar-track {
+  background: var(--color-bg-base);
+}
+
+[data-theme="vaporwave"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #FF71CE, #B967FF);
+  border-radius: 3px;
+}
+
+[data-theme="vaporwave"] ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #FF9AD9, #D09FFF);
+  box-shadow: 0 0 8px rgba(185, 103, 255, 0.5);
+}
+
+/* === CRT SCANLINE TOGGLE (add .no-scanlines to body to disable) === */
+[data-theme="vaporwave"] body.no-scanlines::after {
+  display: none !important;
+}
+
+/* === CRT FLICKER EFFECT (optional, add .crt-flicker to body) === */
+[data-theme="vaporwave"] body.crt-flicker {
+  animation: crtFlicker 0.15s infinite;
+}
+
+@keyframes crtFlicker {
+  0% { opacity: 0.97; }
+  50% { opacity: 1; }
+  100% { opacity: 0.98; }
+}
+
+/* === PULSING NEON STATUS DOTS === */
+[data-theme="vaporwave"] .status-dot-in-progress {
+  animation: neonPulse-pink 2s ease-in-out infinite;
+}
+
+[data-theme="vaporwave"] .status-dot-in-review {
+  animation: neonPulse-purple 2s ease-in-out infinite;
+}
+
+@keyframes neonPulse-pink {
+  0%, 100% { box-shadow: 0 0 4px #FF71CE, 0 0 8px rgba(255, 113, 206, 0.4); }
+  50% { box-shadow: 0 0 8px #FF71CE, 0 0 20px rgba(255, 113, 206, 0.6), 0 0 40px rgba(255, 113, 206, 0.2); }
+}
+
+@keyframes neonPulse-purple {
+  0%, 100% { box-shadow: 0 0 4px #B967FF, 0 0 8px rgba(185, 103, 255, 0.4); }
+  50% { box-shadow: 0 0 8px #B967FF, 0 0 20px rgba(185, 103, 255, 0.6), 0 0 40px rgba(185, 103, 255, 0.2); }
+}
+
+/* === PANEL SLIDE-IN NEON BORDER === */
+[data-theme="vaporwave"] [data-task-panel-target="panel"] {
+  border-left: 2px solid transparent;
+  background-image: linear-gradient(var(--color-bg-surface), var(--color-bg-surface)),
+    linear-gradient(180deg, #FF71CE, #01CDFE, #B967FF);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
 /* Self-hosted font fallbacks - ensures fonts render even offline */
 @font-face {
   font-family: 'Clash Display Fallback';

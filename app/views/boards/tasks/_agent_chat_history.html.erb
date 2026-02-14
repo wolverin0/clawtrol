@@ -1,0 +1,70 @@
+<%# Agent-to-Agent Chat History partial
+     Expects: task (Task with agent_messages association) %>
+<% messages = task.agent_messages.chronological.limit(50) %>
+<% if messages.any? %>
+  <div class="mt-4" data-controller="agent-chat-history" data-agent-chat-history-task-id-value="<%= task.id %>">
+    <h4 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+      <span>💬</span>
+      <span>Agent Chat History</span>
+      <span class="text-xs font-normal text-gray-500">(<%= messages.size %> messages)</span>
+    </h4>
+
+    <div class="space-y-3 max-h-96 overflow-y-auto pr-1" data-agent-chat-history-target="container">
+      <% messages.each do |msg| %>
+        <div class="flex <%= msg.outgoing? ? 'justify-end' : 'justify-start' %>">
+          <div class="max-w-[85%] rounded-lg px-3 py-2 text-sm
+                      <%= msg.outgoing? ? 'bg-indigo-900/40 border border-indigo-700/30' : 'bg-gray-800/60 border border-gray-700/30' %>
+                      <%= msg.message_type == 'error' ? 'border-red-700/50 bg-red-900/20' : '' %>">
+
+            <%# Header: sender + type badge %>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs"><%= msg.display_icon %></span>
+              <span class="font-medium text-xs <%= msg.outgoing? ? 'text-indigo-300' : 'text-gray-300' %>">
+                <%= msg.display_sender %>
+              </span>
+              <% if msg.sender_model.present? %>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-400">
+                  <%= msg.sender_model %>
+                </span>
+              <% end %>
+              <% if msg.handoff? && msg.source_task.present? %>
+                <span class="text-[10px] text-gray-500">
+                  <%= msg.incoming? ? "from" : "to" %> #<%= msg.source_task_id %>
+                </span>
+              <% end %>
+            </div>
+
+            <%# Content (truncated, expandable) %>
+            <div class="text-gray-300 text-xs leading-relaxed">
+              <% if msg.content.length > 300 %>
+                <div data-agent-chat-history-target="truncated" data-message-id="<%= msg.id %>">
+                  <%= simple_format(msg.truncated_content(300), class: "inline") %>
+                  <button class="text-indigo-400 hover:text-indigo-300 text-[10px] ml-1"
+                          data-action="click->agent-chat-history#expand"
+                          data-message-id="<%= msg.id %>">
+                    Show more ▼
+                  </button>
+                </div>
+                <div data-agent-chat-history-target="full" data-message-id="<%= msg.id %>" class="hidden">
+                  <%= simple_format(msg.content, class: "inline") %>
+                  <button class="text-indigo-400 hover:text-indigo-300 text-[10px] ml-1"
+                          data-action="click->agent-chat-history#collapse"
+                          data-message-id="<%= msg.id %>">
+                    Show less ▲
+                  </button>
+                </div>
+              <% else %>
+                <%= simple_format(msg.content, class: "inline") %>
+              <% end %>
+            </div>
+
+            <%# Timestamp %>
+            <div class="text-[10px] text-gray-500 mt-1 text-right">
+              <%= msg.created_at.strftime("%b %d %H:%M") %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>

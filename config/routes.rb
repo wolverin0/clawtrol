@@ -1,16 +1,20 @@
 Rails.application.routes.draw do
+  # ActionCable endpoint (required for Turbo Streams + custom channels)
   mount ActionCable.server => "/cable"
 
+  # API routes
   namespace :api do
     namespace :v1 do
       resource :settings, only: [ :show, :update ]
 
+      # Agent Personas
       resources :agent_personas, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
           post :import
         end
       end
 
+      # Notifications
       resources :notifications, only: [:index] do
         collection do
           post :mark_all_read
@@ -21,15 +25,18 @@ Rails.application.routes.draw do
         end
       end
 
+      # Model rate limit tracking
       get "models/status", to: "model_limits#status"
       post "models/best", to: "model_limits#best"
       post "models/:model_name/limit", to: "model_limits#record_limit"
       delete "models/:model_name/limit", to: "model_limits#clear_limit"
 
+      # Analytics
       namespace :analytics do
         get :tokens
       end
 
+      # Gateway proxy endpoints
       namespace :gateway do
         get :health
         get :channels
@@ -37,9 +44,20 @@ Rails.application.routes.draw do
         get :models
       end
 
+      # Model performance comparison
+      get "model_performance", to: "model_performance#show"
+      get "model_performance/summary", to: "model_performance#summary"
+
       resources :saved_links, only: [:index, :create, :update] do
         collection do
           get :pending
+        end
+      end
+
+      # Feed entries (n8n pushes RSS/feed items here)
+      resources :feed_entries, only: [:index, :create, :update] do
+        collection do
+          get :stats
         end
       end
 
@@ -55,18 +73,21 @@ Rails.application.routes.draw do
         end
       end
 
+      # Task templates for slash commands
       resources :task_templates, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
           post :apply
         end
       end
 
+      # Nightshift API
       get "nightshift/tasks", to: "nightshift#tasks"
       post "nightshift/launch", to: "nightshift#launch"
       post "nightshift/arm", to: "nightshift#arm"
       get "nightshift/selections", to: "nightshift#selections"
       patch "nightshift/selections/:id", to: "nightshift#update_selection"
 
+      # Nightshift Missions API (v2)
       get "nightshift/missions", to: "nightshift#missions"
       post "nightshift/missions", to: "nightshift#create_mission"
       patch "nightshift/missions/:id", to: "nightshift#update_mission"
@@ -77,6 +98,7 @@ Rails.application.routes.draw do
       post "nightshift/sync_tonight", to: "nightshift#sync_tonight"
       post "nightshift/report_execution", to: "nightshift#report_execution"
 
+      # Factory API
       get "factory/loops", to: "factory_loops#index"
       post "factory/loops", to: "factory_loops#create"
       get "factory/loops/:id", to: "factory_loops#show"
@@ -97,7 +119,7 @@ Rails.application.routes.draw do
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
 
-      # Pipeline API
+      # Pipeline API (ClawRouter 3-layer pipeline)
       get "pipeline/status", to: "pipeline#status"
       post "pipeline/enable_board/:board_id", to: "pipeline#enable_board"
       post "pipeline/disable_board/:board_id", to: "pipeline#disable_board"
@@ -111,6 +133,8 @@ Rails.application.routes.draw do
           get :recurring
           get :errored_count
           post :spawn_ready
+          get :export
+          post :import
         end
         member do
           patch :complete
@@ -135,9 +159,17 @@ Rails.application.routes.draw do
           post :complete_review
           post :recover_output
           get :file
+          post :route_pipeline
+          get :pipeline_info
           post :add_dependency
           delete :remove_dependency
           get :dependencies
+        end
+
+        resources :agent_messages, only: [:index] do
+          collection do
+            get :thread
+          end
         end
       end
     end
@@ -160,13 +192,28 @@ Rails.application.routes.draw do
     post :test_notification
   end
 
+  # Link Inbox
   resources :saved_links, only: [:index, :create, :destroy] do
     post :process_all, on: :collection
   end
 
+  # Feed Monitor Dashboard
+  resources :feeds, only: [:index, :show, :update, :destroy] do
+    collection do
+      post :mark_read
+    end
+    member do
+      post :dismiss
+    end
+  end
+
+  # Dashboard overview page
   get "dashboard", to: "dashboard#show"
+
+  # Web Terminal
   get "terminal", to: "terminal#show"
 
+  # Notifications
   resources :notifications, only: [:index] do
     member do
       patch :mark_read
@@ -176,8 +223,10 @@ Rails.application.routes.draw do
     end
   end
 
+  # Agent Swarm View
   get "command", to: "command#index"
 
+  # Cron jobs (OpenClaw Gateway)
   resources :cronjobs, only: [:index, :create, :destroy] do
     member do
       post :toggle
@@ -185,8 +234,10 @@ Rails.application.routes.draw do
     end
   end
 
+  # Token usage
   resources :tokens, only: [:index]
 
+  # Workflows
   resources :workflows, only: [:index, :new, :create, :edit, :update] do
     collection do
       get :editor
@@ -196,25 +247,35 @@ Rails.application.routes.draw do
     end
   end
 
+  # Global search
   get "search", to: "search#index"
+
+  # Analytics page
   get "analytics", to: "analytics#show"
+
+  # API Keys management
   get "keys", to: "keys#index"
   patch "keys", to: "keys#update"
 
+  # Nightshift mission control
   get "nightshift", to: "nightshift#index"
   post "nightshift/launch", to: "nightshift#launch"
   post "nightshift/missions", to: "nightshift#create", as: :nightshift_missions
   patch "nightshift/missions/:id", to: "nightshift#update", as: :nightshift_mission
   delete "nightshift/missions/:id", to: "nightshift#destroy"
 
+  # Nightbeat morning brief
   get "nightbeat", to: "nightbeat#index"
 
+  # Swarm
   get "swarm", to: "swarm#index"
   post "swarm/launch/:id", to: "swarm#launch", as: :swarm_launch
   post "swarm", to: "swarm#create", as: :create_swarm_idea
   delete "swarm/:id", to: "swarm#destroy", as: :destroy_swarm_idea
 
+  # Factory dashboard
   get "factory", to: "factory#index"
+  get "factory/playground", to: "factory#playground", as: :factory_playground
   post "factory/loops", to: "factory#create", as: :factory_loops
   patch "factory/loops/:id", to: "factory#update", as: :factory_loop
   delete "factory/loops/:id", to: "factory#destroy", as: :factory_loop_delete
@@ -224,6 +285,7 @@ Rails.application.routes.draw do
   post "factory/bulk_play", to: "factory#bulk_play", as: :factory_bulk_play
   post "factory/bulk_pause", to: "factory#bulk_pause", as: :factory_bulk_pause
 
+  # Agent Personas
   resources :agent_personas do
     collection do
       post :import
@@ -231,11 +293,13 @@ Rails.application.routes.draw do
     end
   end
 
+  # Boards (multi-board kanban views)
   resources :boards, only: [ :index, :show, :create, :update, :destroy ] do
     member do
       patch :update_task_status
       get :archived
       get :column
+      get :dependency_graph
     end
     resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "boards/tasks" do
       collection do
@@ -267,19 +331,30 @@ Rails.application.routes.draw do
     end
   end
 
+  # Redirect root board path to first board
   get "board", to: redirect { |params, request| "/boards" }
+
+  # Mobile quick-add task
+  get "quick_add", to: "quick_add#new", as: :quick_add
+  post "quick_add", to: "quick_add#create"
+
   get "pages/home"
 
+  # Health check
   get "up" => "rails/health#show", as: :rails_health_check
+
+  # PWA
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
+  # Output gallery for agent-generated content
   resources :outputs, only: [:index, :show], controller: "previews" do
     member do
       get :raw
     end
   end
 
+  # Showcase gallery for redesign mockups
   resources :showcases, only: [:index, :show] do
     member do
       get :raw
@@ -287,6 +362,7 @@ Rails.application.routes.draw do
     end
   end
 
+  # Marketing docs file browser
   get "marketing", to: "marketing#index", as: :marketing
   get "marketing/playground", to: "marketing#playground", as: :marketing_playground
   get "marketing/generated_content", to: "marketing#generated_content", as: :marketing_generated_content
@@ -294,8 +370,10 @@ Rails.application.routes.draw do
   post "marketing/publish", to: "marketing#publish_to_n8n", as: :marketing_publish
   get "marketing/*path", to: "marketing#show", as: :marketing_show, format: false
 
+  # File viewer (workspace files, no auth)
   get "view", to: "file_viewer#show"
   get "files", to: "file_viewer#browse", as: :browse_files
 
+  # Root
   root "pages#home"
 end

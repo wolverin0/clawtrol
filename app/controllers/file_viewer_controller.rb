@@ -1,5 +1,8 @@
+# frozen_string_literal: true
+
 class FileViewerController < ApplicationController
   allow_unauthenticated_access
+  rate_limit to: 60, within: 1.minute, with: -> { render plain: "Rate limit exceeded. Try again later.", status: :too_many_requests }
   include MarkdownSanitizationHelper
 
   WORKSPACE = Pathname.new(File.expand_path("~/.openclaw/workspace")).freeze

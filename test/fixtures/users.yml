@@ -1,6 +1,10 @@
-one:
+one: &default
   email_address: one@example.com
   password_digest: <%= BCrypt::Password.create('password123') %>
+
+default:
+  <<: *default
+  email_address: default@example.com
 
 two:
   email_address: two@example.com

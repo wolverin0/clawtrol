@@ -1,0 +1,54 @@
+<%# Saved Links Widget — shows pending count and recent links %>
+<div class="bg-bg-elevated border border-border rounded-xl p-4">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="text-sm font-semibold text-content flex items-center gap-2">
+      🔗 Saved Links
+      <% if @saved_links_pending > 0 %>
+        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-accent/20 text-accent">
+          <%= @saved_links_pending %> pending
+        </span>
+      <% end %>
+    </h3>
+    <%= link_to saved_links_path, class: "text-xs text-content-muted hover:text-accent transition-colors" do %>
+      View all →
+    <% end %>
+  </div>
+
+  <% if @saved_links_recent.any? %>
+    <div class="space-y-1.5">
+      <% @saved_links_recent.each do |link| %>
+        <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-bg-hover transition-colors group">
+          <%# Source type icon %>
+          <span class="text-xs flex-shrink-0"><%= case link.source_type
+            when "youtube" then "🎬"
+            when "x" then "𝕏"
+            when "reddit" then "🔴"
+            else "📄"
+            end %></span>
+
+          <%# Link title/url %>
+          <div class="min-w-0 flex-1">
+            <a href="<%= link.url %>" target="_blank" rel="noopener noreferrer"
+               class="text-xs text-content hover:text-accent transition-colors truncate block"
+               title="<%= link.url %>">
+              <%= link.title.present? ? link.title.truncate(60) : URI.parse(link.url).host rescue link.url.truncate(60) %>
+            </a>
+          </div>
+
+          <%# Status badge %>
+          <span class="flex-shrink-0 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium
+            <%= case link.status
+                when 'done' then 'bg-green-500/20 text-green-400'
+                when 'failed' then 'bg-red-500/20 text-red-400'
+                when 'processing' then 'bg-yellow-500/20 text-yellow-400'
+                else 'bg-bg-elevated text-content-muted'
+                end %>">
+            <%= link.status %>
+          </span>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-xs text-content-muted py-2">No saved links yet. Use the Link Inbox to save URLs.</p>
+  <% end %>
+</div>

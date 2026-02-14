@@ -39,6 +39,10 @@
     <% end %>
   </head>
   <body class="h-screen overflow-hidden bg-bg-base font-body" data-controller="turbo-progress keyboard-shortcuts sound" data-theme="<%= current_user&.theme || 'default' %>">
+    <%# Skip navigation for keyboard/screen reader users %>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:bg-accent focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-medium focus:shadow-lg">
+      Skip to main content
+    </a>
     <% if current_user&.theme == 'vaporwave' %>
       <%# Vaporwave V2: Floating Color Blobs %>
       <div class="vaporwave-blob vaporwave-blob-1"></div>
@@ -49,7 +53,7 @@
     <% if @board_page %>
       <%# Board page - full screen, no wrapper %>
       <div class="h-screen flex flex-col bg-bg-base">
-        <main class="h-full text-content-secondary font-normal text-sm" data-agent-terminal-aware>
+        <main id="main-content" class="h-full text-content-secondary font-normal text-sm" data-agent-terminal-aware>
           <%= yield %>
         </main>
       </div>
@@ -89,13 +93,19 @@
       <div class="h-screen flex flex-col bg-bg-base">
         <%= render "application/navbar" %>
         <div class="flex-1 overflow-y-auto px-4 scroll-safe-bottom overscroll-contain [-webkit-overflow-scrolling:touch]">
-          <main class="container max-w-7xl mx-auto text-content-secondary font-normal text-sm">
+          <main id="main-content" class="container max-w-7xl mx-auto text-content-secondary font-normal text-sm">
             <%= yield %>
           </main>
         </div>
       </div>
     <% end %>
     <div id="flash-messages"></div>
+
+    <%# ARIA live regions for screen reader announcements %>
+    <div data-controller="live-region" class="sr-only">
+      <div data-live-region-target="polite" aria-live="polite" aria-atomic="true"></div>
+      <div data-live-region-target="assertive" aria-live="assertive" aria-atomic="true"></div>
+    </div>
     <%= render "shared/command_palette" if current_user %>
   </body>
 </html>

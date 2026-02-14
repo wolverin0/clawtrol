@@ -1,6 +1,9 @@
+# frozen_string_literal: true
+
 class RegistrationsController < ApplicationController
   allow_unauthenticated_access only: %i[new create]
   redirect_authenticated_users only: %i[new create]
+  rate_limit to: 5, within: 10.minutes, only: :create, with: -> { redirect_to new_registration_path, alert: "Too many registration attempts. Try again later." }
   before_action :check_registration_allowed, only: [:new, :create]
   layout "auth"
 

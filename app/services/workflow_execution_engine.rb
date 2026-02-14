@@ -202,7 +202,7 @@ class WorkflowExecutionEngine
           client.send_message(interpolated)
           logs << "notification: sent via OpenClaw gateway"
           status = "ok"
-        rescue => e
+        rescue StandardError => e
           logs << "notification: failed to send — #{e.message}"
           status = "error"
         end
@@ -284,7 +284,7 @@ class WorkflowExecutionEngine
       # Default: treat non-empty strings as truthy
       expr.strip.present?
     end
-  rescue => e
+  rescue StandardError => e
     Rails.logger.warn("[WorkflowEngine] expression eval failed: #{e.message}")
     false
   end

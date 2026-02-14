@@ -1,0 +1,51 @@
+<% content_for :title, "Dependency Graph — #{@board.name}" %>
+
+<div class="min-h-screen bg-bg-base p-4"
+     data-controller="dependency-graph"
+     data-dependency-graph-url-value="<%= dependency_graph_board_path(@board, format: :json) %>">
+
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center gap-3">
+      <%= link_to board_path(@board), class: "text-content-muted hover:text-content transition-colors" do %>
+        ← Back to Board
+      <% end %>
+      <h1 class="text-xl font-bold text-content font-display">
+        🕸️ Dependency Graph — <%= @board.name %>
+      </h1>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button data-action="click->dependency-graph#resetZoom"
+              class="px-3 py-1.5 text-xs bg-bg-elevated border border-border rounded-lg text-content-secondary hover:text-content transition-colors">
+        Reset Zoom
+      </button>
+      <button data-action="click->dependency-graph#toggleLabels"
+              class="px-3 py-1.5 text-xs bg-bg-elevated border border-border rounded-lg text-content-secondary hover:text-content transition-colors">
+        Toggle Labels
+      </button>
+    </div>
+  </div>
+
+  <%# Legend %>
+  <div class="flex items-center gap-4 mb-3 text-xs text-content-muted">
+    <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-blue-500"></span> Inbox</span>
+    <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-purple-500"></span> Up Next</span>
+    <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-yellow-500"></span> In Progress</span>
+    <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-orange-500"></span> In Review</span>
+    <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-green-500"></span> Done</span>
+    <span class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-full bg-red-500 ring-2 ring-red-400/50"></span> Blocked</span>
+    <span class="text-content-muted">→ Arrow = "depends on"</span>
+  </div>
+
+  <%# Graph container %>
+  <div data-dependency-graph-target="container"
+       class="w-full bg-bg-surface border border-border rounded-xl overflow-hidden"
+       style="height: calc(100vh - 180px);">
+    <svg data-dependency-graph-target="svg" class="w-full h-full"></svg>
+  </div>
+
+  <%# Tooltip %>
+  <div data-dependency-graph-target="tooltip"
+       class="hidden fixed z-50 pointer-events-none bg-bg-surface border border-border rounded-lg shadow-xl px-3 py-2 text-sm text-content max-w-xs">
+  </div>
+</div>

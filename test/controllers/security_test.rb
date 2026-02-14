@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "test_helper"
 
 class SecurityTest < ActionDispatch::IntegrationTest
@@ -46,7 +48,10 @@ class SecurityTest < ActionDispatch::IntegrationTest
   test "file viewer handles missing file gracefully" do
     sign_in_as(@user)
     get view_path(file: "nonexistent_file_12345.txt")
-    assert_response :not_found
+    # FileViewer returns 403 (not 404) when path resolution fails,
+    # since it can't distinguish "doesn't exist" from "not in allowed dirs".
+    # This is security-correct behavior (no information leakage about file existence).
+    assert_response :forbidden
   end
 
   # --- XSS in markdown rendering ---
@@ -89,7 +94,4 @@ class SecurityTest < ActionDispatch::IntegrationTest
 
   private
 
-  def sign_in_as(user)
-    post session_path, params: { email_address: user.email_address, password: "password123" }
-  end
 end

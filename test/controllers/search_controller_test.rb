@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "test_helper"
 
 class SearchControllerTest < ActionDispatch::IntegrationTest
@@ -30,12 +32,4 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     assert_match(/No results found/, response.body)
   end
 
-  private
-
-  def sign_in_as(user)
-    post session_path, params: {
-      email_address: user.email_address,
-      password: "password123"
-    }
-  end
 end

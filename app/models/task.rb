@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Task < ApplicationRecord
   include Task::Broadcasting
   include Task::Recurring
@@ -16,10 +18,12 @@ class Task < ApplicationRecord
   has_many :notifications, dependent: :destroy
   has_many :token_usages, dependent: :destroy
   has_many :task_diffs, dependent: :destroy
+  has_many :agent_test_recordings, dependent: :nullify
 
   has_many :task_runs, dependent: :destroy
   has_many :agent_transcripts, dependent: :nullify
   has_many :runner_leases, dependent: :destroy
+  has_many :agent_messages, dependent: :destroy
 
   # Task dependencies (blocking relationships)
   has_many :task_dependencies, dependent: :destroy
@@ -50,7 +54,7 @@ class Task < ApplicationRecord
   DEBATE_STYLES = %w[quick thorough adversarial collaborative].freeze
   DEBATE_MODELS = %w[gemini claude glm].freeze
 
-  # Pipeline stages
+  # Pipeline stages (ClawRouter 3-layer pipeline)
   PIPELINE_STAGES = %w[triaged context_ready routed executing verifying completed failed].freeze
 
   # Security: allowed validation command prefixes
@@ -71,12 +75,16 @@ class Task < ApplicationRecord
 
   UNSAFE_COMMAND_PATTERN = /[;|&$`\\!\(\)\{\}<>]|(\$\()|(\|\|)|(&&)/
 
-  validates :name, presence: true
+  validates :name, presence: true, length: { maximum: 500 }
   validates :priority, inclusion: { in: priorities.keys }
   validates :status, inclusion: { in: statuses.keys }
   validates :model, inclusion: { in: MODELS }, allow_nil: true, allow_blank: true
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
   validates :pipeline_stage, inclusion: { in: PIPELINE_STAGES }, allow_nil: true, allow_blank: true
+  validates :description, length: { maximum: 500_000 }, allow_nil: true
+  validates :execution_plan, length: { maximum: 100_000 }, allow_nil: true
+  validates :error_message, length: { maximum: 50_000 }, allow_nil: true
+  validates :validation_command, length: { maximum: 1_000 }, allow_nil: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
 
   attr_accessor :activity_source, :actor_name, :actor_emoji, :activity_note

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class NightshiftController < ApplicationController
 
   def index
@@ -6,7 +8,10 @@ class NightshiftController < ApplicationController
     Rails.cache.fetch("nightshift/sync_crons", expires_in: 5.minutes) { sync_service.sync_crons; true }
 
     @missions = current_user.nightshift_missions.enabled.ordered
-    @selections = NightshiftSelection.for_tonight.index_by(&:nightshift_mission_id)
+    user_mission_ids = current_user.nightshift_missions.pluck(:id)
+    @selections = NightshiftSelection.for_tonight
+      .where(nightshift_mission_id: user_mission_ids)
+      .index_by(&:nightshift_mission_id)
     @due_tonight_ids = @missions.select(&:due_tonight?).map(&:id)
     @total_time = @missions.sum(&:estimated_minutes)
     @categories = NightshiftMission::CATEGORIES
@@ -17,7 +22,11 @@ class NightshiftController < ApplicationController
     selected_ids = params[:mission_ids]&.map(&:to_i) || []
     missions = current_user.nightshift_missions.where(id: selected_ids)
 
-    existing_selections = NightshiftSelection.for_tonight
+    # Scope selections to current user's missions to prevent cross-user data leakage
+    user_mission_ids = current_user.nightshift_missions.pluck(:id)
+    user_selections_tonight = NightshiftSelection.for_tonight.where(nightshift_mission_id: user_mission_ids)
+
+    existing_selections = user_selections_tonight
       .where(nightshift_mission_id: selected_ids)
       .index_by(&:nightshift_mission_id)
 
@@ -35,8 +44,9 @@ class NightshiftController < ApplicationController
 
     NightshiftSelection.insert_all(new_selections) if new_selections.any?
 
-    NightshiftSelection.for_tonight.where(nightshift_mission_id: selected_ids).update_all(enabled: true)
-    NightshiftSelection.for_tonight.where.not(nightshift_mission_id: selected_ids).update_all(enabled: false)
+    # Only update selections belonging to current user's missions
+    user_selections_tonight.where(nightshift_mission_id: selected_ids).update_all(enabled: true)
+    user_selections_tonight.where.not(nightshift_mission_id: selected_ids).update_all(enabled: false)
 
     NightshiftRunnerJob.perform_later if nightshift_hours?
 

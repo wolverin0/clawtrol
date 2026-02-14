@@ -10,6 +10,14 @@ export default class extends Controller {
     if (saved && this.themesValue.includes(saved)) {
       document.body.setAttribute("data-theme", saved)
     }
+    // Restore CRT scanline preference
+    if (localStorage.getItem("clawtrol-no-scanlines") === "true") {
+      document.body.classList.add("no-scanlines")
+    }
+    // Restore CRT flicker preference
+    if (localStorage.getItem("clawtrol-crt-flicker") === "true") {
+      document.body.classList.add("crt-flicker")
+    }
     this.updateLabel()
   }
 
@@ -34,6 +42,16 @@ export default class extends Controller {
 
     if (iconEl) iconEl.textContent = icons[theme] || "\uD83C\uDFA8"
     if (labelEl) labelEl.textContent = labels[theme] || theme
+  }
+
+  toggleScanlines() {
+    const off = document.body.classList.toggle("no-scanlines")
+    localStorage.setItem("clawtrol-no-scanlines", off.toString())
+  }
+
+  toggleFlicker() {
+    const on = document.body.classList.toggle("crt-flicker")
+    localStorage.setItem("clawtrol-crt-flicker", on.toString())
   }
 
   async saveToServer(theme) {

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "test_helper"
 
 class DashboardControllerTest < ActionDispatch::IntegrationTest
@@ -17,12 +19,4 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_select "div.text-2xl.font-bold"  # Check for status cards
   end
 
-  private
-
-  def sign_in_as(user)
-    post session_path, params: {
-      email_address: user.email_address,
-      password: "password123"
-    }
-  end
 end
