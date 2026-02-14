@@ -41,11 +41,11 @@ module Api
       end
 
       def saved_link_params
-        params.permit(:url, :note)
+        params.permit(:url, :note, :audio_summary)
       end
 
       def update_params
-        params.permit(:note, :summary, :raw_content, :status, :processed_at, :error_message)
+        params.permit(:note, :summary, :raw_content, :status, :processed_at, :error_message, :audio_summary, :audio_file_path)
       end
     end
   end
