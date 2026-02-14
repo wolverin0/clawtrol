@@ -1,5 +1,6 @@
 class TaskRun < ApplicationRecord
   belongs_to :task
+  has_one :agent_transcript, dependent: :nullify
 
   RECOMMENDED_ACTIONS = %w[
     in_review

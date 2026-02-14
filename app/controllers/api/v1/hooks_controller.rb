@@ -49,6 +49,19 @@ module Api
         # Persist agent transcript into a stable file within the Rails app (storage/agent_activity)
         activity = persist_agent_activity(task, effective_session_id)
 
+        # Archive transcript to DB
+        if effective_session_id.present?
+          begin
+            tpath = TranscriptParser.transcript_path(effective_session_id)
+            if tpath
+              task_run_record = TaskRun.find_by(run_id: effective_session_id) || TaskRun.find_by(task_id: task.id)
+              AgentTranscript.capture_from_jsonl!(tpath, task: task, task_run: task_run_record, session_id: effective_session_id)
+            end
+          rescue StandardError => e
+            Rails.logger.warn("[HooksController] Failed to archive transcript: #{e.message}")
+          end
+        end
+
         provided_files = params[:output_files].presence || params[:files].presence
         extracted_from_findings = task.extract_output_files_from_findings(findings)
 

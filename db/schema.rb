@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_14_153000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_14_164000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -61,6 +61,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_153000) do
     t.bigint "user_id"
     t.index ["user_id", "name"], name: "index_agent_personas_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_agent_personas_on_user_id"
+  end
+
+  create_table "agent_transcripts", force: :cascade do |t|
+    t.float "cost_usd"
+    t.datetime "created_at", null: false
+    t.integer "input_tokens"
+    t.integer "message_count"
+    t.jsonb "metadata", default: {}
+    t.string "model"
+    t.text "output_text"
+    t.integer "output_tokens"
+    t.text "prompt_text"
+    t.text "raw_jsonl"
+    t.integer "runtime_seconds"
+    t.string "session_id", null: false
+    t.string "session_key"
+    t.string "status", default: "captured"
+    t.bigint "task_id"
+    t.bigint "task_run_id"
+    t.integer "tool_call_count"
+    t.integer "total_tokens"
+    t.datetime "updated_at", null: false
+    t.index ["session_id"], name: "index_agent_transcripts_on_session_id", unique: true
+    t.index ["task_id"], name: "index_agent_transcripts_on_task_id"
+    t.index ["task_run_id"], name: "index_agent_transcripts_on_task_run_id"
   end
 
   create_table "api_tokens", force: :cascade do |t|
@@ -638,6 +663,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_153000) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "agent_personas", "users"
+  add_foreign_key "agent_transcripts", "task_runs"
+  add_foreign_key "agent_transcripts", "tasks"
   add_foreign_key "api_tokens", "users"
   add_foreign_key "boards", "users"
   add_foreign_key "factory_cycle_logs", "factory_loops"
