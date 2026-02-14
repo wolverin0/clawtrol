@@ -59,6 +59,9 @@ Rails.application.configure do
   # Highlight code that enqueued background job in logs.
   config.active_job.verbose_enqueue_logs = true
 
+  # Use SolidQueue for background jobs (recurring tasks, auto-runner, etc.)
+  config.active_job.queue_adapter = :solid_queue
+
   # Highlight code that triggered redirect in logs.
   config.action_dispatch.verbose_redirect_logs = true
 
