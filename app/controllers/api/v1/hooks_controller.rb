@@ -64,6 +64,17 @@ module Api
         merged_files = task.normalized_output_files((task.output_files || []) + candidate_files)
         updates[:output_files] = merged_files if merged_files.any?
 
+        # Preserve original description before first hook overwrite
+        if task.original_description.blank?
+          current = task.description.to_s
+          if current.include?("\n\n---\n\n")
+            _top, rest = current.split("\n\n---\n\n", 2)
+            updates[:original_description] = rest if rest.present?
+          elsif !current.start_with?("## Agent Activity") && !current.start_with?("## Agent Output")
+            updates[:original_description] = current if current.present?
+          end
+        end
+
         updates[:description] = updated_description(task.description.to_s, findings, activity[:activity_markdown])
 
         old_status = task.status
