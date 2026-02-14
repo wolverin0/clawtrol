@@ -85,26 +85,22 @@ module Api
 
         old_status = task.status
 
-        # Auto-review gate: evaluate output before deciding status
+        # Auto-review gate
         auto_review = Pipeline::AutoReviewService.new(task, findings: findings)
         review_result = auto_review.evaluate
 
         case review_result[:decision]
         when :done
           updates[:status] = "done"
-          updates[:completed_at] = Time.current
-          log_auto_review(task, review_result)
+          updates[:completed_at] = Time.current if task.respond_to?(:completed_at)
         when :requeue
           updates[:status] = "up_next"
           updates[:error_message] = review_result[:reason]
-          # Append feedback to description for next agent run
-          feedback = "\n\n## Auto-Review Feedback\n\n#{review_result[:reason]}"
-          updates[:description] = (updates[:description] || task.description.to_s) + feedback
-          log_auto_review(task, review_result)
         when :in_review
-          # Default behavior - keep in_review
-          log_auto_review(task, review_result)
+          # default, already set
         end
+
+        Rails.logger.info("[AutoReview] task=##{task.id} decision=#{review_result[:decision]} reason=#{review_result[:reason]}")
 
         task.update!(updates)
 
@@ -435,16 +431,6 @@ module Api
         end
       end
 
-      def log_auto_review(task, result)
-        Rails.logger.info("[AutoReview] task=##{task.id} decision=#{result[:decision]} reason=#{result[:reason]}")
-        if task.respond_to?(:advance_pipeline_stage!)
-          entry = { stage: "auto_review", decision: result[:decision].to_s, reason: result[:reason], at: Time.current.iso8601 }
-          current_log = Array(task.pipeline_log)
-          task.update_columns(pipeline_log: current_log.push(entry))
-        end
-      rescue StandardError => e
-        Rails.logger.warn("[AutoReview] Failed to log for task ##{task.id}: #{e.message}")
-      end
     end
   end
 end
