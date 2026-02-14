@@ -64,6 +64,12 @@ class BoardsController < ApplicationController
     # Get all boards for the sidebar
     @boards = current_user.boards.order(position: :asc)
 
+    # Pre-compute task counts per board to avoid N+1 in board tabs partial.
+    # Single query: GROUP BY board_id where status != done → Hash { board_id => count }
+    @board_active_counts = current_user.tasks.where.not(status: :done)
+                                       .group(:board_id).count
+    @board_archived_count = @board.tasks.archived.count
+
     # Get API token for agent status display
     @api_token = current_user.api_token
 
@@ -82,6 +88,9 @@ class BoardsController < ApplicationController
   def archived
     @board_page = true
     @boards = current_user.boards.order(position: :asc)
+    @board_active_counts = current_user.tasks.where.not(status: :done)
+                                       .group(:board_id).count
+    @board_archived_count = @board.tasks.archived.count
     # Set empty columns for header partial (it expects @columns to exist)
     @columns = { inbox: [], in_progress: [] }
     tasks = if @board.aggregator?

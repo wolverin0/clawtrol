@@ -5,12 +5,12 @@
       <select onchange="if(this.value) Turbo.visit(this.value)"
               class="flex-1 px-3 py-2 text-sm bg-bg-elevated border border-border rounded-lg text-content focus:outline-none focus:ring-2 focus:ring-accent appearance-none cursor-pointer">
         <% @boards.each do |board| %>
-          <% task_count = board.tasks.where.not(status: :done).count %>
+          <% task_count = @board_active_counts[board.id] || 0 %>
           <option value="<%= board_path(board) %>" <%= 'selected' if board.id == @board.id %>>
             <%= board.icon %> <%= board.name %> (<%= task_count %>)
           </option>
         <% end %>
-        <% archived_count = @board.tasks.archived.count %>
+        <% archived_count = @board_archived_count || 0 %>
         <option value="<%= archived_board_path(@board) %>">📦 Archived (<%= archived_count %>)</option>
       </select>
       <button type="button"
@@ -29,7 +29,7 @@
       <div class="flex flex-nowrap items-center gap-1.5 w-full overflow-x-auto">
       <% @boards.each do |board| %>
         <% active = board.id == @board.id %>
-        <% task_count = board.tasks.where.not(status: :done).count %>
+        <% task_count = @board_active_counts[board.id] || 0 %>
         <% tab_class = if active
           current_user&.theme == 'vaporwave' ? 'vaporwave-tab-active' : 'bg-accent text-content'
         else
@@ -47,7 +47,7 @@
       <% end %>
 
       <%# Archived link %>
-      <% archived_count = @board.tasks.archived.count %>
+      <% archived_count = @board_archived_count || 0 %>
       <%= link_to archived_board_path(@board),
           class: "inline-flex flex-shrink-0 items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-content-muted hover:text-content hover:bg-bg-elevated transition-colors whitespace-nowrap" do %>
         📦

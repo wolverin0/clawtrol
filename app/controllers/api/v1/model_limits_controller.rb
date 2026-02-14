@@ -58,7 +58,12 @@ module Api
 
         # Override with explicit resets_at if provided
         if params[:resets_at].present?
-          limit.update!(resets_at: Time.parse(params[:resets_at]))
+          parsed_time = begin
+            Time.parse(params[:resets_at])
+          rescue ArgumentError
+            nil
+          end
+          limit.update!(resets_at: parsed_time) if parsed_time
         end
 
         render json: {

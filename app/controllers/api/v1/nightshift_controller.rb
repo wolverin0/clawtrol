@@ -42,7 +42,10 @@ module Api
       def tonight
         missions = current_user.nightshift_missions.enabled.ordered
         due = missions.select(&:due_tonight?)
+        # SECURITY: scope selections to current user's missions only
+        user_mission_ids = current_user.nightshift_missions.pluck(:id)
         selections = NightshiftSelection.for_tonight.enabled
+          .where(nightshift_mission_id: user_mission_ids)
 
         render json: {
           due_missions: due.map(&:to_mission_hash),
@@ -53,7 +56,11 @@ module Api
 
       # POST /api/v1/nightshift/tonight/approve
       def approve_tonight
+        # SECURITY: scope all operations to current user's missions only
+        user_mission_ids = current_user.nightshift_missions.pluck(:id)
         mission_ids = params[:mission_ids]&.map(&:to_i) || current_user.nightshift_missions.enabled.select(&:due_tonight?).map(&:id)
+        # Ensure requested mission_ids belong to current user
+        mission_ids = mission_ids & user_mission_ids
         missions = current_user.nightshift_missions.where(id: mission_ids)
 
         existing = NightshiftSelection.for_tonight.where(nightshift_mission_id: mission_ids).index_by(&:nightshift_mission_id)
@@ -66,12 +73,17 @@ module Api
           })
         end
 
+        # SECURITY: only update selections belonging to current user's missions
         NightshiftSelection.for_tonight.where(nightshift_mission_id: mission_ids).update_all(enabled: true)
-        NightshiftSelection.for_tonight.where.not(nightshift_mission_id: mission_ids).update_all(enabled: false)
+        NightshiftSelection.for_tonight
+          .where(nightshift_mission_id: user_mission_ids)
+          .where.not(nightshift_mission_id: mission_ids)
+          .update_all(enabled: false)
         # NOTE: Do NOT set last_run_at here - missions haven't run yet.
         # last_run_at is set by NightshiftEngineService#complete_selection on actual completion.
 
         armed = NightshiftSelection.for_tonight.enabled
+          .where(nightshift_mission_id: user_mission_ids)
         render json: { success: true, armed_count: armed.count, selections: armed }
       end
 
@@ -105,7 +117,11 @@ module Api
       end
 
       def arm
+        # SECURITY: scope all operations to current user's missions only
+        user_mission_ids = current_user.nightshift_missions.pluck(:id)
         mission_ids = (params[:mission_ids] || []).map(&:to_i)
+        # Ensure requested mission_ids belong to current user
+        mission_ids = mission_ids & user_mission_ids
         missions = current_user.nightshift_missions.where(id: mission_ids)
 
         existing = NightshiftSelection.for_tonight.where(nightshift_mission_id: mission_ids).index_by(&:nightshift_mission_id)
@@ -119,9 +135,14 @@ module Api
         end
 
         NightshiftSelection.for_tonight.where(nightshift_mission_id: mission_ids).update_all(enabled: true)
-        NightshiftSelection.for_tonight.where.not(nightshift_mission_id: mission_ids).update_all(enabled: false)
+        # SECURITY: only disable selections for current user's missions, not all users'
+        NightshiftSelection.for_tonight
+          .where(nightshift_mission_id: user_mission_ids)
+          .where.not(nightshift_mission_id: mission_ids)
+          .update_all(enabled: false)
 
         armed = NightshiftSelection.for_tonight.enabled
+          .where(nightshift_mission_id: user_mission_ids)
         render json: { success: true, armed_count: armed.count, selections: armed }
       end
 
@@ -132,11 +153,26 @@ module Api
       end
 
       # POST /api/v1/nightshift/report_execution
+      # NOTE: uses hook token auth (service-to-service), not user auth
       def report_execution
-        mission = NightshiftMission.find_by(name: params[:mission_name])
+        mission_name = params[:mission_name].to_s.strip
+        if mission_name.blank? || mission_name.length > 255
+          return render json: { error: "invalid mission_name" }, status: :bad_request
+        end
+
+        mission = NightshiftMission.find_by(name: mission_name)
         unless mission
           return render json: { error: "mission not found" }, status: :not_found
         end
+
+        # Validate status param against allowed values
+        status = params[:status].to_s
+        unless NightshiftSelection::STATUSES.include?(status)
+          return render json: { error: "invalid status, must be one of: #{NightshiftSelection::STATUSES.join(', ')}" }, status: :bad_request
+        end
+
+        # Truncate result to prevent oversized payloads
+        result = params[:result].to_s.truncate(50_000) if params[:result].present?
 
         selection = NightshiftSelection.find_or_create_by!(
           nightshift_mission_id: mission.id,
@@ -147,11 +183,10 @@ module Api
           sel.status = "pending"
         end
 
-        status = params[:status].to_s
         NightshiftEngineService.new.complete_selection(
           selection,
           status: status,
-          result: params[:result]
+          result: result
         )
 
         render json: selection.reload
@@ -216,7 +251,7 @@ module Api
           "Content-Type" => "application/json",
           "Authorization" => "Bearer #{gateway_token}"
         )
-      rescue => e
+      rescue StandardError => e
         Rails.logger.warn("[Nightshift] Failed to notify OpenClaw: #{e.message}")
       end
     end

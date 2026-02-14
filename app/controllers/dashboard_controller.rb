@@ -53,7 +53,7 @@ class DashboardController < ApplicationController
       Rails.cache.fetch("dashboard/health/#{current_user.id}", expires_in: 15.seconds) do
         client.health
       end
-    rescue => e
+    rescue StandardError
       nil
     end
   end
