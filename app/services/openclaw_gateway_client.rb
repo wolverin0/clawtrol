@@ -42,6 +42,72 @@ class OpenclawGatewayClient
     get_json!("/api/sessions")
   end
 
+  # --- Gateway Status & Health ---
+
+  def health
+    get_json!("/api/health")
+  rescue StandardError => e
+    { "status" => "unreachable", "error" => e.message }
+  end
+
+  # --- Channel Status ---
+
+  def channels_status
+    get_json!("/api/channels/status")
+  rescue StandardError => e
+    { "channels" => [], "error" => e.message }
+  end
+
+  # --- Usage & Cost ---
+
+  def usage_cost
+    get_json!("/api/usage/cost")
+  rescue StandardError => e
+    { "error" => e.message }
+  end
+
+  # --- Cron Management ---
+
+  def cron_list
+    get_json!("/api/cron/list")
+  rescue StandardError => e
+    { "jobs" => [], "error" => e.message }
+  end
+
+  def cron_status
+    get_json!("/api/cron/status")
+  rescue StandardError => e
+    { "error" => e.message }
+  end
+
+  def cron_enable(id)
+    post_json!("/api/cron/enable", body: { id: id })
+  end
+
+  def cron_disable(id)
+    post_json!("/api/cron/disable", body: { id: id })
+  end
+
+  def cron_run(id)
+    post_json!("/api/cron/run", body: { id: id })
+  end
+
+  # --- Models ---
+
+  def models_list
+    get_json!("/api/models/list")
+  rescue StandardError => e
+    { "models" => [], "error" => e.message }
+  end
+
+  # --- Agents ---
+
+  def agents_list
+    get_json!("/api/agents/list")
+  rescue StandardError => e
+    { "agents" => [], "error" => e.message }
+  end
+
   private
 
   def configured?

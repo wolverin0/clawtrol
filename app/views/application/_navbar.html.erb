@@ -30,6 +30,10 @@
 
     <%# Right section: Controls %>
     <div class="flex items-center gap-2">
+      <%# Gateway health indicator %>
+      <% if authenticated? %>
+        <%= render "shared/gateway_health" %>
+      <% end %>
       <%# Mobile hamburger menu %>
       <% if authenticated? %>
         <%= render "shared/mobile_nav" %>

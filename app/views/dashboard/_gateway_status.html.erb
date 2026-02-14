@@ -1,0 +1,23 @@
+<div class="bg-bg-elevated border border-border rounded-xl p-4">
+  <h3 class="text-sm font-semibold text-content mb-3 flex items-center gap-2">
+    <span>🔌</span> OpenClaw Gateway
+  </h3>
+  <% if @gateway_health.present? %>
+    <% is_up = @gateway_health["status"]&.match?(/ok|healthy|running/) %>
+    <div class="flex items-center gap-2 mb-2">
+      <div class="w-3 h-3 rounded-full <%= is_up ? 'bg-emerald-400' : 'bg-red-400' %>"></div>
+      <span class="text-sm font-medium text-content"><%= is_up ? "Connected" : "Offline" %></span>
+    </div>
+    <% if @gateway_health["activeSessions"] %>
+      <div class="text-xs text-content-muted"><%= @gateway_health["activeSessions"] %> active sessions</div>
+    <% end %>
+    <% if @gateway_health["version"] %>
+      <div class="text-xs text-content-muted mt-1">v<%= @gateway_health["version"] %></div>
+    <% end %>
+  <% else %>
+    <div class="flex items-center gap-2">
+      <div class="w-3 h-3 rounded-full bg-gray-500"></div>
+      <span class="text-sm text-content-muted">Not configured</span>
+    </div>
+  <% end %>
+</div>

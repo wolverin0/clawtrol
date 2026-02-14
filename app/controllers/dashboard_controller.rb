@@ -33,5 +33,24 @@ class DashboardController < ApplicationController
 
     # Board list for navigation reference
     @boards = current_user.boards.order(:name)
+
+    # OpenClaw gateway cost data (best-effort, cached)
+    @gateway_cost = begin
+      client = OpenclawGatewayClient.new(current_user)
+      Rails.cache.fetch("dashboard/cost/#{current_user.id}", expires_in: 60.seconds) do
+        client.usage_cost
+      end
+    rescue => e
+      nil
+    end
+
+    @gateway_health = begin
+      client = OpenclawGatewayClient.new(current_user)
+      Rails.cache.fetch("dashboard/health/#{current_user.id}", expires_in: 15.seconds) do
+        client.health
+      end
+    rescue => e
+      nil
+    end
   end
 end
