@@ -1,0 +1,99 @@
+<% content_for :title, "Quick Add Task" %>
+
+<div class="min-h-screen bg-bg-base flex items-start justify-center pt-8 px-4"
+     data-controller="quick-add-voice">
+  <div class="w-full max-w-md">
+    <%# Header %>
+    <div class="flex items-center justify-between mb-6">
+      <%= link_to boards_path, class: "text-content-muted hover:text-content text-sm" do %>
+        ← Boards
+      <% end %>
+      <h1 class="text-xl font-bold text-content font-display">⚡ Quick Add</h1>
+    </div>
+
+    <%# Flash messages %>
+    <% if flash[:notice] %>
+      <div class="mb-4 px-4 py-3 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
+        <%= flash[:notice] %>
+      </div>
+    <% end %>
+    <% if flash[:alert] %>
+      <div class="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+        <%= flash[:alert] %>
+      </div>
+    <% end %>
+
+    <%# Form %>
+    <%= form_with url: quick_add_path, method: :post, local: true, class: "space-y-4" do |f| %>
+
+      <%# Title with voice input %>
+      <div>
+        <label class="block text-xs font-medium text-content-muted mb-1.5">Title</label>
+        <div class="flex gap-2">
+          <input type="text"
+                 name="name"
+                 placeholder="Describe the task..."
+                 autofocus
+                 required
+                 data-quick-add-voice-target="input"
+                 class="flex-1 bg-bg-elevated border border-border rounded-lg px-4 py-3 text-base text-content placeholder-content-muted focus:border-accent focus:outline-none">
+
+          <%# Voice input button (hidden if API unavailable) %>
+          <button type="button"
+                  data-quick-add-voice-target="micButton"
+                  data-action="click->quick-add-voice#toggleRecording"
+                  class="hidden px-4 py-3 bg-bg-elevated border border-border rounded-lg text-content-muted hover:text-accent hover:border-accent transition-colors"
+                  title="Voice input">
+            <span data-quick-add-voice-target="micIcon">🎤</span>
+          </button>
+        </div>
+        <p data-quick-add-voice-target="status" class="hidden text-xs text-accent mt-1"></p>
+      </div>
+
+      <%# Board selector %>
+      <div>
+        <label class="block text-xs font-medium text-content-muted mb-1.5">Board</label>
+        <select name="board_id"
+                class="w-full bg-bg-elevated border border-border rounded-lg px-4 py-3 text-base text-content focus:border-accent focus:outline-none appearance-none">
+          <% @boards.each do |board| %>
+            <option value="<%= board.id %>" <%= "selected" if board == @default_board %>>
+              <%= board.name %>
+            </option>
+          <% end %>
+        </select>
+      </div>
+
+      <%# Optional description %>
+      <div>
+        <label class="block text-xs font-medium text-content-muted mb-1.5">Description (optional)</label>
+        <textarea name="description"
+                  rows="3"
+                  placeholder="Add details..."
+                  class="w-full bg-bg-elevated border border-border rounded-lg px-4 py-3 text-base text-content placeholder-content-muted focus:border-accent focus:outline-none resize-none"></textarea>
+      </div>
+
+      <%# Auto-detected tags preview %>
+      <div data-quick-add-voice-target="tagPreview" class="hidden">
+        <label class="block text-xs font-medium text-content-muted mb-1.5">Auto-detected tags</label>
+        <div data-quick-add-voice-target="tagList" class="flex flex-wrap gap-1.5"></div>
+      </div>
+
+      <%# Submit %>
+      <button type="submit"
+              class="w-full py-3.5 bg-accent text-content-inverse font-semibold rounded-lg text-base hover:bg-accent-hover transition-colors active:scale-[0.98]">
+        Add Task →
+      </button>
+    <% end %>
+
+    <%# Recent tasks created today %>
+    <div class="mt-8 pt-4 border-t border-border">
+      <p class="text-xs font-medium text-content-muted uppercase tracking-wide mb-2">Tip</p>
+      <p class="text-xs text-content-secondary leading-relaxed">
+        Keywords like <code class="text-accent">bug</code>, <code class="text-accent">security</code>,
+        <code class="text-accent">refactor</code>, <code class="text-accent">api</code>,
+        <code class="text-accent">research</code> auto-tag your task.
+        Use 🎤 for voice-to-text (Chrome/Edge).
+      </p>
+    </div>
+  </div>
+</div>

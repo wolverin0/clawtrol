@@ -8,6 +8,14 @@ one:
   priority: none
   completed: false
 
+default:
+  name: Default Test Task
+  user: default
+  board: default
+  status: inbox
+  priority: none
+  completed: false
+
 two:
   name: Test Task Two
   user: two

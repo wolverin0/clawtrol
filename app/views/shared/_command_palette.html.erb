@@ -1,19 +1,33 @@
 <div data-controller="command-palette">
-  <div data-command-palette-target="dialog" class="hidden fixed inset-0 z-[100] flex items-start justify-center pt-[20vh]">
+  <div data-command-palette-target="dialog" class="hidden fixed inset-0 z-[100] flex items-start justify-center pt-[20vh]"
+       role="dialog" aria-modal="true" aria-label="Command palette">
     <%# Backdrop %>
     <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-action="click->command-palette#close"></div>
     <%# Dialog %>
     <div class="relative w-full max-w-lg bg-bg-elevated rounded-xl border border-border shadow-2xl overflow-hidden">
       <div class="flex items-center gap-2 px-4 py-3 border-b border-border">
-        <span class="text-content-muted">🔍</span>
+        <span class="text-content-muted">⌘</span>
         <input data-command-palette-target="input"
                data-action="input->command-palette#search"
-               type="text" placeholder="Search tasks..."
+               type="text" placeholder="Search tasks or type a command…"
                class="flex-1 bg-transparent text-content text-sm outline-none placeholder-content-muted"
-               autocomplete="off">
+               autocomplete="off"
+               role="combobox"
+               aria-label="Command palette search"
+               aria-haspopup="listbox"
+               aria-expanded="false"
+               aria-controls="command-palette-results"
+               aria-autocomplete="list">
         <kbd class="text-xs text-content-muted px-1.5 py-0.5 rounded border border-border bg-bg-surface">ESC</kbd>
       </div>
-      <div data-command-palette-target="results" class="max-h-80 overflow-y-auto"></div>
+      <div id="command-palette-results" data-command-palette-target="results" class="max-h-80 overflow-y-auto">
+        <%# Quick actions and search results rendered by JS %>
+      </div>
+      <div class="flex items-center gap-3 px-4 py-2 border-t border-border text-xs text-content-muted">
+        <span><kbd class="px-1 py-0.5 rounded border border-border bg-bg-surface">↑↓</kbd> navigate</span>
+        <span><kbd class="px-1 py-0.5 rounded border border-border bg-bg-surface">↵</kbd> select</span>
+        <span><kbd class="px-1 py-0.5 rounded border border-border bg-bg-surface">esc</kbd> close</span>
+      </div>
     </div>
   </div>
 </div>

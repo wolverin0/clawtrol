@@ -1,13 +1,13 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  code: MyString
-  email: MyString
-  used_at: 2026-02-13 21:05:22
-  created_by_id: 
+  code: TESTCODE001
+  email:
+  used_at:
+  created_by: one
 
 two:
-  code: MyString
-  email: MyString
+  code: TESTCODE002
+  email: used@example.com
   used_at: 2026-02-13 21:05:22
-  created_by_id: 
+  created_by: one

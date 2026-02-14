@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class BoardsController < ApplicationController
   PER_COLUMN_ITEMS = Task::KANBAN_PER_COLUMN_ITEMS
 
@@ -30,6 +32,8 @@ class BoardsController < ApplicationController
     # Per-column pagination (initial render only shows first page)
     statuses = %i[inbox up_next in_progress in_review done]
 
+    # Single grouped COUNT instead of 5 separate queries
+    all_counts = @tasks.group(:status).count
     @column_counts = {}
     @columns = {}
     @columns_has_more = {}
@@ -40,7 +44,8 @@ class BoardsController < ApplicationController
 
       @columns[status] = first_page_plus_one.first(PER_COLUMN_ITEMS)
       @columns_has_more[status] = first_page_plus_one.length > PER_COLUMN_ITEMS
-      @column_counts[status] = @tasks.where(status: status).count
+      # group(:status).count returns string keys ("inbox", "up_next", etc.) in Rails 8
+      @column_counts[status] = all_counts[status.to_s] || 0
     end
 
     # Get all unique tags for the sidebar filter
@@ -148,6 +153,40 @@ class BoardsController < ApplicationController
     render html: html.html_safe
   end
 
+  # GET /boards/:id/dependency_graph
+  def dependency_graph
+    tasks = @board.tasks
+      .where.not(status: "archived")
+      .includes(:dependencies, :dependents)
+      .select(:id, :name, :status, :blocked, :model, :board_id)
+
+    deps = TaskDependency
+      .joins(:task)
+      .where(tasks: { board_id: @board.id })
+      .pluck(:task_id, :depends_on_id)
+
+    respond_to do |format|
+      format.html
+      format.json do
+        nodes = tasks.map do |t|
+          {
+            id: t.id,
+            name: t.name.to_s.truncate(40),
+            status: t.status,
+            blocked: t.blocked?,
+            model: t.model,
+            has_deps: t.dependencies.any?,
+            has_dependents: t.dependents.any?
+          }
+        end
+
+        links = deps.map { |tid, did| { source: did, target: tid } }
+
+        render json: { nodes: nodes, links: links }
+      end
+    end
+  end
+
   def create
     @board = current_user.boards.new(board_params)
 
@@ -178,16 +217,29 @@ class BoardsController < ApplicationController
   end
 
   def update_task_status
-    # Update positions for all tasks in the column
+    # Update positions for all tasks in the column (atomic transaction)
     if params[:task_ids].present?
-      params[:task_ids].each_with_index do |task_id, index|
-        task = @board.tasks.find(task_id)
-        task.update_columns(position: index + 1)
+      task_ids = Array(params[:task_ids]).map(&:to_i)
+      ActiveRecord::Base.transaction do
+        # Build a single SQL CASE statement for all position updates
+        # instead of N separate UPDATE queries
+        if task_ids.any?
+          when_clauses = task_ids.each_with_index.map { |id, idx|
+            "WHEN #{id.to_i} THEN #{idx + 1}"
+          }.join(" ")
+          @board.tasks.where(id: task_ids).update_all(
+            Arel.sql("position = CASE id #{when_clauses} END")
+          )
+        end
       end
     end
 
     # If a specific task changed status (moved between columns)
     if params[:task_id].present? && params[:status].present?
+      unless Task.statuses.key?(params[:status])
+        return render json: { error: "Invalid status: #{params[:status]}" }, status: :unprocessable_entity
+      end
+
       @task = @board.tasks.find(params[:task_id])
       @task.activity_source = "web"
 

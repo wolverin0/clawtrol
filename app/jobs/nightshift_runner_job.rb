@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class NightshiftRunnerJob < ApplicationJob
   queue_as :default
 
@@ -16,7 +18,7 @@ class NightshiftRunnerJob < ApplicationJob
     selection.update!(status: "running", launched_at: Time.current)
     wake_openclaw!(selection)
     Rails.logger.info("[NightshiftRunner] Launched mission '#{selection.title}' (selection ##{selection.id})")
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error("[NightshiftRunner] Failed to launch '#{selection.title}': #{e.message}")
     NightshiftEngineService.new.complete_selection(
       selection,
@@ -27,7 +29,11 @@ class NightshiftRunnerJob < ApplicationJob
 
   def wake_openclaw!(selection)
     mission = selection.nightshift_mission
-    user = (selection.nightshift_mission.respond_to?(:user) && selection.nightshift_mission.user) || User.find_by(admin: true) || User.first
+    user = (selection.nightshift_mission.respond_to?(:user) && selection.nightshift_mission.user) || User.find_by(admin: true)
+    unless user
+      Rails.logger.warn("[NightshiftRunnerJob] No user found for selection ##{selection.id}, skipping wake")
+      return
+    end
 
     wake_text = <<~TEXT
       Nightshift mission "#{mission.name}" (selection ##{selection.id})

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "test_helper"
 
 class BoardsControllerExpandedTest < ActionDispatch::IntegrationTest
@@ -78,12 +80,4 @@ class BoardsControllerExpandedTest < ActionDispatch::IntegrationTest
     assert true
   end
 
-  private
-
-  def sign_in_as(user)
-    post session_path, params: {
-      email_address: user.email_address,
-      password: "password123"
-    }
-  end
 end

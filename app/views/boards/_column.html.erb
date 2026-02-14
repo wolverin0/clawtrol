@@ -17,6 +17,8 @@
 
 <% vaporwave_theme = defined?(current_user) && current_user&.theme == 'vaporwave' %>
 <div class="w-full md:w-72 lg:flex-1 lg:min-w-[240px] lg:max-w-[320px] flex-shrink-0 flex flex-col bg-bg-surface <%= vaporwave_theme ? 'rounded-xl vaporwave-column' : 'rounded-lg border border-border' %> transition-colors column-<%= status.dasherize %>"
+     role="region"
+     aria-label="<%= column_labels[status] %> column, <%= total_count || tasks.count %> tasks"
      data-controller="inline-add"
      data-inline-add-status-value="<%= status %>"
      data-inline-add-url-value="<%= board_tasks_path(@board) %>"

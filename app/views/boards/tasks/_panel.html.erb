@@ -91,6 +91,9 @@
             </div>
           <% end %>
 
+          <%# Pipeline progress stepper %>
+          <%= render "boards/tasks/pipeline_stepper", task: task %>
+
           <%= form_with model: task, url: board_task_path(@board, task), method: :patch, data: { task_modal_target: "form" }, class: "space-y-6" do |form| %>
             <%= form.hidden_field :priority, value: task.priority, data: { task_modal_target: "priorityField" } %>
 
@@ -307,6 +310,9 @@
           <!-- Dependencies Section -->
           <%= render "boards/tasks/dependencies", task: task, board: @board %>
 
+          <!-- Agent Chat History -->
+          <%= render "boards/tasks/agent_chat_history", task: task %>
+
           <!-- Activity Section -->
           <div class="border-t border-border pt-4">
             <h3 class="text-sm font-semibold text-content mb-4 font-display">Activity</h3>
@@ -338,12 +344,6 @@
                       class="px-2 py-1 rounded-md text-xs font-semibold bg-bg-elevated text-content-muted">
                 Events
               </button>
-              <% if task.agent_session_id.present? %>
-                <button type="button" data-evidence-tabs-target="tab" data-key="chat" data-action="click->evidence-tabs#select"
-                        class="px-2 py-1 rounded-md text-xs font-semibold bg-bg-elevated text-content-muted">
-                  💬 Chat
-                </button>
-              <% end %>
             </div>
 
             <% if task.runner_lease_active? %>
@@ -703,11 +703,6 @@
               <h3 class="text-sm font-semibold text-content mb-3 font-display">Events</h3>
               <%= render "shared/task_activities", task: task %>
             </div>
-
-            <%# === Chat panel === %>
-            <div data-evidence-tabs-target="panel" data-key="chat" class="hidden h-full overflow-hidden">
-              <%= render "boards/tasks/agent_chat", task: task, board: @board %>
-            </div>
           </div>
         </div>
 
@@ -857,15 +852,6 @@
 
               <div data-agent-activity-target="log"
                    class="hidden space-y-2 max-h-64 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent overscroll-contain [-webkit-overflow-scrolling:touch]">
-              </div>
-            </div>
-          <% end %>
-
-          <%# Mobile Agent Chat %>
-          <% if task.agent_session_id.present? %>
-            <div class="mt-4 border-t border-border pt-4">
-              <div class="h-80">
-                <%= render "boards/tasks/agent_chat", task: task, board: @board %>
               </div>
             </div>
           <% end %>

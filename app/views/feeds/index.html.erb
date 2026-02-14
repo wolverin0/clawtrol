@@ -1,0 +1,178 @@
+<% content_for :title, "Feed Monitor - clawdeck" %>
+<% content_for :breadcrumb_standalone, "📡 Feed Monitor" %>
+
+<div class="py-6 space-y-6">
+  <%# Stats Bar %>
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <% [
+      { label: "Total", value: @stats[:total], icon: "📊" },
+      { label: "Unread", value: @stats[:unread], icon: "🔵" },
+      { label: "High Relevance", value: @stats[:high_relevance], icon: "🔥" },
+      { label: "Saved", value: @stats[:saved], icon: "⭐" },
+      { label: "Today", value: @stats[:today], icon: "📅" },
+      { label: "Feeds", value: @stats[:feeds], icon: "📡" }
+    ].each do |stat| %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-3 text-center">
+        <div class="text-lg"><%= stat[:icon] %></div>
+        <div class="text-xl font-semibold text-content"><%= stat[:value] %></div>
+        <div class="text-xs text-content-muted"><%= stat[:label] %></div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Filters + Actions %>
+  <div class="flex items-center gap-3 flex-wrap">
+    <%# Feed filter %>
+    <% if @feed_names.any? %>
+      <div class="flex items-center gap-1 flex-wrap">
+        <%= link_to "All", feeds_path(status: params[:status], relevance: params[:relevance]),
+            class: "px-3 py-1.5 text-xs rounded-full border transition-colors #{params[:feed].blank? ? 'bg-accent text-white border-accent' : 'bg-bg-elevated border-border text-content-muted hover:text-content hover:border-accent/50'}" %>
+        <% @feed_names.each do |name| %>
+          <%= link_to name, feeds_path(feed: name, status: params[:status], relevance: params[:relevance]),
+              class: "px-3 py-1.5 text-xs rounded-full border transition-colors #{params[:feed] == name ? 'bg-accent text-white border-accent' : 'bg-bg-elevated border-border text-content-muted hover:text-content hover:border-accent/50'}" %>
+        <% end %>
+      </div>
+    <% end %>
+
+    <span class="text-content-muted">·</span>
+
+    <%# Status filter %>
+    <div class="flex items-center gap-1">
+      <% %w[unread read saved dismissed].each do |s| %>
+        <%= link_to s.capitalize, feeds_path(feed: params[:feed], status: s, relevance: params[:relevance]),
+            class: "px-2 py-1 text-xs rounded-lg transition-colors #{params[:status] == s ? 'text-accent font-medium' : 'text-content-muted hover:text-content'}" %>
+      <% end %>
+    </div>
+
+    <span class="text-content-muted">·</span>
+
+    <%# Relevance filter %>
+    <%= link_to "🔥 High Relevance", feeds_path(feed: params[:feed], status: params[:status], relevance: params[:relevance] == "high" ? nil : "high"),
+        class: "px-2 py-1 text-xs rounded-lg transition-colors #{params[:relevance] == 'high' ? 'text-orange-400 font-medium' : 'text-content-muted hover:text-content'}" %>
+
+    <%# Clear filters %>
+    <% if params[:feed].present? || params[:status].present? || params[:relevance].present? %>
+      <%= link_to "✕ Clear", feeds_path, class: "text-xs text-accent hover:underline" %>
+    <% end %>
+
+    <%# Mark all read %>
+    <% if @stats[:unread] > 0 %>
+      <div class="ml-auto">
+        <%= button_to "Mark All Read", mark_read_feeds_path, method: :post,
+            class: "text-xs px-3 py-1.5 rounded-lg bg-bg-elevated border border-border text-content-muted hover:text-content hover:border-accent/50 transition-colors cursor-pointer" %>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Entries List %>
+  <% if @feed_entries.any? %>
+    <div class="space-y-2">
+      <% @feed_entries.each do |entry| %>
+        <div id="<%= dom_id(entry) %>" class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/30 transition-colors group <%= 'opacity-60' if entry.dismissed? %>">
+          <div class="flex items-start gap-3">
+            <%# Relevance indicator %>
+            <div class="flex-shrink-0 mt-1">
+              <% if entry.relevance_score %>
+                <% color = entry.relevance_score >= 0.8 ? 'text-orange-400' : entry.relevance_score >= 0.5 ? 'text-yellow-400' : 'text-content-muted' %>
+                <span class="<%= color %> text-sm" title="Relevance: <%= (entry.relevance_score * 100).to_i %>%">
+                  <%= entry.relevance_score >= 0.8 ? '🔥' : entry.relevance_score >= 0.5 ? '⚡' : '○' %>
+                </span>
+              <% else %>
+                <span class="text-content-muted text-sm">○</span>
+              <% end %>
+            </div>
+
+            <%# Content %>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <%# Feed badge %>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-bg-base border border-border text-content-muted">📡 <%= entry.feed_name %></span>
+
+                <%# Status %>
+                <% status_style = case entry.status
+                     when "unread" then "text-blue-400 font-medium"
+                     when "read" then "text-content-muted"
+                     when "saved" then "text-yellow-400"
+                     when "dismissed" then "text-content-muted line-through"
+                   end %>
+                <span class="text-xs <%= status_style %>">● <%= entry.status.capitalize %></span>
+
+                <%# Time %>
+                <span class="text-xs text-content-muted"><%= entry.time_ago %></span>
+
+                <%# Author %>
+                <% if entry.author.present? %>
+                  <span class="text-xs text-content-muted">by <%= entry.author %></span>
+                <% end %>
+              </div>
+
+              <%# Title + Link %>
+              <a href="<%= entry.url %>" target="_blank" rel="noopener"
+                 class="block mt-1 text-content hover:text-accent transition-colors <%= 'font-medium' if entry.unread? %>">
+                <%= entry.title %>
+              </a>
+
+              <%# Tags %>
+              <% if entry.tags.present? && entry.tags.any? %>
+                <div class="flex gap-1 mt-1 flex-wrap">
+                  <% entry.tags.first(5).each do |tag| %>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent"><%= tag %></span>
+                  <% end %>
+                </div>
+              <% end %>
+
+              <%# Summary %>
+              <% if entry.summary.present? %>
+                <details class="mt-2">
+                  <summary class="text-xs text-accent cursor-pointer hover:underline">View Summary</summary>
+                  <div class="mt-2 text-sm text-content-muted bg-bg-base rounded-lg p-3 border border-border">
+                    <%= simple_format(entry.summary) %>
+                  </div>
+                </details>
+              <% end %>
+            </div>
+
+            <%# Actions %>
+            <div class="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <% unless entry.saved? %>
+                <%= button_to feed_path(entry), method: :patch, params: { feed_entry: { status: "saved" } },
+                    class: "text-content-muted hover:text-yellow-400 transition-colors p-1 cursor-pointer", title: "Save" do %>
+                  <span>⭐</span>
+                <% end %>
+              <% end %>
+              <% unless entry.dismissed? %>
+                <%= button_to dismiss_feed_path(entry), method: :post,
+                    class: "text-content-muted hover:text-red-400 transition-colors p-1 cursor-pointer", title: "Dismiss" do %>
+                  <span>✕</span>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Pagination %>
+    <% if @pagy.pages > 1 %>
+      <div class="flex items-center justify-center gap-2 pt-4">
+        <% if @pagy.prev %>
+          <%= link_to "← Prev", feeds_path(page: @pagy.prev, feed: params[:feed], status: params[:status], relevance: params[:relevance]),
+              class: "px-3 py-1.5 text-sm rounded-lg bg-bg-elevated border border-border text-content-secondary hover:text-content hover:border-accent/50 transition-colors" %>
+        <% end %>
+        <span class="text-sm text-content-muted">Page <%= @pagy.page %> of <%= @pagy.pages %></span>
+        <% if @pagy.next %>
+          <%= link_to "Next →", feeds_path(page: @pagy.next, feed: params[:feed], status: params[:status], relevance: params[:relevance]),
+              class: "px-3 py-1.5 text-sm rounded-lg bg-bg-elevated border border-border text-content-secondary hover:text-content hover:border-accent/50 transition-colors" %>
+        <% end %>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-12 text-center">
+      <div class="text-4xl mb-3">📡</div>
+      <div class="text-content-muted mb-2">No feed entries yet.</div>
+      <div class="text-xs text-content-muted">
+        Connect n8n RSS monitors to push entries via <code class="bg-bg-base px-1 py-0.5 rounded">POST /api/v1/feed_entries</code>
+      </div>
+    </div>
+  <% end %>
+</div>

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "test_helper"
 
 class FileViewerControllerTest < ActionDispatch::IntegrationTest
@@ -18,12 +20,4 @@ class FileViewerControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "credential", "Unauthenticated request must not leak file contents"
   end
 
-  private
-
-  def sign_in_as(user)
-    post session_path, params: {
-      email_address: user.email_address,
-      password: "password123"
-    }
-  end
 end

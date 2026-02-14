@@ -1,9 +1,8 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
 one:
-  task: one
+  task: two
   depends_on: one
 
-two:
-  task: two
-  depends_on: two
+# Note: self-dependencies (task: X, depends_on: X) were previously here — those are invalid.
+# A task cannot depend on itself.

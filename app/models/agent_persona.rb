@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class AgentPersona < ApplicationRecord
   belongs_to :user, optional: true  # nil = shared/system persona
   has_many :tasks, dependent: :nullify
@@ -39,11 +41,25 @@ class AgentPersona < ApplicationRecord
   end
 
   # Tools as array (handles both string and array)
+  # Returns tools as a clean Array of strings.
+  # Since `tools` is a PostgreSQL array column, Rails always casts the value
+  # to an Array. The String branch is kept as a safety fallback.
   def tools_list
     case tools
-    when Array then tools
-    when String then tools.split(/,\s*/)
+    when Array then tools.select(&:present?)
+    when String then tools.split(/,\s*/).map(&:strip).select(&:present?)
     else []
+    end
+  end
+
+  # Handles assignment of comma-separated string to the tools array column.
+  # Without this, assigning "Read, Write, exec" to a PG array column causes
+  # incorrect parsing (PostgreSQL interprets it as array literal syntax).
+  def tools=(value)
+    if value.is_a?(String) && !value.start_with?("{")
+      super(value.split(/,\s*/).map(&:strip).select(&:present?))
+    else
+      super
     end
   end
 
@@ -160,7 +176,7 @@ class AgentPersona < ApplicationRecord
       begin
         data = YAML.safe_load(yaml_content, permitted_classes: [Symbol])
         name = data["name"] if data["name"]
-      rescue
+      rescue Psych::SyntaxError, Psych::BadAlias, StandardError
         markdown_content = content
       end
     else

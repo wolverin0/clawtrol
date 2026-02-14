@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class User < ApplicationRecord
   has_secure_password validations: false
 
@@ -9,13 +11,16 @@ class User < ApplicationRecord
   has_many :task_templates, dependent: :destroy
   has_many :api_tokens, dependent: :destroy
   has_many :saved_links, dependent: :destroy
+  has_many :feed_entries, dependent: :destroy
   has_many :model_limits, dependent: :destroy
   has_many :notifications, dependent: :destroy
   has_many :agent_personas, dependent: :destroy
   has_many :nightshift_missions, dependent: :nullify
   has_many :invite_codes, foreign_key: :created_by_id, dependent: :nullify
   has_many :factory_loops, dependent: :nullify
-  has_many :swarm_ideas, dependent: :destroy
+  has_many :workflows, dependent: :nullify
+  has_many :webhook_logs, dependent: :delete_all
+  has_many :agent_test_recordings, dependent: :destroy
   has_one_attached :avatar
   has_one :openclaw_integration_status, dependent: :destroy
 
@@ -38,6 +43,7 @@ class User < ApplicationRecord
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
   validate :acceptable_avatar, if: :avatar_changed?
+  validate :webhook_url_is_safe, if: -> { webhook_notification_url.present? }
   validates :password, length: { minimum: 8 }, if: :password_required?
   validates :password, confirmation: true, if: :password_required?
   validates :theme, inclusion: { in: THEMES }
@@ -143,6 +149,35 @@ class User < ApplicationRecord
 
     if width.present? && height.present? && (width > 256 || height > 256)
       errors.add(:avatar, "dimensions must not exceed 256x256 pixels")
+    end
+  end
+
+  # SSRF prevention: reject internal/private network URLs for webhook notifications.
+  # Users could set webhook_notification_url to internal services (DB, Redis, metadata).
+  PRIVATE_HOST_PATTERNS = [
+    /\A127\./,           # loopback IPv4
+    /\A10\./,            # private 10.x
+    /\A172\.(1[6-9]|2\d|3[0-1])\./, # private 172.16-31.x
+    /\A192\.168\./,      # private 192.168.x
+    /\A0\./,             # 0.0.0.0/8
+    /\Alocalhost\z/i,    # localhost
+    /\A\[?::1\]?\z/,     # IPv6 loopback
+    /\A169\.254\./,      # link-local
+    /\.internal\z/i,     # internal TLDs
+    /\.local\z/i         # mDNS
+  ].freeze
+
+  def webhook_url_is_safe
+    uri = URI.parse(webhook_notification_url) rescue nil
+
+    unless uri.is_a?(URI::HTTP)
+      errors.add(:webhook_notification_url, "must be a valid http(s) URL")
+      return
+    end
+
+    host = uri.host.to_s.downcase
+    if PRIVATE_HOST_PATTERNS.any? { |pattern| host.match?(pattern) }
+      errors.add(:webhook_notification_url, "must not point to internal/private network addresses")
     end
   end
 end

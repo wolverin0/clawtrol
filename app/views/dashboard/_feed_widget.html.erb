@@ -1,0 +1,53 @@
+<%# Feed Monitor Widget — shows unread count, high-relevance items, and recent entries %>
+<div class="bg-bg-elevated border border-border rounded-xl p-4">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="text-sm font-semibold text-content flex items-center gap-2">
+      📡 Feed Monitor
+      <% if @feed_unread_count && @feed_unread_count > 0 %>
+        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/20 text-blue-400">
+          <%= @feed_unread_count %> unread
+        </span>
+      <% end %>
+      <% if @feed_high_relevance_count && @feed_high_relevance_count > 0 %>
+        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-500/20 text-orange-400">
+          🔥 <%= @feed_high_relevance_count %>
+        </span>
+      <% end %>
+    </h3>
+    <%= link_to feeds_path, class: "text-xs text-content-muted hover:text-accent transition-colors" do %>
+      View all →
+    <% end %>
+  </div>
+
+  <% if @feed_recent&.any? %>
+    <div class="space-y-1.5">
+      <% @feed_recent.each do |entry| %>
+        <div class="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-bg-hover transition-colors group">
+          <%# Relevance indicator %>
+          <span class="text-xs flex-shrink-0">
+            <% if entry.relevance_score && entry.relevance_score >= 0.8 %>🔥
+            <% elsif entry.relevance_score && entry.relevance_score >= 0.5 %>⚡
+            <% else %>○
+            <% end %>
+          </span>
+
+          <%# Entry title %>
+          <div class="min-w-0 flex-1">
+            <a href="<%= entry.url %>" target="_blank" rel="noopener noreferrer"
+               class="text-xs text-content hover:text-accent transition-colors truncate block <%= 'font-medium' if entry.unread? %>"
+               title="<%= entry.title %>">
+              <%= entry.title.truncate(55) %>
+            </a>
+          </div>
+
+          <%# Feed name badge %>
+          <span class="flex-shrink-0 text-[9px] text-content-muted truncate max-w-[60px]">
+            <%= entry.feed_name %>
+          </span>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-xs text-content-muted py-2">No feed entries yet. Connect n8n RSS monitors to push entries.</p>
+  <% end %>
+</div>

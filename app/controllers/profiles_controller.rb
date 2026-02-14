@@ -1,4 +1,8 @@
+# frozen_string_literal: true
+
 require "ostruct"
+require "resolv"
+require "ipaddr"
 
 class ProfilesController < ApplicationController
   def show
@@ -26,6 +30,26 @@ class ProfilesController < ApplicationController
     if gateway_url.present?
       begin
         uri = URI.parse("#{gateway_url}/health")
+
+        # SECURITY: SSRF protection — only allow http(s) to non-internal hosts
+        unless uri.scheme.in?(%w[http https]) && uri.host.present?
+          results[:error] = "Invalid gateway URL scheme"
+          return render json: results
+        end
+
+        # Block requests to metadata endpoints, localhost aliases, and private ranges
+        # that aren't the expected gateway (192.168.x.x is allowed since that's typical)
+        resolved = Resolv.getaddress(uri.host) rescue nil
+        if resolved.nil?
+          results[:error] = "Cannot resolve gateway hostname"
+          return render json: results
+        end
+        ip = IPAddr.new(resolved)
+        if ip.loopback? || ip.link_local? || resolved.start_with?("169.254.")
+          results[:error] = "Gateway URL points to a restricted address"
+          return render json: results
+        end
+
         http = Net::HTTP.new(uri.host, uri.port)
         http.open_timeout = 5
         http.read_timeout = 5
@@ -76,8 +100,6 @@ class ProfilesController < ApplicationController
   def update
     @user = current_user
 
-    normalize_agent_emoji_param!
-
     if params[:user][:remove_avatar] == "1"
       @user.avatar.purge if @user.avatar.attached?
       @user.avatar_url = nil
@@ -93,22 +115,16 @@ class ProfilesController < ApplicationController
   def regenerate_api_token
     current_user.api_tokens.destroy_all
     @api_token = current_user.api_tokens.create!(name: "Default")
-    # Flash the raw token so it can be shown once to the user
-    redirect_to settings_path, notice: "API token regenerated. New token: #{@api_token.raw_token} — Copy it now, it won't be shown again!"
+    # Store raw token in flash for one-time display.
+    # SECURITY: Use a separate flash key so it's rendered in a dedicated
+    # copy-friendly UI element, not as a generic notice visible in logs/referrer.
+    flash[:new_api_token] = @api_token.raw_token
+    redirect_to settings_path, notice: "API token regenerated. Copy it now — it won't be shown again!"
   end
 
   private
 
   def profile_params
     params.expect(user: [ :email_address, :avatar, :openclaw_gateway_url, :openclaw_gateway_token, :openclaw_hooks_token, :ai_suggestion_model, :ai_api_key, :context_threshold_percent, :auto_retry_enabled, :auto_retry_max, :auto_retry_backoff, :fallback_model_chain, :agent_name, :agent_emoji, :theme, :telegram_bot_token, :telegram_chat_id, :webhook_notification_url, :notifications_enabled ])
-  end
-
-  def normalize_agent_emoji_param!
-    return unless params[:user].is_a?(ActionController::Parameters) || params[:user].is_a?(Hash)
-
-    raw = params[:user][:agent_emoji]
-    return if raw.blank?
-
-    params[:user][:agent_emoji] = EmojiShortcodeNormalizer.normalize(raw)
   end
 end

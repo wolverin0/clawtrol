@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "test_helper"
 
 class SecurityTest < ActionDispatch::IntegrationTest
@@ -82,12 +84,4 @@ class SecurityTest < ActionDispatch::IntegrationTest
     end
   end
 
-  private
-
-  def sign_in_as(user)
-    post session_path, params: {
-      email_address: user.email_address,
-      password: "password123"
-    }
-  end
 end

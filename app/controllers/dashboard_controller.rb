@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class DashboardController < ApplicationController
   before_action :require_authentication
 
@@ -14,7 +16,9 @@ class DashboardController < ApplicationController
     today_tasks = current_user.tasks.where("created_at >= ? OR updated_at >= ? OR error_at >= ?", today_start, today_start, today_start)
       .pluck(:status, :created_at, :updated_at, :error_at)
 
-    @done_today = today_tasks.count { |status, _, updated_at, _| status == "done" && updated_at && updated_at >= today_start }
+    # NOTE: pluck(:status) on an enum column returns the integer DB value.
+    done_status_int = Task.statuses["done"]
+    @done_today = today_tasks.count { |status, _, updated_at, _| status == done_status_int && updated_at && updated_at >= today_start }
     @spawned_today = today_tasks.count { |_, created_at, _, _| created_at && created_at >= today_start }
     @failed_today = today_tasks.count { |_, _, _, error_at| error_at && error_at >= today_start }
 
@@ -44,9 +48,27 @@ class DashboardController < ApplicationController
       Rails.cache.fetch("dashboard/cost/#{current_user.id}", expires_in: 60.seconds) do
         client.usage_cost
       end
-    rescue => e
+    rescue StandardError
       nil
     end
+
+    # Detailed cost analytics by model (from JSONL sessions, cached)
+    @cost_analytics = begin
+      Rails.cache.fetch("dashboard/cost_analytics/#{current_user.id}", expires_in: 120.seconds) do
+        SessionCostAnalytics.call(period: "7d")
+      end
+    rescue StandardError
+      nil
+    end
+
+    # Saved links stats for dashboard widget
+    @saved_links_pending = current_user.saved_links.unprocessed.count
+    @saved_links_recent = current_user.saved_links.newest_first.limit(5)
+
+    # Feed monitor stats for dashboard widget
+    @feed_unread_count = current_user.feed_entries.unread.count
+    @feed_high_relevance_count = current_user.feed_entries.high_relevance.unread.count
+    @feed_recent = current_user.feed_entries.newest_first.limit(5)
 
     @gateway_health = begin
       client = OpenclawGatewayClient.new(current_user)

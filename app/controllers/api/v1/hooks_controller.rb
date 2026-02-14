@@ -1,9 +1,16 @@
+# frozen_string_literal: true
+
 require "fileutils"
 require "diffy"
 
 module Api
   module V1
     class HooksController < ActionController::API
+      include Api::RateLimitable
+
+      # Hooks are less frequent but more critical — 30/min per IP
+      before_action -> { rate_limit!(limit: 30, window: 60, key_suffix: "hooks") }
+
       # POST /api/v1/hooks/agent_complete
       def agent_complete
         token = request.headers["X-Hook-Token"].to_s
@@ -17,6 +24,8 @@ module Api
 
         findings = params[:findings].presence || params[:output].presence
 
+        # If no findings provided, try to extract from transcript
+        transcript_files = []
         if findings.blank?
           sid = params[:session_id].presence || params[:agent_session_id].presence || task.agent_session_id
           if sid.present?
@@ -35,6 +44,7 @@ module Api
           assigned_at: task.assigned_at || Time.current
         }
 
+        # Auto-link session_id/session_key on first hook
         session_id = params[:session_id].presence || params[:agent_session_id].presence
         session_key = params[:session_key].presence || params[:agent_session_key].presence
         updates[:agent_session_id] = session_id if session_id.present? && task.agent_session_id.blank?
@@ -42,19 +52,8 @@ module Api
 
         effective_session_id = updates[:agent_session_id].presence || task.agent_session_id
 
+        # Persist agent transcript into a stable file within the Rails app (storage/agent_activity)
         activity = persist_agent_activity(task, effective_session_id)
-
-        if effective_session_id.present?
-          begin
-            tpath = TranscriptParser.transcript_path(effective_session_id)
-            if tpath
-              task_run_record = TaskRun.find_by(run_id: effective_session_id) || TaskRun.find_by(task_id: task.id)
-              AgentTranscript.capture_from_jsonl!(tpath, task: task, task_run: task_run_record, session_id: effective_session_id)
-            end
-          rescue StandardError => e
-            Rails.logger.warn("[HooksController] Failed to archive transcript: #{e.message}")
-          end
-        end
 
         provided_files = params[:output_files].presence || params[:files].presence
         extracted_from_findings = task.extract_output_files_from_findings(findings)
@@ -71,6 +70,7 @@ module Api
         merged_files = task.normalized_output_files((task.output_files || []) + candidate_files)
         updates[:output_files] = merged_files if merged_files.any?
 
+        # Preserve original description before first hook overwrite
         if task.original_description.blank?
           current = task.description.to_s
           if current.include?("\n\n---\n\n")
@@ -84,28 +84,12 @@ module Api
         updates[:description] = updated_description(task.description.to_s, findings, activity[:activity_markdown])
 
         old_status = task.status
-
-        # Auto-review gate
-        auto_review = Pipeline::AutoReviewService.new(task, findings: findings)
-        review_result = auto_review.evaluate
-
-        case review_result[:decision]
-        when :done
-          updates[:status] = "done"
-          updates[:completed_at] = Time.current if task.respond_to?(:completed_at)
-        when :requeue
-          updates[:status] = "up_next"
-          updates[:error_message] = review_result[:reason]
-        when :in_review
-          # default, already set
-        end
-
-        Rails.logger.info("[AutoReview] task=##{task.id} decision=#{review_result[:decision]} reason=#{review_result[:reason]}")
-
         task.update!(updates)
 
+        # Generate diffs for output files (async to avoid blocking the response)
         GenerateDiffsJob.perform_later(task.id, merged_files) if merged_files.any?
 
+        # Notify board clients (KanbanRefresh) that a background agent completed work.
         KanbanChannel.broadcast_refresh(
           task.board_id,
           task_id: task.id,
@@ -114,12 +98,28 @@ module Api
           new_status: task.status
         )
 
+        # Auto-detect rate limits from findings/error messages and register them
         detect_and_record_rate_limits(task, findings)
 
-        render json: { success: true, task_id: task.id, status: task.status }
+        # Record agent output as an inter-agent message for chat history
+        record_agent_output_message(task, findings, effective_session_id)
+
+        # Pipeline advancement: if pipeline-enabled, advance through stages
+        pipeline_advanced = advance_pipeline(task)
+
+        render json: {
+          success: true,
+          task_id: task.id,
+          status: task.status,
+          pipeline_stage: task.pipeline_stage,
+          pipeline_advanced: pipeline_advanced
+        }
       end
 
       # POST /api/v1/hooks/task_outcome
+      #
+      # OpenClaw completion hook (OutcomeContract v1). This is intentionally
+      # idempotent via run_id (UUID).
       def task_outcome
         token = request.headers["X-Hook-Token"].to_s
         configured_token = Rails.application.config.hooks_token.to_s
@@ -137,114 +137,22 @@ module Api
           achieved: [], evidence: [], remaining: []
         ).to_h
 
-        version = payload["version"].to_s
-        run_id = payload["run_id"].to_s
-        ended_at_raw = payload["ended_at"].to_s
-        needs_follow_up = ActiveModel::Type::Boolean.new.cast(payload["needs_follow_up"]) || false
-        recommended_action = payload["recommended_action"].to_s.presence || "in_review"
+        result = TaskOutcomeService.call(task, payload)
 
-        unless version == "1"
-          return render json: { error: "invalid version" }, status: :unprocessable_entity
-        end
+        if result.success?
+          # Pipeline advancement after outcome processing
+          advance_pipeline(task)
 
-        unless run_id.match?(/\A[0-9a-fA-F\-]{36}\z/)
-          return render json: { error: "invalid run_id" }, status: :unprocessable_entity
-        end
-
-        allowed_actions = TaskRun::RECOMMENDED_ACTIONS
-        unless allowed_actions.include?(recommended_action)
-          return render json: { error: "invalid recommended_action" }, status: :unprocessable_entity
-        end
-
-        next_prompt = payload["next_prompt"].to_s
-        if needs_follow_up && recommended_action == "requeue_same_task" && next_prompt.blank?
-          return render json: { error: "next_prompt required for requeue_same_task" }, status: :unprocessable_entity
-        end
-
-        ended_at =
-          begin
-            ended_at_raw.present? ? Time.iso8601(ended_at_raw) : Time.current
-          rescue StandardError
-            Time.current
-          end
-
-        idempotent = false
-
-        task_run = nil
-        existing = TaskRun.find_by(run_id: run_id)
-        if existing
-          return render json: { success: true, idempotent: true, task_id: task.id, run_number: existing.run_number, status: task.status }
-        end
-
-        old_status = task.status
-
-        Task.transaction do
-          task.lock!
-
-          task_run = TaskRun.find_by(run_id: run_id)
-          if task_run
-            idempotent = true
-            next
-          end
-
-          run_number = task.run_count.to_i + 1
-
-          task_run = TaskRun.create!(
-            task: task,
-            run_id: run_id,
-            run_number: run_number,
-            ended_at: ended_at,
-            needs_follow_up: needs_follow_up,
-            recommended_action: recommended_action,
-            summary: payload["summary"],
-            achieved: Array(payload["achieved"]),
-            evidence: Array(payload["evidence"]),
-            remaining: Array(payload["remaining"]),
-            next_prompt: payload["next_prompt"],
-            model_used: payload["model_used"],
-            openclaw_session_id: payload["openclaw_session_id"],
-            openclaw_session_key: payload["openclaw_session_key"],
-            raw_payload: payload
-          )
-
-          task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
-
-          base_updates = {
-            run_count: run_number,
-            last_run_id: run_id,
-            last_outcome_at: ended_at,
-            last_needs_follow_up: needs_follow_up,
-            last_recommended_action: recommended_action,
-            agent_claimed_at: nil
+          render json: {
+            success: true,
+            idempotent: result.idempotent?,
+            task_id: task.id,
+            run_number: result.task_run&.run_number,
+            status: task.reload.status
           }
-
-          case recommended_action
-          when "requeue_same_task"
-            task.update!(base_updates.merge(status: :in_review))
-          else
-            task.update!(
-              base_updates.merge(
-                status: :in_review
-              )
-            )
-          end
+        else
+          render json: { error: result.error }, status: result.error_status
         end
-
-        # Pipeline advancement on outcome
-        advance_pipeline(task, recommended_action, payload) if task.pipeline_active?
-
-        KanbanChannel.broadcast_refresh(
-          task.board_id,
-          task_id: task.id,
-          action: "update",
-          old_status: old_status,
-          new_status: task.status
-        )
-
-        render json: { success: true, idempotent: idempotent, task_id: task.id, run_number: task_run&.run_number, status: task.status }
-      rescue ActiveRecord::RecordNotUnique
-        existing = TaskRun.find_by(run_id: params[:run_id].to_s)
-        render json: { success: true, idempotent: true, task_id: task.id, run_number: existing&.run_number, status: task.status }
       end
 
       private
@@ -259,72 +167,6 @@ module Api
           (Task.find_by(id: task_id) if task_id.present?)
       end
 
-      # Pipeline advancement logic based on outcome webhook
-      def advance_pipeline(task, recommended_action, payload)
-        config = Pipeline::TriageService.config
-        max_retries = config[:max_retries] || 3
-        escalate = config[:escalate_on_retry] != false
-
-        case recommended_action
-        when "in_review"
-          # Standard completion
-          task.advance_pipeline_stage!("completed", action: "in_review", summary: payload["summary"])
-
-        when "requeue_same_task"
-          # Retry — check retry count
-          retry_count = task.task_runs.count
-          if retry_count >= max_retries
-            if escalate
-              escalate_model_tier!(task)
-            else
-              task.advance_pipeline_stage!("failed", action: "requeue_exceeded_retries", retries: retry_count)
-            end
-          else
-            # Reset to context_ready for re-routing (keeps context, re-routes model)
-            task.advance_pipeline_stage!("context_ready", action: "requeue_retry", retry: retry_count)
-          end
-
-        when "split_into_subtasks"
-          task.advance_pipeline_stage!("completed", action: "split_into_subtasks")
-
-        when "prompt_user"
-          task.advance_pipeline_stage!("completed", action: "prompt_user")
-        end
-      rescue StandardError => e
-        Rails.logger.warn("[HooksController] Pipeline advancement failed for task ##{task.id}: #{e.class}: #{e.message}")
-      end
-
-      # Escalate to next model tier
-      def escalate_model_tier!(task)
-        config = Pipeline::TriageService.config
-        tiers = config[:model_tiers] || {}
-        current_model = task.routed_model || task.model || Task::DEFAULT_MODEL
-
-        # Find current tier
-        current_tier = nil
-        tiers.each do |tier_name, tier_cfg|
-          if Array(tier_cfg[:models]).include?(current_model)
-            current_tier = tier_name.to_s
-            break
-          end
-        end
-
-        if current_tier
-          next_tier = tiers.dig(current_tier.to_sym, :fallback)&.to_s
-          if next_tier.present? && next_tier != "null"
-            next_models = Array(tiers.dig(next_tier.to_sym, :models))
-            if next_models.any?
-              task.update_columns(routed_model: next_models.first)
-              task.advance_pipeline_stage!("context_ready", action: "escalated", from_tier: current_tier, to_tier: next_tier, new_model: next_models.first)
-              return
-            end
-          end
-        end
-
-        # Cannot escalate further
-        task.advance_pipeline_stage!("failed", action: "escalation_exhausted", model: current_model)
-      end
-
       def persist_agent_activity(task, session_id)
         activity_lines = []
         activity_lines << "Session: `#{session_id}`" if session_id.present?
@@ -332,6 +174,7 @@ module Api
 
         return { activity_markdown: activity_lines.join("\n"), output_files: [] } if session_id.blank?
 
+        # Locate transcript file (current or archived)
         transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl")
         unless File.exist?(transcript_path)
           archived = Dir.glob(File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl.deleted.*")).first
@@ -343,6 +186,7 @@ module Api
           return { activity_markdown: activity_lines.join("\n"), output_files: [] }
         end
 
+        # Copy transcript to a stable, UI-accessible location under Rails.root/storage
         rel_dir = "storage/agent_activity"
         abs_dir = Rails.root.join(rel_dir)
         FileUtils.mkdir_p(abs_dir)
@@ -374,6 +218,7 @@ module Api
         { activity_markdown: "(Failed to persist transcript: #{e.class})", output_files: [] }
       end
 
+      # Auto-detect rate limit errors in agent findings and register model limits
       def detect_and_record_rate_limits(task, findings)
         return if findings.blank?
 
@@ -389,13 +234,108 @@ module Api
         model_name = task.model.presence || detect_model_from_text(findings)
         return unless model_name.present? && Task::MODELS.include?(model_name)
 
-        user = task.user || User.first
+        user = task.user
         return unless user
 
         ModelLimit.record_limit!(user, model_name, findings)
         Rails.logger.info("[HooksController] Auto-recorded rate limit for model '#{model_name}' from task ##{task.id}")
       rescue StandardError => e
         Rails.logger.warn("[HooksController] Failed to auto-record rate limit: #{e.message}")
+      end
+
+      # Pipeline advancement: process pipeline stages if task has pipeline enabled
+      def advance_pipeline(task)
+        return false unless task.pipeline_enabled?
+        return false unless task.pipeline_stage.present?
+
+        # If task is in executing stage, the outcome determines next action
+        if task.pipeline_stage == "executing"
+          recommended = params[:recommended_action].to_s
+
+          case recommended
+          when "complete", "archive"
+            task.advance_pipeline_stage!("completed", action: recommended)
+          when "requeue_same_task"
+            retry_count = task.pipeline_log.to_a.count { |e| e["stage"] == "context_ready" && e["retry"] }
+            if retry_count < 3
+              task.advance_pipeline_stage!("context_ready", retry: true, retry_count: retry_count + 1)
+              PipelineProcessorJob.perform_later(task.id)
+            else
+              task.advance_pipeline_stage!("failed", reason: "max_retries_exceeded")
+            end
+          when "escalate"
+            escalate_model_tier!(task)
+            PipelineProcessorJob.perform_later(task.id)
+          else
+            task.advance_pipeline_stage!("completed", action: recommended.presence || "default_complete")
+          end
+          true
+        else
+          false
+        end
+      rescue StandardError => e
+        Rails.logger.warn("[HooksController] Pipeline advance failed for task ##{task.id}: #{e.message}")
+        false
+      end
+
+      # Escalate to next model tier when current model hits limits
+      def escalate_model_tier!(task)
+        config = Pipeline::TriageService.config
+        tiers = config[:model_tiers] || {}
+
+        current_model = task.routed_model || task.model
+        current_tier = tiers.find { |_name, cfg| Array(cfg[:models]).include?(current_model) }
+
+        if current_tier
+          tier_name, tier_cfg = current_tier
+          fallback = tier_cfg[:fallback]&.to_s
+          if fallback.present? && fallback != "null" && tiers[fallback.to_sym]
+            new_model = Array(tiers[fallback.to_sym][:models]).first
+            if new_model
+              task.update_columns(routed_model: new_model)
+              task.advance_pipeline_stage!("context_ready", escalated_from: current_model, escalated_to: new_model)
+              return
+            end
+          end
+        end
+
+        task.advance_pipeline_stage!("failed", reason: "no_escalation_available", current_model: current_model)
+      end
+
+      # Record agent output as an AgentMessage for inter-agent chat history
+      def record_agent_output_message(task, findings, session_id)
+        return if findings.blank?
+        return unless defined?(AgentMessage)
+
+        model = task.model.presence || params[:model].presence
+        agent_name = task.agent_persona&.name
+
+        AgentMessage.record_output!(
+          task: task,
+          content: findings,
+          summary: findings.truncate(500),
+          model: model,
+          session_id: session_id,
+          agent_name: agent_name,
+          metadata: { run_id: params[:run_id], hook: "agent_complete" }
+        )
+
+        # If this task feeds into a follow-up or parent, record handoff
+        target = task.followup_task || task.parent_task
+        if target.present?
+          AgentMessage.record_handoff!(
+            from_task: task,
+            to_task: target,
+            content: findings,
+            summary: findings.truncate(500),
+            model: model,
+            session_id: session_id,
+            agent_name: agent_name,
+            metadata: { run_id: params[:run_id], source_hook: "agent_complete" }
+          )
+        end
+      rescue StandardError => e
+        Rails.logger.warn("[HooksController] Failed to record agent message for task ##{task.id}: #{e.message}")
       end
 
       def detect_model_from_text(text)
@@ -430,7 +370,6 @@ module Api
           "#{top_block}\n\n---\n\n#{current_description}"
         end
       end
-
     end
   end
 end

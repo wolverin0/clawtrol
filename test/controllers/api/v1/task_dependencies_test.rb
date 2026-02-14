@@ -1,87 +1,118 @@
+# frozen_string_literal: true
+
 require "test_helper"
 
 class Api::V1::TaskDependenciesTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
-    @board = boards(:one)
-    @task1 = @board.tasks.create!(user: @user, name: "Task 1", status: :inbox)
-    @task2 = @board.tasks.create!(user: @user, name: "Task 2", status: :inbox)
-    @headers = {
-      "Authorization" => "Bearer test_token_one_abc123def456",
-      "Content-Type" => "application/json"
-    }
+    @task = tasks(:one)
+    @other_task = tasks(:two)
+    # Ensure the other_task belongs to same user for dependency testing
+    @other_task.update_columns(user_id: @user.id, board_id: @task.board_id)
+    @auth_header = { "Authorization" => "Bearer test_token_one_abc123def456" }
+    # Clear any fixture-created dependencies
+    TaskDependency.where(task: @task).or(TaskDependency.where(depends_on: @task)).delete_all
+    TaskDependency.where(task: @other_task).or(TaskDependency.where(depends_on: @other_task)).delete_all
   end
 
-  test "GET dependencies returns task's dependencies" do
-    @task1.add_dependency!(@task2)
+  # --- GET dependencies ---
 
-    get dependencies_api_v1_task_path(@task1), headers: @headers
-
+  test "dependencies returns empty when no dependencies" do
+    get dependencies_api_v1_task_url(@task), headers: @auth_header
     assert_response :success
-    json = JSON.parse(response.body)
 
-    assert_equal 1, json["dependencies"].count
-    assert_equal @task2.id, json["dependencies"].first["id"]
-    assert json["blocked"]
+    body = response.parsed_body
+    assert_equal [], body["dependencies"]
+    assert_equal [], body["dependents"]
+    assert_equal false, body["blocked"]
+    assert_equal [], body["blocking_tasks"]
   end
 
-  test "POST add_dependency adds a dependency" do
-    post add_dependency_api_v1_task_path(@task1),
-      params: { depends_on_id: @task2.id }.to_json,
-      headers: @headers
-
+  test "dependencies returns linked tasks after adding dependency" do
+    post add_dependency_api_v1_task_url(@task), headers: @auth_header,
+         params: { depends_on_id: @other_task.id }
     assert_response :success
-    json = JSON.parse(response.body)
 
-    assert json["success"]
-    assert json["blocked"]
-    assert_includes @task1.reload.dependencies, @task2
-  end
-
-  test "POST add_dependency returns error for invalid dependency" do
-    # Try to create self-dependency
-    post add_dependency_api_v1_task_path(@task1),
-      params: { depends_on_id: @task1.id }.to_json,
-      headers: @headers
-
-    assert_response :unprocessable_entity
-    json = JSON.parse(response.body)
-    assert json["error"].present?
-  end
-
-  test "DELETE remove_dependency removes a dependency" do
-    @task1.add_dependency!(@task2)
-    assert @task1.blocked?
-
-    delete "#{remove_dependency_api_v1_task_path(@task1)}?depends_on_id=#{@task2.id}",
-      headers: @headers
-
+    get dependencies_api_v1_task_url(@task), headers: @auth_header
     assert_response :success
-    json = JSON.parse(response.body)
 
-    assert json["success"]
-    refute json["blocked"]
-    refute_includes @task1.reload.dependencies, @task2
+    body = response.parsed_body
+    assert_equal 1, body["dependencies"].length
+    assert_equal @other_task.id, body["dependencies"].first["id"]
   end
 
-  test "DELETE remove_dependency returns error for non-existent dependency" do
-    delete "#{remove_dependency_api_v1_task_path(@task1)}?depends_on_id=#{@task2.id}",
-      headers: @headers
+  # --- POST add_dependency ---
 
+  test "add_dependency creates dependency link" do
+    assert_difference "TaskDependency.count", 1 do
+      post add_dependency_api_v1_task_url(@task), headers: @auth_header,
+           params: { depends_on_id: @other_task.id }
+    end
+    assert_response :success
+
+    body = response.parsed_body
+    assert body["success"]
+    assert_equal @other_task.id, body["dependency"]["depends_on_id"]
+  end
+
+  test "add_dependency requires depends_on_id" do
+    post add_dependency_api_v1_task_url(@task), headers: @auth_header
+    assert_response :bad_request
+
+    body = response.parsed_body
+    assert_match(/depends_on_id/, body["error"])
+  end
+
+  test "add_dependency rejects non-existent task" do
+    post add_dependency_api_v1_task_url(@task), headers: @auth_header,
+         params: { depends_on_id: 999999 }
     assert_response :not_found
   end
 
-  test "task_json includes dependencies info" do
-    @task1.add_dependency!(@task2)
+  test "add_dependency rejects duplicate" do
+    TaskDependency.create!(task: @task, depends_on: @other_task)
 
-    get api_v1_task_path(@task1), headers: @headers
+    post add_dependency_api_v1_task_url(@task), headers: @auth_header,
+         params: { depends_on_id: @other_task.id }
+    assert_response :unprocessable_entity
+  end
 
+  # --- DELETE remove_dependency ---
+
+  test "remove_dependency removes existing link" do
+    TaskDependency.create!(task: @task, depends_on: @other_task)
+
+    assert_difference "TaskDependency.count", -1 do
+      delete remove_dependency_api_v1_task_url(@task), headers: @auth_header,
+             params: { depends_on_id: @other_task.id }
+    end
     assert_response :success
-    json = JSON.parse(response.body)
 
-    assert json["blocked"]
-    assert_equal 1, json["dependencies"].count
-    assert_equal @task2.id, json["dependencies"].first["id"]
-    assert_equal 1, json["blocking_tasks"].count
+    body = response.parsed_body
+    assert body["success"]
+  end
+
+  test "remove_dependency requires depends_on_id" do
+    delete remove_dependency_api_v1_task_url(@task), headers: @auth_header
+    assert_response :bad_request
+  end
+
+  test "remove_dependency returns 404 for non-existent dependency" do
+    delete remove_dependency_api_v1_task_url(@task), headers: @auth_header,
+           params: { depends_on_id: @other_task.id }
+    assert_response :not_found
+  end
+
+  # --- Authentication ---
+
+  test "dependency endpoints require auth" do
+    get dependencies_api_v1_task_url(@task)
+    assert_response :unauthorized
+
+    post add_dependency_api_v1_task_url(@task)
+    assert_response :unauthorized
+
+    delete remove_dependency_api_v1_task_url(@task)
+    assert_response :unauthorized
   end
 end

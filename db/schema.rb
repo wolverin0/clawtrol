@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_14_200819) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -42,6 +42,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_200819) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "agent_messages", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.string "direction", default: "incoming", null: false
+    t.string "message_type", default: "output", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.string "sender_model", limit: 100
+    t.string "sender_name", limit: 100
+    t.string "sender_session_id", limit: 200
+    t.bigint "source_task_id"
+    t.text "summary"
+    t.bigint "task_id", null: false
+    t.index ["direction"], name: "index_agent_messages_on_direction"
+    t.index ["source_task_id"], name: "idx_agent_messages_source_task", where: "(source_task_id IS NOT NULL)"
+    t.index ["source_task_id"], name: "index_agent_messages_on_source_task_id"
+    t.index ["task_id", "created_at"], name: "idx_agent_messages_task_timeline"
+    t.index ["task_id"], name: "index_agent_messages_on_task_id"
   end
 
   create_table "agent_personas", force: :cascade do |t|
@@ -172,6 +191,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_200819) do
     t.index ["slug"], name: "index_factory_loops_on_slug", unique: true
     t.index ["status"], name: "index_factory_loops_on_status"
     t.index ["user_id"], name: "index_factory_loops_on_user_id"
+  end
+
+  create_table "feed_entries", force: :cascade do |t|
+    t.string "author"
+    t.text "content"
+    t.datetime "created_at", null: false
+    t.string "feed_name", null: false
+    t.string "feed_url"
+    t.datetime "published_at"
+    t.datetime "read_at"
+    t.float "relevance_score"
+    t.integer "status", default: 0, null: false
+    t.text "summary"
+    t.string "tags", default: [], array: true
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.string "url", null: false
+    t.bigint "user_id", null: false
+    t.index ["url"], name: "index_feed_entries_on_url", unique: true
+    t.index ["user_id", "feed_name"], name: "index_feed_entries_on_user_id_and_feed_name"
+    t.index ["user_id", "published_at"], name: "index_feed_entries_on_user_id_and_published_at", order: { published_at: :desc }
+    t.index ["user_id", "relevance_score"], name: "index_feed_entries_on_user_id_and_relevance_score", order: { relevance_score: :desc }
+    t.index ["user_id", "status"], name: "index_feed_entries_on_user_id_and_status"
+    t.index ["user_id"], name: "index_feed_entries_on_user_id"
   end
 
   create_table "invite_codes", force: :cascade do |t|
@@ -695,6 +738,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_200819) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "agent_messages", "tasks", column: "source_task_id", on_delete: :nullify
+  add_foreign_key "agent_messages", "tasks", on_delete: :cascade
   add_foreign_key "agent_personas", "users"
   add_foreign_key "agent_transcripts", "task_runs"
   add_foreign_key "agent_transcripts", "tasks"
@@ -702,6 +747,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_200819) do
   add_foreign_key "boards", "users"
   add_foreign_key "factory_cycle_logs", "factory_loops"
   add_foreign_key "factory_loops", "users"
+  add_foreign_key "feed_entries", "users"
   add_foreign_key "invite_codes", "users", column: "created_by_id"
   add_foreign_key "model_limits", "users"
   add_foreign_key "nightshift_missions", "users"
