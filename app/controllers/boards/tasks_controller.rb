@@ -537,7 +537,7 @@ class Boards::TasksController < ApplicationController
       result = client.sessions_history(@task.agent_session_id, limit: params[:limit]&.to_i || 50)
       messages = result.is_a?(Hash) ? (result["messages"] || result[:messages] || []) : Array(result)
       render json: { messages: messages }
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error "[ChatHistory] Failed for task #{@task.id}: #{e.message}"
       render json: { messages: [], error: e.message }, status: :ok
     end

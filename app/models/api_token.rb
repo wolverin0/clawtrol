@@ -9,7 +9,10 @@ class ApiToken < ApplicationRecord
 
   before_validation :generate_and_hash_token, on: :create
 
-  # Authenticate by hashing the incoming token and looking up the digest
+  # Authenticate by hashing the incoming token and looking up the digest.
+  # Uses periodic touch (every 60s) to avoid a DB write on every API request.
+  LAST_USED_DEBOUNCE = 60.seconds
+
   def self.authenticate(token)
     return nil if token.blank?
 
@@ -17,7 +20,11 @@ class ApiToken < ApplicationRecord
     api_token = find_by(token_digest: digest)
     return nil unless api_token
 
-    api_token.touch(:last_used_at)
+    # Debounce last_used_at writes to reduce DB load under high request volume
+    if api_token.last_used_at.nil? || api_token.last_used_at < LAST_USED_DEBOUNCE.ago
+      api_token.touch(:last_used_at)
+    end
+
     api_token.user
   end
 

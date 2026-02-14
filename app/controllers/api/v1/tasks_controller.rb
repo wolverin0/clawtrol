@@ -9,87 +9,18 @@ module Api
       # Returns parsed messages from the OpenClaw session transcript
       # Supports ?since=N param to get only messages after line N (for polling efficiency)
       def agent_log
-        # Lazy resolution: try to resolve session_id from session_key if missing
-        if @task.agent_session_id.blank? && @task.agent_session_key.present?
-          resolved_id = resolve_session_id_from_key(@task.agent_session_key, @task)
-          if resolved_id.present?
-            @task.update_column(:agent_session_id, resolved_id)
-            Rails.logger.info("[agent_log] Lazy-resolved session_id=#{resolved_id} for task #{@task.id}")
-          end
-        end
-
-        unless @task.agent_session_id.present?
-          # No session ID, but check for agent output in description as fallback
-          if @task.description.present? && @task.description.include?("## Agent Output")
-            output_match = @task.description.match(/## Agent Output.*?\n(.*)/m)
-            if output_match
-              extracted_output = output_match[1].strip
-              render json: {
-                messages: [{ role: "assistant", content: [{ type: "text", text: extracted_output }] }],
-                total_lines: 1,
-                has_session: true,
-                fallback: true,
-                task_status: @task.status
-              }
-              return
-            end
-          end
-          # Also check for output_files - synthesize a summary message
-          if @task.output_files.present? && @task.output_files.any?
-            file_list = @task.output_files.map { |f| "📄 #{f}" }.join("\n")
-            render json: {
-              messages: [{ role: "assistant", content: [{ type: "text", text: "Agent produced #{@task.output_files.size} file(s):\n#{file_list}" }] }],
-              total_lines: 1,
-              has_session: true,
-              fallback: true,
-              task_status: @task.status
-            }
-            return
-          end
-          render json: { messages: [], total_lines: 0, has_session: false, task_status: @task.status }
-          return
-        end
-
-        # Sanitize session ID to prevent path traversal attacks
-        session_id = @task.agent_session_id.to_s
-        unless session_id.match?(/\A[a-zA-Z0-9_\-]+\z/)
-          render json: { messages: [], total_lines: 0, has_session: false, error: "Invalid session ID format" }
-          return
-        end
-
-        # Build path to the transcript file (active + archived fallback)
-        transcript_path = TranscriptParser.transcript_path(session_id)
-
-        unless transcript_path
-          # Fallback: extract "## Agent Output" from task description if present
-          if @task.description.present? && @task.description.include?("## Agent Output")
-            output_match = @task.description.match(/## Agent Output.*?\n(.*)/m)
-            if output_match
-              extracted_output = output_match[1].strip
-              render json: {
-                messages: [{ role: "assistant", content: [{ type: "text", text: extracted_output }] }],
-                total_lines: 1,
-                has_session: true,
-                fallback: true
-              }
-              return
-            end
-          end
-          render json: { messages: [], total_lines: 0, has_session: true, error: "Transcript file not found" }
-          return
-        end
-
-        # Read and parse the JSONL file
-        since_line = params[:since].to_i
-        result = TranscriptParser.parse_messages(transcript_path, since: since_line)
+        resolver = method(:resolve_session_id_from_key)
+        result = AgentLogService.new(@task, since: params[:since].to_i, session_resolver: resolver).call
 
         render json: {
-          messages: result[:messages],
-          total_lines: result[:total_lines],
-          since: since_line,
-          has_session: true,
-          task_status: @task.status
-        }
+          messages: result.messages,
+          total_lines: result.total_lines,
+          since: result.since,
+          has_session: result.has_session,
+          fallback: result.fallback,
+          error: result.error,
+          task_status: result.task_status
+        }.compact
       end
 
       TASK_JSON_INCLUDES = {
@@ -819,6 +750,14 @@ module Api
           return
         end
 
+        # Security: enforce size limit to prevent memory exhaustion
+        file_size = File.size(full_path)
+        max_file_size = 2.megabytes
+        if file_size > max_file_size
+          render json: { error: "File too large (#{file_size} bytes, max #{max_file_size})", path: path, size: file_size }, status: :unprocessable_entity
+          return
+        end
+
         # Read and return file content
         content = File.read(full_path, encoding: "UTF-8")
         render json: {
@@ -1014,7 +953,13 @@ module Api
       def report_rate_limit
         model_name = params[:model_name] || @task.model
         error_message = params[:error_message] || "Rate limit exceeded"
-        resets_at = params[:resets_at].present? ? Time.parse(params[:resets_at]) : nil
+        resets_at = if params[:resets_at].present?
+          begin
+            Time.parse(params[:resets_at])
+          rescue ArgumentError
+            nil
+          end
+        end
 
         unless model_name.present?
           render json: { error: "Model name required" }, status: :unprocessable_entity

@@ -28,7 +28,7 @@ class CronjobsController < ApplicationController
       format.json { render json: { ok: true, cron: result } }
       format.html { redirect_to cronjobs_path, notice: "Cron job created." }
     end
-  rescue => e
+  rescue StandardError => e
     respond_to do |format|
       format.json { render json: { ok: false, error: e.message }, status: :unprocessable_entity }
       format.html { redirect_to cronjobs_path, alert: e.message }
@@ -46,7 +46,7 @@ class CronjobsController < ApplicationController
       format.json { render json: { ok: true } }
       format.html { redirect_to cronjobs_path, notice: "Cron job deleted." }
     end
-  rescue => e
+  rescue StandardError => e
     respond_to do |format|
       format.json { render json: { ok: false, error: e.message }, status: :unprocessable_entity }
       format.html { redirect_to cronjobs_path, alert: e.message }
