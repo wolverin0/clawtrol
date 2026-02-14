@@ -35,6 +35,25 @@ class FileViewerController < ApplicationController
     render inline: page_template(relative, body), content_type: "text/html"
   end
 
+  def browse
+    relative = params[:path].to_s
+    dir_path = relative.blank? ? WORKSPACE : (WORKSPACE / relative).expand_path
+
+    unless dir_path.to_s.start_with?(WORKSPACE.to_s)
+      render plain: "Access denied", status: :forbidden
+      return
+    end
+
+    unless dir_path.directory?
+      render plain: "Not a directory", status: :not_found
+      return
+    end
+
+    @entries = dir_path.children.sort_by { |c| [c.directory? ? 0 : 1, c.basename.to_s.downcase] }
+    @current_path = relative
+    @parent_path = relative.include?("/") ? File.dirname(relative) : nil
+  end
+
   private
 
   def page_template(title, body)

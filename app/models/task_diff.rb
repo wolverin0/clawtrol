@@ -135,6 +135,27 @@ class TaskDiff < ApplicationRecord
     groups
   end
 
+  # Return a properly formatted unified diff string for diff2html.js
+  # Ensures diff/--- /+++ headers are present
+  def unified_diff_string
+    return "" if diff_content.blank?
+
+    content = diff_content.strip
+    
+    # If content already has diff headers, return as-is
+    return content if content.start_with?("diff --git") || content.start_with?("--- ")
+
+    # Otherwise, wrap with proper unified diff headers
+    a_path = diff_type == "added" ? "/dev/null" : "a/#{file_path}"
+    b_path = diff_type == "deleted" ? "/dev/null" : "b/#{file_path}"
+
+    header = "diff --git a/#{file_path} b/#{file_path}\n"
+    header += "--- #{a_path}\n"
+    header += "+++ #{b_path}\n"
+
+    header + content
+  end
+
   # Stats for display
   def stats
     additions = 0

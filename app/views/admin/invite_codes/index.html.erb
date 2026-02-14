@@ -1,0 +1,42 @@
+<div class="max-w-4xl mx-auto p-6">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-content">Invite Codes</h1>
+    <%= form_with url: admin_invite_codes_path, method: :post, class: "flex items-center gap-2" do |f| %>
+      <%= f.number_field :count, value: 1, min: 1, max: 10, class: "w-16 px-2 py-1 rounded bg-bg-surface border border-border text-content text-sm" %>
+      <%= f.submit "Generate", class: "px-3 py-1 bg-accent text-white rounded text-sm cursor-pointer hover:bg-accent/80" %>
+    <% end %>
+  </div>
+
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-content-muted border-b border-border">
+        <th class="pb-2">Code</th>
+        <th class="pb-2">Status</th>
+        <th class="pb-2">Email</th>
+        <th class="pb-2">Created</th>
+        <th class="pb-2"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @invite_codes.each do |code| %>
+        <tr class="border-b border-border/50">
+          <td class="py-2 font-mono text-content"><%= code.code %></td>
+          <td class="py-2">
+            <% if code.available? %>
+              <span class="text-emerald-400">Available</span>
+            <% else %>
+              <span class="text-content-muted">Used <%= time_ago_in_words(code.used_at) %> ago</span>
+            <% end %>
+          </td>
+          <td class="py-2 text-content-muted"><%= code.email %></td>
+          <td class="py-2 text-content-muted"><%= code.created_at.strftime("%b %d, %H:%M") %></td>
+          <td class="py-2">
+            <% if code.available? %>
+              <%= button_to "Delete", admin_invite_code_path(code), method: :delete, class: "text-red-400 text-xs hover:underline", data: { turbo_confirm: "Delete this code?" } %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

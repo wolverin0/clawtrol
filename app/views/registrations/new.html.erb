@@ -36,6 +36,10 @@
 
     <div class="isolate -space-y-px rounded-md">
       <div class="relative bg-bg-elevated rounded-t-md px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-border focus-within:z-10 focus-within:ring-1 focus-within:ring-accent">
+        <%= form.label :invite_code, "Invite Code", class: "block text-xs font-medium text-content-muted" %>
+        <%= form.text_field :invite_code, value: @invite_code, required: true, placeholder: "Enter invite code", class: "block w-full border-0 p-0 text-content placeholder:text-content-muted focus:ring-0 text-sm leading-6 bg-transparent" %>
+      </div>
+      <div class="relative bg-bg-elevated px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-border focus-within:z-10 focus-within:ring-1 focus-within:ring-accent">
         <%= form.label :email_address, "Email", class: "block text-xs font-medium text-content-muted" %>
         <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "email", placeholder: "name@domain.com", class: "block w-full border-0 p-0 text-content placeholder:text-content-muted focus:ring-0 text-sm leading-6 bg-transparent" %>
       </div>

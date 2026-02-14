@@ -125,15 +125,23 @@ class Boards::TasksController < ApplicationController
 
   def move_to_board
     target_board = current_user.boards.find(params[:target_board_id])
-    @old_board = @board
+
     @task.activity_source = "web"
     @task.update!(board_id: target_board.id)
+
     respond_to do |format|
       format.turbo_stream do
-        # Remove from current board and redirect to target board
-        render turbo_stream: turbo_stream.action(:redirect, board_path(target_board))
+        render turbo_stream: [
+          turbo_stream.remove("task_card_#{@task.id}"),
+          turbo_stream.remove("task_#{@task.id}"),
+          turbo_stream.append("flash-messages", partial: "shared/flash_toast", locals: {
+            message: "Task moved to #{target_board.name}",
+            type: "success"
+          })
+        ]
       end
-      format.html { redirect_to board_path(target_board), notice: "Task moved to #{target_board.icon} #{target_board.name}." }
+      format.html { redirect_to board_path(@board), notice: "Task moved to #{target_board.name}" }
+      format.json { render json: { success: true, task_id: @task.id, board: target_board.name } }
     end
   end
 
@@ -298,7 +306,25 @@ class Boards::TasksController < ApplicationController
     end
 
     @task_diff = task_diff
-    render partial: "boards/tasks/diff_viewer", locals: { task_diff: task_diff }, layout: false
+
+    respond_to do |format|
+      format.json do
+        # Return raw unified diff for diff2html.js rendering
+        unified = task_diff.unified_diff_string
+        render json: {
+          file_path: task_diff.file_path,
+          diff_type: task_diff.diff_type,
+          diff_content: unified,
+          stats: task_diff.stats
+        }
+      end
+      format.html do
+        render partial: "boards/tasks/diff_viewer", locals: { task_diff: task_diff }, layout: false
+      end
+      format.any do
+        render partial: "boards/tasks/diff_viewer", locals: { task_diff: task_diff }, layout: false
+      end
+    end
   end
 
   def run_debate

@@ -20,6 +20,39 @@ class CronjobsController < ApplicationController
     end
   end
 
+  def create
+    client = OpenclawGatewayClient.new(current_user)
+    result = client.cron_create(cron_params)
+
+    respond_to do |format|
+      format.json { render json: { ok: true, cron: result } }
+      format.html { redirect_to cronjobs_path, notice: "Cron job created." }
+    end
+  rescue => e
+    respond_to do |format|
+      format.json { render json: { ok: false, error: e.message }, status: :unprocessable_entity }
+      format.html { redirect_to cronjobs_path, alert: e.message }
+    end
+  end
+
+  def destroy
+    id = params[:id].to_s
+    return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
+
+    client = OpenclawGatewayClient.new(current_user)
+    client.cron_delete(id)
+
+    respond_to do |format|
+      format.json { render json: { ok: true } }
+      format.html { redirect_to cronjobs_path, notice: "Cron job deleted." }
+    end
+  rescue => e
+    respond_to do |format|
+      format.json { render json: { ok: false, error: e.message }, status: :unprocessable_entity }
+      format.html { redirect_to cronjobs_path, alert: e.message }
+    end
+  end
+
   def toggle
     id = params[:id].to_s
     return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
@@ -72,6 +105,10 @@ class CronjobsController < ApplicationController
   end
 
   private
+
+  def cron_params
+    params.permit(:name, :agent_id, :schedule, :enabled, :session_target, :wake_mode, :prompt)
+  end
 
   def fetch_cronjobs
     result = Rails.cache.fetch("cronjobs/index/v1", expires_in: cache_ttl) do

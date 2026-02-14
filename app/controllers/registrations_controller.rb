@@ -6,12 +6,21 @@ class RegistrationsController < ApplicationController
 
   def new
     @user = User.new
+    @invite_code = params[:invite_code]
   end
 
   def create
-    @user = User.new(user_params)
+    invite = InviteCode.available.find_by(code: params[:invite_code].to_s.strip.upcase)
 
+    unless invite
+      @user = User.new(user_params)
+      flash.now[:alert] = "Invalid or expired invite code."
+      return render :new, status: :unprocessable_entity
+    end
+
+    @user = User.new(user_params)
     if @user.save
+      invite.redeem!(@user.email_address)
       start_new_session_for @user
       redirect_to after_authentication_url, notice: "Welcome to ClawDeck!"
     else
