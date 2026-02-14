@@ -55,7 +55,7 @@ class Task < ApplicationRecord
   DEBATE_MODELS = %w[gemini claude glm].freeze
 
   # Pipeline stages (ClawRouter 3-layer pipeline)
-  PIPELINE_STAGES = %w[triaged context_ready routed executing verifying completed failed].freeze
+  PIPELINE_STAGES = %w[unstarted triaged context_ready routed executing verifying completed failed].freeze
 
   # Security: allowed validation command prefixes
   ALLOWED_VALIDATION_PREFIXES = %w[
