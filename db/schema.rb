@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_14_192324) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_14_200819) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -581,7 +581,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_192324) do
     t.text "original_description"
     t.jsonb "output_files", default: [], null: false
     t.bigint "parent_task_id"
-    t.boolean "pipeline_enabled", default: false
+    t.boolean "pipeline_enabled", default: true
     t.jsonb "pipeline_log"
     t.string "pipeline_stage"
     t.string "pipeline_type"
