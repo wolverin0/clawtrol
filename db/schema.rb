@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_14_231831) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -82,6 +82,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
     t.index ["user_id"], name: "index_agent_personas_on_user_id"
   end
 
+  create_table "agent_test_recordings", force: :cascade do |t|
+    t.integer "action_count", default: 0, null: false
+    t.jsonb "actions", default: [], null: false
+    t.jsonb "assertions", default: [], null: false
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.text "generated_test_code"
+    t.jsonb "metadata", default: {}, null: false
+    t.string "name", limit: 255, null: false
+    t.string "session_id", limit: 100
+    t.string "status", limit: 20, default: "recorded", null: false
+    t.bigint "task_id"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.datetime "verified_at"
+    t.index ["session_id"], name: "index_agent_test_recordings_on_session_id"
+    t.index ["status"], name: "index_agent_test_recordings_on_status"
+    t.index ["task_id"], name: "index_agent_test_recordings_on_task_id"
+    t.index ["user_id", "created_at"], name: "index_agent_test_recordings_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_agent_test_recordings_on_user_id"
+  end
+
   create_table "agent_transcripts", force: :cascade do |t|
     t.float "cost_usd"
     t.datetime "created_at", null: false
@@ -135,6 +157,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
     t.bigint "user_id", null: false
     t.index ["auto_claim_enabled"], name: "index_boards_on_auto_claim_enabled", where: "(auto_claim_enabled = true)"
     t.index ["is_aggregator"], name: "index_boards_on_is_aggregator", where: "(is_aggregator = true)"
+    t.index ["user_id", "name"], name: "index_boards_on_user_id_and_name", unique: true
     t.index ["user_id", "position"], name: "index_boards_on_user_id_and_position"
     t.index ["user_id"], name: "index_boards_on_user_id"
   end
@@ -291,6 +314,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
     t.index ["event_type"], name: "index_notifications_on_event_type"
     t.index ["task_id"], name: "index_notifications_on_task_id"
     t.index ["user_id", "created_at"], name: "index_notifications_on_user_id_and_created_at", order: { created_at: :desc }
+    t.index ["user_id", "event_type", "created_at"], name: "index_notifications_on_dedup", order: { created_at: :desc }
     t.index ["user_id", "read_at"], name: "index_notifications_on_user_unread"
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
@@ -326,12 +350,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
   create_table "saved_links", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "error_message"
+    t.string "note"
     t.datetime "processed_at"
     t.text "raw_content"
     t.string "source_type"
     t.integer "status"
     t.text "summary"
-    t.string "title"
     t.datetime "updated_at", null: false
     t.string "url"
     t.bigint "user_id", null: false
@@ -575,6 +599,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
     t.string "pipeline_type"
     t.integer "priority", default: 0
     t.string "slug", null: false
+    t.string "tags", default: [], array: true
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.string "validation_command"
@@ -609,6 +634,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
     t.date "due_date"
     t.datetime "error_at"
     t.text "error_message"
+    t.text "execution_plan"
     t.bigint "followup_task_id"
     t.boolean "last_needs_follow_up"
     t.datetime "last_outcome_at"
@@ -626,7 +652,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
     t.bigint "parent_task_id"
     t.boolean "pipeline_enabled", default: true
     t.jsonb "pipeline_log"
-    t.string "pipeline_stage"
+    t.string "pipeline_stage", default: "unstarted", null: false
     t.string "pipeline_type"
     t.integer "position"
     t.integer "priority", default: 0, null: false
@@ -657,6 +683,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
     t.index ["assigned_to_agent"], name: "index_tasks_on_assigned_to_agent"
     t.index ["auto_pull_blocked"], name: "index_tasks_on_auto_pull_blocked"
     t.index ["blocked"], name: "index_tasks_on_blocked"
+    t.index ["board_id", "pipeline_stage"], name: "index_tasks_on_board_pipeline"
     t.index ["board_id", "status", "position"], name: "index_tasks_on_board_status_position"
     t.index ["board_id"], name: "index_tasks_on_board_id"
     t.index ["description"], name: "index_tasks_on_description_trigram", opclass: :gin_trgm_ops, using: :gin
@@ -728,12 +755,38 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "(provider IS NOT NULL)"
   end
 
+  create_table "webhook_logs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "direction", default: "incoming", null: false
+    t.integer "duration_ms"
+    t.string "endpoint", null: false
+    t.string "error_message"
+    t.string "event_type", null: false
+    t.string "method", default: "POST", null: false
+    t.jsonb "request_body", default: {}
+    t.jsonb "request_headers", default: {}
+    t.jsonb "response_body", default: {}
+    t.integer "status_code"
+    t.boolean "success", default: false, null: false
+    t.bigint "task_id"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["direction"], name: "index_webhook_logs_on_direction"
+    t.index ["event_type", "created_at"], name: "index_webhook_logs_on_event_type_and_created_at", order: { created_at: :desc }
+    t.index ["success"], name: "index_webhook_logs_on_success", where: "(success = false)"
+    t.index ["task_id"], name: "index_webhook_logs_on_task_id"
+    t.index ["user_id", "created_at"], name: "index_webhook_logs_on_user_id_and_created_at", order: { created_at: :desc }
+    t.index ["user_id"], name: "index_webhook_logs_on_user_id"
+  end
+
   create_table "workflows", force: :cascade do |t|
     t.boolean "active", default: false, null: false
     t.datetime "created_at", null: false
     t.jsonb "definition", default: {}, null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["user_id"], name: "index_workflows_on_user_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
@@ -741,6 +794,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
   add_foreign_key "agent_messages", "tasks", column: "source_task_id", on_delete: :nullify
   add_foreign_key "agent_messages", "tasks", on_delete: :cascade
   add_foreign_key "agent_personas", "users"
+  add_foreign_key "agent_test_recordings", "tasks"
+  add_foreign_key "agent_test_recordings", "users"
   add_foreign_key "agent_transcripts", "task_runs"
   add_foreign_key "agent_transcripts", "tasks"
   add_foreign_key "api_tokens", "users"
@@ -779,4 +834,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_230100) do
   add_foreign_key "tasks", "users"
   add_foreign_key "token_usages", "agent_personas"
   add_foreign_key "token_usages", "tasks"
+  add_foreign_key "webhook_logs", "tasks"
+  add_foreign_key "webhook_logs", "users"
+  add_foreign_key "workflows", "users"
 end

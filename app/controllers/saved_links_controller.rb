@@ -27,6 +27,6 @@ class SavedLinksController < ApplicationController
   private
 
   def saved_link_params
-    params.expect(saved_link: [:url, :title])
+    params.expect(saved_link: [:url, :note])
   end
 end
