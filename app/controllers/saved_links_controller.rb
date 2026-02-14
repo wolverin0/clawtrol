@@ -18,6 +18,15 @@ class SavedLinksController < ApplicationController
     redirect_to saved_links_path, notice: "Processing started for #{pending_links.count} links"
   end
 
+  def update
+    @saved_link = current_user.saved_links.find(params[:id])
+    if @saved_link.update(saved_link_params)
+      redirect_to saved_links_path, notice: "Note updated!"
+    else
+      redirect_to saved_links_path, alert: @saved_link.errors.full_messages.join(", ")
+    end
+  end
+
   def destroy
     @saved_link = current_user.saved_links.find(params[:id])
     @saved_link.destroy
