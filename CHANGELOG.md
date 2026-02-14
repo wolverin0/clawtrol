@@ -75,6 +75,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
 ### 🐛 Bug Fixes
 
+- add pipeline_enabled to task strong params (`87083f4`)
 - **factory:** cherry-pick security, performance, and test improvements from MiniMax factory (`c04aa87`)
 - **security+perf:** cherry-pick OpenClaw bot findings — IDOR, injection, N+1, indexes (`c0553a6`)
 - preserve original_description in tasks (#615) (`81fd7b1`)
@@ -169,6 +170,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`445ac3b`)
 - update CHANGELOG.md [skip ci] (`1e86992`)
 - update CHANGELOG.md [skip ci] (`f3359fe`)
 - update CHANGELOG.md [skip ci] (`89cca45`)
