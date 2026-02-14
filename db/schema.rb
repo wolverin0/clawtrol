@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_14_231831) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_15_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -153,6 +153,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_231831) do
     t.string "name", null: false
     t.boolean "pipeline_enabled", default: false
     t.integer "position", default: 0, null: false
+    t.integer "tasks_count", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["auto_claim_enabled"], name: "index_boards_on_auto_claim_enabled", where: "(auto_claim_enabled = true)"
@@ -348,6 +349,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_231831) do
   end
 
   create_table "saved_links", force: :cascade do |t|
+    t.string "audio_file_path"
+    t.boolean "audio_summary", default: false
     t.datetime "created_at", null: false
     t.string "error_message"
     t.string "note"
