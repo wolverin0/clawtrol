@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_14_000522) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_14_153000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -208,6 +208,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_000522) do
     t.datetime "updated_at", null: false
     t.index ["nightshift_mission_id", "scheduled_date"], name: "index_nightshift_selections_on_mission_and_scheduled_date", unique: true
     t.index ["nightshift_mission_id"], name: "index_nightshift_selections_on_nightshift_mission_id"
+    t.index ["scheduled_date", "enabled"], name: "index_nightshift_selections_on_date_enabled"
   end
 
   create_table "notifications", force: :cascade do |t|
@@ -265,6 +266,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_000522) do
     t.datetime "updated_at", null: false
     t.string "url"
     t.bigint "user_id", null: false
+    t.index ["status"], name: "index_saved_links_on_status"
+    t.index ["user_id", "created_at"], name: "index_saved_links_on_user_id_and_created_at", order: { created_at: :desc }
     t.index ["user_id"], name: "index_saved_links_on_user_id"
   end
 
@@ -524,6 +527,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_14_000522) do
     t.integer "nightly_delay_hours"
     t.string "origin_chat_id"
     t.integer "origin_thread_id"
+    t.text "original_description"
     t.jsonb "output_files", default: [], null: false
     t.bigint "parent_task_id"
     t.integer "position"

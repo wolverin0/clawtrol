@@ -1,7 +1,17 @@
 class FileViewerController < ApplicationController
+  allow_unauthenticated_access
   include MarkdownSanitizationHelper
 
   WORKSPACE = Pathname.new(File.expand_path("~/.openclaw/workspace")).freeze
+  WORKSPACE_PREFIX = (WORKSPACE.to_s + "/").freeze
+  REPORTS_DIR = Pathname.new(File.expand_path("~/nightshift-reports")).freeze
+  ALLOWED_DIRS = [WORKSPACE, REPORTS_DIR].freeze
+
+  # Dotfiles/dotdirs that should never be served or listed
+  HIDDEN_PATTERN = /(?:^|\/)\.[^\/]/
+
+  # Maximum file size to serve (2 MB) — prevents memory exhaustion
+  MAX_FILE_SIZE = 2 * 1024 * 1024
 
   def show
     relative = params[:file].to_s
@@ -10,20 +20,24 @@ class FileViewerController < ApplicationController
       return
     end
 
-    # Sanitize: expand and ensure it's under workspace
-    full = (WORKSPACE / relative).expand_path
-    unless full.to_s.start_with?(WORKSPACE.to_s + "/")
+    resolved = resolve_safe_path(relative)
+    unless resolved
       render inline: error_page("Access denied"), status: :forbidden, content_type: "text/html"
       return
     end
 
-    unless full.file?
+    unless resolved.file?
       render inline: error_page("File not found: #{relative}"), status: :not_found, content_type: "text/html"
       return
     end
 
-    content = full.read(encoding: "utf-8")
-    ext = full.extname.downcase
+    if resolved.size > MAX_FILE_SIZE
+      render inline: error_page("File too large (max #{MAX_FILE_SIZE / 1024}KB)"), status: :unprocessable_entity, content_type: "text/html"
+      return
+    end
+
+    content = resolved.read(encoding: "utf-8")
+    ext = resolved.extname.downcase
 
     body = if ext == ".md"
       # Use safe_markdown for XSS-safe rendering
@@ -37,11 +51,15 @@ class FileViewerController < ApplicationController
 
   def browse
     relative = params[:path].to_s
-    dir_path = relative.blank? ? WORKSPACE : (WORKSPACE / relative).expand_path
 
-    unless dir_path.to_s.start_with?(WORKSPACE.to_s)
-      render plain: "Access denied", status: :forbidden
-      return
+    if relative.blank?
+      dir_path = WORKSPACE
+    else
+      dir_path = resolve_safe_path(relative)
+      unless dir_path
+        render plain: "Access denied", status: :forbidden
+        return
+      end
     end
 
     unless dir_path.directory?
@@ -49,12 +67,70 @@ class FileViewerController < ApplicationController
       return
     end
 
-    @entries = dir_path.children.sort_by { |c| [c.directory? ? 0 : 1, c.basename.to_s.downcase] }
+    # Filter out dotfiles/dotdirs from listing (e.g. .git, .env)
+    @entries = dir_path.children
+      .reject { |c| c.basename.to_s.start_with?(".") }
+      .sort_by { |c| [c.directory? ? 0 : 1, c.basename.to_s.downcase] }
     @current_path = relative
     @parent_path = relative.include?("/") ? File.dirname(relative) : nil
   end
 
   private
+
+  def resolve_allowed_path(relative)
+    cleaned = relative.to_s.sub(%r{\A/+}, "")
+
+    matched_base = ALLOWED_DIRS.find do |base|
+      base_name = base.basename.to_s
+      cleaned == base_name || cleaned.start_with?("#{base_name}/")
+    end
+
+    if matched_base
+      base_name = matched_base.basename.to_s
+      suffix = cleaned == base_name ? "" : cleaned.delete_prefix("#{base_name}/")
+      candidate = (matched_base / suffix).expand_path
+      return candidate if path_allowed?(candidate)
+    end
+
+    workspace_candidate = (WORKSPACE / cleaned).expand_path
+    return workspace_candidate if path_allowed?(workspace_candidate)
+
+    nil
+  end
+
+  def path_allowed?(path)
+    ALLOWED_DIRS.any? do |base|
+      path == base || path.to_s.start_with?(base.to_s + "/")
+    end
+  end
+
+  # Resolve a relative path to an absolute path safely within ALLOWED_DIRS.
+  # Returns nil if the path is rejected for any security reason.
+  # Checks: null bytes, dotfiles/dotdirs, empty components, directory traversal,
+  # and symlink escape (using File.realpath).
+  def resolve_safe_path(relative)
+    # Reject null bytes (can truncate paths at C level)
+    return nil if relative.include?("\x00")
+
+    # Reject dotfiles/dotdirs (.env, .git, .gitignore, etc.)
+    return nil if relative.match?(HIDDEN_PATTERN)
+
+    # Reject empty path components (double slashes)
+    return nil if relative.include?("//") || relative.start_with?("/")
+
+    # Use the existing multi-dir resolver for logical path resolution
+    candidate = resolve_allowed_path(relative)
+    return nil unless candidate
+
+    # File/dir must exist for realpath to work
+    return nil unless candidate.exist?
+
+    # Resolve symlinks and verify the real path is still inside an allowed directory
+    real = Pathname.new(File.realpath(candidate.to_s))
+    return nil unless path_allowed?(real)
+
+    real
+  end
 
   def page_template(title, body)
     <<~HTML

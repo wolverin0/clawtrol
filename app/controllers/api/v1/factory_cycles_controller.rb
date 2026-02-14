@@ -5,7 +5,10 @@ module Api
     class FactoryCyclesController < BaseController
       # POST /api/v1/factory/cycles/:id/complete
       def complete
-        cycle_log = FactoryCycleLog.find(params[:id])
+        cycle_log = FactoryCycleLog
+          .joins(:factory_loop)
+          .where(factory_loops: { user_id: current_user.id })
+          .find(params[:id])
 
         unless %w[pending running].include?(cycle_log.status)
           return render json: { error: "Cycle already finalized (#{cycle_log.status})" }, status: :unprocessable_entity

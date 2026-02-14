@@ -12,15 +12,14 @@ module Api
         limit = [params[:limit].to_i, 50].min
         limit = 20 if limit <= 0
 
-        @notifications = current_user.notifications.recent.limit(limit)
+        @notifications = current_user.notifications.includes(:task).recent.limit(limit)
         @notifications = @notifications.unread if ActiveModel::Type::Boolean.new.cast(params[:unread_only])
 
         unread_count = current_user.notifications.unread.count
 
         render json: {
           notifications: @notifications.map { |n| notification_json(n) },
-          unread_count: unread_count,
-          total: current_user.notifications.count
+          unread_count: unread_count
         }
       end
 
@@ -55,7 +54,7 @@ module Api
       private
 
       def set_notification
-        @notification = current_user.notifications.find(params[:id])
+        @notification = current_user.notifications.includes(:task).find(params[:id])
       end
 
       def notification_json(notification)
