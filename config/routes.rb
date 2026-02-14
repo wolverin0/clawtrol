@@ -36,6 +36,15 @@ Rails.application.routes.draw do
         get :tokens
       end
 
+
+      # Gateway proxy endpoints
+      namespace :gateway do
+        get :health
+        get :channels
+        get :cost
+        get :models
+      end
+
       resources :saved_links, only: [:index, :create, :update] do
         collection do
           get :pending

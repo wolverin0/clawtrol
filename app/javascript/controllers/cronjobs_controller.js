@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["status", "error", "list", "empty", "summary"]
+  static targets = ["status", "error", "list", "empty", "summary", "count"]
 
   connect() {
     this.refresh()
@@ -61,6 +61,10 @@ export default class extends Controller {
     `
 
     const jobs = Array.isArray(data.jobs) ? data.jobs : []
+
+    if (this.hasCountTarget) {
+      this.countTarget.textContent = jobs.length > 0 ? jobs.length : ""
+    }
 
     const enabledCount = jobs.filter(j => j.enabled).length
     const disabledCount = jobs.length - enabledCount
