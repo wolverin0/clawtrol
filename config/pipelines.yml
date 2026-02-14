@@ -4,7 +4,7 @@
 # observation_mode: true  => pipeline logs decisions but doesn't change behavior
 # observation_mode: false => pipeline actively enriches prompts + selects models
 
-observation_mode: true
+observation_mode: false
 
 # Board name -> default pipeline type mapping
 board_defaults:
