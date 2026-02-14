@@ -23,6 +23,7 @@ class SearchController < ApplicationController
     respond_to do |format|
       format.html
       format.turbo_stream
+      format.json { render json: { tasks: @tasks.map { |t| { id: t.id, name: t.name, status: t.status, board_id: t.board_id, board_name: t.board.name } } } }
     end
   end
 end

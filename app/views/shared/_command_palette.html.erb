@@ -1,0 +1,19 @@
+<div data-controller="command-palette">
+  <div data-command-palette-target="dialog" class="hidden fixed inset-0 z-[100] flex items-start justify-center pt-[20vh]">
+    <%# Backdrop %>
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-action="click->command-palette#close"></div>
+    <%# Dialog %>
+    <div class="relative w-full max-w-lg bg-bg-elevated rounded-xl border border-border shadow-2xl overflow-hidden">
+      <div class="flex items-center gap-2 px-4 py-3 border-b border-border">
+        <span class="text-content-muted">🔍</span>
+        <input data-command-palette-target="input"
+               data-action="input->command-palette#search"
+               type="text" placeholder="Search tasks..."
+               class="flex-1 bg-transparent text-content text-sm outline-none placeholder-content-muted"
+               autocomplete="off">
+        <kbd class="text-xs text-content-muted px-1.5 py-0.5 rounded border border-border bg-bg-surface">ESC</kbd>
+      </div>
+      <div data-command-palette-target="results" class="max-h-80 overflow-y-auto"></div>
+    </div>
+  </div>
+</div>

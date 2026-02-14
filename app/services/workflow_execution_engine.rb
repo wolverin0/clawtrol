@@ -97,10 +97,28 @@ class WorkflowExecutionEngine
       session = nil
 
     when "router"
-      expression = prop(node, "expression")
-      logs << "router: evaluating (placeholder) expression=#{expression.presence || "(none)"}"
-      status = "skipped"
-      output = { "todo" => "conditional routing pending implementation" }
+      expression = prop(node, "expression").to_s.strip
+      logs << "router: evaluating '#{expression}'"
+
+      if expression.blank?
+        logs << "router: no expression, defaulting to true"
+        status = "ok"
+        output = { "result" => true, "path" => "default" }
+      else
+        # Simple expression evaluator: supports comparisons and logical operators
+        # Replaces {{node_id.field}} with actual values from previous node outputs
+        resolved = expression.gsub(/\{\{(\w+)\.(\w+)\}\}/) do |match|
+          node_id = $1
+          field = $2
+          prev_output = @node_outputs[node_id]
+          prev_output.is_a?(Hash) ? prev_output[field].to_s : ""
+        end
+
+        result = evaluate_simple_expression(resolved)
+        logs << "router: resolved='#{resolved}' result=#{result}"
+        status = "ok"
+        output = { "expression" => expression, "resolved" => resolved, "result" => result, "path" => result ? "true" : "false" }
+      end
       session = nil
 
     when "nightshift"
@@ -148,13 +166,20 @@ class WorkflowExecutionEngine
         end
       end
 
-    when "conditional"
-      expression = prop(node, "expression")
-      logs << "conditional: expression=#{expression.presence || "(empty)"} — evaluation not yet implemented"
-      # Placeholder: always takes "true" path
-      logs << "conditional: defaulting to true path"
+    when "conditional", "if"
+      expression = prop(node, "expression").to_s.strip
+      logs << "conditional: evaluating '#{expression}'"
+
+      resolved = expression.gsub(/\{\{(\w+)\.(\w+)\}\}/) do
+        node_id = $1; field = $2
+        prev = @node_outputs[node_id]
+        prev.is_a?(Hash) ? prev[field].to_s : ""
+      end
+
+      result = evaluate_simple_expression(resolved)
+      logs << "conditional: #{result ? 'TRUE path' : 'FALSE path'}"
       status = "ok"
-      output = { "result" => true, "todo" => "expression evaluation pending" }
+      output = { "expression" => expression, "result" => result }
       session = nil
 
     when "notification"
@@ -224,6 +249,44 @@ class WorkflowExecutionEngine
       started_at: started, finished_at: Time.current,
       logs: ["error: #{e.class}: #{e.message}"], output: { "error" => e.message }, session: nil
     )
+  end
+
+
+  def evaluate_simple_expression(expr)
+    return true if expr.blank?
+
+    # Simple expression evaluator for safe expressions
+    # Supports: ==, !=, >, <, >=, <=, contains, empty, not_empty
+    case expr.strip
+    when /\A(.+?)\s*==\s*(.+)\z/
+      $1.strip == $2.strip
+    when /\A(.+?)\s*!=\s*(.+)\z/
+      $1.strip != $2.strip
+    when /\A(.+?)\s*>=\s*(.+)\z/
+      $1.strip.to_f >= $2.strip.to_f
+    when /\A(.+?)\s*<=\s*(.+)\z/
+      $1.strip.to_f <= $2.strip.to_f
+    when /\A(.+?)\s*>\s*(.+)\z/
+      $1.strip.to_f > $2.strip.to_f
+    when /\A(.+?)\s*<\s*(.+)\z/
+      $1.strip.to_f < $2.strip.to_f
+    when /\A(.+?)\s+contains\s+(.+)\z/i
+      $1.strip.downcase.include?($2.strip.downcase)
+    when /\Aempty\((.+?)\)\z/i
+      $1.strip.empty?
+    when /\Anot_empty\((.+?)\)\z/i
+      !$1.strip.empty?
+    when /\Atrue\z/i
+      true
+    when /\Afalse\z/i
+      false
+    else
+      # Default: treat non-empty strings as truthy
+      expr.strip.present?
+    end
+  rescue => e
+    Rails.logger.warn("[WorkflowEngine] expression eval failed: #{e.message}")
+    false
   end
 
   def prop(node, key)

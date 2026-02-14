@@ -1,6 +1,9 @@
 <% content_for :title, "Dashboard - clawdeck" %>
 <% content_for :breadcrumb_standalone, "📊 Dashboard Overview" %>
 
+<%= turbo_stream_from "dashboard_#{current_user.id}" %>
+
+<%= turbo_frame_tag "dashboard-content", data: { controller: "dashboard-refresh", "dashboard-refresh-interval-value": "60000" } do %>
 <div class="py-6 space-y-6">
   <%# Status Cards Row %>
   <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -194,3 +197,4 @@
     <% end %>
   </div>
 </div>
+<% end %>

@@ -1,0 +1,35 @@
+<div class="max-w-4xl mx-auto p-6">
+  <div class="flex items-center gap-2 mb-6">
+    <h1 class="text-xl font-bold text-content">📁 Agent Files</h1>
+    <% if @current_path.present? %>
+      <span class="text-content-muted text-sm">/ <%= @current_path %></span>
+    <% end %>
+  </div>
+
+  <% if @parent_path %>
+    <a href="<%= browse_files_path(path: @parent_path) %>" class="flex items-center gap-2 p-2 rounded hover:bg-bg-surface text-content-muted text-sm mb-1">
+      ⬆️ Parent directory
+    </a>
+  <% elsif @current_path.present? %>
+    <a href="<%= browse_files_path %>" class="flex items-center gap-2 p-2 rounded hover:bg-bg-surface text-content-muted text-sm mb-1">
+      ⬆️ Root
+    </a>
+  <% end %>
+
+  <div class="space-y-0.5">
+    <% @entries.each do |entry| %>
+      <% name = entry.basename.to_s %>
+      <% rel_path = @current_path.present? ? "#{@current_path}/#{name}" : name %>
+      <% if entry.directory? %>
+        <a href="<%= browse_files_path(path: rel_path) %>" class="flex items-center gap-2 p-2 rounded hover:bg-bg-surface text-content text-sm">
+          📁 <%= name %>
+        </a>
+      <% else %>
+        <a href="<%= view_path(file: rel_path) %>" class="flex items-center gap-2 p-2 rounded hover:bg-bg-surface text-content text-sm" target="_blank">
+          📄 <%= name %>
+          <span class="text-xs text-content-muted ml-auto"><%= number_to_human_size(entry.size) %></span>
+        </a>
+      <% end %>
+    <% end %>
+  </div>
+</div>

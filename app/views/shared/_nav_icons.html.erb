@@ -39,6 +39,12 @@
   🕐
 <% end %>
 
+<%= link_to terminal_path,
+    class: "#{icon_base_class} #{controller_name == 'terminal' ? icon_active_class : icon_inactive_class}",
+    title: "Terminal" do %>
+  🖥️
+<% end %>
+
 <%= link_to tokens_path,
     class: "#{icon_base_class} #{controller_name == 'tokens' ? icon_active_class : icon_inactive_class}",
     title: "Tokens" do %>

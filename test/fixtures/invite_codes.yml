@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  code: MyString
+  email: MyString
+  used_at: 2026-02-13 21:05:22
+  created_by_id: 
+
+two:
+  code: MyString
+  email: MyString
+  used_at: 2026-02-13 21:05:22
+  created_by_id: 

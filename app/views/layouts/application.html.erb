@@ -15,6 +15,9 @@
     <%# Fonts - Clash Display + Satoshi %>
     <link href="https://api.fontshare.com/v2/css?f[]=clash-display@700,600,500&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
     <%= yield :head %>
+    <%# diff2html for GitHub-style diff rendering %>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/css/diff2html.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/js/diff2html.min.js"></script>
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
     <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
     <%# Favicons %>
@@ -89,5 +92,7 @@
         </div>
       </div>
     <% end %>
+    <div id="flash-messages"></div>
+    <%= render "shared/command_palette" if current_user %>
   </body>
 </html>

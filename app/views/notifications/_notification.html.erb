@@ -1,0 +1,22 @@
+<%= tag.div id: "notification_#{notification.id}", class: "p-4 rounded-lg border #{notification.read? ? 'bg-bg-surface/50 border-border/50' : 'bg-bg-surface border-border'}" do %>
+  <div class="flex items-start justify-between gap-3">
+    <div class="flex-1">
+      <div class="flex items-center gap-2">
+        <span class="<%= notification.color_class %>"><%= notification.icon %></span>
+        <h3 class="text-sm font-medium text-content <%= 'opacity-60' if notification.read? %>">
+          <% if notification.task.present? %>
+            <%= link_to notification.message, board_task_path(notification.task.board, notification.task), class: "hover:underline" %>
+          <% else %>
+            <%= notification.message %>
+          <% end %>
+        </h3>
+      </div>
+      <p class="text-xs text-content-muted mt-1 ml-6"><%= time_ago_in_words(notification.created_at) %> ago</p>
+    </div>
+    <% unless notification.read? %>
+      <%= button_to mark_read_notification_path(notification), method: :patch, class: "text-accent text-xs hover:underline" do %>
+        Mark read
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

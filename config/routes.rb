@@ -145,6 +145,7 @@ Rails.application.routes.draw do
   namespace :admin do
     root to: "dashboard#index"
     resources :users, only: [ :index ]
+    resources :invite_codes, only: [:index, :create, :destroy]
   end
 
   resource :session, only: [:new, :create, :destroy]
@@ -166,11 +167,24 @@ Rails.application.routes.draw do
   # Dashboard overview page
   get "dashboard", to: "dashboard#show"
 
+  # Web Terminal
+  get "terminal", to: "terminal#show"
+
+  # Notifications
+  resources :notifications, only: [:index] do
+    member do
+      patch :mark_read
+    end
+    collection do
+      post :mark_all_read
+    end
+  end
+
   # Agent Swarm View
   get "command", to: "command#index"
 
   # Cron jobs (OpenClaw Gateway)
-  resources :cronjobs, only: [:index] do
+  resources :cronjobs, only: [:index, :create, :destroy] do
     member do
       post :toggle
       post :run
@@ -306,6 +320,7 @@ Rails.application.routes.draw do
 
   # File viewer (workspace files, no auth)
   get "view", to: "file_viewer#show"
+  get "files", to: "file_viewer#browse", as: :browse_files
 
   # Defines the root path route ("/")
   root "pages#home"

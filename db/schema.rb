@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_13_235438) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_14_000522) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -146,6 +146,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_235438) do
     t.index ["slug"], name: "index_factory_loops_on_slug", unique: true
     t.index ["status"], name: "index_factory_loops_on_status"
     t.index ["user_id"], name: "index_factory_loops_on_user_id"
+  end
+
+  create_table "invite_codes", force: :cascade do |t|
+    t.string "code", null: false
+    t.datetime "created_at", null: false
+    t.bigint "created_by_id"
+    t.string "email"
+    t.datetime "updated_at", null: false
+    t.datetime "used_at"
+    t.index ["code"], name: "index_invite_codes_on_code", unique: true
+    t.index ["created_by_id"], name: "index_invite_codes_on_created_by_id"
   end
 
   create_table "model_limits", force: :cascade do |t|
@@ -627,6 +638,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_13_235438) do
   add_foreign_key "boards", "users"
   add_foreign_key "factory_cycle_logs", "factory_loops"
   add_foreign_key "factory_loops", "users"
+  add_foreign_key "invite_codes", "users", column: "created_by_id"
   add_foreign_key "model_limits", "users"
   add_foreign_key "nightshift_missions", "users"
   add_foreign_key "nightshift_selections", "nightshift_missions"
