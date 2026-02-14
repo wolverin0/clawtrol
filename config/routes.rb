@@ -88,6 +88,12 @@ Rails.application.routes.draw do
       get "factory/loops/:id/metrics", to: "factory_loops#metrics"
       post "factory/cycles/:id/complete", to: "factory_cycles#complete"
 
+      resources :swarm_ideas, only: [:index, :create, :update, :destroy] do
+        member do
+          post :launch
+        end
+      end
+
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
 
@@ -202,6 +208,11 @@ Rails.application.routes.draw do
   delete "nightshift/missions/:id", to: "nightshift#destroy"
 
   get "nightbeat", to: "nightbeat#index"
+
+  get "swarm", to: "swarm#index"
+  post "swarm/launch/:id", to: "swarm#launch", as: :swarm_launch
+  post "swarm", to: "swarm#create", as: :create_swarm_idea
+  delete "swarm/:id", to: "swarm#destroy", as: :destroy_swarm_idea
 
   get "factory", to: "factory#index"
   post "factory/loops", to: "factory#create", as: :factory_loops

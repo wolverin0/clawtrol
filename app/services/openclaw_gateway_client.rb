@@ -3,6 +3,7 @@
 require "net/http"
 require "uri"
 require "json"
+require "cgi"
 
 # Minimal HTTP client for the OpenClaw Gateway API.
 #
@@ -45,7 +46,23 @@ class OpenclawGatewayClient
   # --- Gateway Status & Health ---
 
   def health
-    get_json!("/api/health")
+    uri = base_uri.dup
+    uri.path = "/health"
+
+    req = Net::HTTP::Get.new(uri)
+    req["Authorization"] = "Bearer #{@user.openclaw_gateway_token}"
+    res = http_for(uri).request(req)
+
+    code = res.code.to_i
+    body = res.body.to_s
+
+    return { "status" => "unreachable", "error" => "OpenClaw gateway HTTP #{code}" } unless code >= 200 && code < 300
+
+    begin
+      JSON.parse(body)
+    rescue JSON::ParserError
+      { "status" => "ok" }
+    end
   rescue StandardError => e
     { "status" => "unreachable", "error" => e.message }
   end
@@ -106,6 +123,79 @@ class OpenclawGatewayClient
     get_json!("/api/models/list")
   rescue StandardError => e
     { "models" => [], "error" => e.message }
+  end
+
+  # --- Chat / Session Messaging ---
+
+  # Send a message to an agent session via OpenClaw webhook endpoint.
+  # /api/sessions/send does not exist in gateway HTTP API.
+  def sessions_send(session_key, message)
+    hooks_token = @user.openclaw_hooks_token.presence || @user.openclaw_gateway_token
+
+    uri = base_uri.dup
+    uri.path = "/hooks/agent"
+
+    req = Net::HTTP::Post.new(uri)
+    req["Authorization"] = "Bearer #{hooks_token}"
+    req["Content-Type"] = "application/json"
+    req.body = {
+      message: message,
+      sessionKey: session_key,
+      deliver: false,
+      name: "ClawTrol Chat"
+    }.to_json
+
+    res = http_for(uri).request(req)
+    JSON.parse(res.body)
+  end
+
+  # Retrieve recent chat/session history from local OpenClaw transcript files.
+  # Session transcripts are stored at ~/.openclaw/agents/main/sessions/<sessionId>.jsonl
+  def sessions_history(session_key, limit: 20)
+    sessions_dir = File.expand_path("~/.openclaw/agents/main/sessions")
+    store_file = File.join(sessions_dir, "sessions.json")
+
+    return { "messages" => [], "error" => "sessions.json not found" } unless File.exist?(store_file)
+
+    store = JSON.parse(File.read(store_file))
+    # Try exact key first, then with agent prefix (OpenClaw stores as agent:main:<key>)
+    entry = store[session_key] || store["agent:main:#{session_key}"]
+    return { "messages" => [], "error" => "session not found" } unless entry
+
+    session_id = entry["sessionId"]
+    transcript_file = File.join(sessions_dir, "#{session_id}.jsonl")
+    return { "messages" => [], "error" => "transcript not found" } unless File.exist?(transcript_file)
+
+    messages = []
+    File.readlines(transcript_file).last(limit * 3).each do |line|
+      begin
+        entry_data = JSON.parse(line.strip)
+        # OpenClaw JSONL format: { type: "message", message: { role: "user", content: [...] } }
+        inner = entry_data["message"] || entry_data
+        next unless %w[user assistant].include?(inner["role"])
+
+        raw_content = inner["content"]
+        content_text = if raw_content.is_a?(Array)
+          raw_content.select { |c| c["type"] == "text" }.map { |c| c["text"] }.join("\n")
+        else
+          raw_content.to_s
+        end
+
+        next if content_text.blank?
+
+        messages << {
+          "role" => inner["role"],
+          "content" => content_text,
+          "timestamp" => entry_data["timestamp"] || inner["timestamp"]
+        }
+      rescue JSON::ParserError
+        next
+      end
+    end
+
+    { "messages" => messages.last(limit) }
+  rescue StandardError => e
+    { "messages" => [], "error" => e.message }
   end
 
   # --- Agents ---

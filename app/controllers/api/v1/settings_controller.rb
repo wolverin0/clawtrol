@@ -18,7 +18,11 @@ module Api
       private
 
       def settings_params
-        params.permit(:agent_name, :agent_emoji, :agent_auto_mode)
+        permitted = params.permit(:agent_name, :agent_emoji, :agent_auto_mode)
+        if permitted[:agent_emoji].present?
+          permitted[:agent_emoji] = EmojiShortcodeNormalizer.normalize(permitted[:agent_emoji])
+        end
+        permitted
       end
 
       def settings_json

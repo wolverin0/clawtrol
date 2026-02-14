@@ -63,6 +63,12 @@
   🏭
 <% end %>
 
+<%= link_to swarm_path,
+    class: "#{icon_base_class} #{controller_name == 'swarm' ? icon_active_class : icon_inactive_class}",
+    title: "Swarm Launcher" do %>
+  🐝
+<% end %>
+
 <%= link_to saved_links_path,
     class: "#{icon_base_class} #{controller_name == 'saved_links' ? icon_active_class : icon_inactive_class}",
     title: "Saved Links" do %>

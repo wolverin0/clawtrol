@@ -48,7 +48,7 @@ module Api
 
       updates = { agent_last_active_at: Time.current }
       updates[:agent_name] = agent_name if agent_name.present?
-      updates[:agent_emoji] = agent_emoji if agent_emoji.present?
+      updates[:agent_emoji] = EmojiShortcodeNormalizer.normalize(agent_emoji) if agent_emoji.present?
 
       current_user.update_columns(updates)
     end

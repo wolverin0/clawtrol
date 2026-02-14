@@ -1,0 +1,196 @@
+<style>
+  .sw-brand { text-shadow: 0 0 10px rgba(0, 255, 65, 0.3); }
+  @keyframes sw-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+  .sw-brand-icon { animation: sw-pulse 3s infinite; }
+  .sw-card.selected { box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
+  .sw-launch:hover { box-shadow: 0 0 25px rgba(0, 255, 65, 0.6); }
+  .sw-panel { box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5); }
+
+  .sw-badge-codex { color: theme(colors.sky.400); border-color: color-mix(in srgb, theme(colors.sky.400) 30%, transparent); background: color-mix(in srgb, theme(colors.sky.400) 10%, transparent); }
+  .sw-badge-gemini, .sw-badge-flash { color: theme(colors.emerald.400); border-color: color-mix(in srgb, theme(colors.emerald.400) 30%, transparent); background: color-mix(in srgb, theme(colors.emerald.400) 10%, transparent); }
+  .sw-badge-opus { color: theme(colors.purple.400); border-color: color-mix(in srgb, theme(colors.purple.400) 30%, transparent); background: color-mix(in srgb, theme(colors.purple.400) 10%, transparent); }
+  .sw-badge-glm, .sw-badge-groq, .sw-badge-cerebras, .sw-badge-minimax { color: theme(colors.amber.400); border-color: color-mix(in srgb, theme(colors.amber.400) 30%, transparent); background: color-mix(in srgb, theme(colors.amber.400) 10%, transparent); }
+  .sw-badge-cat { color: var(--text-muted, #8B949E); border-color: color-mix(in srgb, var(--text-muted, #8B949E) 20%, transparent); background: color-mix(in srgb, var(--text-muted, #8B949E) 5%, transparent); }
+  .sw-badge-trivial { color: theme(colors.emerald.400); border-color: color-mix(in srgb, theme(colors.emerald.400) 30%, transparent); background: color-mix(in srgb, theme(colors.emerald.400) 10%, transparent); }
+  .sw-badge-standard { color: theme(colors.sky.400); border-color: color-mix(in srgb, theme(colors.sky.400) 30%, transparent); background: color-mix(in srgb, theme(colors.sky.400) 10%, transparent); }
+  .sw-badge-complex { color: theme(colors.red.400); border-color: color-mix(in srgb, theme(colors.red.400) 30%, transparent); background: color-mix(in srgb, theme(colors.red.400) 10%, transparent); }
+</style>
+
+<div data-controller="swarm">
+  <%# Header %>
+  <div class="flex justify-between items-center px-4 md:px-8 pt-6 pb-4">
+    <div class="sw-brand flex items-center gap-3 text-2xl font-bold font-mono text-emerald-400">
+      <span class="sw-brand-icon">🐝</span>
+      SWARM LAUNCHER
+      <span class="text-content-muted font-normal text-sm">// TASK IDEAS v1</span>
+    </div>
+    <div class="text-right text-sm text-content-muted font-mono">
+      <div class="text-sky-400 font-semibold"><%= Date.today.iso8601 %></div>
+      <div><%= @ideas.size %> ideas loaded</div>
+    </div>
+  </div>
+
+  <%# Toolbar %>
+  <div class="flex gap-2 px-4 md:px-8 pb-2 flex-wrap items-center">
+    <button class="border border-border text-content-muted px-3 py-1 rounded font-mono text-xs cursor-pointer hover:border-sky-400 hover:text-sky-400 transition-all active border-sky-400 text-sky-400" data-action="click->swarm#filterAll">All</button>
+    <% @categories.each do |cat| %>
+      <button class="border border-border text-content-muted px-3 py-1 rounded font-mono text-xs cursor-pointer hover:border-sky-400 hover:text-sky-400 transition-all" data-action="click->swarm#filterCategory" data-category="<%= cat %>"><%= cat %></button>
+    <% end %>
+    <button class="bg-emerald-400/10 border border-emerald-400/30 text-emerald-400 px-3 py-1 rounded font-mono text-xs cursor-pointer hover:bg-emerald-400/20 ml-auto" data-action="click->swarm#openModal">+ Add Idea</button>
+  </div>
+
+  <%# Card Grid %>
+  <div class="grid grid-cols-1 md:grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-6 px-4 md:px-8 py-4 max-w-[1400px] mx-auto pb-[200px]" data-swarm-target="grid">
+    <% @ideas.each do |idea| %>
+      <div class="sw-card bg-bg-surface border border-border rounded-lg p-5 cursor-pointer transition-all flex flex-col gap-3 font-mono hover:border-content-muted hover:-translate-y-0.5"
+           data-action="click->swarm#toggle"
+           data-idea-id="<%= idea.id %>"
+           data-category="<%= idea.category %>"
+           data-time="<%= idea.estimated_minutes %>"
+           data-swarm-target="card">
+        <div class="flex justify-between items-start gap-4">
+          <div class="sw-checkbox w-6 h-6 border-2 border-border rounded flex items-center justify-center shrink-0 transition-all bg-bg-base">
+            <span class="font-bold transition-all text-bg-base" style="opacity:0">&#10003;</span>
+          </div>
+          <div class="flex-1">
+            <div class="text-base font-semibold text-content">
+              <%= idea.icon %> <%= idea.title %>
+            </div>
+          </div>
+          <div data-action="click->swarm#stopPropagation">
+            <%= button_to raw("🗑️"), destroy_swarm_idea_path(idea), method: :delete,
+                class: "border border-border bg-transparent text-content-muted rounded px-2 py-1 text-sm cursor-pointer hover:border-red-400 hover:text-red-400",
+                form: { data: { turbo_confirm: "Delete '#{idea.title}'?" } } %>
+          </div>
+        </div>
+
+        <% if idea.description.present? %>
+          <div class="text-sm text-content-muted leading-relaxed flex-grow"><%= idea.description %></div>
+        <% end %>
+
+        <%# Model override dropdown %>
+        <div data-action="click->swarm#stopPropagation" class="flex items-center gap-2">
+          <span class="text-xs text-content-muted">Model:</span>
+          <select class="sw-model-select bg-bg-base border border-border text-content text-xs p-1 rounded font-mono">
+            <% @models.each do |model| %>
+              <option value="<%= model %>" <%= 'selected' if model == idea.suggested_model %>><%= model %></option>
+            <% end %>
+          </select>
+        </div>
+
+        <div class="flex justify-between items-center mt-2 pt-3 border-t border-border/50 flex-wrap gap-1">
+          <span class="sw-badge sw-badge-<%= idea.suggested_model %> text-[0.7rem] px-2 py-0.5 rounded uppercase font-semibold tracking-wide border"><%= idea.suggested_model %></span>
+          <% if idea.difficulty.present? %>
+            <span class="sw-badge sw-badge-<%= idea.difficulty %> text-[0.65rem] px-1.5 py-0.5 rounded"><%= idea.difficulty %></span>
+          <% end %>
+          <span class="sw-badge sw-badge-cat text-[0.6rem] px-1.5 py-0.5 rounded"><%= idea.category %></span>
+          <span class="text-sm text-content-muted">⏱ ~<%= idea.estimated_minutes %>min</span>
+          <% if idea.times_launched > 0 %>
+            <span class="text-xs text-content-muted">🚀×<%= idea.times_launched %></span>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Bottom Panel %>
+  <div class="sw-panel fixed bottom-0 left-0 right-0 bg-bg-elevated border-t border-border px-4 md:px-8 py-4 z-[200] flex justify-between items-center backdrop-blur-sm font-mono flex-col md:flex-row gap-4">
+    <div class="flex gap-8 items-center w-full md:w-auto justify-between md:justify-start">
+      <button type="button" class="border border-content-muted text-content-muted px-4 py-2 rounded font-mono text-sm cursor-pointer hover:border-content hover:text-content" data-action="click->swarm#toggleAll">Select All</button>
+      <div>
+        <div class="text-[0.7rem] text-content-muted uppercase tracking-widest">Ideas</div>
+        <div class="text-xl font-bold"><span data-swarm-target="count">0</span> / <%= @ideas.size %></div>
+      </div>
+      <div>
+        <div class="text-[0.7rem] text-content-muted uppercase tracking-widest">Est. Time</div>
+        <div class="text-xl font-bold text-sky-400" data-swarm-target="time">0m</div>
+      </div>
+    </div>
+    <button type="button" class="sw-launch bg-emerald-400 text-bg-base border-none px-6 py-3 font-bold text-sm uppercase tracking-wide rounded cursor-pointer transition-all font-mono w-full md:w-auto disabled:bg-border disabled:text-content-muted disabled:cursor-not-allowed disabled:shadow-none" data-action="click->swarm#launch" data-swarm-target="launchButton" disabled>
+      SELECT IDEAS
+    </button>
+  </div>
+
+  <%# Add Idea Modal %>
+  <div class="fixed inset-0 bg-black/70 z-[300] hidden items-center justify-center" data-swarm-target="modal" data-action="click->swarm#overlayClose" style="display:none">
+    <div class="bg-bg-surface border border-border rounded-lg p-8 w-full max-w-[500px] font-mono max-h-[90vh] overflow-y-auto" data-action="click->swarm#stopPropagation">
+      <h3 class="text-emerald-400 mb-6 text-lg font-bold">➕ Add Idea</h3>
+      <%= form_with url: create_swarm_idea_path, method: :post, local: true do %>
+        <label class="block text-content-muted text-sm mb-1">Title</label>
+        <input type="text" name="swarm_idea[title]" required class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+
+        <label class="block text-content-muted text-sm mb-1">Description</label>
+        <textarea name="swarm_idea[description]" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 min-h-[80px] resize-y box-border"></textarea>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-content-muted text-sm mb-1">Icon</label>
+            <input type="text" name="swarm_idea[icon]" value="🚀" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+          </div>
+          <div>
+            <label class="block text-content-muted text-sm mb-1">Model</label>
+            <select name="swarm_idea[suggested_model]" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+              <% @models.each do |model| %>
+                <option value="<%= model %>"><%= model %></option>
+              <% end %>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-content-muted text-sm mb-1">Category</label>
+            <select name="swarm_idea[category]" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+              <% @categories.each do |cat| %>
+                <option value="<%= cat %>"><%= cat %></option>
+              <% end %>
+            </select>
+          </div>
+          <div>
+            <label class="block text-content-muted text-sm mb-1">Est. Minutes</label>
+            <input type="number" name="swarm_idea[estimated_minutes]" value="15" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-content-muted text-sm mb-1">Difficulty</label>
+            <select name="swarm_idea[difficulty]" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+              <% SwarmIdea::DIFFICULTIES.each do |d| %>
+                <option value="<%= d %>"><%= d %></option>
+              <% end %>
+            </select>
+          </div>
+          <div>
+            <label class="block text-content-muted text-sm mb-1">Pipeline Type</label>
+            <select name="swarm_idea[pipeline_type]" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+              <% SwarmIdea::PIPELINE_TYPES.each do |pt| %>
+                <option value="<%= pt %>"><%= pt %></option>
+              <% end %>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-content-muted text-sm mb-1">Source</label>
+            <select name="swarm_idea[source]" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+              <% SwarmIdea::SOURCES.each do |s| %>
+                <option value="<%= s %>"><%= s %></option>
+              <% end %>
+            </select>
+          </div>
+          <div>
+            <label class="block text-content-muted text-sm mb-1">Project</label>
+            <input type="text" name="swarm_idea[project]" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+          </div>
+        </div>
+
+        <div class="flex gap-2 justify-end">
+          <button type="button" class="px-4 py-2 rounded font-mono text-sm cursor-pointer border border-border bg-transparent text-content-muted" data-action="click->swarm#closeModal">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded font-mono text-sm cursor-pointer bg-emerald-400 text-bg-base border-none font-semibold">Add Idea</button>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

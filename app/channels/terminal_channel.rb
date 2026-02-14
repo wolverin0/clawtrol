@@ -42,12 +42,13 @@ class TerminalChannel < ApplicationCable::Channel
     # Set initial terminal size before spawning
     resize_pty(80, 24)
 
-    # Spawn the shell with the slave as stdin/stdout/stderr
+    # Spawn the shell as a login shell with its own session
     @pty_pid = Process.spawn(
-      { "TERM" => "xterm-256color" },
-      shell,
+      { "TERM" => "xterm-256color", "HOME" => Dir.home },
+      shell, "-l",
       in: slave, out: slave, err: slave,
-      close_others: true
+      close_others: true,
+      new_pgroup: true
     )
 
     # Parent doesn't need the slave
