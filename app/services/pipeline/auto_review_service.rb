@@ -1,118 +1,100 @@
 # frozen_string_literal: true
 
+require "open3"
+require "shellwords"
+
 module Pipeline
   class AutoReviewService
-    # Evaluates agent output and decides disposition:
-    # :done - task completed successfully, move to done
-    # :requeue - output incomplete/failed, retry with feedback
-    # :in_review - ambiguous, needs human review
-    #
-    # Returns { decision: :done/:requeue/:in_review, reason: "..." }
-
-    MAX_AUTO_REQUEUES = 1
+    VALIDATION_TIMEOUT_SECONDS = 60
 
     def initialize(task, findings:)
       @task = task
       @findings = findings.to_s
     end
 
+    # Rules:
+    # 1) Empty output -> requeue
+    # 2) Failure markers (without success/fixed markers) -> requeue
+    # 3) validation_command present -> run with timeout 60s (pass=done, fail=requeue)
+    # 4) Research/docs task with >100 chars -> done
+    # 5) Trivial/quick-fix task with >100 chars -> done
+    # 6) Default -> in_review
+    # 7) If run_count > 1 -> always in_review
     def evaluate
-      # If already requeued once, always send to review
-      if @task.run_count.to_i > MAX_AUTO_REQUEUES
-        return { decision: :in_review, reason: "Already retried #{@task.run_count} times" }
-      end
+      return { decision: :in_review, reason: "Already retried (run_count=#{@task.run_count})" } if @task.run_count.to_i > 1
 
-      # 1. Empty or trivial output → requeue
-      if output_empty?
-        return { decision: :requeue, reason: "Agent produced no meaningful output" }
-      end
+      return { decision: :requeue, reason: "Empty output from agent" } if output_empty?
+      return { decision: :requeue, reason: "Agent output indicates failure" } if output_reports_failure?
 
-      # 2. Agent reported failure explicitly
-      if output_reports_failure?
-        return { decision: :requeue, reason: "Agent reported failure: #{extract_error_summary}" }
-      end
-
-      # 3. Has validation_command → run it
       if @task.validation_command.present?
-        passed, output = run_validation
-        if passed
-          return { decision: :done, reason: "Validation passed: #{@task.validation_command}" }
-        else
-          return { decision: :requeue, reason: "Validation failed: #{output.to_s.truncate(500)}" }
-        end
+        passed, output = run_validation(@task.validation_command)
+        return { decision: :done, reason: "Validation passed" } if passed
+
+        return { decision: :requeue, reason: "Validation failed: #{output.to_s.truncate(500)}" }
       end
 
-      # 4. Research/docs tasks with substantial output → done
-      if research_or_docs_task? && output_substantial?
-        return { decision: :done, reason: "Research/docs task with substantial output" }
-      end
+      return { decision: :done, reason: "Research/docs output is substantial" } if research_or_docs_task? && output_substantial?
+      return { decision: :done, reason: "Trivial/quick-fix output is substantial" } if trivial_task? && output_substantial?
 
-      # 5. Quick-fix/trivial with output → done
-      if trivial_task? && output_substantial?
-        return { decision: :done, reason: "Trivial task completed with output" }
-      end
-
-      # 6. Default: in_review for human
-      { decision: :in_review, reason: "Requires human review" }
+      { decision: :in_review, reason: "Needs human review" }
     end
 
     private
 
     def output_empty?
-      clean = @findings.gsub(/agent completed|no findings/i, "").strip
-      clean.length < 20
+      @findings.strip.blank?
     end
 
     def output_reports_failure?
-      @findings.match?(/(?:failed|error|❌|could not|unable to|exception|crash)/i) &&
-        !@findings.match?(/(?:fixed|resolved|passed|✅|successfully)/i)
+      has_failure = @findings.match?(/❌|\berror\b|\bfailed\b/i)
+      has_success = @findings.match?(/✅|\bfixed\b/i)
+      has_failure && !has_success
     end
 
-    def extract_error_summary
-      # Find first line with error-like content
-      @findings.lines.find { |l| l.match?(/(?:error|fail|❌|unable|exception)/i) }&.strip&.truncate(200) || "unknown error"
-    end
-
-    def run_validation
-      cmd = @task.validation_command
-      return [false, "no command"] if cmd.blank?
-
-      # Run with timeout, in the project directory if available
+    def run_validation(command)
       project_dir = detect_project_dir
-      full_cmd = "cd #{project_dir} && timeout 60s #{cmd}" if project_dir
-      full_cmd ||= "timeout 60s #{cmd}"
+      cmd = "timeout #{VALIDATION_TIMEOUT_SECONDS}s #{command}"
 
-      output = `#{full_cmd} 2>&1`
-      [($?.success?), output.to_s.truncate(1000)]
+      if project_dir.present?
+        escaped_dir = Shellwords.escape(project_dir)
+        cmd = "cd #{escaped_dir} && #{cmd}"
+      end
+
+      stdout, stderr, status = Open3.capture3("bash", "-lc", cmd)
+      [status.success?, [stdout, stderr].join("\n").strip]
     rescue StandardError => e
-      [false, "Validation error: #{e.message}"]
+      [false, e.message]
     end
 
     def detect_project_dir
-      board_name = @task.board&.name&.downcase
-      # Map known boards to directories
+      board_name = @task.board&.name.to_s.downcase
+
       case board_name
-      when "clawdeck" then File.expand_path("~/clawdeck")
-      when "personal dashboard" then "/mnt/pyapps/personaldashboard"
-      when "whatsapp bot" then "/mnt/pyapps/whatsappbot-prod - Copy - Copy/whatsappbot-final"
-      else nil
+      when "clawdeck"
+        File.expand_path("~/clawdeck")
+      when "personal dashboard"
+        "/mnt/pyapps/personaldashboard"
+      when "whatsapp bot"
+        "/mnt/pyapps/whatsappbot-prod - Copy - Copy/whatsappbot-final"
       end
     end
 
     def research_or_docs_task?
-      tags = Array(@task.tags).map(&:downcase)
+      tags = normalized_tags
       pipeline_type = @task.pipeline_type.to_s.downcase
 
-      tags.any? { |t| %w[research docs documentation investigate explore].include?(t) } ||
-        %w[research].include?(pipeline_type)
+      tags.any? { |tag| %w[research docs documentation].include?(tag) } || pipeline_type == "research"
     end
 
     def trivial_task?
+      tags = normalized_tags
       pipeline_type = @task.pipeline_type.to_s.downcase
-      tags = Array(@task.tags).map(&:downcase)
 
-      %w[quick-fix].include?(pipeline_type) ||
-        tags.any? { |t| %w[quick trivial hotfix typo small].include?(t) }
+      %w[quick-fix trivial].include?(pipeline_type) || tags.any? { |tag| %w[quick-fix trivial hotfix typo].include?(tag) }
+    end
+
+    def normalized_tags
+      Array(@task.tags).map { |tag| tag.to_s.downcase.strip }
     end
 
     def output_substantial?
