@@ -574,6 +574,12 @@ module Api
           end
         end
 
+        # Safety: agent-created tasks with assigned_to_agent land in inbox
+        # so they don't get auto-pulled without human approval.
+        if @task.assigned_to_agent? && @task.status == "up_next" && request_from_agent?
+          @task.status = :inbox
+        end
+
         if @task.save
           render json: task_json(@task), status: :created
         else
@@ -1228,6 +1234,11 @@ module Api
         nil
       end
 
+      # Returns true when the request comes from an agent (X-Agent-Name header present)
+      def request_from_agent?
+        request.headers["X-Agent-Name"].present?
+      end
+
       def set_task_activity_info(task)
         task.activity_source = "api"
         task.actor_name = request.headers["X-Agent-Name"]
@@ -1305,6 +1316,7 @@ module Api
           id: task.id,
           name: task.name,
           description: task.description,
+          original_description: task.original_description,
           priority: task.priority,
           status: task.status,
           blocked: task.blocked?,  # Use method instead of column
