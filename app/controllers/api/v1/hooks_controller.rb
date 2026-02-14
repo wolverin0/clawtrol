@@ -84,6 +84,28 @@ module Api
         updates[:description] = updated_description(task.description.to_s, findings, activity[:activity_markdown])
 
         old_status = task.status
+
+        # Auto-review gate: evaluate output before deciding status
+        auto_review = Pipeline::AutoReviewService.new(task, findings: findings)
+        review_result = auto_review.evaluate
+
+        case review_result[:decision]
+        when :done
+          updates[:status] = "done"
+          updates[:completed_at] = Time.current
+          log_auto_review(task, review_result)
+        when :requeue
+          updates[:status] = "up_next"
+          updates[:error_message] = review_result[:reason]
+          # Append feedback to description for next agent run
+          feedback = "\n\n## Auto-Review Feedback\n\n#{review_result[:reason]}"
+          updates[:description] = (updates[:description] || task.description.to_s) + feedback
+          log_auto_review(task, review_result)
+        when :in_review
+          # Default behavior - keep in_review
+          log_auto_review(task, review_result)
+        end
+
         task.update!(updates)
 
         GenerateDiffsJob.perform_later(task.id, merged_files) if merged_files.any?
@@ -411,6 +433,17 @@ module Api
         else
           "#{top_block}\n\n---\n\n#{current_description}"
         end
+      end
+
+      def log_auto_review(task, result)
+        Rails.logger.info("[AutoReview] task=##{task.id} decision=#{result[:decision]} reason=#{result[:reason]}")
+        if task.respond_to?(:advance_pipeline_stage!)
+          entry = { stage: "auto_review", decision: result[:decision].to_s, reason: result[:reason], at: Time.current.iso8601 }
+          current_log = Array(task.pipeline_log)
+          task.update_columns(pipeline_log: current_log.push(entry))
+        end
+      rescue StandardError => e
+        Rails.logger.warn("[AutoReview] Failed to log for task ##{task.id}: #{e.message}")
       end
     end
   end
