@@ -71,9 +71,25 @@
                 <span class="text-xs text-content-muted"><%= time_ago_in_words(link.created_at) %> ago</span>
               </div>
 
-              <a href="<%= link.url %>" target="_blank" rel="noopener" class="block mt-1 text-content hover:text-accent transition-colors truncate">
-                <%= link.note.present? ? link.note : link.url %>
-              </a>
+              <div class="flex items-center gap-2 mt-1" id="note-display-<%= link.id %>">
+                <a href="<%= link.url %>" target="_blank" rel="noopener" class="text-content hover:text-accent transition-colors truncate">
+                  <%= link.note.present? ? link.note : link.url %>
+                </a>
+                <button onclick="document.getElementById('note-display-<%= link.id %>').classList.add('hidden'); document.getElementById('note-edit-<%= link.id %>').classList.remove('hidden'); document.getElementById('note-input-<%= link.id %>').focus();"
+                        class="flex-shrink-0 text-content-muted hover:text-accent transition-colors p-0.5 opacity-0 group-hover:opacity-100" title="Edit note">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              </div>
+              <%= form_with model: link, url: saved_link_path(link), method: :patch, class: "hidden mt-1 flex gap-2", id: "note-edit-#{link.id}" do |f| %>
+                <%= f.text_field :note, value: link.note, placeholder: "Why is this interesting?",
+                    id: "note-input-#{link.id}",
+                    class: "flex-1 bg-bg-base border border-accent rounded-lg px-3 py-1.5 text-sm text-content placeholder-content-muted focus:outline-none focus:ring-1 focus:ring-accent" %>
+                <%= f.submit "Save", class: "bg-accent hover:bg-accent/80 text-white text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer transition-colors" %>
+                <button type="button" onclick="document.getElementById('note-edit-<%= link.id %>').classList.add('hidden'); document.getElementById('note-display-<%= link.id %>').classList.remove('hidden');"
+                        class="text-content-muted hover:text-content text-xs px-2 py-1.5 transition-colors">Cancel</button>
+              <% end %>
               <% if link.note.present? %>
                 <div class="text-xs text-content-muted truncate mt-0.5"><%= link.url %></div>
               <% end %>
