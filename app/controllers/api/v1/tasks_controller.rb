@@ -189,14 +189,10 @@ module Api
         if @task.save
           now = Time.current
 
-          RunnerLease.create!(
+          RunnerLease.create_for_task!(
             task: @task,
             agent_name: current_user.agent_name,
-            lease_token: SecureRandom.hex(24),
-            source: "spawn_ready",
-            started_at: now,
-            last_heartbeat_at: now,
-            expires_at: now + RunnerLease::LEASE_DURATION
+            source: "spawn_ready"
           )
 
           @task.update!(status: :in_progress, agent_claimed_at: now)

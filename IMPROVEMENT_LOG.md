@@ -2597,3 +2597,69 @@
 **Files:** app/controllers/cli_backends_controller.rb, test/controllers/cli_backends_controller_test.rb (new)
 **Verify:** 7 tests pass, 17 assertions, 0 failures ✅
 **Risk:** low (additive tests, DRY refactor uses existing helper)
+
+---
+
+## Session Summary (2026-02-15 08:37 - 09:30)
+
+**10 improvement cycles in ~53 minutes**
+
+### Key Metrics
+- **New tests added:** 55 tests (7 HooksDashboard, 10 Canvas, 7 SessionMaintenance, 6 MemoryDashboard, 5 Task lifecycle, 6 HotReload, 7 CliBackends, 7 across controllers)
+- **Security fixes:** 3 (unscoped WebhookLog, unscoped Canvas queries, 4 unscoped cache keys)
+- **Bug fixes:** 2 (WebhookLog data leak, stale archived_at on unarchived tasks)
+- **DRY refactors:** 7 controllers using new `patch_and_redirect` concern helper
+- **Code quality:** 29 files got frozen_string_literal pragma
+- **Controllers now with tests:** 5 previously untested controllers got test suites
+
+### Improvements by Category
+1. **Bug Fix + Testing:** Fix unscoped WebhookLog in HooksDashboard + 7 tests
+2. **Security + Testing:** Fix unscoped Canvas template queries + 10 tests
+3. **Code Quality (DRY):** `patch_and_redirect` concern helper, refactor 5 controllers
+4. **Testing + Code Quality:** SessionMaintenance tests + DRY refactor
+5. **Security:** Scope 4 cache keys to prevent cross-user data leaks
+6. **Testing:** MemoryDashboard controller tests
+7. **Bug Fix + Testing:** Clear stale archived_at + 5 lifecycle tests
+8. **Testing:** HotReload controller tests
+9. **Code Quality:** frozen_string_literal pragma on 29 files
+10. **Testing + Code Quality:** CliBackends tests + DRY refactor
+
+### Security Fixes (Cherry-Pick Priority)
+- `bb49a49` — WebhookLog unscoped query (data leak between users)
+- `daee940` — Canvas FactoryCycleLog/CostSnapshot unscoped queries (data leak)
+- `406ea19` — 4 unscoped cache keys (analytics, command, tokens, cronjobs)
+
+## [2026-02-15 09:38] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Scope Task count queries in AgentPersonasController to current_user
+**Why:** Task.where(agent_persona_id:...) without user scoping leaks cross-user task counts when global personas (user_id: nil) are shared. User A could see task count data from User B's tasks via shared global personas.
+**Files:** app/controllers/agent_personas_controller.rb
+**Verify:** ruby -c passed, bin/rails test — 1823 runs, 0 failures, 0 errors
+**Risk:** low (query scoping, no schema change)
+
+## [2026-02-15 09:45] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 17 controller tests for SkillManagerController
+**Why:** Previously untested controller handling gateway API skills config. Tests cover: auth gates, gateway error handling, CRUD operations (toggle/configure/install/uninstall), input validation (invalid JSON, nested objects, oversized values, path traversal), and bundled skill discovery.
+**Files:** test/controllers/skill_manager_controller_test.rb (new)
+**Verify:** 17/17 pass, full suite 1840 runs 0 failures 0 errors
+**Risk:** low (test-only)
+
+## [2026-02-15 09:52] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 13 controller tests for CompactionConfigController
+**Why:** Previously untested controller handling compaction mode, memory flush, and context pruning config. Tests cover: auth gates, gateway error handling, show with config/defaults, update with valid/invalid modes, clamped numerical params (max_turns, cache_ttl, trim ratios), boolean params, multi-param updates, and gateway error reporting.
+**Files:** test/controllers/compaction_config_controller_test.rb (new)
+**Verify:** 13/13 pass, syntax check passed
+**Risk:** low (test-only)
+
+## [2026-02-15 09:58] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 22 controller tests for 3 previously untested config controllers (TypingConfig, IdentityConfig, LoggingConfig)
+**Why:** These config controllers interact with the OpenClaw gateway API and had zero test coverage. Tests cover: auth gates, show with config/errors/defaults, update operations (modes, levels, intervals, file paths), section validation, path traversal rejection in log file, and gateway error reporting.
+**Files:** test/controllers/typing_config_controller_test.rb (new, 8 tests), test/controllers/identity_config_controller_test.rb (new, 6 tests), test/controllers/logging_config_controller_test.rb (new, 8 tests)
+**Verify:** 22/22 pass, syntax check passed
+**Risk:** low (test-only)
+
+## [2026-02-15 10:04] - Category: Code Quality (DRY) — STATUS: ✅ VERIFIED
+**What:** Extract RunnerLease.create_for_task! factory method, DRY 3 creation sites
+**Why:** RunnerLease creation pattern (7 lines: token gen, timestamps, source) was duplicated in tasks_controller.rb and task_agent_lifecycle.rb (x2). Extracted to a single `create_for_task!(task:, agent_name:, source:)` class method on RunnerLease.
+**Files:** app/models/runner_lease.rb, app/controllers/api/v1/tasks_controller.rb, app/controllers/concerns/api/task_agent_lifecycle.rb
+**Verify:** ruby -c passed all 3 files, bin/rails test — 1875 runs, 0 failures, 0 errors
+**Risk:** low (refactor, same behavior, no schema change)
