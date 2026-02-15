@@ -2878,3 +2878,10 @@
 **Files:** 25 model files modified
 **Verify:** Ruby syntax OK, Board/Task/Nightshift/Factory tests pass (95 runs)
 **Risk:** low (performance improvement, additive associations)
+
+## [2026-02-15 15:20] - Category: Model/Testing — STATUS: ✅ VERIFIED
+**What:** Add scopes and validations to Session model + expanded tests
+**Why:** Session model was missing useful scopes (for_user, recent) and length validations. Added sensible constraints and test coverage.
+**Files:** app/models/session.rb, test/models/session_test.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (additive model improvements)
