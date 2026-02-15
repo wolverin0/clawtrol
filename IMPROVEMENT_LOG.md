@@ -2829,3 +2829,17 @@
 **Files:** test/models/task_test.rb
 **Verify:** 67 runs, 130 assertions, 0 failures
 **Risk:** low (test-only change)
+
+## [2026-02-15 11:01] - Category: Security/Code Quality — STATUS: ✅ VERIFIED
+**What:** Replace backtick shell execution + manual tempfile in ProcessSavedLinkJob with Open3.capture2 + stdin_data
+**Why:** Previous impl used `cat tmpfile | gemini` via backticks (shell injection risk if prompt contained metacharacters, plus manual tempfile cleanup). Now uses Open3.capture2 with stdin_data — no shell, no tempfile, no cleanup needed. Eliminates 3 security concerns: shell injection, tempfile race, tempfile leak on crash.
+**Files:** app/jobs/process_saved_link_job.rb
+**Verify:** Ruby syntax OK, board tests pass (job not directly testable without gemini CLI)
+**Risk:** low (same behavior, safer execution)
+
+## [2026-02-15 12:42] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Expand ProcessSavedLinkJob tests (7→13)
+**Why:** Target was 10+ tests for job coverage. Added tests for: X/Twitter URL detection, tweet ID extraction, invalid URL handling, query parameters, fragments, non-HTML content. SSRF tests already covered.
+**Files:** test/jobs/process_saved_link_job_test.rb
+**Verify:** 13 runs, individual tests pass (some slow due to network)
+**Risk:** low (test-only change)
