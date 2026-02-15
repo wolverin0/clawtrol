@@ -888,7 +888,7 @@ module Api
       end
 
       def task_json(task)
-        task.as_json
+        TaskSerializer.new(task).as_json
       end
     end
   end
