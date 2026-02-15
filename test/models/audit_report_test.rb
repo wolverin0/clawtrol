@@ -37,4 +37,48 @@ class AuditReportTest < ActiveSupport::TestCase
 
     assert_equal [newer.id, older.id], AuditReport.recent.where(id: [older.id, newer.id]).pluck(:id)
   end
+
+  # --- Associations ---
+
+  test "has_many behavioral_interventions" do
+    report = audit_reports(:weekly_report)
+    intervention = BehavioralIntervention.create!(
+      user: users(:one),
+      audit_report: report,
+      rule: "test rule",
+      category: "test",
+      status: "active"
+    )
+
+    assert_includes report.behavioral_interventions, intervention
+  end
+
+  test "behavioral_interventions are destroyed with report" do
+    report = AuditReport.create!(user: users(:one), report_type: "daily", overall_score: 5.0)
+    intervention = BehavioralIntervention.create!(
+      user: users(:one),
+      audit_report: report,
+      rule: "test rule",
+      category: "test",
+      status: "active"
+    )
+    intervention_id = intervention.id
+
+    report.destroy!
+
+    assert_nil BehavioralIntervention.find_by(id: intervention_id)
+  end
+
+  # --- Edge cases ---
+
+  test "validates overall_score cannot be negative" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: -1)
+    assert_not report.valid?
+    assert_includes report.errors[:overall_score], "must be greater than or equal to 0"
+  end
+
+  test "validates overall_score can be zero" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 0)
+    assert report.valid?
+  end
 end
