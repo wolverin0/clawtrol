@@ -3009,3 +3009,10 @@
 **Files:** app/controllers/concerns/api/task_filtering.rb, test/controllers/concerns/api/task_filtering_test.rb
 **Verify:** Ruby syntax OK on both files
 **Risk:** low (extraction/refactor, no behavioral changes)
+
+## [2026-02-15 20:45] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract MarketingImageService from MarketingController
+**Why:** Reduces MarketingController complexity by extracting OpenAI image generation logic (prompt building, API calls, error handling) into a dedicated service object. Controller now delegates to service (~150→50 lines in generate_image action). Makes image generation logic reusable and testable.
+**Files:** app/services/marketing_image_service.rb, app/controllers/marketing_controller.rb
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (extraction/refactor, no behavioral changes)
