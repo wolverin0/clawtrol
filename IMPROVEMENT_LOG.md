@@ -2063,3 +2063,10 @@
 **Files:** app/controllers/workflows_controller.rb, test/controllers/workflows_controller_test.rb
 **Verify:** 7 runs, 16 assertions, 0 failures ✅
 **Risk:** low (additive auth check, no behavior change for own workflows)
+
+## [2026-02-15 06:18] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Added comprehensive SwarmIdea model validations: category inclusion (CATEGORIES), suggested_model inclusion (MODELS), difficulty inclusion (easy/medium/hard), title length (max 500), description length (max 10K), icon length (max 10), estimated_minutes upper bound (480), times_launched non-negative. Added 11 new model tests covering all new validations.
+**Why:** Model had only `title: presence` and basic numericality. No input validation on category, model, difficulty, or string lengths — could accept arbitrary data.
+**Files:** app/models/swarm_idea.rb, test/models/swarm_idea_test.rb
+**Verify:** 27 model tests + 15 controller tests pass, 0 failures ✅
+**Risk:** low (validations use allow_blank to not break existing data)
