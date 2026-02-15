@@ -31,6 +31,7 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Model Selection** — Choose model per task (opus, codex, gemini, glm, sonnet)
 - **Auto Session Linking** — `agent_complete`, `claim`, and task create/update accept session params directly
 - **Spinner Indicator** — Visual indicator on cards with active agents
+- **Deep Research Mode** — Toggle multi-agent analysis for complex tasks
 - **Agent Terminal** — Full session transcript viewer with tabbed interface, hover preview, pin-to-terminal
 
 ### 📊 Multi-Board System
@@ -150,6 +151,45 @@ Set a webhook URL in Settings → Notifications. ClawTrol will POST JSON on task
 - **Moon-Marked Tasks** — Nightly tasks are marked with a moon 🌙 icon
 - **Nightbeat Filter** — Toggle to show/hide nightbeat tasks quickly
 - **Morning Brief** — `/nightbeat` page shows overnight completed tasks grouped by project
+
+
+### 🚀 Pipeline System (ClawRouter)
+- **3-Layer Mechanical Pipeline** — Zero-token triage + context compilation + model routing
+- **Triage (Layer 0)** — Ruby rules classify tasks into pipeline types: `quick-fix`, `bug-fix`, `feature`, `research`, `architecture`, `nightshift`
+- **Context Compiler (Layer 1)** — Enriches tasks with project manifests, board context, dependencies, and optional RAG from Qdrant
+- **Router (Layer 2)** — Selects optimal model based on task type, tier fallback chains (`free → subscription → api → expensive`)
+- **Pipeline Stages** — `unstarted → triaged → context_ready → routed → executing → verifying → completed/failed`
+- **Observation Mode** — Pipeline logs decisions without changing behavior (safe rollout)
+- **Per-Board Activation** — Enable pipeline per board via API or Config Hub
+- **Prompt Templates** — ERB templates per pipeline type with full context injection
+- **Escalation** — Auto-bumps to higher model tier on repeated failures
+- **YAML Config** — All rules, tiers, and templates configured in `config/pipelines.yml`
+
+### 🐝 Swarm Launcher
+- **Curated Task Ideas** — `/swarm` page with pre-configured task ideas organized by category
+- **One-Click Launch** — Select ideas and launch them as real tasks on any board
+- **Favorites** — Star frequently-used ideas for quick access
+- **Board Routing** — Per-idea board assignment with dropdown override
+- **Model Selection** — Per-idea model override with dropdown
+- **Multi-Select** — Checkbox selection with "Select All" and batch launch
+- **Launch History** — Track `times_launched` and `last_launched_at` per idea
+- **Pipeline Integration** — Launched tasks auto-enter the pipeline with `pipeline_enabled: true`
+- **Category Filters** — Filter ideas by category or favorites
+- **Bottom Panel** — Shows selected count, estimated time, and launch button
+
+### ⚙️ Config Hub
+- **OpenClaw Configuration Dashboard** — `/config` page to manage all OpenClaw gateway settings from ClawTrol
+- **15 Config Sections** — Typing, Identity, Sandbox, Compaction, Heartbeat, Session Reset, Message Queue, Media, Telegram, Discord, Logging, Channel, Gateway, Agent
+- **Live Editing** — View and update OpenClaw configuration in real-time via gateway API
+- **Gateway Health** — Status indicator showing gateway connection health
+- **Log Viewer** — Tail OpenClaw logs directly from the Config Hub
+- **Channel Management** — Configure per-channel behavior for messaging integrations
+
+### 🏭 Agent Factory
+- **Factory Loops** — Automated task generation cycles with play/pause/stop controls
+- **Auto-Generate Personas** — Create board-specific agent personas automatically
+- **Loop Metrics** — Track cycle completion rates, timing, and outcomes
+- **API Control** — Full CRUD + play/pause/stop via REST API
 
 ### 🪝 Agent Complete Auto-Save Pipeline
 - **Webhook Endpoint** — `POST /api/v1/hooks/agent_complete` for agent self-reporting
@@ -376,6 +416,7 @@ Have an AI assistant with shell access (OpenClaw, Claude Code, Codex)? Give it t
 > ```bash
 > CLAWTROL_API_TOKEN=API_TOKEN
 > CLAWTROL_HOOKS_TOKEN=HOOKS_TOKEN
+APP_BASE_URL=http://HOST:PORT  # Used for webhook callbacks and links
 > ```
 >
 > **Step 7 — Set up heartbeat polling**
@@ -706,6 +747,95 @@ PATCH /api/v1/saved_links/:id
 GET /api/v1/saved_links/pending
 ```
 
+
+### Swarm Ideas
+
+```bash
+# List swarm ideas
+GET /api/v1/swarm_ideas
+
+# Create swarm idea
+POST /api/v1/swarm_ideas
+{ "swarm_idea": { "title": "Fix auth bugs", "description": "...", "category": "bug-fix", "suggested_model": "codex" } }
+
+# Update swarm idea
+PATCH /api/v1/swarm_ideas/:id
+
+# Delete swarm idea
+DELETE /api/v1/swarm_ideas/:id
+
+# Launch idea as task
+POST /api/v1/swarm_ideas/:id/launch
+{ "board_id": 1, "model": "codex" }
+```
+
+### Pipeline
+
+```bash
+# Pipeline status overview
+GET /api/v1/pipeline/status
+
+# Enable pipeline on a board
+POST /api/v1/pipeline/enable_board/:board_id
+
+# Disable pipeline on a board
+POST /api/v1/pipeline/disable_board/:board_id
+
+# Get pipeline log for a task
+GET /api/v1/pipeline/task/:id/log
+
+# Reprocess a task through the pipeline
+POST /api/v1/pipeline/reprocess/:id
+
+# Route a specific task through pipeline
+POST /api/v1/tasks/:id/route_pipeline
+
+# Get pipeline info for a task
+GET /api/v1/tasks/:id/pipeline_info
+```
+
+### Agent Personas
+
+```bash
+# List agent personas
+GET /api/v1/agent_personas
+
+# Create persona
+POST /api/v1/agent_personas
+{ "name": "Security Bot", "board_id": 1, "model": "codex" }
+
+# Import personas
+POST /api/v1/agent_personas/import
+
+# Update persona
+PATCH /api/v1/agent_personas/:id
+
+# Delete persona
+DELETE /api/v1/agent_personas/:id
+```
+
+### Factory Loops
+
+```bash
+# List factory loops
+GET /api/v1/factory/loops
+
+# Create factory loop
+POST /api/v1/factory/loops
+{ "name": "Nightly bugs", "board_id": 1 }
+
+# Control loop
+POST /api/v1/factory/loops/:id/play
+POST /api/v1/factory/loops/:id/pause
+POST /api/v1/factory/loops/:id/stop
+
+# Loop metrics
+GET /api/v1/factory/loops/:id/metrics
+
+# Complete a factory cycle
+POST /api/v1/factory/cycles/:id/complete
+```
+
 ### Recurring Tasks
 
 ```bash
@@ -724,11 +854,14 @@ GET /api/v1/tasks/recurring
 | `in_review` | Done, needs human review |
 | `done` | Complete |
 
+### Pipeline Stages
+`unstarted`, `triaged`, `context_ready`, `routed`, `executing`, `verifying`, `completed`, `failed`
+
 ### Priorities
 `none`, `low`, `medium`, `high`
 
 ### Models
-`opus`, `codex`, `gemini`, `glm`, `sonnet`
+`opus`, `codex`, `gemini`, `glm`, `sonnet`, `flash`
 
 ---
 
