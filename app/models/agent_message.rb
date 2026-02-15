@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
 class AgentMessage < ApplicationRecord
-  belongs_to :task
-  belongs_to :source_task, class_name: "Task", optional: true
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
+
+  belongs_to :task, inverse_of: :agent_messages
+  belongs_to :source_task, class_name: "Task", optional: true, inverse_of: :inverse_dependencies
 
   DIRECTIONS = %w[incoming outgoing].freeze
   MESSAGE_TYPES = %w[output handoff feedback error].freeze

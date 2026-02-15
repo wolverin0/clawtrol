@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class FactoryCycleLog < ApplicationRecord
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
+
   # The 'errors' column conflicts with ActiveRecord::Base#errors in Rails 8.1+
   self.ignored_columns += ["errors"]
 
