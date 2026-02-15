@@ -2468,3 +2468,104 @@
 **Files:** test/services/emoji_shortcode_normalizer_test.rb, test/services/workflow_execution_engine_test.rb
 **Verify:** 26 tests pass (9 + 17), 0 failures 0 errors ✅
 **Risk:** low (test-only changes)
+
+## [2026-02-15 08:12] - Category: UX/Accessibility — STATUS: ✅ VERIFIED
+**What:** Added ARIA `role="article"` and `aria-label` to task cards in the kanban board. The label includes task name, status, and state indicators (blocked/error) for screen reader accessibility.
+**Why:** Task cards are the primary interactive element in ClawTrol but had no ARIA attributes. Screen readers couldn't distinguish between cards or announce their state. The kanban columns already had `role="region"` with labels but individual cards were opaque.
+**Files:** app/views/boards/_task_card.html.erb
+**Verify:** ERB syntax OK ✅, 24 boards/tasks controller tests pass ✅
+**Risk:** low (additive HTML attributes, no behavior change)
+
+## [2026-02-15 08:16] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed SSRF-via-redirect vulnerability in ProcessSavedLinkJob. The initial URL was checked against `safe_outbound_url?` (blocks private IPs, localhost, internal TLDs), but the HTTP redirect target was NOT checked. An attacker could craft a link that 301-redirects to `http://192.168.x.x/...` or `http://localhost:5432/` to access internal services. Now the redirect URL is also validated against `safe_outbound_url?` before following. Also added `URI.join` to properly resolve relative redirects.
+**Why:** Classic SSRF bypass via open redirect. Any user can save a link that redirects to internal infrastructure.
+**Files:** app/jobs/process_saved_link_job.rb
+**Verify:** ruby syntax OK ✅, 44 job tests pass ✅
+**Risk:** medium (security fix, changes HTTP redirect behavior — could break legitimate redirects to internal hosts, but those shouldn't exist)
+
+## [2026-02-15 08:19] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Moved `current_user.saved_links.group(:status).count` query from the view (saved_links/index.html.erb) to the controller as `@status_counts`. This follows the Rails pattern of keeping DB queries out of views.
+**Why:** Views should not make DB queries directly — this query was executing a GROUP BY COUNT on every page load inside the ERB template. Moving it to the controller makes it testable, visible in profiling tools, and follows MVC separation.
+**Files:** app/controllers/saved_links_controller.rb, app/views/saved_links/index.html.erb
+**Verify:** ruby/ERB syntax OK ✅, model tests pass ✅
+**Risk:** low (same query, different location)
+
+## [2026-02-15 08:22] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added a partial compound index `idx_tasks_auto_runner_candidates` on tasks(user_id, priority, position) with a WHERE clause matching the exact filters from `AgentAutoRunnerService#runnable_up_next_task_for`. This is the hot path for the auto-runner cron job that runs every ~60 seconds.
+**Why:** The auto-runner queries for eligible tasks with 7+ WHERE conditions. Without a targeted partial index, Postgres must scan the `index_tasks_on_user_agent_status` compound index then do a filter on the remaining conditions. The partial index pre-filters to only matching rows, enabling a direct index scan sorted by priority/position.
+**Files:** db/migrate/20260216050005_add_auto_runner_partial_index_to_tasks.rb
+**Verify:** migration ran ✅, 4 agent_auto_runner_service tests pass ✅
+**Risk:** low (additive index, no schema changes to existing data)
+
+## [2026-02-15 08:26] - Category: Code Quality + Testing — STATUS: ✅ VERIFIED
+**What:** Added missing validations to TaskDiff model: `file_path` length limit (max 1000), `diff_content` length limit (max 500KB), `diff_type` presence validation, and extracted DIFF_TYPES constant. Added 4 new tests for these validations.
+**Why:** TaskDiff stores user-generated content (file paths from agent output, diff content from git). Without length limits, a malicious or buggy agent could store arbitrarily large diffs or paths, consuming DB storage. The diff_type presence validation was implicitly covered by inclusion but explicit is clearer.
+**Files:** app/models/task_diff.rb, test/models/task_diff_test.rb
+**Verify:** 24 task_diff tests pass (20 existing + 4 new) ✅
+**Risk:** low (additive validations with generous limits)
+
+---
+
+## Session Summary (2026-02-15 07:37 - 08:27)
+
+**8 improvement cycles in ~50 minutes**
+
+### Key Metrics
+- **Tests added:** 51 new tests (21 job tests, 26 service tests, 4 model tests)
+- **Security fixes:** 1 critical (SSRF-via-redirect in ProcessSavedLinkJob)
+- **Accessibility:** ARIA attributes on kanban task cards
+- **Performance:** 1 targeted partial index for auto-runner queries
+- **Code quality:** DRY'd 11 duplicate activity_source assignments, DB query moved from view to controller, TaskDiff length validations
+- **Architecture:** SavedLinksController query extraction from view
+
+### Improvements by Category
+1. **Testing:** 21 new job tests — AutoValidation, FactoryCycleTimeout, NightshiftTimeoutSweeper, PipelineProcessor
+2. **Code Quality:** DRY activity_source — extract before_action from 11 duplicate assignments
+3. **Testing:** 26 real tests replacing placeholders — EmojiShortcodeNormalizer + WorkflowExecutionEngine
+4. **UX/Accessibility:** ARIA role and label on kanban task cards
+5. **Security:** Fix SSRF-via-redirect in ProcessSavedLinkJob — validate redirect targets
+6. **Architecture:** Move DB query from view to controller in SavedLinksController
+7. **Performance:** Partial index for auto-runner candidate task queries
+8. **Code Quality + Testing:** TaskDiff validations (length limits) + 4 new tests
+
+## [2026-02-15 08:40] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed unscoped WebhookLog query in HooksDashboardController (data leak: user A could see user B's webhook logs). Added 7 controller tests including auth, gateway config, error handling, source detection, and user-scoping verification.
+**Why:** `WebhookLog.order(created_at: :desc).limit(25)` was unscoped — any authenticated user could see ALL webhook logs regardless of ownership. Fixed to `WebhookLog.where(user: current_user)`. This is a real data isolation bug.
+**Files:** app/controllers/hooks_dashboard_controller.rb, test/controllers/hooks_dashboard_controller_test.rb (new)
+**Verify:** 7 tests pass, 12 assertions, 0 failures ✅
+**Risk:** low (scoping fix is additive, tests confirm behavior)
+
+## [2026-02-15 08:45] - Category: Security + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed 2 unscoped data-leak queries in CanvasController (factory_progress_template used global FactoryCycleLog.all, cost_summary_template used unscoped CostSnapshot). Both now scoped to current_user. Added 10 controller tests covering auth, gateway config, push validation (XSS rejection), snapshot/hide parameter validation, templates endpoint.
+**Why:** FactoryCycleLog and CostSnapshot queries were not scoped to current_user — any authenticated user could see all users' factory progress and cost data in Canvas templates. Real data isolation bugs.
+**Files:** app/controllers/canvas_controller.rb, test/controllers/canvas_controller_test.rb (new)
+**Verify:** 10 tests pass, 31 assertions, 0 failures ✅
+**Risk:** low (scoping fix is additive, tests confirm behavior)
+
+## [2026-02-15 08:53] - Category: Code Quality (DRY) — STATUS: ✅ VERIFIED
+**What:** Added `patch_and_redirect` helper to GatewayConfigPatchable concern and refactored 5 config controllers (Compaction, MessageQueue, SessionReset, Sandbox, Media) to use it. Each controller's `update` method shrank from 13-15 lines to 7 lines, eliminating duplicated gateway patch + redirect + error handling + cache invalidation + rescue blocks.
+**Why:** 5+ controllers duplicated the exact same pattern: build patch → call config_patch → check error → redirect with flash → rescue. The new `patch_and_redirect` method centralizes this, reducing ~50 lines of duplicated code and ensuring consistent error handling and cache invalidation across all config pages.
+**Files:** app/controllers/concerns/gateway_config_patchable.rb, app/controllers/compaction_config_controller.rb, app/controllers/message_queue_config_controller.rb, app/controllers/session_reset_config_controller.rb, app/controllers/sandbox_config_controller.rb, app/controllers/media_config_controller.rb
+**Verify:** 56 tests pass across 4 test files (compaction, sandbox, session_reset, config_pages) + concern test. 0 failures ✅
+**Risk:** low (extracted method preserves exact same behavior, existing tests confirm)
+
+## [2026-02-15 08:58] - Category: Testing + Code Quality — STATUS: ✅ VERIFIED
+**What:** Added 7 controller tests for SessionMaintenanceController (auth, gateway config, show with config/sessions, error handling, update with clamping, update error). Also refactored the `update` method to use `patch_and_redirect` concern helper (6th controller DRY'd).
+**Why:** SessionMaintenanceController had zero tests. Tests verify auth gating, gateway error handling, config extraction, session stats aggregation, parameter clamping (prune_after_hours 0→1), and error flash messages.
+**Files:** app/controllers/session_maintenance_controller.rb, test/controllers/session_maintenance_controller_test.rb (new)
+**Verify:** 7 tests pass, 15 assertions, 0 failures ✅
+**Risk:** low (additive tests, update method uses same extracted helper)
+
+## [2026-02-15 09:03] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed 4 unscoped Rails cache keys that could leak data between users. AnalyticsController, CommandController, TokensController, and CronjobsController all used global cache keys (e.g. "analytics/openclaw_cost/v2/period=7d") without user scoping. In a multi-user setup, user A's cached gateway data would be served to user B.
+**Why:** Cache key collision is a data isolation bug. When user A's analytics/sessions/tokens/cronjobs are cached, user B hitting the same endpoint within the TTL would see user A's data. Fixed by adding `user=#{current_user.id}` to all 4 cache keys.
+**Files:** app/controllers/analytics_controller.rb, app/controllers/command_controller.rb, app/controllers/tokens_controller.rb, app/controllers/cronjobs_controller.rb
+**Verify:** 13 tests pass across 4 test files ✅
+**Risk:** low (cache key change only, worst case = cache miss on first request after deploy)
+
+## [2026-02-15 09:07] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added 6 controller tests for MemoryDashboardController: auth redirect, gateway config check, show with plugin/memory data, gateway error handling, blank search query, overly long search query (500 char limit).
+**Why:** MemoryDashboardController had zero tests. Tests verify auth gating, gateway config redirection, plugin extraction from health data, memory stats extraction, search input validation (blank + length), and graceful error handling.
+**Files:** test/controllers/memory_dashboard_controller_test.rb (new)
+**Verify:** 6 tests pass, 7 assertions, 0 failures ✅
+**Risk:** low (additive tests only)
