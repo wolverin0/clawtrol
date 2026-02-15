@@ -2000,3 +2000,10 @@
 - Bug Fix: 3 cycles (missing services, ClawRouter column bugs, Pipeline API auth)
 - Performance: 1 cycle (4 missing FK indexes)
 - Code Quality: 1 cycle (53 frozen_string_literal pragmas)
+
+## [2026-02-15 05:15] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Added missing `one` workflow fixture (6 test errors) + fixed empty assertion warning in ModelPerformanceService test
+**Why:** 6 test errors in workflows_controller_test and api/v1/workflows_controller_test because they referenced `workflows(:one)` but fixture was named `user_workflow`. Also fixed "Test is missing assertions" warning.
+**Files:** test/fixtures/workflows.yml, test/services/model_performance_service_test.rb
+**Verify:** Full suite: 1402 runs, 3297 assertions, 0 failures, 0 errors ✅
+**Risk:** low
