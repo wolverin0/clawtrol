@@ -1,0 +1,164 @@
+<% content_for(:breadcrumb_standalone) { "🧠 Memory Dashboard" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">Memory Plugin Dashboard</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Memory entries, search preview, and backend status.
+      </p>
+    </div>
+  </div>
+
+  <%# Stats Cards %>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="bg-bg-surface rounded-lg border border-border p-4 text-center">
+      <div class="text-2xl font-bold text-content"><%= @stats[:total_entries] || "—" %></div>
+      <div class="text-xs text-content-muted mt-1">Total Entries</div>
+    </div>
+    <div class="bg-bg-surface rounded-lg border border-border p-4 text-center">
+      <div class="text-2xl font-bold text-content"><%= @stats[:backend] %></div>
+      <div class="text-xs text-content-muted mt-1">Backend</div>
+    </div>
+    <div class="bg-bg-surface rounded-lg border border-border p-4 text-center">
+      <div class="text-2xl font-bold text-content">
+        <% if @stats[:auto_recall] %>
+          <span class="text-green-400">✓</span>
+        <% else %>
+          <span class="text-content-muted">✗</span>
+        <% end %>
+      </div>
+      <div class="text-xs text-content-muted mt-1">Auto-Recall</div>
+    </div>
+    <div class="bg-bg-surface rounded-lg border border-border p-4 text-center">
+      <div class="text-2xl font-bold text-content">
+        <% if @stats[:auto_capture] %>
+          <span class="text-green-400">✓</span>
+        <% else %>
+          <span class="text-content-muted">✗</span>
+        <% end %>
+      </div>
+      <div class="text-xs text-content-muted mt-1">Auto-Capture</div>
+    </div>
+  </div>
+
+  <%# Search %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">🔍</span>
+      <h2 class="text-sm font-semibold text-content">Memory Search</h2>
+    </div>
+    <div class="p-4">
+      <%= form_with url: memory_search_path, method: :post, local: true, class: "flex gap-2" do |f| %>
+        <input type="text" name="query" value="<%= @search_query %>"
+               placeholder="Search memories... (semantic + keyword)"
+               class="flex-1 text-sm text-content font-mono bg-bg-base rounded px-3 py-2 border border-border focus:border-accent focus:outline-none" />
+        <button type="submit"
+                class="px-4 py-2 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Search
+        </button>
+      <% end %>
+
+      <% if @search_results.any? %>
+        <div class="mt-4 space-y-2">
+          <% @search_results.each do |result| %>
+            <div class="bg-bg-base rounded border border-border p-3">
+              <div class="flex items-center justify-between mb-1">
+                <% if result[:path] %>
+                  <span class="text-xs font-mono text-accent">
+                    <%= result[:path] %><%= "#L#{result[:line]}" if result[:line] %>
+                  </span>
+                <% end %>
+                <% if result[:score] %>
+                  <span class="text-xs text-content-muted">
+                    Score: <%= (result[:score] * 100).round(1) %>%%
+                  </span>
+                <% end %>
+              </div>
+              <p class="text-sm text-content whitespace-pre-wrap"><%= result[:content] %></p>
+              <% if result[:created_at] %>
+                <div class="text-xs text-content-muted mt-1"><%= result[:created_at] %></div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% elsif @search_query.present? %>
+        <div class="mt-4 text-center py-4">
+          <p class="text-sm text-content-muted">No results for "<%= @search_query %>"</p>
+          <p class="text-xs text-content-muted mt-1">Memory search requires a compatible memory plugin (memory-core or memory-lancedb).</p>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <%# Memory Plugins %>
+  <section>
+    <h2 class="text-sm font-semibold text-content mb-3">Memory Plugins</h2>
+
+    <% if @plugins.any? %>
+      <div class="space-y-3">
+        <% @plugins.each do |plugin| %>
+          <div class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+            <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm">🔌</span>
+                <span class="text-sm font-semibold text-content font-mono"><%= plugin[:name] %></span>
+                <% if plugin[:version] %>
+                  <span class="text-xs text-content-muted">v<%= plugin[:version] %></span>
+                <% end %>
+                <% if plugin[:enabled] %>
+                  <span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
+                    <%= plugin[:status] %>
+                  </span>
+                <% else %>
+                  <span class="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">Disabled</span>
+                <% end %>
+              </div>
+            </div>
+            <% if plugin[:config].present? && plugin[:config].any? %>
+              <div class="p-4">
+                <% plugin_config_json = begin; JSON.pretty_generate(plugin[:config]); rescue; plugin[:config].to_s; end %>
+                <pre class="text-xs font-mono text-content bg-bg-base rounded px-2 py-1.5 border border-border overflow-x-auto"><%= plugin_config_json %></pre>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="bg-bg-surface rounded-lg border border-border p-8 text-center">
+        <span class="text-3xl">🧠</span>
+        <p class="text-sm text-content-muted mt-2">No memory plugins detected.</p>
+        <p class="text-xs text-content-muted mt-1">
+          Install <code class="font-mono bg-bg-base px-1 rounded">@openclaw/memory-core</code> or
+          <code class="font-mono bg-bg-base px-1 rounded">@openclaw/memory-lancedb</code> for semantic memory.
+        </p>
+      </div>
+    <% end %>
+  </section>
+
+  <%# Additional Stats %>
+  <% if @stats[:last_indexed] || @stats[:index_size] %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">📊</span>
+        <h2 class="text-sm font-semibold text-content">Index Details</h2>
+      </div>
+      <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+        <% if @stats[:last_indexed] %>
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Last Indexed</label>
+            <div class="text-sm text-content"><%= @stats[:last_indexed] %></div>
+          </div>
+        <% end %>
+        <% if @stats[:index_size] %>
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Index Size</label>
+            <div class="text-sm text-content"><%= @stats[:index_size] %></div>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</div>

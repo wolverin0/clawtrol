@@ -1,0 +1,222 @@
+<% content_for(:breadcrumb_standalone) { "📡 #{@channel_name.capitalize} Config" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-controller="channel-config" data-channel-config-channel-value="<%= @channel_name %>">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">
+        <% icons = { "mattermost" => "💬", "slack" => "🔷", "signal" => "🔒" } %>
+        <%= icons[@channel_name] || "📡" %> <%= @channel_name.capitalize %> Config
+      </h1>
+      <p class="text-sm text-content-muted mt-1">
+        Channel-specific settings for OpenClaw's <%= @channel_name.capitalize %> integration.
+      </p>
+    </div>
+    <% ch_status = Array(@channel_status.is_a?(Hash) ? @channel_status["channels"] : []).find { |c| c["name"]&.downcase&.include?(@channel_name) } %>
+    <span class="px-2 py-1 rounded-full text-xs font-medium
+           <%= ch_status && ch_status['connected'] ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400' %>">
+      <%= ch_status && ch_status['connected'] ? '🟢 Connected' : '⚫ Not connected' %>
+    </span>
+  </div>
+
+  <%# Status toast %>
+  <div data-channel-config-target="status" class="hidden text-xs px-3 py-2 rounded-md"></div>
+
+  <%# Channel-specific sections %>
+  <% case @channel_name %>
+  <% when "mattermost" %>
+    <%# Mattermost Config %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">💬</span>
+        <h2 class="text-sm font-semibold text-content">Mattermost Settings</h2>
+      </div>
+      <div class="p-4 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Chat Mode</label>
+            <select data-channel-config-target="chatMode"
+                    class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <% %w[oncall onmessage onchar].each do |mode| %>
+                <option value="<%= mode %>" <%= 'selected' if @channel_data[:chat_mode] == mode %>>
+                  <%= { "oncall" => "On Call — respond when mentioned", "onmessage" => "On Message — respond to every message", "onchar" => "On Char — stream character by character" }[mode] %>
+                </option>
+              <% end %>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">DM Scope</label>
+            <select data-channel-config-target="dmScope"
+                    class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <option value="user" <%= 'selected' if @channel_data[:dm_scope] == 'user' %>>user (isolated)</option>
+              <option value="main" <%= 'selected' if @channel_data[:dm_scope] == 'main' %>>main (shared)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Server URL</label>
+            <input type="text"
+                   data-channel-config-target="serverUrl"
+                   value="<%= @channel_data[:server_url] %>"
+                   placeholder="https://mattermost.example.com"
+                   class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Team</label>
+            <input type="text"
+                   data-channel-config-target="team"
+                   value="<%= @channel_data[:team] %>"
+                   placeholder="my-team"
+                   class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+          </div>
+        </div>
+        <div class="text-xs text-content-muted">
+          Bot Token: <span class="font-mono"><%= @channel_data[:bot_token] %></span>
+        </div>
+        <div class="flex justify-end">
+          <button type="button"
+                  data-action="click->channel-config#saveMattermost"
+                  class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+            Save
+          </button>
+        </div>
+      </div>
+    </section>
+
+  <% when "slack" %>
+    <%# Slack Config %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">🔷</span>
+        <h2 class="text-sm font-semibold text-content">Slack Settings</h2>
+      </div>
+      <div class="p-4 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="flex items-center gap-2">
+            <input type="checkbox"
+                   data-channel-config-target="socketMode"
+                   <%= 'checked' if @channel_data[:socket_mode] %>
+                   class="rounded border-border text-accent focus:ring-accent" />
+            <span class="text-sm text-content">Socket Mode</span>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Thread Mode</label>
+            <select data-channel-config-target="threadMode"
+                    class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <% %w[reply broadcast none].each do |mode| %>
+                <option value="<%= mode %>" <%= 'selected' if @channel_data[:thread_mode] == mode %>><%= mode.capitalize %></option>
+              <% end %>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">DM Scope</label>
+            <select data-channel-config-target="dmScope"
+                    class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <option value="user" <%= 'selected' if @channel_data[:dm_scope] == 'user' %>>user (isolated)</option>
+              <option value="main" <%= 'selected' if @channel_data[:dm_scope] == 'main' %>>main (shared)</option>
+            </select>
+          </div>
+        </div>
+        <div class="text-xs text-content-muted space-y-1">
+          <div>App Token: <span class="font-mono"><%= @channel_data[:app_token] %></span></div>
+          <div>Bot Token: <span class="font-mono"><%= @channel_data[:bot_token] %></span></div>
+        </div>
+        <% if @channel_data[:slash_commands].present? %>
+          <div>
+            <span class="text-xs text-content-muted">Slash Commands:</span>
+            <div class="flex flex-wrap gap-1 mt-1">
+              <% Array(@channel_data[:slash_commands]).each do |cmd| %>
+                <span class="text-[10px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 rounded font-mono">/<%= cmd.is_a?(Hash) ? cmd["command"] || cmd["name"] : cmd %></span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        <div class="flex justify-end">
+          <button type="button"
+                  data-action="click->channel-config#saveSlack"
+                  class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+            Save
+          </button>
+        </div>
+      </div>
+    </section>
+
+  <% when "signal" %>
+    <%# Signal Config %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">🔒</span>
+        <h2 class="text-sm font-semibold text-content">Signal Settings</h2>
+      </div>
+      <div class="p-4 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Reaction Mode</label>
+            <select data-channel-config-target="reactionMode"
+                    class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <% %w[off own all].each do |mode| %>
+                <option value="<%= mode %>" <%= 'selected' if @channel_data[:reaction_mode] == mode %>>
+                  <%= { "off" => "Off", "own" => "Own messages only", "all" => "All messages" }[mode] %>
+                </option>
+              <% end %>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Group Handling</label>
+            <select data-channel-config-target="groupHandling"
+                    class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <% %w[respond ignore mention_only].each do |mode| %>
+                <option value="<%= mode %>" <%= 'selected' if @channel_data[:group_handling] == mode %>>
+                  <%= { "respond" => "Respond to all", "ignore" => "Ignore groups", "mention_only" => "Mention only" }[mode] %>
+                </option>
+              <% end %>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">DM Scope</label>
+            <select data-channel-config-target="dmScope"
+                    class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <option value="user" <%= 'selected' if @channel_data[:dm_scope] == 'user' %>>user (isolated)</option>
+              <option value="main" <%= 'selected' if @channel_data[:dm_scope] == 'main' %>>main (shared)</option>
+            </select>
+          </div>
+        </div>
+        <div class="text-xs text-content-muted">
+          Phone Number: <span class="font-mono"><%= @channel_data[:phone_number] %></span>
+        </div>
+        <div class="flex justify-end">
+          <button type="button"
+                  data-action="click->channel-config#saveSignal"
+                  class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+            Save
+          </button>
+        </div>
+      </div>
+    </section>
+  <% end %>
+
+  <%# Raw Config %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <details>
+      <summary class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2 cursor-pointer list-none">
+        <span class="text-lg">📋</span>
+        <span class="text-sm font-semibold text-content">Raw Config</span>
+      </summary>
+      <div class="p-4">
+        <pre class="text-xs text-content font-mono bg-bg-base rounded p-3 overflow-x-auto max-h-64 overflow-y-auto"><%= JSON.pretty_generate(@channel_data[:raw]) rescue @channel_data[:raw].to_s %></pre>
+      </div>
+    </details>
+  </section>
+
+  <%# Other channels nav %>
+  <div class="flex gap-2 text-xs">
+    <span class="text-content-muted">Other channels:</span>
+    <% %w[mattermost slack signal].reject { |c| c == @channel_name }.each do |ch| %>
+      <%= link_to ch.capitalize,
+          channel_config_path(channel: ch),
+          class: "text-accent hover:underline" %>
+    <% end %>
+    <%= link_to "Telegram", telegram_config_path, class: "text-accent hover:underline" %>
+    <%= link_to "Discord", discord_config_path, class: "text-accent hover:underline" %>
+  </div>
+</div>

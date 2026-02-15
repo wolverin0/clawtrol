@@ -1,0 +1,181 @@
+<% content_for(:breadcrumb_standalone) { "📋 Logging & Debug" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-controller="logging-config">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">Logging & Debug Config</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Configure log levels, console output, redaction, and debug commands.
+      </p>
+    </div>
+  </div>
+
+  <%# Status toast %>
+  <div data-logging-config-target="status" class="hidden text-xs px-3 py-2 rounded-md"></div>
+
+  <%# Current Config %>
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+    <% [
+      ["Log Level", @logging[:level], "📊"],
+      ["Console Level", @logging[:console_level], "🖥️"],
+      ["Console Style", @logging[:console_style], "🎨"],
+      ["Redact Sensitive", @logging[:redact_sensitive] ? "Yes" : "No", "🔒"],
+      ["Log File", @logging[:file].presence || "—", "📁"],
+    ].each do |label, value, icon| %>
+      <div class="bg-bg-surface rounded-lg border border-border p-3 text-center">
+        <div class="text-lg"><%= icon %></div>
+        <div class="text-sm font-bold text-content truncate" title="<%= value %>"><%= value %></div>
+        <div class="text-[10px] text-content-muted"><%= label %></div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Logging Config %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">📊</span>
+      <h2 class="text-sm font-semibold text-content">Log Levels</h2>
+    </div>
+    <div class="p-4 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">File Log Level</label>
+          <select data-logging-config-target="level"
+                  class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+            <% %w[error warn info verbose debug trace].each do |lvl| %>
+              <option value="<%= lvl %>" <%= 'selected' if @logging[:level] == lvl %>><%= lvl %></option>
+            <% end %>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Console Level</label>
+          <select data-logging-config-target="consoleLevel"
+                  class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+            <% %w[error warn info verbose debug trace].each do |lvl| %>
+              <option value="<%= lvl %>" <%= 'selected' if @logging[:console_level] == lvl %>><%= lvl %></option>
+            <% end %>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Console Style</label>
+          <select data-logging-config-target="consoleStyle"
+                  class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+            <% %w[pretty json minimal].each do |style| %>
+              <option value="<%= style %>" <%= 'selected' if @logging[:console_style] == style %>><%= style.capitalize %></option>
+            <% end %>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Log File Path</label>
+          <input type="text"
+                 data-logging-config-target="file"
+                 value="<%= @logging[:file] %>"
+                 placeholder="/var/log/openclaw/gateway.log (leave blank to disable)"
+                 class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+        </div>
+        <div class="flex items-center gap-2 pt-5">
+          <input type="checkbox"
+                 data-logging-config-target="redact"
+                 <%= 'checked' if @logging[:redact_sensitive] %>
+                 class="rounded border-border text-accent focus:ring-accent" />
+          <span class="text-sm text-content">Redact sensitive data in logs</span>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button type="button"
+                data-action="click->logging-config#saveLogging"
+                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Save Logging
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <%# Debug Commands %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">🐛</span>
+      <h2 class="text-sm font-semibold text-content">Debug Commands</h2>
+    </div>
+    <div class="p-4 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="flex items-center gap-3 p-3 bg-bg-elevated rounded-md">
+          <input type="checkbox"
+                 data-logging-config-target="debugEnabled"
+                 <%= 'checked' if @debug[:enabled] %>
+                 class="rounded border-border text-accent focus:ring-accent" />
+          <div>
+            <span class="text-sm text-content font-medium">/debug</span>
+            <p class="text-[10px] text-content-muted">Enable debug command for diagnostics</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 p-3 bg-bg-elevated rounded-md">
+          <input type="checkbox"
+                 data-logging-config-target="debugBash"
+                 <%= 'checked' if @debug[:bash] %>
+                 class="rounded border-border text-accent focus:ring-accent" />
+          <div>
+            <span class="text-sm text-content font-medium">/bash</span>
+            <p class="text-[10px] text-content-muted">Enable bash command (⚠️ security risk)</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 p-3 bg-bg-elevated rounded-md">
+          <input type="checkbox"
+                 data-logging-config-target="debugEval"
+                 <%= 'checked' if @debug[:allow_eval] %>
+                 class="rounded border-border text-accent focus:ring-accent" />
+          <div>
+            <span class="text-sm text-content font-medium">allowEval</span>
+            <p class="text-[10px] text-content-muted">Allow JS eval in debug (⚠️ dangerous)</p>
+          </div>
+        </div>
+      </div>
+      <% if @debug[:bash] || @debug[:allow_eval] %>
+        <div class="p-3 bg-red-500/10 border border-red-500/30 rounded-md">
+          <p class="text-xs text-red-400">⚠️ <strong>Security Warning:</strong> /bash and allowEval give full system access. Only enable in development or trusted environments.</p>
+        </div>
+      <% end %>
+      <div class="flex justify-end">
+        <button type="button"
+                data-action="click->logging-config#saveDebug"
+                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Save Debug
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <%# Log Viewer %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">📜</span>
+        <h2 class="text-sm font-semibold text-content">Log Viewer</h2>
+      </div>
+      <div class="flex items-center gap-2">
+        <select data-logging-config-target="tailLevel"
+                class="text-xs text-content bg-bg-base rounded px-2 py-1 border border-border focus:border-accent focus:outline-none">
+          <option value="">All levels</option>
+          <% %w[error warn info debug].each do |lvl| %>
+            <option value="<%= lvl %>"><%= lvl.upcase %></option>
+          <% end %>
+        </select>
+        <input type="number" min="10" max="500" value="50"
+               data-logging-config-target="tailLines"
+               class="w-16 text-xs text-content bg-bg-base rounded px-2 py-1 border border-border focus:border-accent focus:outline-none" />
+        <button type="button"
+                data-action="click->logging-config#loadLogs"
+                class="px-2 py-1 text-xs font-medium bg-accent text-white rounded hover:bg-accent/80 transition-colors">
+          Tail
+        </button>
+      </div>
+    </div>
+    <div data-logging-config-target="logOutput" class="p-4">
+      <p class="text-sm text-content-muted text-center">Click "Tail" to load recent log lines.</p>
+    </div>
+  </section>
+</div>

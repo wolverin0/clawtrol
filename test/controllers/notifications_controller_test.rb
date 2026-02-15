@@ -22,9 +22,8 @@ class NotificationsControllerTest < ActionDispatch::IntegrationTest
   test "mark_read marks notification as read" do
     notification = Notification.create!(
       user: @user,
-      event_type: "test",
-      message: "Test notification",
-      icon: "🔔"
+      event_type: "task_completed",
+      message: "Test notification"
     )
     assert_nil notification.read_at
 
@@ -37,9 +36,8 @@ class NotificationsControllerTest < ActionDispatch::IntegrationTest
   test "mark_read with turbo_stream format" do
     notification = Notification.create!(
       user: @user,
-      event_type: "test",
-      message: "Turbo notification",
-      icon: "🔔"
+      event_type: "task_completed",
+      message: "Turbo notification"
     )
 
     patch mark_read_notification_path(notification),
@@ -53,23 +51,20 @@ class NotificationsControllerTest < ActionDispatch::IntegrationTest
     other_user = users(:two)
     notification = Notification.create!(
       user: other_user,
-      event_type: "test",
-      message: "Other user notification",
-      icon: "🔔"
+      event_type: "task_completed",
+      message: "Other user notification"
     )
 
-    assert_raises(ActiveRecord::RecordNotFound) do
-      patch mark_read_notification_path(notification)
-    end
+    patch mark_read_notification_path(notification)
+    assert_response :not_found
   end
 
   test "mark_all_read marks all unread notifications" do
     3.times do |i|
       Notification.create!(
         user: @user,
-        event_type: "test",
-        message: "Notification #{i}",
-        icon: "🔔"
+        event_type: "task_completed",
+        message: "Notification #{i}"
       )
     end
 
@@ -83,9 +78,8 @@ class NotificationsControllerTest < ActionDispatch::IntegrationTest
     other_user = users(:two)
     other_notif = Notification.create!(
       user: other_user,
-      event_type: "test",
-      message: "Other notification",
-      icon: "🔔"
+      event_type: "task_completed",
+      message: "Other notification"
     )
 
     post mark_all_read_notifications_path

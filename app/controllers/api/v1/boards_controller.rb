@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   module V1
     class BoardsController < BaseController
@@ -5,12 +7,8 @@ module Api
 
       # GET /api/v1/boards
       def index
-        @boards = current_user.boards.order(position: :asc)
-          .left_joins(:tasks)
-          .select("boards.*, COUNT(tasks.id) as tasks_count_cache")
-          .group("boards.id")
-          .order(:created_at)
-        render json: @boards.map { |board| board_json(board, use_cached_count: true) }
+        @boards = current_user.boards.order(position: :asc, created_at: :asc)
+        render json: @boards.map { |board| board_json(board) }
       end
 
       # GET /api/v1/boards/:id
@@ -89,13 +87,13 @@ module Api
         params.permit(:name, :icon, :color, :auto_claim_enabled, :auto_claim_prefix, auto_claim_tags: [])
       end
 
-      def board_json(board, include_tasks: false, use_cached_count: false)
+      def board_json(board, include_tasks: false)
         json = {
           id: board.id,
           name: board.name,
           icon: board.icon,
           color: board.color,
-          tasks_count: use_cached_count ? (board.tasks_count_cache || 0) : board.tasks.count,
+          tasks_count: board.tasks_count,
           auto_claim_enabled: board.auto_claim_enabled,
           auto_claim_tags: board.auto_claim_tags || [],
           auto_claim_prefix: board.auto_claim_prefix,

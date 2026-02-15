@@ -1,0 +1,91 @@
+<% content_for :title, "Typing Config - clawdeck" %>
+<% content_for :breadcrumb_standalone, "⌨️ Typing Indicators" %>
+
+<div class="py-6 space-y-6">
+  <div>
+    <h1 class="text-xl font-bold text-content">Typing Indicator Configuration</h1>
+    <p class="text-sm text-content-muted mt-1">
+      Control when and how typing indicators are sent to chat channels.
+    </p>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <%= form_with url: typing_config_path, method: :patch, class: "space-y-6" do |f| %>
+
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">💬 Typing Mode</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <% [
+          ["never", "🚫 Never", "No typing indicator sent. Silent processing.", "User sees: nothing"],
+          ["instant", "⚡ Instant", "Send typing immediately on message receipt.", "User sees: typing... (instant)"],
+          ["thinking", "🧠 Thinking", "Send typing when AI starts thinking/tool use.", "User sees: typing... (when processing)"],
+          ["message", "💬 Message", "Send typing only when composing the response.", "User sees: typing... (when replying)"]
+        ].each do |value, label, desc, preview| %>
+          <label class="flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors
+            <%= @typing[:mode] == value ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/30' %>">
+            <input type="radio" name="mode" value="<%= value %>"
+                   class="mt-0.5 text-accent focus:ring-accent/40"
+                   <%= "checked" if @typing[:mode] == value %>>
+            <div>
+              <div class="text-sm font-medium text-content"><%= label %></div>
+              <div class="text-xs text-content-muted mt-1"><%= desc %></div>
+              <div class="text-[10px] text-accent mt-1 font-mono"><%= preview %></div>
+            </div>
+          </label>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">⏱️ Interval</h3>
+      <div class="max-w-md">
+        <label class="block text-sm text-content-muted mb-1">Typing refresh interval (ms)</label>
+        <input type="range" name="interval_ms"
+               min="1000" max="15000" step="500"
+               value="<%= @typing[:interval_ms] %>"
+               class="w-full accent-accent"
+               data-controller="range-display"
+               data-action="input->range-display#update"
+               data-range-display-target="range">
+        <div class="flex justify-between text-xs text-content-muted mt-1">
+          <span>1s</span>
+          <span data-range-display-target="display" class="font-mono text-content"><%= @typing[:interval_ms] %>ms</span>
+          <span>15s</span>
+        </div>
+        <p class="text-xs text-content-muted mt-2">
+          How often to re-send the typing indicator during long processing.
+          Most platforms expire typing after 5-10 seconds.
+        </p>
+      </div>
+    </div>
+
+    <% if @typing[:per_channel].any? %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-5">
+        <h3 class="text-base font-semibold text-content mb-3">📡 Per-Channel Overrides</h3>
+        <div class="space-y-2">
+          <% @typing[:per_channel].each do |channel, cfg| %>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-bg-base border border-border text-sm">
+              <span class="font-medium text-content capitalize"><%= channel %></span>
+              <div class="flex gap-3 text-xs text-content-muted">
+                <span>Mode: <strong class="text-content"><%= cfg[:mode] || "inherit" %></strong></span>
+                <% if cfg[:interval_ms] %>
+                  <span>Interval: <strong class="text-content"><%= cfg[:interval_ms] %>ms</strong></span>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="flex justify-end">
+      <button type="submit"
+              class="px-6 py-2 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/80 transition-colors">
+        💾 Save Configuration
+      </button>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,88 @@
+<% content_for :title, "Skills - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🧩 Skill Browser" %>
+
+<div class="py-6 space-y-6">
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content">Skill Browser</h1>
+      <p class="text-sm text-content-muted mt-1">
+        <%= @skills.size %> skills installed
+        (<%= @bundled_count %> bundled, <%= @workspace_count %> workspace)
+      </p>
+    </div>
+    <a href="https://clawhub.com" target="_blank" rel="noopener"
+       class="px-3 py-1.5 text-sm bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition-colors">
+      🔍 ClawHub
+    </a>
+  </div>
+
+  <% if @skills.empty? %>
+    <%= render "shared/empty_state",
+      icon: "🧩",
+      title: "No Skills Found",
+      description: "Install skills from ClawHub or add them to your workspace skills directory." %>
+  <% else %>
+    <%# Filter tabs %>
+    <div class="flex gap-2 text-sm">
+      <button class="px-3 py-1 rounded-lg bg-accent/10 text-accent" data-filter="all" onclick="filterSkills('all', this)">
+        All (<%= @skills.size %>)
+      </button>
+      <button class="px-3 py-1 rounded-lg bg-bg-hover text-content-muted" data-filter="bundled" onclick="filterSkills('bundled', this)">
+        📦 Bundled (<%= @bundled_count %>)
+      </button>
+      <button class="px-3 py-1 rounded-lg bg-bg-hover text-content-muted" data-filter="workspace" onclick="filterSkills('workspace', this)">
+        🏠 Workspace (<%= @workspace_count %>)
+      </button>
+    </div>
+
+    <%# Skills grid %>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="skills-grid">
+      <% @skills.each do |skill| %>
+        <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/50 transition-colors skill-card"
+             data-source="<%= skill.source %>">
+          <div class="flex items-start justify-between mb-2">
+            <h3 class="text-sm font-semibold text-content"><%= skill.name %></h3>
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ml-2
+              <%= skill.source == 'workspace' ? 'bg-purple-500/10 text-purple-400' : 'bg-blue-500/10 text-blue-400' %>">
+              <%= skill.source == 'workspace' ? '🏠 workspace' : '📦 bundled' %>
+            </span>
+          </div>
+
+          <% if skill.description %>
+            <p class="text-xs text-content-muted mb-3 line-clamp-2"><%= skill.description %></p>
+          <% else %>
+            <p class="text-xs text-content-muted mb-3 italic">No description available</p>
+          <% end %>
+
+          <div class="flex items-center gap-3 text-[10px] text-content-muted">
+            <span title="Files"><%= skill.file_count %> files</span>
+            <% if skill.has_scripts %>
+              <span class="text-emerald-400" title="Has executable scripts">⚡ scripts</span>
+            <% end %>
+            <% if skill.has_config %>
+              <span class="text-yellow-400" title="Has configuration">⚙️ config</span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<script>
+  function filterSkills(source, btn) {
+    document.querySelectorAll('[data-filter]').forEach(b => {
+      b.className = b.className.replace(/bg-accent\/10 text-accent/, 'bg-bg-hover text-content-muted');
+    });
+    btn.className = btn.className.replace(/bg-bg-hover text-content-muted/, 'bg-accent/10 text-accent');
+
+    document.querySelectorAll('.skill-card').forEach(card => {
+      if (source === 'all' || card.dataset.source === source) {
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+</script>

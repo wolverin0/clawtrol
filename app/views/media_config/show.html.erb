@@ -1,0 +1,205 @@
+<% content_for :title, "Media Config - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🎤 Audio/Video Config" %>
+
+<div class="py-6 space-y-6">
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content">Audio / Video / Image Configuration</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Configure transcription, video analysis, and image processing for OpenClaw media handling.
+      </p>
+    </div>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <%= form_with url: media_config_path, method: :patch, class: "space-y-6" do |f| %>
+
+    <%# Audio Transcription %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🎤</span>
+          <div>
+            <h3 class="text-base font-semibold text-content">Audio Transcription</h3>
+            <p class="text-xs text-content-muted">Transcribe voice messages and audio files using Whisper</p>
+          </div>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="hidden" name="audio[enabled]" value="false">
+          <input type="checkbox" name="audio[enabled]" value="true"
+                 class="sr-only peer"
+                 <%= "checked" if @media_config[:audio][:enabled] %>>
+          <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-green-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Provider</label>
+          <select name="audio[provider]"
+                  class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+            <option value="openai" <%= "selected" if @media_config[:audio][:provider] == "openai" %>>OpenAI (Whisper)</option>
+            <option value="google" <%= "selected" if @media_config[:audio][:provider] == "google" %>>Google</option>
+            <option value="custom" <%= "selected" if @media_config[:audio][:provider] == "custom" %>>Custom</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Model</label>
+          <input type="text" name="audio[model]"
+                 value="<%= @media_config[:audio][:model] %>"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                 placeholder="whisper-1">
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Max File Size (MB)</label>
+          <input type="number" name="audio[maxFileSizeMb]"
+                 value="<%= @media_config[:audio][:max_file_size_mb] %>"
+                 min="1" max="100"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Language</label>
+          <select name="audio[language]"
+                  class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+            <option value="auto" <%= "selected" if @media_config[:audio][:language] == "auto" %>>Auto-detect</option>
+            <option value="en" <%= "selected" if @media_config[:audio][:language] == "en" %>>English</option>
+            <option value="es" <%= "selected" if @media_config[:audio][:language] == "es" %>>Spanish</option>
+            <option value="pt" <%= "selected" if @media_config[:audio][:language] == "pt" %>>Portuguese</option>
+            <option value="zh" <%= "selected" if @media_config[:audio][:language] == "zh" %>>Chinese</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <%# Video Analysis %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🎬</span>
+          <div>
+            <h3 class="text-base font-semibold text-content">Video Analysis</h3>
+            <p class="text-xs text-content-muted">Analyze video content with frame extraction and AI vision</p>
+          </div>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="hidden" name="video[enabled]" value="false">
+          <input type="checkbox" name="video[enabled]" value="true"
+                 class="sr-only peer"
+                 <%= "checked" if @media_config[:video][:enabled] %>>
+          <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-green-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Provider</label>
+          <select name="video[provider]"
+                  class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+            <option value="google" <%= "selected" if @media_config[:video][:provider] == "google" %>>Google (Gemini)</option>
+            <option value="openai" <%= "selected" if @media_config[:video][:provider] == "openai" %>>OpenAI</option>
+            <option value="custom" <%= "selected" if @media_config[:video][:provider] == "custom" %>>Custom</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Model</label>
+          <input type="text" name="video[model]"
+                 value="<%= @media_config[:video][:model] %>"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                 placeholder="gemini-2.0-flash">
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Max File Size (MB)</label>
+          <input type="number" name="video[maxFileSizeMb]"
+                 value="<%= @media_config[:video][:max_file_size_mb] %>"
+                 min="1" max="500"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+        </div>
+
+        <div class="flex items-center gap-2 self-end pb-2">
+          <input type="hidden" name="video[extractFrames]" value="false">
+          <input type="checkbox" name="video[extractFrames]" value="true"
+                 id="extract_frames"
+                 class="rounded border-border text-accent focus:ring-accent/40"
+                 <%= "checked" if @media_config[:video][:extract_frames] %>>
+          <label for="extract_frames" class="text-sm text-content">Extract frames for analysis</label>
+        </div>
+      </div>
+    </div>
+
+    <%# Image Processing %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🖼️</span>
+          <div>
+            <h3 class="text-base font-semibold text-content">Image Processing</h3>
+            <p class="text-xs text-content-muted">Analyze images with vision models</p>
+          </div>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="hidden" name="image[enabled]" value="false">
+          <input type="checkbox" name="image[enabled]" value="true"
+                 class="sr-only peer"
+                 <%= "checked" if @media_config[:image][:enabled] %>>
+          <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-green-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Provider</label>
+          <select name="image[provider]"
+                  class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+            <option value="openai" <%= "selected" if @media_config[:image][:provider] == "openai" %>>OpenAI</option>
+            <option value="google" <%= "selected" if @media_config[:image][:provider] == "google" %>>Google (Gemini)</option>
+            <option value="anthropic" <%= "selected" if @media_config[:image][:provider] == "anthropic" %>>Anthropic</option>
+            <option value="custom" <%= "selected" if @media_config[:image][:provider] == "custom" %>>Custom</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Model</label>
+          <input type="text" name="image[model]"
+                 value="<%= @media_config[:image][:model] %>"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                 placeholder="gpt-4o">
+        </div>
+      </div>
+    </div>
+
+    <%# Submit %>
+    <div class="flex justify-end gap-3">
+      <%= link_to "Cancel", media_config_path,
+          class: "px-4 py-2 bg-bg-base border border-border text-content rounded-lg text-sm hover:bg-accent/5 transition-colors" %>
+      <button type="submit"
+              class="px-6 py-2 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/80 transition-colors">
+        💾 Save Configuration
+      </button>
+    </div>
+  <% end %>
+
+  <%# Info box %>
+  <div class="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4">
+    <div class="flex items-start gap-3">
+      <span class="text-xl">ℹ️</span>
+      <div class="text-sm text-content-muted">
+        <p class="mb-2"><strong class="text-content">How media processing works:</strong></p>
+        <ul class="list-disc ml-4 space-y-1">
+          <li><strong>Audio:</strong> Voice messages are transcribed using Whisper API, then the text is sent to the agent.</li>
+          <li><strong>Video:</strong> Frames are extracted from video files, then analyzed by a vision model (Gemini recommended for cost).</li>
+          <li><strong>Image:</strong> Images are passed directly to the configured vision model for analysis.</li>
+        </ul>
+        <p class="mt-2">Changes require a gateway restart, which happens automatically after saving.</p>
+      </div>
+    </div>
+  </div>
+</div>

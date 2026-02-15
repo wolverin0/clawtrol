@@ -1,18 +1,24 @@
+# frozen_string_literal: true
+
 class Board < ApplicationRecord
   belongs_to :user
   has_many :tasks, dependent: :destroy
   has_many :agent_personas, dependent: :nullify
 
-  validates :name, presence: true
-  validates :position, presence: true
-
-  before_create :set_position
-
-  # Available board colors (Tailwind-compatible)
+  # Available board colors (Tailwind-compatible) — must be defined before validations
   COLORS = %w[gray red orange amber yellow lime green emerald teal cyan sky blue indigo violet purple fuchsia pink rose].freeze
 
   # Available board icons (emojis)
   DEFAULT_ICONS = %w[📋 📝 🎯 🚀 💡 🔧 📊 🎨 📚 🏠 💼 🎮 🎵 📸 ✨ 🦞 🌐].freeze
+
+  validates :name, presence: true, length: { maximum: 100 }
+  validates :name, uniqueness: { scope: :user_id, case_sensitive: false, message: "already exists" }
+  validates :position, presence: true, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
+  validates :color, inclusion: { in: COLORS }, allow_nil: true
+  validates :icon, length: { maximum: 10 }, allow_nil: true
+  validates :auto_claim_prefix, length: { maximum: 100 }, allow_nil: true
+
+  before_create :set_position
 
   # Auto-claim rate limit: 1 per minute per board
   AUTO_CLAIM_RATE_LIMIT_SECONDS = 60

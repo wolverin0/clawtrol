@@ -1,0 +1,135 @@
+<% content_for :title, "Nodes - clawdeck" %>
+<% content_for :breadcrumb_standalone, "📱 Paired Nodes" %>
+
+<div class="py-6 space-y-6"
+     data-controller="nodes-dashboard"
+     data-nodes-dashboard-url-value="<%= api_v1_gateway_nodes_status_path %>">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content">Paired Nodes</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Connected devices with camera, screen, location, and notification capabilities.
+      </p>
+    </div>
+    <button data-action="nodes-dashboard#refresh"
+            class="px-3 py-1.5 text-sm bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition-colors">
+      ↻ Refresh
+    </button>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <% if @nodes.empty? && @error.blank? %>
+    <%= render "shared/empty_state",
+      icon: "📱",
+      title: "No Nodes Paired",
+      description: "Pair an iOS, Android, macOS, or headless device with OpenClaw to see it here. Nodes support camera, screen recording, location, and notifications." %>
+  <% else %>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-nodes-dashboard-target="grid">
+      <% @nodes.each do |node| %>
+        <% node_id = node["id"] || node["name"] || "unknown" %>
+        <% is_online = node["status"]&.match?(/online|connected|active/) %>
+        <% platform = node["platform"] || node["os"] || "unknown" %>
+        <% device_name = node["name"] || node["deviceName"] || node_id %>
+        <% last_seen = node["lastSeen"] || node["lastHeartbeat"] %>
+
+        <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/50 transition-colors">
+          <%# Header %>
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2 min-w-0">
+              <%
+                platform_icon = case platform.to_s.downcase
+                when /ios|iphone|ipad/ then "🍎"
+                when /android/ then "🤖"
+                when /mac|darwin/ then "💻"
+                when /linux/ then "🐧"
+                when /windows/ then "🪟"
+                else "📱"
+                end
+              %>
+              <span class="text-lg"><%= platform_icon %></span>
+              <span class="text-sm font-semibold text-content truncate"><%= device_name %></span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full <%= is_online ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500' %>"></div>
+              <span class="text-xs <%= is_online ? 'text-emerald-400' : 'text-content-muted' %>">
+                <%= is_online ? "Online" : "Offline" %>
+              </span>
+            </div>
+          </div>
+
+          <%# Details %>
+          <div class="space-y-1.5 text-xs text-content-muted mb-3">
+            <div class="flex justify-between">
+              <span>Platform</span>
+              <span class="text-content"><%= platform %></span>
+            </div>
+            <% if node["version"] %>
+              <div class="flex justify-between">
+                <span>Version</span>
+                <span class="text-content"><%= node["version"] %></span>
+              </div>
+            <% end %>
+            <% if last_seen %>
+              <div class="flex justify-between">
+                <span>Last seen</span>
+                <span class="text-content"><%= last_seen.is_a?(String) ? last_seen : time_ago_in_words(Time.parse(last_seen.to_s)) + " ago" rescue last_seen %></span>
+              </div>
+            <% end %>
+          </div>
+
+          <%# Capabilities badges %>
+          <% capabilities = Array(node["capabilities"] || []) %>
+          <% if capabilities.any? %>
+            <div class="flex flex-wrap gap-1 mb-3">
+              <% capabilities.each do |cap| %>
+                <%
+                  cap_icon = case cap.to_s.downcase
+                  when /camera/ then "📷"
+                  when /screen/ then "🖥️"
+                  when /location/ then "📍"
+                  when /notify|notification/ then "🔔"
+                  when /sms/ then "💬"
+                  when /canvas/ then "🎨"
+                  else "⚡"
+                  end
+                %>
+                <span class="px-1.5 py-0.5 text-[10px] bg-accent/10 text-accent rounded-full">
+                  <%= cap_icon %> <%= cap %>
+                </span>
+              <% end %>
+            </div>
+          <% end %>
+
+          <%# Quick Actions %>
+          <% if is_online %>
+            <div class="flex gap-2 pt-2 border-t border-border">
+              <button class="flex-1 px-2 py-1 text-xs bg-bg-hover text-content rounded hover:bg-accent/10 hover:text-accent transition-colors"
+                      data-action="nodes-dashboard#notify"
+                      data-node-id="<%= node_id %>"
+                      title="Send notification">
+                🔔 Notify
+              </button>
+              <button class="flex-1 px-2 py-1 text-xs bg-bg-hover text-content rounded hover:bg-accent/10 hover:text-accent transition-colors"
+                      data-action="nodes-dashboard#cameraSnap"
+                      data-node-id="<%= node_id %>"
+                      title="Take camera snapshot">
+                📷 Snap
+              </button>
+              <button class="flex-1 px-2 py-1 text-xs bg-bg-hover text-content rounded hover:bg-accent/10 hover:text-accent transition-colors"
+                      data-action="nodes-dashboard#locate"
+                      data-node-id="<%= node_id %>"
+                      title="Get location">
+                📍 Locate
+              </button>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

@@ -1,126 +1,112 @@
-require "json"
-require "time"
-
-require "timeout"
+# frozen_string_literal: true
 
 class AnalyticsController < ApplicationController
   before_action :require_authentication
 
   # Cost Analytics (OpenClaw sessions JSONL)
   def show
-    @period = params[:period].presence || "7d"
-
-    @start_time = case @period
-    when "24h" then 24.hours.ago
-    when "7d" then 7.days.ago
-    when "30d" then 30.days.ago
-    when "all" then 10.years.ago
-    else 7.days.ago
-    end
+    @tab = %w[overview budget].include?(params[:tab]) ? params[:tab] : "overview"
+    load_budget_data if @tab == "budget"
+    @period = normalize_period(params[:period])
 
     data = Rails.cache.fetch(analytics_cache_key(@period), expires_in: cache_ttl) do
-      parse_openclaw_usage(@start_time)
+      SessionCostAnalytics.call(period: @period)
     end
 
-    @generated_at = data[:generated_at]
+    @generated_at = Time.parse(data[:generatedAt]) rescue Time.current
+    @start_time = data[:rangeStart].present? ? (Time.parse(data[:rangeStart]) rescue nil) : nil
+    @start_time ||= case @period
+                    when "24h" then 24.hours.ago
+                    when "7d"  then 7.days.ago
+                    when "30d" then 30.days.ago
+                    else            @generated_at - 1.year
+                    end
 
-    @total_cost = data[:total_cost]
-    @total_input = data[:total_input]
-    @total_output = data[:total_output]
-    @total_cache_read = data[:total_cache_read]
-    @total_cache_write = data[:total_cache_write]
-    @total_tokens = data[:total_tokens]
+    @total_cost        = data.dig(:stats, :totalCost) || 0.0
+    @total_input       = data.dig(:tokens, :input) || 0
+    @total_output      = data.dig(:tokens, :output) || 0
+    @total_cache_read  = data.dig(:tokens, :cacheRead) || 0
+    @total_cache_write = data.dig(:tokens, :cacheWrite) || 0
+    @total_tokens      = data.dig(:stats, :totalTokens) || 0
 
-    @cost_by_model = data[:cost_by_model]
+    @cost_by_model = (data[:costByModel] || []).each_with_object({}) do |entry, h|
+      h[entry[:model]] = entry[:cost]
+    end
     @max_model_cost = @cost_by_model.values.max || 0.0
 
-    @daily_cost = data[:daily_cost]
+    @daily_cost = (data[:costOverTime] || []).each_with_object({}) do |entry, h|
+      h[Date.parse(entry[:date])] = entry[:cost]
+    end
     @max_daily_cost = @daily_cost.values.max || 0.0
 
-    @top_sessions = data[:top_sessions]
+    @top_sessions = (data[:topSessions] || []).map do |entry|
+      { sessionId: entry[:session], cost: entry[:cost] }
+    end
+
+    # Projected monthly cost based on daily average
+    @api_calls = data.dig(:stats, :apiCalls) || 0
+    @cache_hit_rate = ((data.dig(:stats, :cacheHitRate) || 0) * 100).round(1)
+    if @daily_cost.any? && @period.in?(%w[7d 30d])
+      days = @daily_cost.size.to_f
+      daily_avg = @total_cost / days
+      @projected_monthly = (daily_avg * 30).round(4)
+    end
+  end
+
+  # Budget & Trends tab data
+  def budget
+    @period = normalize_period(params[:period])
+    load_budget_data
+
+    respond_to do |format|
+      format.html { render :budget }
+      format.json { render json: @budget_data }
+    end
+  end
+
+  # Update budget limit for a period
+  def update_budget
+    period = %w[daily weekly monthly].include?(params[:budget_period]) ? params[:budget_period] : "daily"
+    limit = params[:budget_limit].to_f
+
+    if limit <= 0
+      redirect_to analytics_path(tab: "budget"), alert: "Budget must be positive"
+      return
+    end
+
+    # Update or create today's snapshot with the new budget limit
+    snapshot = CostSnapshot.find_or_initialize_by(
+      user: Current.user,
+      period: period,
+      snapshot_date: Date.current
+    )
+    snapshot.budget_limit = limit
+    snapshot.total_cost ||= 0
+    snapshot.total_input_tokens ||= 0
+    snapshot.total_output_tokens ||= 0
+    snapshot.api_calls ||= 0
+
+    if snapshot.save
+      redirect_to analytics_path(tab: "budget"), notice: "#{period.capitalize} budget set to $#{format('%.2f', limit)}"
+    else
+      redirect_to analytics_path(tab: "budget"), alert: snapshot.errors.full_messages.join(", ")
+    end
+  end
+
+  # Trigger manual snapshot capture
+  def capture_snapshot
+    CostSnapshotService.capture_daily(Current.user, date: Date.yesterday)
+    redirect_to analytics_path(tab: "budget"), notice: "Daily snapshot captured for yesterday"
+  rescue StandardError => e
+    redirect_to analytics_path(tab: "budget"), alert: "Capture failed: #{e.message}"
   end
 
   private
 
-  def sessions_dir
-    File.expand_path(ENV["OPENCLAW_SESSIONS_DIR"].presence || "~/.openclaw/agents/main/sessions")
-  end
+  VALID_PERIODS = %w[24h 7d 30d all].freeze
 
-  def parse_openclaw_usage(start_time)
-    total_cost = 0.0
-    totals = {
-      input: 0,
-      output: 0,
-      cacheRead: 0,
-      cacheWrite: 0,
-      totalTokens: 0
-    }
-
-    cost_by_model = Hash.new(0.0)
-    daily_cost = Hash.new(0.0)
-    session_costs = Hash.new(0.0)
-
-    Dir.glob(File.join(sessions_dir, "*.jsonl")).each do |path|
-      next if path.include?(".deleted")
-
-      session_id = File.basename(path).sub(/\.jsonl\z/, "")
-
-      File.foreach(path) do |line|
-        obj = JSON.parse(line) rescue nil
-        next unless obj.is_a?(Hash)
-
-        msg = obj["message"].is_a?(Hash) ? obj["message"] : obj
-        usage = msg["usage"] || obj["usage"]
-        next unless usage.is_a?(Hash)
-
-        ts = (obj["timestamp"] || msg["timestamp"]).to_s
-        t = begin
-          Time.iso8601(ts)
-        rescue StandardError
-          nil
-        end
-        next unless t
-        next if t < start_time
-
-        model = msg["model"].to_s.presence || "unknown"
-
-        totals[:input] += usage["input"].to_i
-        totals[:output] += usage["output"].to_i
-        totals[:cacheRead] += usage["cacheRead"].to_i
-        totals[:cacheWrite] += usage["cacheWrite"].to_i
-        totals[:totalTokens] += usage["totalTokens"].to_i
-
-        cost = usage.dig("cost", "total").to_f
-        total_cost += cost
-        cost_by_model[model] += cost
-        daily_cost[t.to_date] += cost
-        session_costs[session_id] += cost
-      end
-    rescue Errno::ENOENT
-      next
-    rescue StandardError => e
-      Rails.logger.debug("analytics: failed to parse #{path}: #{e.class}: #{e.message}")
-      next
-    end
-
-    (start_time.to_date..Date.current).each { |d| daily_cost[d] ||= 0.0 }
-
-    top_sessions = session_costs.sort_by { |_, c| -c }.first(12).map do |session_id, cost|
-      { sessionId: session_id, cost: cost }
-    end
-
-    {
-      generated_at: Time.current,
-      total_cost: total_cost,
-      total_input: totals[:input],
-      total_output: totals[:output],
-      total_cache_read: totals[:cacheRead],
-      total_cache_write: totals[:cacheWrite],
-      total_tokens: totals[:totalTokens],
-      cost_by_model: cost_by_model.sort_by { |_, c| -c }.to_h,
-      daily_cost: daily_cost.sort.to_h,
-      top_sessions: top_sessions
-    }
+  def normalize_period(value)
+    VALID_PERIODS.include?(value) ? value : "7d"
   end
 
   def cache_ttl
@@ -130,6 +116,49 @@ class AnalyticsController < ApplicationController
   end
 
   def analytics_cache_key(period)
-    "analytics/openclaw_cost/v1/period=#{period}"
+    "analytics/openclaw_cost/v2/period=#{period}"
+  end
+
+  def load_budget_data
+    user = Current.user
+    return unless user
+
+    @daily_snapshots = CostSnapshot.for_user(user).daily.recent(30).order(:snapshot_date)
+    @weekly_snapshots = CostSnapshot.for_user(user).weekly.recent(12).order(:snapshot_date)
+    @monthly_snapshots = CostSnapshot.for_user(user).monthly.recent(12).order(:snapshot_date)
+
+    @daily_summary = CostSnapshot.summary(user: user, period: "daily", days: 30)
+    @weekly_summary = CostSnapshot.summary(user: user, period: "weekly", days: 90)
+    @monthly_summary = CostSnapshot.summary(user: user, period: "monthly", days: 365)
+
+    # Current budget from most recent snapshot
+    @current_daily_budget = CostSnapshot.for_user(user).daily.where.not(budget_limit: nil).order(snapshot_date: :desc).first&.budget_limit
+    @current_weekly_budget = CostSnapshot.for_user(user).weekly.where.not(budget_limit: nil).order(snapshot_date: :desc).first&.budget_limit
+    @current_monthly_budget = CostSnapshot.for_user(user).monthly.where.not(budget_limit: nil).order(snapshot_date: :desc).first&.budget_limit
+
+    # Budget alerts
+    @budget_alerts = CostSnapshot.for_user(user).over_budget.recent(10).order(snapshot_date: :desc)
+
+    # Cost by task (from TokenUsage, last 30 days)
+    @cost_by_task = TokenUsage
+      .for_user(user)
+      .where("token_usages.created_at >= ?", 30.days.ago)
+      .joins(:task)
+      .group("tasks.id", "tasks.name")
+      .select("tasks.id as task_id", "tasks.name as task_name", "SUM(token_usages.cost) as total_cost", "COUNT(*) as usage_count")
+      .order("total_cost DESC")
+      .limit(20)
+
+    @budget_data = {
+      daily: format_summary(@daily_summary, @current_daily_budget),
+      weekly: format_summary(@weekly_summary, @current_weekly_budget),
+      monthly: format_summary(@monthly_summary, @current_monthly_budget),
+      alerts_count: @budget_alerts.count
+    }
+  end
+
+  def format_summary(summary, budget)
+    return { empty: true } if summary.blank?
+    summary.merge(budget: budget)
   end
 end

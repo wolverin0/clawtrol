@@ -1,0 +1,138 @@
+<% content_for :title, "Channel Accounts - clawdeck" %>
+<% content_for :breadcrumb_standalone, "📡 Channel Accounts" %>
+
+<div class="py-6 space-y-6"
+     data-controller="channel-accounts">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content">Multi-Account Channel Manager</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Manage accounts across channels — DM policies, read receipts, agent bindings, and allowlists.
+      </p>
+    </div>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <% if @channels.empty? && @error.blank? %>
+    <%= render "shared/empty_state",
+      icon: "📡",
+      title: "No Channel Accounts Found",
+      description: "Configure channels in your OpenClaw config (telegram, whatsapp, discord, etc.) to manage them here." %>
+  <% else %>
+    <%# Summary cards %>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <% channel_groups = @channels.group_by { |c| c[:channel] } %>
+      <% channel_groups.each do |channel, accounts| %>
+        <div class="bg-bg-elevated border border-border rounded-xl p-3 text-center">
+          <div class="text-2xl mb-1"><%= accounts.first[:icon] %></div>
+          <div class="text-sm font-medium text-content capitalize"><%= channel %></div>
+          <div class="text-xs text-content-muted"><%= accounts.size %> account<%= accounts.size == 1 ? "" : "s" %></div>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Account cards %>
+    <div class="space-y-4">
+      <% @channels.each do |account| %>
+        <div class="bg-bg-elevated border border-border rounded-xl overflow-hidden">
+          <%# Account header %>
+          <div class="flex items-center justify-between px-5 py-3 border-b border-border bg-bg-base/50 cursor-pointer"
+               data-action="click->channel-accounts#toggleCard"
+               data-account-id="<%= account[:channel] %>-<%= account[:id] %>">
+            <div class="flex items-center gap-3">
+              <span class="text-xl"><%= account[:icon] %></span>
+              <div>
+                <div class="text-sm font-medium text-content">
+                  <%= ERB::Util.html_escape(account[:name]) %>
+                  <span class="text-xs text-content-muted ml-1">(<%= account[:channel] %>/<%= account[:id] %>)</span>
+                </div>
+                <div class="flex items-center gap-3 text-xs text-content-muted mt-0.5">
+                  <span>DM: <span class="font-medium text-content"><%= account[:dm_policy] %></span></span>
+                  <span>Receipts: <span class="font-medium <%= account[:send_read_receipts] ? 'text-green-400' : 'text-red-400' %>">
+                    <%= account[:send_read_receipts] ? "On" : "Off" %>
+                  </span></span>
+                  <% if account[:agent_binding].present? %>
+                    <span>Agent: <span class="font-medium text-accent"><%= ERB::Util.html_escape(account[:agent_binding]) %></span></span>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+            <span class="text-content-muted text-xs" data-channel-accounts-target="arrow">▼</span>
+          </div>
+
+          <%# Expandable config form %>
+          <div class="hidden px-5 py-4" id="card-<%= account[:channel] %>-<%= account[:id] %>">
+            <%= form_with url: channel_accounts_path, method: :patch, class: "space-y-4" do |f| %>
+              <input type="hidden" name="channel" value="<%= account[:channel] %>">
+              <input type="hidden" name="account_id" value="<%= account[:id] %>">
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-content-muted mb-1">DM Policy</label>
+                  <select name="dm_policy"
+                          class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+                    <% %w[open pairing allowlist disabled].each do |policy| %>
+                      <option value="<%= policy %>" <%= "selected" if account[:dm_policy] == policy %>>
+                        <%= policy.capitalize %> — <%= dm_policy_description(policy) %>
+                      </option>
+                    <% end %>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-sm text-content-muted mb-1">Agent Binding</label>
+                  <input type="text" name="agent_binding"
+                         value="<%= account[:agent_binding] %>"
+                         class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                         placeholder="default (routes to main agent)">
+                </div>
+
+                <div>
+                  <label class="block text-sm text-content-muted mb-1">Allow From (comma-separated IDs)</label>
+                  <input type="text" name="allow_from"
+                         value="<%= Array(account[:allow_from]).join(', ') %>"
+                         class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                         placeholder="user_id_1, user_id_2">
+                </div>
+
+                <div class="flex items-center gap-2 self-end pb-2">
+                  <input type="hidden" name="send_read_receipts" value="false">
+                  <input type="checkbox" name="send_read_receipts" value="true"
+                         id="receipts-<%= account[:channel] %>-<%= account[:id] %>"
+                         class="rounded border-border text-accent focus:ring-accent/40"
+                         <%= "checked" if account[:send_read_receipts] %>>
+                  <label for="receipts-<%= account[:channel] %>-<%= account[:id] %>" class="text-sm text-content">
+                    Send read receipts
+                  </label>
+                </div>
+              </div>
+
+              <div class="flex justify-end">
+                <button type="submit"
+                        class="px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/80 transition-colors">
+                  💾 Save Account
+                </button>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# DM Policy legend %>
+  <div class="bg-bg-elevated border border-border rounded-xl p-4">
+    <h3 class="text-sm font-semibold text-content mb-3">📖 DM Policy Reference</h3>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-content-muted">
+      <div><span class="font-medium text-content">Open:</span> Anyone can DM the bot</div>
+      <div><span class="font-medium text-content">Pairing:</span> Requires pairing code to start</div>
+      <div><span class="font-medium text-content">Allowlist:</span> Only IDs in allowFrom can DM</div>
+      <div><span class="font-medium text-content">Disabled:</span> No DMs accepted</div>
+    </div>
+  </div>
+</div>

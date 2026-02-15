@@ -19,6 +19,147 @@
 
   <div data-cronjobs-target="error" class="hidden bg-red-500/10 border border-red-500/20 text-red-200 rounded-lg p-4 text-sm"></div>
 
+  <%# Create Job Panel %>
+  <div data-controller="cron-builder" class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <details>
+      <summary class="px-4 py-3 bg-bg-elevated border-b border-border cursor-pointer list-none flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">➕</span>
+          <span class="text-sm font-semibold text-content">Create New Cron Job</span>
+        </div>
+        <span class="text-xs text-content-muted">Visual Builder</span>
+      </summary>
+      <div class="p-4 space-y-4">
+        <%# Job Name %>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Job Name</label>
+          <input type="text" data-cron-builder-target="name"
+                 placeholder="e.g., Daily Backup Check"
+                 class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+        </div>
+
+        <%# Schedule Type %>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Schedule Type</label>
+            <select data-cron-builder-target="scheduleType" data-action="change->cron-builder#updateScheduleUI"
+                    class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <option value="cron">Cron Expression</option>
+              <option value="every">Interval (every N minutes/hours)</option>
+              <option value="at">One-shot (at specific time)</option>
+            </select>
+          </div>
+
+          <%# Cron Expression Builder %>
+          <div data-cron-builder-target="cronFields">
+            <label class="block text-xs font-medium text-content-muted mb-1">Cron Expression</label>
+            <div class="flex gap-1">
+              <input type="text" data-cron-builder-target="cronMinute" value="0" placeholder="min" title="Minute (0-59)"
+                     data-action="input->cron-builder#updateCronPreview"
+                     class="w-12 text-xs text-center text-content font-mono bg-bg-base rounded px-1 py-1.5 border border-border focus:border-accent focus:outline-none" />
+              <input type="text" data-cron-builder-target="cronHour" value="*" placeholder="hr" title="Hour (0-23)"
+                     data-action="input->cron-builder#updateCronPreview"
+                     class="w-12 text-xs text-center text-content font-mono bg-bg-base rounded px-1 py-1.5 border border-border focus:border-accent focus:outline-none" />
+              <input type="text" data-cron-builder-target="cronDom" value="*" placeholder="dom" title="Day of Month (1-31)"
+                     data-action="input->cron-builder#updateCronPreview"
+                     class="w-12 text-xs text-center text-content font-mono bg-bg-base rounded px-1 py-1.5 border border-border focus:border-accent focus:outline-none" />
+              <input type="text" data-cron-builder-target="cronMonth" value="*" placeholder="mon" title="Month (1-12)"
+                     data-action="input->cron-builder#updateCronPreview"
+                     class="w-12 text-xs text-center text-content font-mono bg-bg-base rounded px-1 py-1.5 border border-border focus:border-accent focus:outline-none" />
+              <input type="text" data-cron-builder-target="cronDow" value="*" placeholder="dow" title="Day of Week (0-6, Sun=0)"
+                     data-action="input->cron-builder#updateCronPreview"
+                     class="w-12 text-xs text-center text-content font-mono bg-bg-base rounded px-1 py-1.5 border border-border focus:border-accent focus:outline-none" />
+            </div>
+            <div class="mt-1 text-xs text-content-muted">
+              Preview: <code data-cron-builder-target="cronPreview" class="font-mono text-accent">0 * * * *</code>
+            </div>
+          </div>
+
+          <%# Interval Fields %>
+          <div data-cron-builder-target="intervalFields" class="hidden">
+            <label class="block text-xs font-medium text-content-muted mb-1">Every</label>
+            <div class="flex gap-2 items-center">
+              <input type="number" data-cron-builder-target="intervalValue" value="60" min="1"
+                     class="w-20 text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+              <select data-cron-builder-target="intervalUnit"
+                      class="text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+                <option value="minutes">minutes</option>
+                <option value="hours">hours</option>
+              </select>
+            </div>
+          </div>
+
+          <%# One-shot Fields %>
+          <div data-cron-builder-target="atFields" class="hidden">
+            <label class="block text-xs font-medium text-content-muted mb-1">Run At (ISO-8601)</label>
+            <input type="datetime-local" data-cron-builder-target="atTime"
+                   class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+          </div>
+        </div>
+
+        <%# Payload %>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Session Target</label>
+            <select data-cron-builder-target="sessionTarget"
+                    data-action="change->cron-builder#updatePayloadUI"
+                    class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <option value="isolated">Isolated (agentTurn)</option>
+              <option value="main">Main (systemEvent)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Model (isolated only)</label>
+            <input type="text" data-cron-builder-target="model" placeholder="default"
+                   class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Message / Prompt</label>
+          <textarea data-cron-builder-target="message" rows="3"
+                    placeholder="What should the agent do or what system event text..."
+                    class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none resize-y"></textarea>
+        </div>
+
+        <%# Delivery Config %>
+        <div data-cron-builder-target="deliverySection">
+          <label class="block text-xs font-medium text-content-muted mb-1">Delivery</label>
+          <div class="flex gap-3">
+            <select data-cron-builder-target="deliveryMode"
+                    class="text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <option value="announce">Announce</option>
+              <option value="none">None (silent)</option>
+            </select>
+            <input type="text" data-cron-builder-target="deliveryChannel" placeholder="channel (optional)"
+                   class="flex-1 text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+          </div>
+        </div>
+
+        <%# JSON Preview %>
+        <details class="text-xs">
+          <summary class="text-content-muted cursor-pointer hover:text-content">📋 Preview JSON</summary>
+          <pre data-cron-builder-target="jsonPreview"
+               class="mt-2 bg-bg-base rounded px-3 py-2 border border-border text-content font-mono overflow-x-auto max-h-40">{}</pre>
+        </details>
+
+        <%# Actions %>
+        <div class="flex justify-end gap-2">
+          <button type="button" data-action="click->cron-builder#preview"
+                  class="px-3 py-1.5 text-xs font-medium text-content-secondary border border-border rounded-md hover:bg-bg-elevated transition-colors">
+            Preview
+          </button>
+          <button type="button" data-action="click->cron-builder#create"
+                  class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+            Create Job
+          </button>
+        </div>
+
+        <div data-cron-builder-target="status" class="hidden text-xs px-2 py-1 rounded"></div>
+      </div>
+    </details>
+  </div>
+
   <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
     <div class="lg:col-span-3 space-y-4">
       <h2 class="text-sm font-semibold text-muted uppercase tracking-wider flex items-center gap-2">

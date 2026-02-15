@@ -39,6 +39,7 @@ module Api
         end
 
         updates = {
+          # Description gets updated after we determine session_id and (optionally) persist transcript
           status: "in_review",
           assigned_to_agent: true,
           assigned_at: task.assigned_at || Time.current
@@ -104,8 +105,9 @@ module Api
         # Record agent output as an inter-agent message for chat history
         record_agent_output_message(task, findings, effective_session_id)
 
-        # Pipeline advancement: if pipeline-enabled, advance through stages
-        pipeline_advanced = advance_pipeline(task)
+        # Pipeline phase handoff: if the task is in a pipeline, advance to next stage.
+        # The router updates the model recommendation for the next stage.
+        pipeline_advanced = advance_pipeline_stage(task)
 
         render json: {
           success: true,
@@ -140,9 +142,6 @@ module Api
         result = TaskOutcomeService.call(task, payload)
 
         if result.success?
-          # Pipeline advancement after outcome processing
-          advance_pipeline(task)
-
           render json: {
             success: true,
             idempotent: result.idempotent?,
@@ -174,14 +173,37 @@ module Api
 
         return { activity_markdown: activity_lines.join("\n"), output_files: [] } if session_id.blank?
 
+        # SECURITY: Sanitize session_id to prevent path traversal.
+        # Session IDs are alphanumeric with hyphens/underscores only.
+        sanitized_sid = session_id.to_s.gsub(/[^a-zA-Z0-9\-_]/, "")
+        if sanitized_sid.blank? || sanitized_sid != session_id.to_s
+          Rails.logger.warn("[HooksController] Rejected suspicious session_id: #{session_id.inspect}")
+          activity_lines << "Transcript: (invalid session_id)"
+          return { activity_markdown: activity_lines.join("\n"), output_files: [] }
+        end
+
         # Locate transcript file (current or archived)
-        transcript_path = File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl")
-        unless File.exist?(transcript_path)
-          archived = Dir.glob(File.expand_path("~/.openclaw/agents/main/sessions/#{session_id}.jsonl.deleted.*")).first
-          transcript_path = archived if archived
+        sessions_dir = File.expand_path("~/.openclaw/agents/main/sessions")
+        transcript_path = File.join(sessions_dir, "#{sanitized_sid}.jsonl")
+
+        # SECURITY: Verify resolved path is within the expected directory
+        path_safe = begin
+          File.realpath(transcript_path).start_with?(File.realpath(sessions_dir) + "/")
+        rescue Errno::ENOENT
+          false
+        end
+        unless path_safe
+          Rails.logger.warn("[HooksController] Path escape attempt with session_id: #{session_id.inspect}")
+          activity_lines << "Transcript: (file not found on server)"
+          return { activity_markdown: activity_lines.join("\n"), output_files: [] }
         end
 
         unless File.exist?(transcript_path)
+          archived = Dir.glob(File.join(sessions_dir, "#{sanitized_sid}.jsonl.deleted.*")).first
+          transcript_path = archived if archived
+        end
+
+        unless transcript_path && File.exist?(transcript_path)
           activity_lines << "Transcript: (file not found on server)"
           return { activity_markdown: activity_lines.join("\n"), output_files: [] }
         end
@@ -191,7 +213,7 @@ module Api
         abs_dir = Rails.root.join(rel_dir)
         FileUtils.mkdir_p(abs_dir)
 
-        rel_copy_path = File.join(rel_dir, "task-#{task.id}-session-#{session_id}.jsonl")
+        rel_copy_path = File.join(rel_dir, "task-#{task.id}-session-#{sanitized_sid}.jsonl")
         abs_copy_path = Rails.root.join(rel_copy_path)
         FileUtils.cp(transcript_path, abs_copy_path)
 
@@ -222,18 +244,22 @@ module Api
       def detect_and_record_rate_limits(task, findings)
         return if findings.blank?
 
+        # Common rate limit patterns from various providers
         rate_limit_patterns = [
-          /usage\s+limit.*?\((\w+)\s+plan\)/i,
-          /rate\s+limit.*?model[:\s]+(\w+)/i,
-          /hit\s+.*?limit/i
+          /usage\s+limit.*?\((\w+)\s+plan\)/i,          # "usage limit (plus plan)"
+          /rate\s+limit.*?model[:\s]+(\w+)/i,            # "rate limit... model: codex"
+          /hit\s+.*?limit/i                              # "hit your ... limit"
         ]
 
         is_rate_limit = rate_limit_patterns.any? { |p| findings.match?(p) }
         return unless is_rate_limit
 
+        # Try to determine which model hit the limit
         model_name = task.model.presence || detect_model_from_text(findings)
         return unless model_name.present? && Task::MODELS.include?(model_name)
 
+        # Find the user who owns this task to register the limit
+        # BUG FIX: never fall back to User.first — that would attribute limits to wrong user
         user = task.user
         return unless user
 
@@ -243,73 +269,42 @@ module Api
         Rails.logger.warn("[HooksController] Failed to auto-record rate limit: #{e.message}")
       end
 
-      # Pipeline advancement: process pipeline stages if task has pipeline enabled
-      def advance_pipeline(task)
-        return false unless task.pipeline_enabled?
-        return false unless task.pipeline_stage.present?
+      # Pipeline phase handoff: advance task to the next pipeline stage after
+      # agent_complete fires. If the pipeline has a next phase, auto-advance
+      # and update the model recommendation. Returns true if advanced.
+      # Reloads the task after attempt to ensure response reflects persisted state.
+      def advance_pipeline_stage(task)
+        return false if task.pipeline_unstarted? || task.pipeline_pipeline_done?
 
-        # If task is in executing stage, the outcome determines next action
-        if task.pipeline_stage == "executing"
-          recommended = params[:recommended_action].to_s
-
-          case recommended
-          when "complete", "archive"
-            task.advance_pipeline_stage!("completed", action: recommended)
-          when "requeue_same_task"
-            retry_count = task.pipeline_log.to_a.count { |e| e["stage"] == "context_ready" && e["retry"] }
-            if retry_count < 3
-              task.advance_pipeline_stage!("context_ready", retry: true, retry_count: retry_count + 1)
-              PipelineProcessorJob.perform_later(task.id)
-            else
-              task.advance_pipeline_stage!("failed", reason: "max_retries_exceeded")
-            end
-          when "escalate"
-            escalate_model_tier!(task)
-            PipelineProcessorJob.perform_later(task.id)
-          else
-            task.advance_pipeline_stage!("completed", action: recommended.presence || "default_complete")
-          end
-          true
-        else
-          false
-        end
+        router = ClawRouterService.new(task)
+        result = router.advance!
+        task.reload unless result # Ensure in-memory state matches DB on failure
+        result
       rescue StandardError => e
         Rails.logger.warn("[HooksController] Pipeline advance failed for task ##{task.id}: #{e.message}")
+        task.reload rescue nil
         false
       end
 
-      # Escalate to next model tier when current model hits limits
-      def escalate_model_tier!(task)
-        config = Pipeline::TriageService.config
-        tiers = config[:model_tiers] || {}
-
-        current_model = task.routed_model || task.model
-        current_tier = tiers.find { |_name, cfg| Array(cfg[:models]).include?(current_model) }
-
-        if current_tier
-          tier_name, tier_cfg = current_tier
-          fallback = tier_cfg[:fallback]&.to_s
-          if fallback.present? && fallback != "null" && tiers[fallback.to_sym]
-            new_model = Array(tiers[fallback.to_sym][:models]).first
-            if new_model
-              task.update_columns(routed_model: new_model)
-              task.advance_pipeline_stage!("context_ready", escalated_from: current_model, escalated_to: new_model)
-              return
-            end
-          end
-        end
-
-        task.advance_pipeline_stage!("failed", reason: "no_escalation_available", current_model: current_model)
+      # Try to extract model name from error text
+      def detect_model_from_text(text)
+        return "codex" if text =~ /codex|chatgpt|gpt-5/i
+        return "opus" if text =~ /opus|claude/i
+        return "gemini" if text =~ /gemini/i
+        return "glm" if text =~ /glm|zhipu|z\.ai/i
+        return "sonnet" if text =~ /sonnet/i
+        nil
       end
 
-      # Record agent output as an AgentMessage for inter-agent chat history
+      # Record agent output as an AgentMessage for inter-agent chat history.
+      # If the task has a parent_task or source_task, also record a handoff message.
       def record_agent_output_message(task, findings, session_id)
         return if findings.blank?
-        return unless defined?(AgentMessage)
 
         model = task.model.presence || params[:model].presence
         agent_name = task.agent_persona&.name
 
+        # Record the output on this task
         AgentMessage.record_output!(
           task: task,
           content: findings,
@@ -338,15 +333,6 @@ module Api
         Rails.logger.warn("[HooksController] Failed to record agent message for task ##{task.id}: #{e.message}")
       end
 
-      def detect_model_from_text(text)
-        return "codex" if text =~ /codex|chatgpt|gpt-5/i
-        return "opus" if text =~ /opus|claude/i
-        return "gemini" if text =~ /gemini/i
-        return "glm" if text =~ /glm|zhipu|z\.ai/i
-        return "sonnet" if text =~ /sonnet/i
-        nil
-      end
-
       def updated_description(current_description, findings, activity_markdown)
         activity_marker = "## Agent Activity"
         output_marker = "## Agent Output"
@@ -356,6 +342,7 @@ module Api
         top_block = "#{activity_marker}\n\n#{activity_markdown}\n\n#{output_marker}\n\n#{findings}"
 
         if current_description.start_with?(activity_marker) || current_description.start_with?(output_marker)
+          # Replace existing top agent sections, preserving remaining description.
           if current_description.include?("\n\n---\n\n")
             _old_top, rest = current_description.split("\n\n---\n\n", 2)
             return "#{top_block}\n\n---\n\n#{rest}"

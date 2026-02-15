@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Boards::TasksController < ApplicationController
   include MarkdownSanitizationHelper
   include OutputRenderable
@@ -30,7 +32,7 @@ class Boards::TasksController < ApplicationController
     if params.dig(:task, :template_slug).present?
       template = TaskTemplate.find_for_user(params[:task][:template_slug], current_user)
       if template
-        task_name = @task.name || @task.title || ""
+        task_name = @task.name.to_s
         template_attrs = template.to_task_attributes(task_name)
         @task.assign_attributes(template_attrs.except(:name)) # Don't override name, it's already set
         @task.name = template_attrs[:name] if task_name.present? # Apply icon prefix
@@ -399,123 +401,53 @@ class Boards::TasksController < ApplicationController
       value = body["value"] || value
     end
 
-    tasks = @board.tasks.where(id: task_ids)
+    result = BulkTaskService.new(
+      board: @board,
+      task_ids: task_ids,
+      action_type: bulk_action,
+      value: value
+    ).call
 
-    if tasks.empty?
+    unless result.success
       respond_to do |format|
         format.turbo_stream { head :unprocessable_entity }
-        format.html { redirect_to board_path(@board), alert: "No tasks found." }
-        format.json { render json: { error: "No tasks found" }, status: :unprocessable_entity }
+        format.html { redirect_to board_path(@board), alert: result.error }
+        format.json { render json: { error: result.error }, status: :unprocessable_entity }
       end
       return
     end
 
-    streams = []
-    affected_statuses = tasks.pluck(:status).uniq
-
-    case bulk_action
-    when "move_status"
-      auto_sorted_statuses = %w[in_review done]
-      tasks.each do |task|
-        task.activity_source = "web"
-        task.update!(status: value)
-        streams << turbo_stream.remove("task_#{task.id}")
-
-        unless auto_sorted_statuses.include?(value.to_s)
-          streams << turbo_stream.prepend("column-#{value}", partial: "boards/task_card", locals: { task: task.reload })
-        end
-      end
-      affected_statuses << value
-
-    when "change_model"
-      tasks.update_all(model: value)
-      tasks.each do |task|
-        streams << turbo_stream.replace("task_#{task.id}", partial: "boards/task_card", locals: { task: task.reload })
-      end
-
-    when "archive"
-      tasks.each do |task|
-        task.activity_source = "web"
-        task.update!(status: :archived)
-        streams << turbo_stream.remove("task_#{task.id}")
-      end
-
-    when "delete"
-      tasks.each do |task|
-        task.activity_source = "web"
-        task.destroy
-        streams << turbo_stream.remove("task_#{task.id}")
-      end
-
-    else
-      respond_to do |format|
-        format.turbo_stream { head :unprocessable_entity }
-        format.html { redirect_to board_path(@board), alert: "Unknown action." }
-        format.json { render json: { error: "Unknown action" }, status: :unprocessable_entity }
-      end
-      return
-    end
-
-    # Keep deterministic order in auto-sorted columns after bulk operations
-    affected_statuses.uniq.each do |status|
-      next unless %w[in_review done].include?(status.to_s)
-
-      ordered_tasks = @board.tasks.not_archived.where(status: status)
-        .includes(:board, :user, :agent_persona, :dependencies)
-        .ordered_for_column(status)
-      streams << turbo_stream.replace("column-#{status}", partial: "boards/column_tasks", locals: { status: status, tasks: ordered_tasks, board: @board })
-    end
-
-    # Update column counts
-    affected_statuses.each do |status|
-      count = @board.tasks.where(status: status).count
-      streams << turbo_stream.update("column-#{status}-count", count.to_s)
-    end
+    # Build Turbo Streams for the UI
+    streams = bulk_turbo_streams(bulk_action, task_ids, value, result.affected_statuses)
 
     respond_to do |format|
       format.turbo_stream { render turbo_stream: streams }
-      format.html { redirect_to board_path(@board), notice: "#{tasks.count} task(s) updated." }
-      format.json { render json: { success: true, count: tasks.count } }
+      format.html { redirect_to board_path(@board), notice: "#{result.affected_count} task(s) updated." }
+      format.json { render json: { success: true, count: result.affected_count } }
     end
   end
 
   def create_followup
     @task.activity_source = "web"
-    followup_name = params[:followup_name].presence || "Follow up: #{@task.name}"
-    followup_description = params[:followup_description]
-    destination = params[:destination] || "inbox"
-    selected_model = params[:model].presence  # nil means inherit
-    continue_session = params[:continue_session] == "1"
-    inherit_session_key = params[:inherit_session_key]
 
-    @followup = @task.create_followup_task!(
-      followup_name: followup_name,
-      followup_description: followup_description
+    result = TaskFollowupService.new(@task).call(
+      name: params[:followup_name],
+      description: params[:followup_description],
+      model: params[:model].presence,
+      destination: params[:destination] || "inbox",
+      continue_session: params[:continue_session] == "1",
+      inherit_session_key: params[:inherit_session_key]
     )
 
-    # Auto-complete parent task when follow-up is created
-    @task.update!(status: "done", completed: true, completed_at: Time.current)
-
-    # Override model if specified (otherwise inherits from parent)
-    if selected_model.present?
-      @followup.update!(model: selected_model)
+    unless result.success?
+      respond_to do |format|
+        format.turbo_stream { head :unprocessable_entity }
+        format.html { redirect_to board_path(@board), alert: result.error }
+      end
+      return
     end
 
-    # Handle session continuation - copy session key if user chose to continue
-    if continue_session && inherit_session_key.present?
-      @followup.update!(agent_session_key: inherit_session_key)
-    end
-
-    # Handle destination
-    case destination
-    when "up_next"
-      @followup.update!(status: :up_next, assigned_to_agent: true, assigned_at: Time.current)
-    when "in_progress"
-      @followup.update!(status: :in_progress, assigned_to_agent: true, assigned_at: Time.current)
-    when "nightly"
-      @followup.update!(status: :up_next, nightly: true, assigned_to_agent: true, assigned_at: Time.current)
-    end
-
+    @followup = result.followup
     @destination_status = @followup.status
 
     respond_to do |format|
@@ -545,6 +477,50 @@ class Boards::TasksController < ApplicationController
 
   private
 
+  # Build Turbo Stream responses after a bulk operation.
+  # Kept in the controller because it's purely a view concern.
+  def bulk_turbo_streams(action, task_ids, value, affected_statuses)
+    tasks = @board.tasks.where(id: task_ids)
+    streams = []
+
+    case action.to_s
+    when "move_status"
+      auto_sorted = %w[in_review done]
+      tasks.each do |task|
+        streams << turbo_stream.remove("task_#{task.id}")
+        unless auto_sorted.include?(value.to_s)
+          streams << turbo_stream.prepend("column-#{value}", partial: "boards/task_card", locals: { task: task.reload })
+        end
+      end
+
+    when "change_model"
+      tasks.each do |task|
+        streams << turbo_stream.replace("task_#{task.id}", partial: "boards/task_card", locals: { task: task.reload })
+      end
+
+    when "archive", "delete"
+      task_ids.each { |id| streams << turbo_stream.remove("task_#{id}") }
+    end
+
+    # Keep deterministic order in auto-sorted columns after bulk operations
+    affected_statuses.uniq.each do |status|
+      next unless %w[in_review done].include?(status.to_s)
+
+      ordered_tasks = @board.tasks.not_archived.where(status: status)
+        .includes(:board, :user, :agent_persona, :dependencies)
+        .ordered_for_column(status)
+      streams << turbo_stream.replace("column-#{status}", partial: "boards/column_tasks", locals: { status: status, tasks: ordered_tasks, board: @board })
+    end
+
+    # Update column counts
+    affected_statuses.each do |status|
+      count = @board.tasks.where(status: status).count
+      streams << turbo_stream.update("column-#{status}-count", count.to_s)
+    end
+
+    streams
+  end
+
   def set_board
     @board = current_user.boards.find(params[:board_id])
   end
@@ -554,7 +530,7 @@ class Boards::TasksController < ApplicationController
   end
 
   def task_params
-    permitted = params.require(:task).permit(:name, :title, :description, :priority, :status, :blocked, :due_date, :completed, :model, :recurring, :recurrence_rule, :recurrence_time, :nightly, :nightly_delay_hours, :deep_research, :validation_command, :agent_persona_id, tags: [])
+    permitted = params.require(:task).permit(:name, :title, :description, :priority, :status, :blocked, :due_date, :completed, :model, :pipeline_stage, :recurring, :recurrence_rule, :recurrence_time, :nightly, :nightly_delay_hours, :validation_command, :agent_persona_id, tags: [])
     # Allow 'title' as alias for 'name'
     permitted[:name] = permitted.delete(:title) if permitted[:title].present? && permitted[:name].blank?
     permitted

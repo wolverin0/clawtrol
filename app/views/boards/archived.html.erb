@@ -26,13 +26,10 @@
 
     <%# Empty State %>
     <% if @tasks.empty? %>
-      <div class="text-center py-12">
-        <div class="text-4xl mb-3">📦</div>
-        <p class="text-content-muted">No archived tasks yet</p>
-        <p class="text-sm text-content-muted mt-1">
-          Completed tasks can be archived from the Done column
-        </p>
-      </div>
+      <%= render "shared/empty_state",
+        icon: "📦",
+        title: "No archived tasks yet",
+        description: "Completed tasks can be archived from the Done column" %>
     <% else %>
       <%# Scrollable Table Container with Infinite Scroll %>
       <div class="flex-1 min-h-0"

@@ -1,0 +1,16 @@
+<%# Shared empty state component.
+    Usage: render "shared/empty_state", icon: "📱", title: "No Items", description: "Add items to get started."
+    Optional: action_text, action_path (for a CTA button)
+%>
+<div class="bg-bg-elevated border border-border rounded-xl p-8 text-center">
+  <div class="text-4xl mb-3"><%= local_assigns.fetch(:icon, "📭") %></div>
+  <h3 class="text-lg font-semibold text-content mb-2"><%= local_assigns.fetch(:title, "Nothing here yet") %></h3>
+  <% if local_assigns[:description] %>
+    <p class="text-sm text-content-muted max-w-md mx-auto"><%= description %></p>
+  <% end %>
+  <% if local_assigns[:action_text] && local_assigns[:action_path] %>
+    <div class="mt-4">
+      <%= link_to action_text, action_path, class: "px-4 py-2 text-sm bg-accent text-bg-base rounded-lg hover:bg-accent/80 transition-colors" %>
+    </div>
+  <% end %>
+</div>

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "test_helper"
 
 class SessionsControllerTest < ActionDispatch::IntegrationTest
@@ -22,11 +24,12 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Invalid email or password.", flash[:alert]
   end
 
-  test "create with non-existent email shows error" do
+  test "create with non-existent email shows generic error" do
+    # User enumeration fix: same generic error for both invalid email and password
     post session_path, params: { email_address: "nonexistent@example.com", password: "password123" }
 
     assert_redirected_to new_session_path
-    assert_equal "No account found with that email. Please sign up first.", flash[:alert]
+    assert_equal "Invalid email or password.", flash[:alert]
   end
 
   test "destroy" do

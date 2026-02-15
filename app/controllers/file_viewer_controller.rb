@@ -42,9 +42,25 @@ class FileViewerController < ApplicationController
     content = resolved.read(encoding: "utf-8")
     ext = resolved.extname.downcase
 
+    # For .html files: support preview mode via iframe, or show source with toggle
+    if ext == ".html" || ext == ".htm"
+      mode = params[:mode].to_s
+      if mode == "preview"
+        # Serve the raw HTML in a sandboxed way
+        render inline: html_preview_template(relative, content), content_type: "text/html"
+        return
+      elsif mode == "raw"
+        # Serve raw HTML for iframe src
+        render inline: content, content_type: "text/html"
+        return
+      end
+    end
+
     body = if ext == ".md"
       # Use safe_markdown for XSS-safe rendering
       safe_markdown(content)
+    elsif ext == ".html" || ext == ".htm"
+      html_source_with_preview(relative, content)
     else
       "<pre>#{ERB::Util.html_escape(content)}</pre>"
     end
@@ -133,6 +149,74 @@ class FileViewerController < ApplicationController
     return nil unless path_allowed?(real)
 
     real
+  end
+
+  def html_source_with_preview(relative, content)
+    escaped = ERB::Util.html_escape(content)
+    preview_url = ERB::Util.html_escape("/view?file=#{relative}&mode=raw")
+    <<~HTML
+      <div style="margin-bottom:16px;">
+        <button onclick="toggleHtmlView()" id="toggle-btn"
+                style="padding:6px 14px;font-size:12px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;margin-right:8px;">
+          🔍 Preview
+        </button>
+        <span id="view-label" style="font-size:12px;color:#888;">Showing: Source Code</span>
+      </div>
+      <div id="source-view">
+        <pre>#{escaped}</pre>
+      </div>
+      <div id="preview-view" style="display:none;">
+        <iframe src="#{preview_url}" sandbox="allow-same-origin"
+                style="width:100%;height:80vh;border:1px solid #333;border-radius:8px;background:#fff;"></iframe>
+      </div>
+      <script>
+        function toggleHtmlView() {
+          var src = document.getElementById('source-view');
+          var prev = document.getElementById('preview-view');
+          var btn = document.getElementById('toggle-btn');
+          var label = document.getElementById('view-label');
+          if (src.style.display !== 'none') {
+            src.style.display = 'none';
+            prev.style.display = 'block';
+            btn.textContent = '📝 Source';
+            label.textContent = 'Showing: Preview';
+          } else {
+            src.style.display = 'block';
+            prev.style.display = 'none';
+            btn.textContent = '🔍 Preview';
+            label.textContent = 'Showing: Source Code';
+          }
+        }
+      </script>
+    HTML
+  end
+
+  def html_preview_template(relative, content)
+    # Full preview page with back link
+    escaped_title = ERB::Util.html_escape(relative)
+    <<~HTML
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <title>Preview: #{escaped_title}</title>
+        <style>
+          body { margin: 0; padding: 16px; font-family: system-ui; background: #0f0f11; color: #e5e5e5; }
+          .toolbar { padding: 8px 0; margin-bottom: 12px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 12px; }
+          .toolbar a { color: #818cf8; text-decoration: none; font-size: 13px; }
+          .toolbar a:hover { text-decoration: underline; }
+          iframe { width: 100%; height: calc(100vh - 80px); border: 1px solid #333; border-radius: 8px; background: #fff; }
+        </style>
+      </head>
+      <body>
+        <div class="toolbar">
+          <a href="/view?file=#{ERB::Util.html_escape(relative)}">← Back to source</a>
+          <span style="font-size:12px;color:#888;">Preview: #{escaped_title}</span>
+        </div>
+        <iframe src="/view?file=#{ERB::Util.html_escape(relative)}&mode=raw" sandbox="allow-same-origin"></iframe>
+      </body>
+      </html>
+    HTML
   end
 
   def page_template(title, body)

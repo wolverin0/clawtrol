@@ -1,6 +1,7 @@
+# frozen_string_literal: true
+
 class TaskRun < ApplicationRecord
   belongs_to :task
-  has_one :agent_transcript, dependent: :nullify
 
   RECOMMENDED_ACTIONS = %w[
     in_review
@@ -10,6 +11,6 @@ class TaskRun < ApplicationRecord
   ].freeze
 
   validates :run_id, presence: true, uniqueness: true
-  validates :run_number, presence: true
+  validates :run_number, presence: true, uniqueness: { scope: :task_id, message: "must be unique per task" }
   validates :recommended_action, presence: true, inclusion: { in: RECOMMENDED_ACTIONS }
 end

@@ -1,0 +1,145 @@
+<% content_for :title, "Sandbox Config - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🐳 Sandbox Config" %>
+
+<div class="py-6 space-y-6">
+  <div>
+    <h1 class="text-xl font-bold text-content">Sandbox Configuration</h1>
+    <p class="text-sm text-content-muted mt-1">
+      Configure Docker sandboxing for agent exec — mode, scope, resource limits, and security profiles.
+    </p>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <%# Presets %>
+  <div class="bg-bg-elevated border border-border rounded-xl p-5">
+    <h3 class="text-base font-semibold text-content mb-3">⚡ Quick Presets</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <% [
+        ["minimal", "🔒 Minimal", "Workspace only, no network, max security. For untrusted tasks."],
+        ["standard", "🛡️ Standard", "Workspace access + network. Good balance of safety and capability."],
+        ["full", "🔓 Full Access", "Home directory, network, browser. For trusted agents only."]
+      ].each do |id, label, desc| %>
+        <%= form_with url: sandbox_config_path, method: :patch, class: "inline" do |f| %>
+          <input type="hidden" name="preset" value="<%= id %>">
+          <button type="submit"
+                  class="w-full text-left p-4 rounded-lg border transition-colors hover:border-accent/50 hover:bg-accent/5
+                    border-border">
+            <div class="text-sm font-medium text-content"><%= label %></div>
+            <div class="text-xs text-content-muted mt-1"><%= desc %></div>
+          </button>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <%= form_with url: sandbox_config_path, method: :patch, class: "space-y-6" do |f| %>
+
+    <%# Core Settings %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">🐳 Core Settings</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Sandbox Mode</label>
+          <select name="mode"
+                  class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+            <% [["docker", "🐳 Docker"], ["host", "💻 Host (no isolation)"], ["none", "🚫 None (disabled)"]].each do |val, lab| %>
+              <option value="<%= val %>" <%= "selected" if @sandbox[:mode] == val %>><%= lab %></option>
+            <% end %>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Workspace Scope</label>
+          <select name="scope"
+                  class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+            <% [["workspace", "📁 Workspace only"], ["home", "🏠 Home directory"], ["full", "💽 Full filesystem"]].each do |val, lab| %>
+              <option value="<%= val %>" <%= "selected" if @sandbox[:scope] == val %>><%= lab %></option>
+            <% end %>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Docker Image</label>
+          <input type="text" name="docker_image"
+                 value="<%= @sandbox[:docker_image] %>"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                 placeholder="default (openclaw/sandbox)">
+        </div>
+      </div>
+    </div>
+
+    <%# Security Options %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">🔐 Security Options</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <% [
+          ["network", @sandbox[:network], "🌐 Network Access", "Allow outbound network connections"],
+          ["browser_sandbox", @sandbox[:browser_sandbox], "🌍 Browser Sandbox", "Allow headless browser (Playwright/Puppeteer)"],
+          ["resource_limits", @sandbox[:resource_limits], "📊 Resource Limits", "Enforce CPU/memory limits"],
+          ["seccomp", @sandbox[:seccomp], "🛡️ Seccomp Profile", "Apply Linux seccomp security profile"],
+          ["apparmor", @sandbox[:apparmor], "🔒 AppArmor Profile", "Apply AppArmor mandatory access control"]
+        ].each do |name, checked, label, desc| %>
+          <label class="flex items-start gap-3 p-3 rounded-lg border border-border hover:border-accent/30 cursor-pointer transition-colors">
+            <input type="hidden" name="<%= name %>" value="false">
+            <input type="checkbox" name="<%= name %>" value="true"
+                   class="mt-0.5 rounded border-border text-accent focus:ring-accent/40"
+                   <%= "checked" if checked %>>
+            <div>
+              <div class="text-sm font-medium text-content"><%= label %></div>
+              <div class="text-xs text-content-muted"><%= desc %></div>
+            </div>
+          </label>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Resource Limits %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">📊 Resource Limits</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">CPU Limit</label>
+          <input type="text" name="cpu_limit"
+                 value="<%= @sandbox[:cpu_limit] %>"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                 placeholder="e.g. 2.0 (cores)">
+        </div>
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Memory Limit</label>
+          <input type="text" name="memory_limit"
+                 value="<%= @sandbox[:memory_limit] %>"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                 placeholder="e.g. 2g or 512m">
+        </div>
+      </div>
+    </div>
+
+    <%# Per-agent overrides %>
+    <% if @sandbox[:per_agent].any? %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-5">
+        <h3 class="text-base font-semibold text-content mb-3">🤖 Per-Agent Overrides</h3>
+        <div class="space-y-2">
+          <% @sandbox[:per_agent].each do |agent_id, cfg| %>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-bg-base border border-border text-sm">
+              <span class="font-medium text-content"><%= ERB::Util.html_escape(agent_id) %></span>
+              <div class="flex gap-3 text-xs text-content-muted">
+                <span>Mode: <strong class="text-content"><%= cfg[:mode] || "inherit" %></strong></span>
+                <span>Scope: <strong class="text-content"><%= cfg[:scope] || "inherit" %></strong></span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="flex justify-end">
+      <button type="submit"
+              class="px-6 py-2 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/80 transition-colors">
+        💾 Save Configuration
+      </button>
+    </div>
+  <% end %>
+</div>

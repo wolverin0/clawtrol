@@ -1,0 +1,129 @@
+<% content_for :title, "Model Providers - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🧠 Model Providers" %>
+
+<div class="py-6 space-y-6"
+     data-controller="model-providers">
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content">Custom Model Provider Registry</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Manage custom model providers with base URLs, API keys, model definitions, and cost tracking.
+      </p>
+    </div>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <% if @providers.empty? && @error.blank? %>
+    <%= render "shared/empty_state",
+      icon: "🧠",
+      title: "No Custom Providers",
+      description: "Add custom model providers in your OpenClaw config (models.providers) to manage them here. Built-in providers (OpenAI, Anthropic, Google) are configured automatically." %>
+  <% else %>
+    <div class="space-y-4">
+      <% @providers.each do |provider| %>
+        <div class="bg-bg-elevated border border-border rounded-xl overflow-hidden">
+          <%# Provider header %>
+          <div class="flex items-center justify-between px-5 py-3 border-b border-border bg-bg-base/50 cursor-pointer"
+               data-action="click->model-providers#toggleCard"
+               data-provider-id="<%= provider[:id] %>">
+            <div class="flex items-center gap-3">
+              <span class="text-xl">🧠</span>
+              <div>
+                <div class="text-sm font-medium text-content"><%= ERB::Util.html_escape(provider[:id]) %></div>
+                <div class="text-xs text-content-muted">
+                  <%= ERB::Util.html_escape(provider[:base_url].truncate(60)) %>
+                  · <%= provider[:models].size %> model<%= provider[:models].size == 1 ? "" : "s" %>
+                  · Key: <span class="<%= provider[:has_api_key] ? 'text-green-400' : 'text-yellow-400' %>">
+                    <%= provider[:has_api_key] ? "✅" : "⚠️ missing" %>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <span class="text-content-muted text-xs">▼</span>
+          </div>
+
+          <%# Expandable details %>
+          <div class="hidden px-5 py-4 space-y-4" id="provider-<%= provider[:id] %>">
+            <%# Edit form %>
+            <%= form_with url: model_providers_path, method: :patch, class: "space-y-3" do |f| %>
+              <input type="hidden" name="provider_id" value="<%= provider[:id] %>">
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-content-muted mb-1">Base URL</label>
+                  <input type="url" name="base_url"
+                         value="<%= provider[:base_url] %>"
+                         class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                         placeholder="https://api.example.com/v1">
+                </div>
+                <div>
+                  <label class="block text-sm text-content-muted mb-1">API Key (leave blank to keep current)</label>
+                  <input type="password" name="api_key"
+                         class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                         placeholder="sk-...">
+                </div>
+              </div>
+
+              <div class="flex justify-between items-center">
+                <button type="button"
+                        class="px-3 py-1.5 text-sm bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors"
+                        data-action="model-providers#testProvider"
+                        data-base-url="<%= provider[:base_url] %>"
+                        data-model="<%= provider[:models].first&.dig(:id) %>">
+                  🧪 Test Connection
+                </button>
+                <button type="submit"
+                        class="px-4 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/80 transition-colors">
+                  💾 Save
+                </button>
+              </div>
+            <% end %>
+
+            <%# Models table %>
+            <% if provider[:models].any? %>
+              <div>
+                <h4 class="text-sm font-semibold text-content mb-2">📋 Models</h4>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-xs">
+                    <thead>
+                      <tr class="text-content-muted border-b border-border text-left">
+                        <th class="py-2 px-2">Model ID</th>
+                        <th class="py-2 px-2">Context</th>
+                        <th class="py-2 px-2">Input $/1K</th>
+                        <th class="py-2 px-2">Output $/1K</th>
+                        <th class="py-2 px-2">Capabilities</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% provider[:models].each do |model| %>
+                        <tr class="border-b border-border/30">
+                          <td class="py-1.5 px-2 font-mono text-content"><%= ERB::Util.html_escape(model[:id]) %></td>
+                          <td class="py-1.5 px-2 text-content-muted"><%= model[:context_window] ? number_with_delimiter(model[:context_window]) : "—" %></td>
+                          <td class="py-1.5 px-2 text-content-muted"><%= model[:cost_per_1k_input] ? "$#{'%.4f' % model[:cost_per_1k_input]}" : "—" %></td>
+                          <td class="py-1.5 px-2 text-content-muted"><%= model[:cost_per_1k_output] ? "$#{'%.4f' % model[:cost_per_1k_output]}" : "—" %></td>
+                          <td class="py-1.5 px-2">
+                            <% model[:capabilities].each do |cap| %>
+                              <span class="inline-block px-1.5 py-0.5 bg-accent/10 text-accent rounded text-[10px] mr-1"><%= cap %></span>
+                            <% end %>
+                          </td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            <% end %>
+
+            <%# Test result area %>
+            <div data-model-providers-target="testResult" id="test-result-<%= provider[:id] %>" class="hidden">
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

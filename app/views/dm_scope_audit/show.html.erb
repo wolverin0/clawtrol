@@ -1,0 +1,129 @@
+<% content_for(:breadcrumb_standalone) { "🔒 DM Scope Audit" } %>
+
+<div class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+
+  <%# Header %>
+  <div>
+    <h1 class="text-xl font-bold text-content font-display">DM Scope Security Audit</h1>
+    <p class="text-sm text-content-muted mt-1">
+      Review session isolation settings to prevent cross-user message leakage.
+    </p>
+  </div>
+
+  <%# Current Status %>
+  <div class="bg-bg-surface rounded-lg border border-border p-4 flex items-center gap-4">
+    <div class="w-16 h-16 rounded-full flex items-center justify-center text-3xl
+                <%= @dm_scope[:mode] == 'sender' ? 'bg-green-500/20' : @dm_scope[:mode] == 'main' ? 'bg-red-500/20' : 'bg-yellow-500/20' %>">
+      <%= @dm_scope[:mode] == "sender" ? "🛡️" : @dm_scope[:mode] == "main" ? "⚠️" : "❓" %>
+    </div>
+    <div>
+      <div class="text-lg font-bold text-content">
+        dmScope: <span class="font-mono <%= @dm_scope[:mode] == 'sender' ? 'text-green-400' : 'text-red-400' %>"><%= @dm_scope[:mode] %></span>
+      </div>
+      <p class="text-sm text-content-muted mt-1">
+        <% if @dm_scope[:mode] == "sender" %>
+          ✅ Each sender gets their own isolated session. Messages are private.
+        <% elsif @dm_scope[:mode] == "main" %>
+          ⚠️ All senders share the main session. Messages may be visible to other users.
+        <% else %>
+          Unknown DM scope mode. Check your gateway configuration.
+        <% end %>
+      </p>
+    </div>
+  </div>
+
+  <%# Warnings %>
+  <% if @warnings.any? %>
+    <section class="space-y-3">
+      <h2 class="text-sm font-semibold text-content">Security Warnings</h2>
+      <% @warnings.each do |warning| %>
+        <div class="rounded-lg border p-4
+                    <%= warning[:level] == 'critical' ? 'bg-red-500/10 border-red-500/20' : 'bg-blue-500/10 border-blue-500/20' %>">
+          <div class="flex items-center gap-2 mb-1">
+            <span><%= warning[:level] == "critical" ? "🚨" : "ℹ️" %></span>
+            <span class="text-sm font-semibold <%= warning[:level] == 'critical' ? 'text-red-400' : 'text-blue-400' %>">
+              <%= warning[:title] %>
+            </span>
+          </div>
+          <p class="text-xs text-content-muted ml-6"><%= warning[:description] %></p>
+        </div>
+      <% end %>
+    </section>
+  <% else %>
+    <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-4 flex items-center gap-2">
+      <span>✅</span>
+      <span class="text-sm text-green-400 font-medium">No security warnings. DM isolation looks good.</span>
+    </div>
+  <% end %>
+
+  <%# Recommendations %>
+  <% if @recommendations.any? %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">💡</span>
+        <h2 class="text-sm font-semibold text-content">Recommendations</h2>
+      </div>
+      <div class="p-4 space-y-3">
+        <% @recommendations.each do |rec| %>
+          <div class="flex items-start gap-3 bg-bg-base rounded p-3 border border-border">
+            <span class="text-lg mt-0.5">🔧</span>
+            <div class="flex-1">
+              <div class="text-sm font-medium text-content"><%= rec[:action] %></div>
+              <% if rec[:config_change] %>
+                <code class="text-xs font-mono text-content-muted block mt-1 bg-bg-elevated px-2 py-1 rounded"><%= rec[:config_change] %></code>
+              <% end %>
+              <% if rec[:link] %>
+                <%= link_to "Configure →", rec[:link], class: "text-xs text-accent hover:underline mt-1 inline-block" %>
+              <% end %>
+            </div>
+            <span class="text-xs text-content-muted whitespace-nowrap">Risk: <%= rec[:risk] %></span>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
+  <%# Channel Overview %>
+  <% if @channels.any? %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">📡</span>
+        <h2 class="text-sm font-semibold text-content">Configured Channels</h2>
+      </div>
+      <div class="divide-y divide-border">
+        <% @channels.each do |ch| %>
+          <div class="px-4 py-2.5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full
+                <% if ch[:connected].nil? %> bg-gray-500
+                <% elsif ch[:connected] %> bg-green-500
+                <% else %> bg-red-500
+                <% end %>"></span>
+              <span class="text-sm text-content"><%= ch[:name] %></span>
+            </div>
+            <span class="text-xs text-content-muted">
+              <% if ch[:connected].nil? %>configured
+              <% elsif ch[:connected] %>connected
+              <% else %>disconnected
+              <% end %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
+  <%# Session Config Details %>
+  <% if @dm_scope[:raw].present? %>
+    <details class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <summary class="px-4 py-3 bg-bg-elevated border-b border-border cursor-pointer list-none flex items-center gap-2">
+        <span class="text-lg">📋</span>
+        <span class="text-sm font-semibold text-content">Raw Session Config</span>
+      </summary>
+      <div class="p-4">
+        <% dm_raw_json = begin; JSON.pretty_generate(@dm_scope[:raw]); rescue; @dm_scope[:raw].to_s; end %>
+        <pre class="bg-bg-base rounded px-3 py-2 border border-border text-xs text-content font-mono overflow-x-auto max-h-60"><%= dm_raw_json %></pre>
+      </div>
+    </details>
+  <% end %>
+</div>

@@ -79,10 +79,8 @@ class TaskRunTest < ActiveSupport::TestCase
   test "run_number unique per task" do
     build_run(run_number: 1).save!
     dup = build_run(run_number: 1, run_id: SecureRandom.uuid)
-    # uniqueness: { scope: :factory_loop_id } — check if this constraint exists on task_id
-    # The schema has: index_task_runs_on_task_id_and_run_number unique
-    # This is a DB-level constraint, may raise on save
-    assert_not dup.valid? || (dup.save rescue false) == false
+    assert_not dup.valid?
+    assert_includes dup.errors[:run_number], "must be unique per task"
   end
 
   test "stores summary and evidence" do

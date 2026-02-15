@@ -111,6 +111,47 @@ class FactoryController < ApplicationController
     render json: { success: true }
   end
 
+  # === Cherry-Pick Pipeline ===
+
+  # GET /factory/cherry_pick — list pickable commits
+  def cherry_pick_index
+    result = CherryPickService.pickable_commits(limit: 50)
+    @commits = result.success ? result.data : []
+    @error = result.message unless result.success
+  end
+
+  # POST /factory/cherry_pick/preview — preview a single commit diff
+  def cherry_pick_preview
+    result = CherryPickService.preview_commit(params[:commit])
+    render json: {
+      success: result.success,
+      message: result.message,
+      data: result.data
+    }
+  end
+
+  # POST /factory/cherry_pick/execute — cherry-pick selected commits
+  def cherry_pick_execute
+    commits = Array(params[:commits]).select { |h| h.match?(/\A[a-f0-9]{7,40}\z/) }
+    dry_run = params[:dry_run] == "true"
+    result = CherryPickService.cherry_pick!(commits, dry_run: dry_run)
+    render json: {
+      success: result.success,
+      message: result.message,
+      data: result.data
+    }
+  end
+
+  # POST /factory/cherry_pick/verify — run tests in production
+  def cherry_pick_verify
+    result = CherryPickService.verify_production!
+    render json: {
+      success: result.success,
+      message: result.message,
+      data: result.data
+    }
+  end
+
   private
 
   def factory_loop_params

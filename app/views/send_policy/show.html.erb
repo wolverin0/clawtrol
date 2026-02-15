@@ -1,0 +1,169 @@
+<% content_for :title, "Send Policy - clawdeck" %>
+<% content_for :breadcrumb_standalone, "📤 Send Policy & Access Groups" %>
+
+<div class="py-6 space-y-6">
+  <div>
+    <h1 class="text-xl font-bold text-content">Send Policy & Access Groups</h1>
+    <p class="text-sm text-content-muted mt-1">
+      Control outbound message rules and command authorization groups.
+    </p>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <%# Send Policy %>
+    <div class="space-y-4">
+      <%= form_with url: send_policy_path, method: :patch, class: "space-y-4" do |f| %>
+        <div class="bg-bg-elevated border border-border rounded-xl p-5">
+          <h3 class="text-base font-semibold text-content mb-4">📤 Send Policy</h3>
+
+          <div class="mb-4">
+            <label class="block text-sm text-content-muted mb-1">Default Action</label>
+            <div class="flex gap-3">
+              <label class="flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors
+                <%= @send_policy[:default_action] == 'allow' ? 'border-green-500/50 bg-green-500/5' : 'border-border' %>">
+                <input type="radio" name="default_action" value="allow"
+                       class="text-green-500 focus:ring-green-500/40"
+                       <%= "checked" if @send_policy[:default_action] == "allow" %>>
+                <span class="text-sm text-content">✅ Allow (then deny specific)</span>
+              </label>
+              <label class="flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors
+                <%= @send_policy[:default_action] == 'deny' ? 'border-red-500/50 bg-red-500/5' : 'border-border' %>">
+                <input type="radio" name="default_action" value="deny"
+                       class="text-red-500 focus:ring-red-500/40"
+                       <%= "checked" if @send_policy[:default_action] == "deny" %>>
+                <span class="text-sm text-content">🚫 Deny (then allow specific)</span>
+              </label>
+            </div>
+          </div>
+
+          <%# Rules list %>
+          <% if @send_policy[:rules].any? %>
+            <div>
+              <label class="block text-sm text-content-muted mb-2">Rules (<%= @send_policy[:rules].size %>)</label>
+              <div class="space-y-2">
+                <% @send_policy[:rules].each_with_index do |rule, i| %>
+                  <div class="flex items-center gap-2 p-2 rounded bg-bg-base border border-border/50 text-xs">
+                    <span class="<%= rule[:action] == 'allow' ? 'text-green-400' : 'text-red-400' %> font-medium">
+                      <%= rule[:action].upcase %>
+                    </span>
+                    <% if rule[:channel] %>
+                      <span class="text-content-muted">channel:</span>
+                      <span class="text-content"><%= ERB::Util.html_escape(rule[:channel]) %></span>
+                    <% end %>
+                    <% if rule[:chat_type] %>
+                      <span class="text-content-muted">type:</span>
+                      <span class="text-content"><%= ERB::Util.html_escape(rule[:chat_type]) %></span>
+                    <% end %>
+                    <% if rule[:target] %>
+                      <span class="text-content-muted">target:</span>
+                      <span class="text-content"><%= ERB::Util.html_escape(rule[:target]) %></span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+              <p class="text-xs text-content-muted mt-2">
+                Edit individual rules in the
+                <%= link_to "Gateway Config", gateway_config_path, class: "text-accent hover:underline" %>.
+              </p>
+            </div>
+          <% else %>
+            <div class="text-center py-4 text-content-muted text-sm">
+              No specific rules — using default action for all sends.
+            </div>
+          <% end %>
+
+          <div class="flex justify-end mt-4">
+            <button type="submit"
+                    class="px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/80 transition-colors">
+              💾 Save Default Action
+            </button>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Access Groups %>
+    <div class="space-y-4">
+      <div class="bg-bg-elevated border border-border rounded-xl p-5">
+        <h3 class="text-base font-semibold text-content mb-4">👥 Access Groups</h3>
+
+        <% if @access_groups.empty? %>
+          <div class="text-center py-6 text-content-muted">
+            <div class="text-3xl mb-2">👥</div>
+            <div class="text-sm">No access groups configured</div>
+            <div class="text-xs mt-1">Define session.accessGroups in OpenClaw config</div>
+          </div>
+        <% else %>
+          <div class="space-y-3">
+            <% @access_groups.each do |name, group| %>
+              <div class="p-3 rounded-lg bg-bg-base border border-border">
+                <div class="text-sm font-medium text-content mb-2"><%= ERB::Util.html_escape(name) %></div>
+                <% if group[:description].present? %>
+                  <p class="text-xs text-content-muted mb-2"><%= ERB::Util.html_escape(group[:description]) %></p>
+                <% end %>
+
+                <div class="space-y-1 text-xs">
+                  <div>
+                    <span class="text-content-muted">Commands:</span>
+                    <div class="flex gap-1 flex-wrap mt-0.5">
+                      <% group[:commands].each do |cmd| %>
+                        <code class="px-1.5 py-0.5 bg-bg-elevated rounded text-content"><%= ERB::Util.html_escape(cmd) %></code>
+                      <% end %>
+                      <% if group[:commands].empty? %>
+                        <span class="text-content-muted italic">none</span>
+                      <% end %>
+                    </div>
+                  </div>
+                  <div>
+                    <span class="text-content-muted">Members:</span>
+                    <div class="flex gap-1 flex-wrap mt-0.5">
+                      <% group[:members].each do |member| %>
+                        <span class="px-1.5 py-0.5 bg-accent/10 text-accent rounded"><%= ERB::Util.html_escape(member) %></span>
+                      <% end %>
+                      <% if group[:members].empty? %>
+                        <span class="text-content-muted italic">none</span>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+
+        <%# Quick add/edit group %>
+        <div class="mt-4 pt-4 border-t border-border">
+          <h4 class="text-sm font-medium text-content mb-2">Add / Edit Group</h4>
+          <%= form_with url: send_policy_path, method: :patch, class: "space-y-3" do |f| %>
+            <div>
+              <label class="block text-xs text-content-muted mb-1">Group Name</label>
+              <input type="text" name="group_name"
+                     class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                     placeholder="admin">
+            </div>
+            <div>
+              <label class="block text-xs text-content-muted mb-1">Commands (comma-separated)</label>
+              <input type="text" name="group_commands"
+                     class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                     placeholder="/deploy, /restart, /config">
+            </div>
+            <div>
+              <label class="block text-xs text-content-muted mb-1">Members (comma-separated IDs)</label>
+              <input type="text" name="group_members"
+                     class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                     placeholder="telegram:123456, discord:789">
+            </div>
+            <button type="submit"
+                    class="w-full px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent/80 transition-colors">
+              💾 Save Group
+            </button>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

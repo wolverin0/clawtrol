@@ -1,0 +1,222 @@
+<% content_for(:breadcrumb_standalone) { "🪝 Webhook Mappings" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-controller="webhook-mapping-builder">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">Webhook Mapping Builder</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Define how incoming webhooks are matched and routed to OpenClaw agents.
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button type="button"
+              data-action="click->webhook-mapping-builder#addMapping"
+              class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+        + Add Mapping
+      </button>
+      <button type="button"
+              data-action="click->webhook-mapping-builder#saveAll"
+              class="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+        💾 Save to Gateway
+      </button>
+    </div>
+  </div>
+
+  <%# Status message %>
+  <div data-webhook-mapping-builder-target="status" class="hidden text-xs px-3 py-2 rounded-md"></div>
+
+  <%# Presets %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">📦</span>
+      <h2 class="text-sm font-semibold text-content">Quick Presets</h2>
+    </div>
+    <div class="p-4 flex flex-wrap gap-2">
+      <% @presets.each_with_index do |preset, i| %>
+        <button type="button"
+                data-action="click->webhook-mapping-builder#loadPreset"
+                data-preset-index="<%= i %>"
+                data-preset-json="<%= preset[:mapping].to_json.gsub('"', '&quot;') %>"
+                class="px-3 py-1.5 text-xs font-medium bg-bg-base text-content-secondary border border-border rounded-md hover:bg-bg-elevated hover:text-content transition-colors"
+                title="<%= preset[:description] %>">
+          <%= preset[:name] %>
+        </button>
+      <% end %>
+    </div>
+  </section>
+
+  <%# Mappings List %>
+  <section>
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-content">Active Mappings</h2>
+      <span class="text-xs text-content-muted" data-webhook-mapping-builder-target="count">
+        <%= @mappings.size %> mapping<%= @mappings.size == 1 ? "" : "s" %>
+      </span>
+    </div>
+
+    <div data-webhook-mapping-builder-target="mappingsList" class="space-y-3">
+      <% if @mappings.any? %>
+        <% @mappings.each_with_index do |mapping, i| %>
+          <div class="bg-bg-surface rounded-lg border border-border overflow-hidden"
+               data-mapping-index="<%= i %>"
+               data-mapping-json="<%= mapping.to_json.gsub('"', '&quot;') %>">
+            <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm cursor-move" title="Drag to reorder">⠿</span>
+                <span class="text-sm font-semibold text-content"><%= mapping[:name] %></span>
+                <% if mapping[:enabled] %>
+                  <span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Active</span>
+                <% else %>
+                  <span class="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">Disabled</span>
+                <% end %>
+                <span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full"><%= mapping[:action] %></span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button type="button"
+                        data-action="click->webhook-mapping-builder#editMapping"
+                        data-index="<%= i %>"
+                        class="p-1 text-content-muted hover:text-content transition-colors" title="Edit">
+                  ✏️
+                </button>
+                <button type="button"
+                        data-action="click->webhook-mapping-builder#removeMapping"
+                        data-index="<%= i %>"
+                        class="p-1 text-content-muted hover:text-red-400 transition-colors" title="Remove">
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label class="font-medium text-content-muted block mb-1">Match Rules</label>
+                <% mapping_match_json = begin; JSON.pretty_generate(mapping[:match]); rescue; mapping[:match].to_s; end %>
+                <pre class="bg-bg-base rounded px-2 py-1.5 border border-border text-content font-mono overflow-x-auto"><%= mapping_match_json %></pre>
+              </div>
+              <div>
+                <label class="font-medium text-content-muted block mb-1">Template</label>
+                <div class="bg-bg-base rounded px-2 py-1.5 border border-border text-content font-mono whitespace-pre-wrap">
+                  <%= mapping[:template] || "(no template)" %>
+                </div>
+              </div>
+              <% if mapping[:transform].present? %>
+                <div class="md:col-span-2">
+                  <label class="font-medium text-content-muted block mb-1">JS Transform</label>
+                  <pre class="bg-bg-base rounded px-2 py-1.5 border border-border text-content font-mono overflow-x-auto"><%= mapping[:transform] %></pre>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="bg-bg-surface rounded-lg border border-border p-8 text-center" data-webhook-mapping-builder-target="emptyState">
+          <span class="text-3xl">🪝</span>
+          <p class="text-sm text-content-muted mt-2">No webhook mappings configured.</p>
+          <p class="text-xs text-content-muted mt-1">Use a preset above or click "Add Mapping" to create one.</p>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <%# JSON Preview %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">📋</span>
+        <h2 class="text-sm font-semibold text-content">Generated JSON</h2>
+      </div>
+      <button type="button"
+              data-action="click->webhook-mapping-builder#copyJson"
+              class="text-xs text-content-muted hover:text-content transition-colors">
+        📋 Copy
+      </button>
+    </div>
+    <div class="p-4">
+      <% mappings_preview_json = begin; JSON.pretty_generate(@mappings.map { |m| m.except(:index) }); rescue; "[]"; end %>
+      <pre data-webhook-mapping-builder-target="jsonPreview"
+           class="bg-bg-base rounded px-3 py-2 border border-border text-xs text-content font-mono overflow-x-auto max-h-60"><%= mappings_preview_json %></pre>
+    </div>
+  </section>
+
+  <%# Edit Modal %>
+  <div data-webhook-mapping-builder-target="editModal"
+       class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/50"
+       aria-modal="true" role="dialog">
+    <div class="bg-bg-surface rounded-lg border border-border w-full max-w-2xl max-h-[80vh] overflow-y-auto shadow-xl mx-4">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-content">Edit Mapping</h3>
+        <button type="button" data-action="click->webhook-mapping-builder#closeModal"
+                class="text-content-muted hover:text-content">✕</button>
+      </div>
+      <div class="p-4 space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Name</label>
+          <input type="text" data-webhook-mapping-builder-target="editName"
+                 class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Action</label>
+          <select data-webhook-mapping-builder-target="editAction"
+                  class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+            <option value="wake">Wake (system event)</option>
+            <option value="agent">Agent (spawn task)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Match Rules (JSON)</label>
+          <textarea data-webhook-mapping-builder-target="editMatch" rows="4"
+                    placeholder='{"headers": {"x-github-event": "push"}, "body": {"action": "opened"}}'
+                    class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none resize-y"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Template (uses {{body.field}} syntax)</label>
+          <textarea data-webhook-mapping-builder-target="editTemplate" rows="3"
+                    placeholder="Push to {{body.repository.full_name}}: {{body.head_commit.message}}"
+                    class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none resize-y"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">JS Transform (optional)</label>
+          <textarea data-webhook-mapping-builder-target="editTransform" rows="3"
+                    placeholder="(body, headers) => { return body.message; }"
+                    class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none resize-y"></textarea>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" data-action="click->webhook-mapping-builder#closeModal"
+                  class="px-3 py-1.5 text-xs font-medium text-content-secondary border border-border rounded-md hover:bg-bg-elevated transition-colors">
+            Cancel
+          </button>
+          <button type="button" data-action="click->webhook-mapping-builder#applyEdit"
+                  class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# Recent Webhook Logs %>
+  <% if @webhook_logs&.any? %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">📜</span>
+        <h2 class="text-sm font-semibold text-content">Recent Webhook Activity</h2>
+      </div>
+      <div class="divide-y divide-border">
+        <% @webhook_logs.each do |log| %>
+          <div class="px-4 py-2 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="<%= log.success? ? 'text-green-400' : 'text-red-400' %>">
+                <%= log.success? ? '✅' : '❌' %>
+              </span>
+              <span class="font-mono text-content"><%= log.event_type %></span>
+              <span class="text-content-muted"><%= log.direction %></span>
+            </div>
+            <span class="text-content-muted"><%= time_ago_in_words(log.created_at) %> ago</span>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</div>

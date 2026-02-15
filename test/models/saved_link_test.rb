@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "test_helper"
 
 class SavedLinkTest < ActiveSupport::TestCase
@@ -89,9 +91,41 @@ class SavedLinkTest < ActiveSupport::TestCase
   end
 
   test "does not override manually set source_type" do
-    link = SavedLink.new(user: @user, url: "https://youtube.com/watch", source_type: "custom")
+    link = SavedLink.new(user: @user, url: "https://youtube.com/watch", source_type: "article")
     link.valid?
-    assert_equal "custom", link.source_type
+    assert_equal "article", link.source_type
+  end
+
+  test "rejects invalid source_type" do
+    link = SavedLink.new(user: @user, url: "https://example.com", source_type: "unknown_type")
+    assert_not link.valid?
+    assert link.errors[:source_type].any?
+  end
+
+  # --- Length validations ---
+
+  test "url must not exceed 2048 chars" do
+    link = SavedLink.new(user: @user, url: "https://example.com/#{"a" * 2048}")
+    assert_not link.valid?
+    assert link.errors[:url].any?
+  end
+
+  test "note must not exceed 500 chars" do
+    link = SavedLink.new(user: @user, url: "https://example.com", note: "a" * 501)
+    assert_not link.valid?
+    assert link.errors[:note].any?
+  end
+
+  test "summary must not exceed 50000 chars" do
+    link = SavedLink.new(user: @user, url: "https://example.com", summary: "a" * 50_001)
+    assert_not link.valid?
+    assert link.errors[:summary].any?
+  end
+
+  test "error_message must not exceed 5000 chars" do
+    link = SavedLink.new(user: @user, url: "https://example.com", error_message: "a" * 5001)
+    assert_not link.valid?
+    assert link.errors[:error_message].any?
   end
 
   # --- Scopes ---

@@ -1,0 +1,61 @@
+<% content_for(:breadcrumb_standalone) { "⚙️ Config Hub" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">OpenClaw Config Hub</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Central navigation for all OpenClaw configuration pages.
+      </p>
+    </div>
+    <% if @health.is_a?(Hash) && @health["status"] != "unreachable" %>
+      <span class="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
+        🟢 Gateway Online
+      </span>
+    <% elsif @gateway_configured %>
+      <span class="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
+        🔴 Gateway Unreachable
+      </span>
+    <% else %>
+      <span class="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
+        ⚠️ Not Configured
+      </span>
+    <% end %>
+  </div>
+
+  <% unless @gateway_configured %>
+    <div class="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+      <p class="text-sm text-yellow-400">
+        ⚠️ Gateway not configured. <%= link_to "Set up in Settings →", settings_path, class: "underline font-medium" %>
+      </p>
+    </div>
+  <% end %>
+
+  <%# Config Sections %>
+  <% @sections.each do |section| %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border">
+        <h2 class="text-sm font-semibold text-content"><%= section[:title] %></h2>
+        <p class="text-[10px] text-content-muted mt-0.5"><%= section[:description] %></p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0 divide-y sm:divide-y-0 divide-border">
+        <% section[:pages].each do |page| %>
+          <%= link_to page[:path],
+              class: "group p-4 hover:bg-bg-elevated/50 transition-colors flex items-start gap-3 border-b sm:border-b-0 sm:border-r border-border last:border-0" do %>
+            <span class="text-xl flex-shrink-0"><%= page[:icon] %></span>
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-content group-hover:text-accent transition-colors">
+                <%= page[:name] %>
+              </div>
+              <div class="text-[10px] text-content-muted mt-0.5 leading-relaxed">
+                <%= page[:desc] %>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</div>

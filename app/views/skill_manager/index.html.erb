@@ -1,0 +1,252 @@
+<% content_for(:breadcrumb_standalone) { "🧩 Skill Manager" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-controller="skill-manager">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">Skill Manager</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Browse installed skills, configure env vars, enable/disable, and sync with ClawHub.
+      </p>
+    </div>
+    <a href="https://clawhub.com" target="_blank" rel="noopener"
+       class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors flex items-center gap-1.5">
+      🌐 Browse ClawHub
+    </a>
+  </div>
+
+  <%# Status toast %>
+  <div data-skill-manager-target="status" class="hidden text-xs px-3 py-2 rounded-md"></div>
+
+  <%# Stats Cards %>
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+    <% [
+      ["Total",     @stats[:total],     "📦"],
+      ["Enabled",   @stats[:enabled],   "✅"],
+      ["Disabled",  @stats[:disabled],  "⛔"],
+      ["Bundled",   @stats[:bundled],   "📎"],
+      ["Workspace", @stats[:workspace], "📁"],
+      ["Managed",   @stats[:managed],   "⚙️"],
+    ].each do |label, count, icon| %>
+      <div class="bg-bg-surface rounded-lg border border-border p-3 text-center">
+        <div class="text-lg"><%= icon %></div>
+        <div class="text-xl font-bold text-content"><%= count %></div>
+        <div class="text-xs text-content-muted"><%= label %></div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Install from ClawHub %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <details>
+      <summary class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2 cursor-pointer list-none">
+        <span class="text-lg">📥</span>
+        <span class="text-sm font-semibold text-content">Install from ClawHub</span>
+        <span class="text-xs text-content-muted ml-auto">Click to expand</span>
+      </summary>
+      <div class="p-4">
+        <div class="flex gap-2 items-end">
+          <div class="flex-1">
+            <label class="block text-xs font-medium text-content-muted mb-1">Skill Name</label>
+            <input type="text"
+                   data-skill-manager-target="installName"
+                   placeholder="e.g., weather, coding-agent, my-custom-skill"
+                   class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+          </div>
+          <button type="button"
+                  data-action="click->skill-manager#installSkill"
+                  class="px-4 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-500 transition-colors whitespace-nowrap">
+            Install
+          </button>
+        </div>
+        <p class="text-xs text-content-muted mt-2">
+          Adds the skill to gateway config as enabled. For disk-based skills, use
+          <code class="text-accent">clawhub install &lt;name&gt;</code> on the CLI first.
+        </p>
+      </div>
+    </details>
+  </section>
+
+  <%# Skills Config %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">⚙️</span>
+      <h2 class="text-sm font-semibold text-content">Global Skills Config</h2>
+    </div>
+    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+      <div>
+        <span class="text-content-muted">Allow Bundled:</span>
+        <span class="text-content font-medium ml-1">
+          <%= @skills_config.fetch("allowBundled", true) ? "✅ Yes" : "⛔ No" %>
+        </span>
+      </div>
+      <div>
+        <span class="text-content-muted">Extra Dirs:</span>
+        <span class="text-content font-mono text-xs ml-1">
+          <%= Array(@skills_config.dig("load", "extraDirs")).join(", ").presence || "—" %>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <%# Skills List %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">🧩</span>
+      <h2 class="text-sm font-semibold text-content">Installed Skills (<%= @installed.size %>)</h2>
+    </div>
+
+    <% if @installed.empty? %>
+      <div class="p-6 text-center text-content-muted text-sm">
+        No skills discovered. Check gateway config or install from ClawHub.
+      </div>
+    <% else %>
+      <div class="divide-y divide-border">
+        <% @installed.each do |skill| %>
+          <div class="p-4" data-skill-name="<%= skill[:name] %>">
+            <div class="flex items-start justify-between gap-3">
+              <%# Left: info %>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-semibold text-content text-sm font-mono"><%= skill[:name] %></span>
+
+                  <%# Source badge %>
+                  <% badge_colors = { "bundled" => "bg-blue-500/20 text-blue-400", "workspace" => "bg-purple-500/20 text-purple-400", "managed" => "bg-yellow-500/20 text-yellow-400", "config" => "bg-gray-500/20 text-gray-400" } %>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium <%= badge_colors[skill[:source]] || badge_colors['config'] %>">
+                    <%= skill[:source] %>
+                  </span>
+
+                  <%# Status badge %>
+                  <% if skill[:enabled] %>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-green-500/20 text-green-400">enabled</span>
+                  <% else %>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-red-500/20 text-red-400">disabled</span>
+                  <% end %>
+                </div>
+
+                <% if skill[:description].present? %>
+                  <p class="text-xs text-content-muted mt-1 leading-relaxed"><%= skill[:description] %></p>
+                <% end %>
+
+                <% if skill[:location].present? %>
+                  <p class="text-[10px] text-content-muted mt-1 font-mono truncate" title="<%= skill[:location] %>">
+                    📍 <%= skill[:location] %>
+                  </p>
+                <% end %>
+
+                <% if skill[:env_keys].present? %>
+                  <div class="mt-1 flex flex-wrap gap-1">
+                    <% skill[:env_keys].each do |key| %>
+                      <span class="text-[10px] px-1.5 py-0.5 bg-bg-elevated rounded font-mono text-content-muted"><%= key %></span>
+                    <% end %>
+                  </div>
+                <% end %>
+
+                <%# Gating requirements %>
+                <% if skill[:gating].present? %>
+                  <div class="mt-1">
+                    <% if skill[:gating]["bins"].present? %>
+                      <span class="text-[10px] text-content-muted">Requires: </span>
+                      <% Array(skill[:gating]["bins"]).each do |bin| %>
+                        <span class="text-[10px] px-1 py-0.5 bg-orange-500/10 text-orange-400 rounded font-mono"><%= bin %></span>
+                      <% end %>
+                    <% end %>
+                    <% if skill[:gating]["env"].present? %>
+                      <span class="text-[10px] text-content-muted ml-1">Env: </span>
+                      <% Array(skill[:gating]["env"]).each do |var| %>
+                        <span class="text-[10px] px-1 py-0.5 bg-cyan-500/10 text-cyan-400 rounded font-mono"><%= var %></span>
+                      <% end %>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+
+              <%# Right: actions %>
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <%# Toggle %>
+                <button type="button"
+                        data-action="click->skill-manager#toggleSkill"
+                        data-skill="<%= skill[:name] %>"
+                        data-enabled="<%= skill[:enabled] %>"
+                        class="px-2 py-1 text-[10px] font-medium rounded-md transition-colors
+                               <%= skill[:enabled] ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-green-500/20 text-green-400 hover:bg-green-500/30' %>">
+                  <%= skill[:enabled] ? "Disable" : "Enable" %>
+                </button>
+
+                <%# Configure env %>
+                <button type="button"
+                        data-action="click->skill-manager#showConfig"
+                        data-skill="<%= skill[:name] %>"
+                        data-config="<%= (skill[:config].fetch('env', {}) rescue {}).to_json %>"
+                        class="px-2 py-1 text-[10px] font-medium rounded-md bg-bg-elevated text-content-muted hover:text-content transition-colors">
+                  ⚙️ Env
+                </button>
+
+                <%# Uninstall (only for non-bundled) %>
+                <% unless skill[:source] == "bundled" %>
+                  <button type="button"
+                          data-action="click->skill-manager#uninstallSkill"
+                          data-skill="<%= skill[:name] %>"
+                          class="px-2 py-1 text-[10px] font-medium rounded-md bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors">
+                    🗑️
+                  </button>
+                <% end %>
+              </div>
+            </div>
+
+            <%# Env config panel (hidden by default) %>
+            <div data-skill-manager-target="configPanel" data-skill-panel="<%= skill[:name] %>" class="hidden mt-3 p-3 bg-bg-elevated rounded-md border border-border">
+              <label class="block text-xs font-medium text-content-muted mb-1">
+                Environment Variables (JSON object)
+              </label>
+              <textarea data-skill-manager-target="envInput"
+                        data-skill-env="<%= skill[:name] %>"
+                        rows="3"
+                        placeholder='{"API_KEY": "sk-...", "VERBOSE": "true"}'
+                        class="w-full text-xs text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none resize-y"><%= (skill[:config].fetch("env", {}) rescue {}).to_json unless skill[:config].fetch("env", {}).empty? rescue nil %></textarea>
+              <div class="flex justify-end gap-2 mt-2">
+                <button type="button"
+                        data-action="click->skill-manager#hideConfig"
+                        data-skill="<%= skill[:name] %>"
+                        class="px-2 py-1 text-[10px] font-medium rounded bg-bg-surface text-content-muted hover:text-content transition-colors">
+                  Cancel
+                </button>
+                <button type="button"
+                        data-action="click->skill-manager#saveConfig"
+                        data-skill="<%= skill[:name] %>"
+                        class="px-2 py-1 text-[10px] font-medium rounded bg-accent text-white hover:bg-accent/80 transition-colors">
+                  Save Env
+                </button>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+
+  <%# ClawHub Sync Status %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">🔄</span>
+      <h2 class="text-sm font-semibold text-content">ClawHub Sync</h2>
+    </div>
+    <div class="p-4 text-sm text-content-muted">
+      <p>
+        Use <code class="text-accent font-mono text-xs">clawhub sync</code> on the CLI to update all managed skills to latest.
+        The config UI above manages the gateway-side config; disk-level install/update requires the CLI.
+      </p>
+      <div class="mt-3 flex gap-2">
+        <a href="https://clawhub.com" target="_blank" rel="noopener"
+           class="px-3 py-1.5 text-xs font-medium bg-bg-elevated text-content rounded-md hover:bg-accent/20 transition-colors">
+          🌐 clawhub.com
+        </a>
+        <a href="https://docs.openclaw.ai/skills" target="_blank" rel="noopener"
+           class="px-3 py-1.5 text-xs font-medium bg-bg-elevated text-content rounded-md hover:bg-accent/20 transition-colors">
+          📖 Skills Docs
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
