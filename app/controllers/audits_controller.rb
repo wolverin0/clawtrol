@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class AuditsController < ApplicationController
   before_action :require_authentication
 

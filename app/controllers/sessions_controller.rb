@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class SessionsController < ApplicationController
   allow_unauthenticated_access only: %i[new create]
   redirect_authenticated_users only: %i[new]

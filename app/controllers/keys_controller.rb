@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class KeysController < ApplicationController
   # Auth handled by ApplicationController (requires login)
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ValidationSuggestionService
   MODELS = {
     "glm" => { url: "https://api.z.ai/api/coding/paas/v4/chat/completions", model: "glm-4.7-flash" }
