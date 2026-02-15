@@ -11,7 +11,7 @@ class TaskPipelineStageTest < ActiveSupport::TestCase
   # --- Enum values ---
 
   test "pipeline_stage enum has all expected values" do
-    expected = %w[unstarted classified researched planned dispatched verified pipeline_done]
+    expected = %w[unstarted triaged context_ready routed executing verifying completed failed]
     assert_equal expected, Task.pipeline_stages.keys
   end
 
@@ -22,81 +22,103 @@ class TaskPipelineStageTest < ActiveSupport::TestCase
 
   # --- Valid transitions ---
 
-  test "can transition from unstarted to classified" do
+  test "can transition from unstarted to triaged" do
     task = create_task(pipeline_stage: :unstarted)
-    task.pipeline_stage = :classified
-    assert task.valid?, "Expected unstarted→classified to be valid: #{task.errors.full_messages}"
+    task.pipeline_stage = :triaged
+    assert task.valid?, "Expected unstarted→triaged to be valid: #{task.errors.full_messages}"
   end
 
-  test "can transition from classified to researched" do
-    task = create_task(pipeline_stage: :classified)
-    task.pipeline_stage = :researched
-    assert task.valid?, "Expected classified→researched to be valid: #{task.errors.full_messages}"
+  test "can transition from triaged to context_ready" do
+    task = create_task(pipeline_stage: :triaged)
+    task.pipeline_stage = :context_ready
+    assert task.valid?, "Expected triaged→context_ready to be valid: #{task.errors.full_messages}"
   end
 
-  test "can transition from researched to planned" do
-    task = create_task(pipeline_stage: :researched)
-    task.pipeline_stage = :planned
-    assert task.valid?, "Expected researched→planned to be valid: #{task.errors.full_messages}"
+  test "can transition from context_ready to routed" do
+    task = create_task(pipeline_stage: :context_ready)
+    task.pipeline_stage = :routed
+    assert task.valid?, "Expected context_ready→routed to be valid: #{task.errors.full_messages}"
   end
 
-  test "can transition from classified to planned (skip researched)" do
-    task = create_task(pipeline_stage: :classified)
-    task.pipeline_stage = :planned
-    assert task.valid?, "Expected classified→planned to be valid (shortcut): #{task.errors.full_messages}"
+  test "can transition from routed to executing" do
+    task = create_task(pipeline_stage: :routed, compiled_prompt: "Do the thing")
+    task.pipeline_stage = :executing
+    assert task.valid?, "Expected routed→executing to be valid: #{task.errors.full_messages}"
   end
 
-  test "can transition from planned to dispatched with execution_plan" do
-    task = create_task(pipeline_stage: :planned, execution_plan: "1. Do the thing")
-    task.pipeline_stage = :dispatched
-    assert task.valid?, "Expected planned→dispatched with plan to be valid: #{task.errors.full_messages}"
+  test "can transition from executing to verifying" do
+    task = create_task(pipeline_stage: :executing, compiled_prompt: "Do the thing")
+    task.pipeline_stage = :verifying
+    assert task.valid?, "Expected executing→verifying to be valid: #{task.errors.full_messages}"
   end
 
-  test "can transition from dispatched to verified" do
-    task = create_task(pipeline_stage: :dispatched, execution_plan: "plan for dispatch")
-    task.pipeline_stage = :verified
-    assert task.valid?, "Expected dispatched→verified to be valid: #{task.errors.full_messages}"
+  test "can transition from verifying to completed" do
+    task = create_task(pipeline_stage: :verifying, compiled_prompt: "Do the thing")
+    task.pipeline_stage = :completed
+    assert task.valid?, "Expected verifying→completed to be valid: #{task.errors.full_messages}"
   end
 
-  test "can transition from verified to pipeline_done" do
-    task = create_task(pipeline_stage: :verified, execution_plan: "plan")
-    task.pipeline_stage = :pipeline_done
-    assert task.valid?, "Expected verified→pipeline_done to be valid: #{task.errors.full_messages}"
+  test "can transition from executing to completed (skip verifying)" do
+    task = create_task(pipeline_stage: :executing, compiled_prompt: "Do the thing")
+    task.pipeline_stage = :completed
+    assert task.valid?, "Expected executing→completed (shortcut) to be valid: #{task.errors.full_messages}"
+  end
+
+  # --- Failed state transitions ---
+
+  test "can transition from any active stage to failed" do
+    %i[unstarted triaged context_ready routed].each do |stage|
+      task = create_task(pipeline_stage: stage)
+      task.pipeline_stage = :failed
+      assert task.valid?, "Expected #{stage}→failed to be valid: #{task.errors.full_messages}"
+    end
+    # executing and verifying need compiled_prompt
+    %i[executing verifying].each do |stage|
+      task = create_task(pipeline_stage: stage, compiled_prompt: "Prompt for #{stage}")
+      task.pipeline_stage = :failed
+      assert task.valid?, "Expected #{stage}→failed to be valid: #{task.errors.full_messages}"
+    end
+  end
+
+  test "can transition from failed back to triaged" do
+    task = create_task(pipeline_stage: :failed)
+    task.pipeline_stage = :triaged
+    assert task.valid?, "Expected failed→triaged (retry) to be valid: #{task.errors.full_messages}"
   end
 
   # --- Invalid transitions ---
 
-  test "cannot skip from unstarted to planned" do
+  test "cannot skip from unstarted to routed" do
     task = create_task(pipeline_stage: :unstarted)
-    task.pipeline_stage = :planned
+    task.pipeline_stage = :routed
     assert_not task.valid?
     assert_includes task.errors[:pipeline_stage].join, "cannot transition"
   end
 
-  test "cannot skip from unstarted to dispatched" do
+  test "cannot skip from unstarted to executing" do
     task = create_task(pipeline_stage: :unstarted)
-    task.pipeline_stage = :dispatched
+    task.pipeline_stage = :executing
     assert_not task.valid?
     assert_includes task.errors[:pipeline_stage].join, "cannot transition"
   end
 
-  test "cannot go backwards from dispatched to classified" do
-    task = create_task(pipeline_stage: :dispatched, execution_plan: "plan")
-    task.pipeline_stage = :classified
+  test "cannot go backwards from routed to triaged" do
+    task = create_task(pipeline_stage: :routed)
+    task.pipeline_stage = :triaged
     assert_not task.valid?
     assert_includes task.errors[:pipeline_stage].join, "cannot transition"
   end
 
-  test "cannot skip from classified to verified" do
-    task = create_task(pipeline_stage: :classified)
-    task.pipeline_stage = :verified
+  test "cannot skip from triaged to executing" do
+    task = create_task(pipeline_stage: :triaged, compiled_prompt: "Prompt")
+    task.pipeline_stage = :executing
     assert_not task.valid?
     assert_includes task.errors[:pipeline_stage].join, "cannot transition"
   end
 
-  test "cannot go from pipeline_done backwards" do
-    task = create_task(pipeline_stage: :pipeline_done, execution_plan: "plan")
-    task.pipeline_stage = :dispatched
+  test "cannot go from completed backwards" do
+    task = create_task(pipeline_stage: :completed, compiled_prompt: "Prompt")
+    task.pipeline_stage = :executing
     assert_not task.valid?
     assert_includes task.errors[:pipeline_stage].join, "cannot transition"
   end
@@ -104,40 +126,15 @@ class TaskPipelineStageTest < ActiveSupport::TestCase
   # --- Edge cases ---
 
   test "same stage is valid (no-op)" do
-    task = create_task(pipeline_stage: :planned)
-    task.pipeline_stage = :planned
+    task = create_task(pipeline_stage: :triaged)
+    task.pipeline_stage = :triaged
     assert task.valid?, "Expected no-op transition to be valid"
   end
 
-  test "new record can start at stages that don't require prerequisites" do
-    %i[unstarted classified researched planned].each do |stage|
-      task = Task.new(name: "Start at #{stage}", board: @board, user: @user, pipeline_stage: stage)
-      assert task.valid?, "Expected new record at #{stage} to be valid: #{task.errors.full_messages}"
-    end
-  end
-
-  test "new record at dispatched requires execution_plan" do
-    task = Task.new(name: "Start at dispatched", board: @board, user: @user, pipeline_stage: :dispatched)
-    assert_not task.valid?
-    task.execution_plan = "Step 1: Do X"
+  test "new record defaults to unstarted" do
+    task = Task.new(name: "New task", board: @board, user: @user)
+    assert_equal "unstarted", task.pipeline_stage
     assert task.valid?, task.errors.full_messages.join(", ")
-  end
-
-  # --- PIPELINE_TRANSITIONS constant ---
-
-  # --- Dispatched requires execution_plan ---
-
-  test "cannot dispatch without execution_plan" do
-    task = create_task(pipeline_stage: :planned)
-    task.pipeline_stage = :dispatched
-    assert_not task.valid?
-    assert_includes task.errors[:pipeline_stage].join, "execution_plan"
-  end
-
-  test "can dispatch with execution_plan" do
-    task = create_task(pipeline_stage: :planned, execution_plan: "Step 1: Do X\nStep 2: Do Y")
-    task.pipeline_stage = :dispatched
-    assert task.valid?, "Expected dispatch with plan to be valid: #{task.errors.full_messages}"
   end
 
   # --- PIPELINE_TRANSITIONS constant ---
@@ -146,6 +143,10 @@ class TaskPipelineStageTest < ActiveSupport::TestCase
     Task.pipeline_stages.keys.each do |stage|
       assert Task::PIPELINE_TRANSITIONS.key?(stage), "Missing PIPELINE_TRANSITIONS entry for #{stage}"
     end
+  end
+
+  test "PIPELINE_STAGES constant matches enum keys" do
+    assert_equal Task::PIPELINE_STAGES, Task.pipeline_stages.keys
   end
 
   private
