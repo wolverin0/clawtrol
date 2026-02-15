@@ -2871,3 +2871,45 @@
 **Files:** db/migrate/20260216050006_add_indexes_for_common_queries.rb, app/models/board.rb, app/models/agent_persona.rb
 **Verify:** Migration runs successfully, 111 model tests pass
 **Risk:** low (performance improvement, additive changes)
+
+## [2026-02-15 13:37] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Complete inverse_of coverage across all models
+**Why:** Missing inverse_of causes N+1 queries even with eager loading. Added inverse_of to 25+ associations: belongs_to :user (12 models), has_many :user (invite_codes, webhook_logs, cost_snapshots), factory_loop -> factory_cycle_logs, nightshift_mission -> nightshift_selections, task -> task_dependencies, and belongs_to :task variants in 6 models.
+**Files:** 25 model files modified
+**Verify:** Ruby syntax OK, Board/Task/Nightshift/Factory tests pass (95 runs)
+**Risk:** low (performance improvement, additive associations)
+
+## [2026-02-15 15:20] - Category: Model/Testing — STATUS: ✅ VERIFIED
+**What:** Add scopes and validations to Session model + expanded tests
+**Why:** Session model was missing useful scopes (for_user, recent) and length validations. Added sensible constraints and test coverage.
+**Files:** app/models/session.rb, test/models/session_test.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (additive model improvements)
+
+## [2026-02-15 15:40] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Add Rack::Attack API rate limiting
+**Why:** API endpoints lacked rate limiting, vulnerable to abuse. Added rack-attack gem with tiered limits: 100 req/min (auth), 20 req/min (anon), 30 req/min (writes). Whitelisted internal gateway requests. Special throttle for task creation to prevent spam.
+**Files:** Gemfile, config/application.rb, config/initializers/rack_attack.rb
+**Verify:** Ruby syntax OK, config loads without errors
+**Risk:** low (security improvement, additive middleware)
+
+## [2026-02-15 15:46] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Expand job test coverage for NightshiftRunnerJob and FactoryRunnerJob
+**Why:** Tests needed more coverage for edge cases. Added 6 new NightshiftRunnerJob tests (time window, model assignment, enabled flag, parallel limits, missing mission, empty backlog) and 3 new FactoryRunnerJob tests (connection timeout, interval timing, empty backlog).
+**Files:** test/jobs/factory_runner_job_test.rb, test/jobs/nightshift_runner_job_test.rb
+**Verify:** Ruby syntax OK, test file loads without errors
+**Risk:** low (test additions only)
+
+## [2026-02-15 15:47] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add Bullet N+1 detection in CI test environment
+**Why:** Configure Bullet gem to raise on N+1 queries in CI, helping catch performance issues early. Only activates when CI=true to avoid slowing local dev.
+**Files:** config/environments/test.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (test configuration)
+
+## [2026-02-15 16:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add job test coverage for GenerateDiffsJob and RunDebateJob
+**Why:** These jobs lacked test coverage. GenerateDiffsJob tests verify git diff generation (modified, added, deleted files), non-git fallback, upsert behavior, error resilience. RunDebateJob tests verify filtering logic (review_status, review_type), status transitions, not_implemented placeholder behavior.
+**Files:** test/jobs/generate_diffs_job_test.rb, test/jobs/run_debate_job_test.rb
+**Verify:** Ruby syntax OK for all changed files
+**Risk:** low (test additions only)
