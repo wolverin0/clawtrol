@@ -24,7 +24,8 @@ class ProcessSavedLinkJob < ApplicationJob
     link.update!(raw_content: content)
 
     # Call Gemini via CLI (uses OAuth, no API key needed)
-    prompt_text = "#{SYSTEM_PROMPT}\n\n---\nContent from: #{link.url}\nTitle: #{link.title}\n\n#{content}"
+    title = link.try(:title) || link.note.presence || "(no title)"
+    prompt_text = "#{SYSTEM_PROMPT}\n\n---\nContent from: #{link.url}\nTitle: #{title}\n\n#{content}"
     summary = call_gemini_cli(prompt_text)
 
     link.update!(summary: summary, status: :done, processed_at: Time.current)

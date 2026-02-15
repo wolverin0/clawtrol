@@ -4,4 +4,10 @@ class ApplicationJob < ActiveJob::Base
 
   # Most jobs are safe to ignore if the underlying records are no longer available
   # discard_on ActiveJob::DeserializationError
+
+  private
+
+  def app_base_url
+    Rails.application.config.app_base_url.chomp("/")
+  end
 end
