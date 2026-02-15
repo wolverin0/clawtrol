@@ -43,6 +43,32 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, @workflow.active
   end
 
+  test "cannot update global workflow" do
+    global = workflows(:global_workflow)
+    patch workflow_path(global), params: {
+      workflow: { title: "Hacked" }
+    }
+    assert_redirected_to workflows_path
+    assert_nil global.reload.title.match(/Hacked/)
+  end
+
+  test "cannot update other users workflow" do
+    other = workflows(:other_user_workflow)
+    patch workflow_path(other), params: {
+      workflow: { title: "Stolen" }
+    }
+    # for_user scope doesn't include other user's workflows, so 404
+    assert_response :not_found
+  end
+
+  test "update via JSON format returns forbidden for global workflow" do
+    global = workflows(:global_workflow)
+    patch workflow_path(global), params: {
+      workflow: { title: "Hacked" }
+    }, as: :json
+    assert_response :forbidden
+  end
+
   private
 
 
