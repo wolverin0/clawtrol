@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class FeedEntry < ApplicationRecord
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
+
   belongs_to :user
 
   enum :status, { unread: 0, read: 1, saved: 2, dismissed: 3 }, default: :unread

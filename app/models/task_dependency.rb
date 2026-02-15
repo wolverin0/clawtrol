@@ -1,7 +1,10 @@
 # frozen_string_literal: true
 
 class TaskDependency < ApplicationRecord
-  belongs_to :task, inverse_of: :task
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
+
+  belongs_to :task, inverse_of: :task_dependencies
   belongs_to :depends_on, class_name: "Task"
 
   validates :task_id, uniqueness: { scope: :depends_on_id, message: "already has this dependency" }

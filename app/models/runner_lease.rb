@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class RunnerLease < ApplicationRecord
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
+
   belongs_to :task
 
   LEASE_DURATION = 15.minutes

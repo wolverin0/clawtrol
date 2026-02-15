@@ -6,7 +6,7 @@
 
 # Captured daily/weekly/monthly by CostSnapshotService.
 class CostSnapshot < ApplicationRecord
-  belongs_to :user, inverse_of: :user
+  belongs_to :user, inverse_of: :cost_snapshots
 
   PERIODS = %w[daily weekly monthly].freeze
 
