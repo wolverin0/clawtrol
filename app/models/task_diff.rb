@@ -3,8 +3,11 @@
 class TaskDiff < ApplicationRecord
   belongs_to :task
 
-  validates :file_path, presence: true, uniqueness: { scope: :task_id }
-  validates :diff_type, inclusion: { in: %w[modified added deleted] }
+  DIFF_TYPES = %w[modified added deleted].freeze
+
+  validates :file_path, presence: true, uniqueness: { scope: :task_id }, length: { maximum: 1_000 }
+  validates :diff_type, presence: true, inclusion: { in: DIFF_TYPES }
+  validates :diff_content, length: { maximum: 500_000 }, allow_nil: true
 
   # Parse the unified diff into structured lines for rendering
   def parsed_lines

@@ -2496,3 +2496,10 @@
 **Files:** db/migrate/20260216050005_add_auto_runner_partial_index_to_tasks.rb
 **Verify:** migration ran ✅, 4 agent_auto_runner_service tests pass ✅
 **Risk:** low (additive index, no schema changes to existing data)
+
+## [2026-02-15 08:26] - Category: Code Quality + Testing — STATUS: ✅ VERIFIED
+**What:** Added missing validations to TaskDiff model: `file_path` length limit (max 1000), `diff_content` length limit (max 500KB), `diff_type` presence validation, and extracted DIFF_TYPES constant. Added 4 new tests for these validations.
+**Why:** TaskDiff stores user-generated content (file paths from agent output, diff content from git). Without length limits, a malicious or buggy agent could store arbitrarily large diffs or paths, consuming DB storage. The diff_type presence validation was implicitly covered by inclusion but explicit is clearer.
+**Files:** app/models/task_diff.rb, test/models/task_diff_test.rb
+**Verify:** 24 task_diff tests pass (20 existing + 4 new) ✅
+**Risk:** low (additive validations with generous limits)
