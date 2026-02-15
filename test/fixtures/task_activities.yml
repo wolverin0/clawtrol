@@ -1,0 +1,20 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+created:
+  task: one
+  user: one
+  action: created
+  source: web
+  actor_type: user
+
+moved:
+  task: one
+  user: one
+  action: moved
+  field_name: status
+  old_value: inbox
+  new_value: up_next
+  source: api
+  actor_type: agent
+  actor_name: Otacon
+  actor_emoji: "📟"
