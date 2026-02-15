@@ -5,7 +5,7 @@ class AgentMessage < ApplicationRecord
   strict_loading :n_plus_one
 
   belongs_to :task, inverse_of: :agent_messages
-  belongs_to :source_task, class_name: "Task", optional: true, inverse_of: :inverse_dependencies
+  belongs_to :source_task, class_name: "Task", optional: true
 
   DIRECTIONS = %w[incoming outgoing].freeze
   MESSAGE_TYPES = %w[output handoff feedback error].freeze
