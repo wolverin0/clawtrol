@@ -7,6 +7,10 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- audit ingest API + auto-update interventions (#649) (`a343eb9`)
+- self-audit dashboard with trend charts + intervention tracker (#648) (`c6b1578`)
+- add audit_reports + behavioral_interventions tables (`6735905`)
+- inline edit note with pencil icon (#645) (`67f643e`)
 - wave 3 integration -- MiniMax factory 140 commits merged (`6f9b973`)
 - **boards:** agent factory - auto-generate personas per board (`cf09f2a`)
 - **tasks:** add deep research toggle for multi-agent analysis (#641) (`4ed32b2`)
@@ -190,6 +194,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`fc59ba7`)
 - add wave 3 features to README — pipeline, swarm, config hub, factory, API endpoints (`7e5cf33`)
 - update CHANGELOG.md [skip ci] (`2167a6d`)
 - update CHANGELOG.md [skip ci] (`2cd17d3`)
