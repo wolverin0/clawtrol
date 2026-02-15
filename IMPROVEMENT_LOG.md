@@ -2769,3 +2769,10 @@
 **Files:** test/services/transcript_watcher_test.rb
 **Verify:** 11 runs, 24 assertions, 0 failures, 0 errors
 **Risk:** low — test-only change
+
+## [2026-02-15 10:18] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add frozen_string_literal pragma to remaining 41 Ruby files
+**Why:** Previous factory run added pragma to 29 files but missed 41 more (mostly test files). frozen_string_literal: true prevents accidental string mutation, reduces object allocations, and is a Rails/Ruby best practice. Now ALL .rb files in app/ and test/ have the pragma.
+**Files:** 41 files across test/models, test/controllers, test/services, test/views, test/helpers, test/mailers
+**Verify:** All 41 files pass ruby -c, full test suite: 1964 runs, 4493 assertions, 0 failures, 0 errors
+**Risk:** low — pragma only, no behavioral change
