@@ -2,6 +2,7 @@
 
 class CompactionConfigController < ApplicationController
   include GatewayClientAccessible
+  include GatewayConfigPatchable
   before_action :require_authentication
   before_action :ensure_gateway_configured!
 
@@ -17,21 +18,13 @@ class CompactionConfigController < ApplicationController
 
   # PATCH /compaction-config
   def update
-    patch = build_patch
-
-    result = gateway_client.config_patch(
-      raw: patch.to_json,
-      reason: "Compaction/pruning config updated via ClawTrol"
+    patch_and_redirect(
+      build_patch,
+      redirect_path: compaction_config_path,
+      cache_key: "compaction_cfg",
+      reason: "Compaction/pruning config updated via ClawTrol",
+      success_message: "Compaction & pruning config updated."
     )
-
-    if result["error"].present?
-      redirect_to compaction_config_path, alert: "Failed: #{result['error']}"
-    else
-      invalidate_config_cache("compaction_cfg")
-      redirect_to compaction_config_path, notice: "Compaction & pruning config updated."
-    end
-  rescue StandardError => e
-    redirect_to compaction_config_path, alert: "Error: #{e.message}"
   end
 
   private

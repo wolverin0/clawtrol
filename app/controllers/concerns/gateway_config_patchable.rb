@@ -102,6 +102,30 @@ module GatewayConfigPatchable
     config.is_a?(Hash) ? (config["config"] || config) : {}
   end
 
+  # Apply a config patch and redirect back.
+  # DRYs the common pattern across config controllers that use redirect (not JSON).
+  #
+  # @param patch [Hash] the config patch to apply
+  # @param redirect_path [String] path to redirect to
+  # @param cache_key [String, nil] optional cache key to invalidate on success
+  # @param reason [String] human-readable reason for the change
+  # @param success_message [String] flash notice on success
+  def patch_and_redirect(patch, redirect_path:, cache_key: nil, reason: "Config updated via ClawTrol", success_message: "Configuration updated.")
+    result = gateway_client.config_patch(
+      raw: patch.to_json,
+      reason: reason
+    )
+
+    if result["error"].present?
+      redirect_to redirect_path, alert: "Failed: #{result['error']}"
+    else
+      invalidate_config_cache(cache_key) if cache_key.present?
+      redirect_to redirect_path, notice: success_message
+    end
+  rescue StandardError => e
+    redirect_to redirect_path, alert: "Error: #{e.message}"
+  end
+
   # cached_config_get and invalidate_config_cache are now provided by
   # GatewayClientAccessible (available to all gateway-connected controllers).
 end
