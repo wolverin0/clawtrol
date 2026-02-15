@@ -2727,3 +2727,10 @@
 **Files:** app/jobs/concerns/task_broadcastable.rb (new), run_validation_job.rb, run_debate_job.rb, auto_validation_job.rb
 **Verify:** ruby -c all OK, 44 job tests pass (0 failures)
 **Risk:** low — pure refactor, behavior preserved
+
+## [2026-02-15 09:50] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 17 tests for ValidationSuggestionService (replaced 0-assertion stub)
+**Why:** Service had auto-generated skip test with 0 assertions. Added 17 real tests covering: empty/nil output_files, test file detection (_test.rb/_spec.rb), view-only/CSS-only skipping, JS syntax checking, Ruby implementation→test file matching, Python fallback, unknown file types, class method interface, and rule_based_only mode.
+**Files:** test/services/validation_suggestion_service_test.rb
+**Verify:** 17 runs, 24 assertions, 0 failures, 0 errors
+**Risk:** low — test-only change
