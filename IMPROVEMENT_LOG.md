@@ -2762,3 +2762,10 @@
 **Files:** test/services/ai_suggestion_service_test.rb
 **Verify:** 10 runs, 23 assertions, 0 failures, 0 errors
 **Risk:** low — test-only change
+
+## [2026-02-15 10:14] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 11 tests for TranscriptWatcher (replaced 0-assertion stub)
+**Why:** Service had auto-generated skip test with 0 assertions. Added 11 real tests covering: singleton behavior, running state tracking, session ID validation regex (valid alphanumeric and dangerous path traversal IDs), offset tracking and reset, task lookup by session (matching in_progress, empty for unknown, excludes non-active statuses), stop idempotency, and offset clearing on stop.
+**Files:** test/services/transcript_watcher_test.rb
+**Verify:** 11 runs, 24 assertions, 0 failures, 0 errors
+**Risk:** low — test-only change
