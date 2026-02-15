@@ -2159,3 +2159,10 @@
 **Files:** test/controllers/concerns/ssrf_protection_test.rb
 **Verify:** 21 runs, 29 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 06:18] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** HeartbeatConfigController test suite (13 tests)
+**Why:** Heartbeat config controller with zero test coverage — manages agent heartbeat intervals, quiet hours, model selection, ack settings. Tests cover: auth (2), gateway config (2), show (1), enabled toggle (1), interval clamping (1), ack_max_chars clamping (1), quiet hours (2), model/channel (1), prompt (1), reasoning toggle (1)
+**Files:** test/controllers/heartbeat_config_controller_test.rb
+**Verify:** 13 runs, 27 assertions, 0 failures, 0 errors ✅
+**Risk:** low
