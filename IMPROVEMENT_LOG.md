@@ -2035,3 +2035,78 @@
 **Files:** db/migrate/20260216050001_add_remaining_fk_indexes.rb, db/schema.rb
 **Verify:** Migration ran successfully. Full suite: 1434 runs, 3387 assertions, 0 failures, 0 errors ✅
 **Risk:** low (additive, concurrent index creation)
+
+## [2026-02-15 05:48] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added Pipeline::AutoReviewService tests (17 tests, 34 assertions). Covers all 7 decision paths: empty output, failure markers, run_count guard, research/docs auto-approve, trivial/quick-fix auto-approve, validation_command execution, and default fallback. Edge cases include nil findings, threshold boundary (100 chars), and priority ordering.
+**Why:** Last untested pipeline service. The auto-review logic is critical — wrong decisions either let bad work through or create infinite requeue loops.
+**Files:** test/services/pipeline/auto_review_service_test.rb
+**Verify:** 17 runs, 34 assertions, 0 failures, 0 errors ✅
+**Risk:** low
+
+## [2026-02-15 05:56] - Category: Code Quality + Security — STATUS: ✅ VERIFIED
+**What:** Extracted `Api::HookAuthentication` concern with `authenticate_hook_token!` method. Removed duplicate hook token auth code from HooksController (2 instances) and NightshiftController (1 instance). All use `ActiveSupport::SecurityUtils.secure_compare` for timing-attack protection.
+**Why:** Same 5-line auth block was copy-pasted in 3 locations across 2 controllers. Single concern ensures consistency and makes hook auth changes atomic.
+**Files:** app/controllers/concerns/api/hook_authentication.rb, app/controllers/api/v1/hooks_controller.rb, app/controllers/api/v1/nightshift_controller.rb
+**Verify:** 121 API tests pass, 0 failures, 0 errors ✅
+**Risk:** low
+
+## [2026-02-15 06:05] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed Pipeline::Orchestrator `process!` method that didn't handle "unstarted" stage (the DB default). The case statement only matched `nil` and `""`, but `pipeline_stage` has `default: "unstarted", null: false`. New tasks with pipelines enabled were silently skipped. Added 13 tests covering all stage transitions, `ready_for_execution?`, `MAX_ITERATIONS` guard, and user override.
+**Why:** Critical bug — every new pipeline-enabled task would never start processing because "unstarted" didn't match any case branch.
+**Files:** app/services/pipeline/orchestrator.rb, test/services/pipeline/orchestrator_test.rb
+**Verify:** 64 pipeline tests pass, 0 failures ✅
+**Risk:** medium (fix changes pipeline behavior for new tasks)
+
+## [2026-02-15 06:12] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added ownership authorization in WorkflowsController#update. Previously, the `for_user` scope included global workflows (user_id: nil), allowing any authenticated user to edit them. Now returns 403 Forbidden when trying to update a workflow you don't own. Added 3 tests covering: global workflow protection, other user's workflow protection, and JSON format response.
+**Why:** Any user could edit shared/global workflows via the `for_user` scope which includes null user_id records.
+**Files:** app/controllers/workflows_controller.rb, test/controllers/workflows_controller_test.rb
+**Verify:** 7 runs, 16 assertions, 0 failures ✅
+**Risk:** low (additive auth check, no behavior change for own workflows)
+
+## [2026-02-15 06:18] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Added comprehensive SwarmIdea model validations: category inclusion (CATEGORIES), suggested_model inclusion (MODELS), difficulty inclusion (easy/medium/hard), title length (max 500), description length (max 10K), icon length (max 10), estimated_minutes upper bound (480), times_launched non-negative. Added 11 new model tests covering all new validations.
+**Why:** Model had only `title: presence` and basic numericality. No input validation on category, model, difficulty, or string lengths — could accept arbitrary data.
+**Files:** app/models/swarm_idea.rb, test/models/swarm_idea_test.rb
+**Verify:** 27 model tests + 15 controller tests pass, 0 failures ✅
+**Risk:** low (validations use allow_blank to not break existing data)
+
+## [2026-02-15 06:24] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Fixed bare `rescue` in TokenUsage.resolve_persona_id to `rescue StandardError`. Bare rescue catches all exceptions including SignalException, SystemExit, LoadError — masking real errors.
+**Why:** Ruby style guide: never use bare rescue. Only the single instance in the app.
+**Files:** app/models/token_usage.rb
+**Verify:** Full suite: 1477 runs, 3461 assertions, 0 failures, 0 errors ✅
+**Risk:** low
+
+---
+
+## Session Summary (2026-02-15 05:07 - 06:25)
+
+**11 improvement cycles in ~78 minutes**
+
+### Key Metrics
+- **Tests added:** 75 new tests, 187 new assertions
+- **Bugs fixed:** 3 (missing workflow fixture, Orchestrator "unstarted" stage, bare rescue)
+- **Security fixes:** 2 (workflow ownership auth, Api::HookAuthentication DRY)
+- **Starting suite:** 1402 runs, 3274 assertions, 6 errors
+- **Final suite:** 1477 runs, 3461 assertions, 0 failures, 0 errors
+
+### Improvements by Category
+1. **Bug Fix:** Missing workflow fixture (6 errors → 0)
+2. **Testing:** AuditsController + BehavioralInterventionsController tests (17 tests)
+3. **Testing:** SwarmController tests (15 tests, IDOR verified)
+4. **Code Quality:** DRY GatewayConfigController (extract validation helpers)
+5. **Performance:** 4 missing FK indexes (tasks.board_id, agent_persona_id, followup_task_id, nightshift_selections.nightshift_mission_id)
+6. **Testing:** Pipeline::AutoReviewService tests (17 tests, all decision paths)
+7. **Code Quality + Security:** Extract Api::HookAuthentication concern (DRY 3 controllers)
+8. **Bug Fix + Testing:** Fix Orchestrator missing "unstarted" stage + 13 tests
+9. **Security:** Workflow ownership authorization (prevent editing global/others' workflows)
+10. **Code Quality:** SwarmIdea model validations (8 new validations + 11 tests)
+11. **Code Quality:** Fix bare rescue in TokenUsage
+
+## [2026-02-15 05:38] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** EnvManagerController comprehensive test suite (17 tests)
+**Why:** Security-sensitive controller handling .env file contents with zero test coverage. Tests cover: auth (3), gateway config (3), file contents redaction (2), substitution validation (8), value leak prevention (1)
+**Files:** test/controllers/env_manager_controller_test.rb
+**Verify:** 17 runs, 243 assertions, 0 failures, 0 errors ✅
+**Risk:** low
