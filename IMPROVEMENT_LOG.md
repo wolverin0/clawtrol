@@ -2527,3 +2527,10 @@
 6. **Architecture:** Move DB query from view to controller in SavedLinksController
 7. **Performance:** Partial index for auto-runner candidate task queries
 8. **Code Quality + Testing:** TaskDiff validations (length limits) + 4 new tests
+
+## [2026-02-15 08:40] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed unscoped WebhookLog query in HooksDashboardController (data leak: user A could see user B's webhook logs). Added 7 controller tests including auth, gateway config, error handling, source detection, and user-scoping verification.
+**Why:** `WebhookLog.order(created_at: :desc).limit(25)` was unscoped — any authenticated user could see ALL webhook logs regardless of ownership. Fixed to `WebhookLog.where(user: current_user)`. This is a real data isolation bug.
+**Files:** app/controllers/hooks_dashboard_controller.rb, test/controllers/hooks_dashboard_controller_test.rb (new)
+**Verify:** 7 tests pass, 12 assertions, 0 failures ✅
+**Risk:** low (scoping fix is additive, tests confirm behavior)
