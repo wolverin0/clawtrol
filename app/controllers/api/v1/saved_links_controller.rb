@@ -43,11 +43,20 @@ module Api
       end
 
       def saved_link_params
-        params.permit(:url, :note)
+        params.permit(:url, :note, :deep_summary, :summary_file_path)
       end
 
       def update_params
-        params.permit(:note, :summary, :raw_content, :status, :processed_at, :error_message)
+        params.permit(
+          :note,
+          :summary,
+          :raw_content,
+          :status,
+          :processed_at,
+          :error_message,
+          :deep_summary,
+          :summary_file_path
+        )
       end
     end
   end

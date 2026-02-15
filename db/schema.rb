@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_16_050006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -127,6 +127,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.integer "tool_call_count"
     t.integer "total_tokens"
     t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "idx_agent_transcripts_cleanup"
     t.index ["session_id"], name: "index_agent_transcripts_on_session_id", unique: true
     t.index ["task_id"], name: "index_agent_transcripts_on_task_id"
     t.index ["task_run_id"], name: "index_agent_transcripts_on_task_run_id"
@@ -238,6 +239,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.jsonb "state_before"
     t.string "status", default: "running", null: false
     t.text "summary"
+    t.index ["factory_loop_id", "created_at"], name: "idx_cycle_logs_loop_created"
     t.index ["factory_loop_id", "created_at"], name: "idx_cycle_logs_loop_recent", order: { created_at: :desc }
     t.index ["factory_loop_id", "cycle_number"], name: "idx_cycle_logs_loop_cycle", unique: true
     t.index ["factory_loop_id"], name: "index_factory_cycle_logs_on_factory_loop_id"
@@ -374,6 +376,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.index ["task_id"], name: "index_notifications_on_task_id"
     t.index ["user_id", "created_at"], name: "index_notifications_on_user_id_and_created_at", order: { created_at: :desc }
     t.index ["user_id", "event_type", "created_at"], name: "index_notifications_on_dedup", order: { created_at: :desc }
+    t.index ["user_id", "read_at", "created_at"], name: "idx_notifications_inbox"
     t.index ["user_id", "read_at"], name: "index_notifications_on_user_unread"
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
@@ -408,7 +411,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
 
   create_table "saved_links", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.boolean "deep_summary", default: false
+    t.boolean "deep_summary", default: false, null: false
     t.string "error_message"
     t.string "note"
     t.datetime "processed_at"
@@ -422,6 +425,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.bigint "user_id", null: false
     t.index ["status"], name: "index_saved_links_on_status"
     t.index ["user_id", "created_at"], name: "index_saved_links_on_user_id_and_created_at", order: { created_at: :desc }
+    t.index ["user_id", "url"], name: "index_saved_links_on_user_id_and_url", unique: true
     t.index ["user_id"], name: "index_saved_links_on_user_id"
   end
 
@@ -584,6 +588,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.index ["board_id"], name: "index_swarm_ideas_on_board_id"
     t.index ["category"], name: "index_swarm_ideas_on_category"
     t.index ["user_id", "enabled"], name: "index_swarm_ideas_on_user_id_and_enabled"
     t.index ["user_id", "favorite"], name: "index_swarm_ideas_on_user_id_and_favorite"
@@ -648,6 +653,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.text "summary"
     t.bigint "task_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["openclaw_session_id"], name: "index_task_runs_on_openclaw_session_id"
     t.index ["run_id"], name: "index_task_runs_on_run_id", unique: true
     t.index ["task_id", "run_number"], name: "index_task_runs_on_task_id_and_run_number", unique: true
     t.index ["task_id"], name: "index_task_runs_on_task_id"
@@ -705,6 +711,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.datetime "last_outcome_at"
     t.string "last_recommended_action"
     t.uuid "last_run_id"
+    t.integer "lock_version", default: 0, null: false
     t.string "model"
     t.string "name"
     t.datetime "next_recurrence_at"
@@ -742,18 +749,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.text "validation_output"
     t.string "validation_status"
     t.index ["agent_persona_id"], name: "index_tasks_on_agent_persona_id"
+    t.index ["agent_persona_id"], name: "index_tasks_on_agent_persona_id_partial", where: "(agent_persona_id IS NOT NULL)"
     t.index ["agent_session_id"], name: "index_tasks_on_agent_session_id_partial", where: "(agent_session_id IS NOT NULL)"
     t.index ["agent_session_key"], name: "index_tasks_on_agent_session_key_partial", where: "(agent_session_key IS NOT NULL)"
     t.index ["archived_at"], name: "index_tasks_on_archived_at", where: "(archived_at IS NOT NULL)"
     t.index ["assigned_to_agent"], name: "index_tasks_on_assigned_to_agent"
     t.index ["auto_pull_blocked"], name: "index_tasks_on_auto_pull_blocked"
     t.index ["blocked"], name: "index_tasks_on_blocked"
+    t.index ["board_id", "archived_at"], name: "idx_tasks_board_archived"
     t.index ["board_id", "pipeline_stage"], name: "index_tasks_on_board_pipeline"
     t.index ["board_id", "status", "position"], name: "index_tasks_on_board_status_position"
     t.index ["board_id"], name: "index_tasks_on_board_id"
     t.index ["description"], name: "index_tasks_on_description_trigram", opclass: :gin_trgm_ops, using: :gin
     t.index ["error_at"], name: "index_tasks_on_error_at", where: "(error_at IS NOT NULL)"
     t.index ["followup_task_id"], name: "index_tasks_on_followup_task_id"
+    t.index ["followup_task_id"], name: "index_tasks_on_followup_task_id_partial", where: "(followup_task_id IS NOT NULL)"
+    t.index ["last_run_id"], name: "index_tasks_on_last_run_id_partial", where: "(last_run_id IS NOT NULL)"
     t.index ["name"], name: "index_tasks_on_name_trigram", opclass: :gin_trgm_ops, using: :gin
     t.index ["next_recurrence_at"], name: "index_tasks_on_next_recurrence_at"
     t.index ["nightly"], name: "index_tasks_on_nightly"
@@ -766,6 +777,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.index ["review_type"], name: "index_tasks_on_review_type", where: "(review_type IS NOT NULL)"
     t.index ["status"], name: "index_tasks_on_status"
     t.index ["user_id", "assigned_to_agent", "status"], name: "index_tasks_on_user_agent_status"
+    t.index ["user_id", "completed", "completed_at"], name: "idx_tasks_user_completed"
+    t.index ["user_id", "priority", "position"], name: "idx_tasks_auto_runner_candidates", where: "((status = 1) AND (blocked = false) AND (agent_claimed_at IS NULL) AND (agent_session_id IS NULL) AND (agent_session_key IS NULL) AND (assigned_to_agent = true) AND (auto_pull_blocked = false))"
     t.index ["user_id", "status"], name: "index_tasks_on_user_status"
     t.index ["user_id"], name: "index_tasks_on_user_id"
     t.index ["validation_status"], name: "index_tasks_on_validation_status", where: "(validation_status IS NOT NULL)"
@@ -783,8 +796,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.datetime "updated_at", null: false
     t.index ["agent_persona_id"], name: "index_token_usages_on_agent_persona_id"
     t.index ["created_at"], name: "index_token_usages_on_created_at"
+    t.index ["model", "created_at"], name: "index_token_usages_on_model_and_created_at"
     t.index ["model"], name: "index_token_usages_on_model"
     t.index ["session_key"], name: "index_token_usages_on_session_key"
+    t.index ["task_id", "created_at"], name: "index_token_usages_on_task_id_and_created_at"
     t.index ["task_id"], name: "index_token_usages_on_task_id"
   end
 
@@ -818,6 +833,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.string "webhook_notification_url"
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "(provider IS NOT NULL)"
+    t.index ["telegram_chat_id"], name: "index_users_on_telegram_chat_id_partial", where: "(telegram_chat_id IS NOT NULL)"
   end
 
   create_table "webhook_logs", force: :cascade do |t|
