@@ -2906,3 +2906,24 @@
 **Files:** config/environments/test.rb
 **Verify:** Ruby syntax OK
 **Risk:** low (test configuration)
+
+## [2026-02-15 16:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add job test coverage for GenerateDiffsJob and RunDebateJob
+**Why:** These jobs lacked test coverage. GenerateDiffsJob tests verify git diff generation (modified, added, deleted files), non-git fallback, upsert behavior, error resilience. RunDebateJob tests verify filtering logic (review_status, review_type), status transitions, not_implemented placeholder behavior.
+**Files:** test/jobs/generate_diffs_job_test.rb, test/jobs/run_debate_job_test.rb
+**Verify:** Ruby syntax OK for all changed files
+**Risk:** low (test additions only)
+
+## [2026-02-15 16:30] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add job and model test coverage (RunValidationJob, Session, AuditReport)
+**Why:** Added tests for RunValidationJob (filtering, status transitions, error handling), expanded Session tests (validation edge cases, strict_loading), expanded AuditReport tests (associations, edge cases).
+**Files:** test/jobs/run_validation_job_test.rb, test/models/session_test.rb, test/models/audit_report_test.rb
+**Verify:** Ruby syntax OK for all changed files
+**Risk:** low (test additions only)
+
+## [2026-02-15 17:05] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add strict_loading to 7 models for N+1 query detection
+**Why:** Enable strict_loading :n_plus_one on models with associations to detect and warn about N+1 queries in views. Added to: User, TaskDiff, TaskRun, TaskTemplate, TokenUsage, WebhookLog, Workflow. Models already had it: Board, Notification, Task, Session, SwarmIdea, AgentPersona, FactoryLoop, FactoryCycleLog.
+**Files:** app/models/user.rb, app/models/task_diff.rb, app/models/task_run.rb, app/models/task_template.rb, app/models/token_usage.rb, app/models/webhook_log.rb, app/models/workflow.rb
+**Verify:** Ruby syntax OK for all changed files
+**Risk:** low (additive strict_loading mode, only warns in dev/test)

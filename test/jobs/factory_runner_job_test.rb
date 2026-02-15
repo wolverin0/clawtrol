@@ -187,7 +187,6 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
     cycles = FactoryCycleLog.order(:cycle_number).pluck(:cycle_number)
     assert_equal [1, 2, 3, 4, 5], cycles
   end
-end
 
   # Test: gateway client mocked - tests actual HTTP error handling
   test "handles connection timeout gracefully" do
@@ -224,3 +223,4 @@ end
 
     assert FactoryCycleLog.exists?
   end
+end
