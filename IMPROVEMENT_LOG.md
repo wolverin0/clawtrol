@@ -1747,3 +1747,10 @@
 **Files:** app/models/nightshift_mission.rb, app/models/nightshift_selection.rb, test/models/nightshift_mission_test.rb (new), test/models/nightshift_selection_test.rb (new)
 **Verify:** ruby -c ✅, 34/34 tests pass (70 assertions, 0 failures) ✅
 **Risk:** low (additive validations, existing data should conform)
+
+## [2026-02-15 03:55] - Category: UX/Frontend (Accessibility) — STATUS: ✅ VERIFIED
+**What:** Created reusable FocusTrap helper class (app/javascript/helpers/focus_trap.js) implementing WCAG 2.1 keyboard navigation: Tab/Shift+Tab cycling, Escape to close, auto-focus first element, restore previous focus on deactivate. Applied to generic modal_controller.js (used by followup, new_task, keyboard_help, etc.) and delete_confirm_controller.js. Both now set role="dialog"/role="alertdialog" and aria-modal="true" when opened. Added importmap pin for helpers directory.
+**Why:** Re-implementing lost improvement. The generic modal_controller had Escape support but NO focus trapping — Tab key would escape the modal, breaking keyboard-only navigation. The delete_confirm had manual ESC handling but same gap.
+**Files:** app/javascript/helpers/focus_trap.js (new), app/javascript/controllers/modal_controller.js, app/javascript/controllers/delete_confirm_controller.js, config/importmap.rb
+**Verify:** node -c ✅ on all 3 JS files, ruby -c ✅ on importmap.rb
+**Risk:** low (additive accessibility, no behavioral change for mouse users)
