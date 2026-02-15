@@ -169,18 +169,7 @@ class TelegramMiniAppController < ActionController::Base
   end
 
   def mini_task_json(task)
-    {
-      id: task.id,
-      name: task.name,
-      status: task.status,
-      tags: task.tags || [],
-      priority: task.priority,
-      board_id: task.board_id,
-      created_at: task.created_at&.iso8601,
-      updated_at: task.updated_at&.iso8601,
-      completed: task.completed,
-      assigned_to_agent: task.assigned_to_agent
-    }
+    TaskSerializer.new(task, mini: true).as_json
   end
 
   def render_json_error(message, status_code)
