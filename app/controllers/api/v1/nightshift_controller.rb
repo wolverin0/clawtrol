@@ -3,9 +3,11 @@
 module Api
   module V1
     class NightshiftController < BaseController
+      include Api::HookAuthentication
+
       # Cron-facing endpoints use hook token auth instead of Bearer
       skip_before_action :authenticate_api_token, only: [:report_execution, :sync_crons, :sync_tonight]
-      before_action :authenticate_hook_token, only: [:report_execution, :sync_crons, :sync_tonight]
+      before_action :authenticate_hook_token!, only: [:report_execution, :sync_crons, :sync_tonight]
 
       # GET /api/v1/nightshift/missions
       def missions
@@ -222,14 +224,6 @@ module Api
       end
 
       private
-
-      def authenticate_hook_token
-        token = request.headers["X-Hook-Token"].to_s
-        configured_token = Rails.application.config.hooks_token.to_s
-        unless configured_token.present? && token.present? && ActiveSupport::SecurityUtils.secure_compare(token, configured_token)
-          render json: { error: "unauthorized" }, status: :unauthorized
-        end
-      end
 
       def mission_params
         params.permit(
