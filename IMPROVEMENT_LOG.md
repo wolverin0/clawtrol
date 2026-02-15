@@ -2642,3 +2642,10 @@
 **Files:** test/controllers/skill_manager_controller_test.rb (new)
 **Verify:** 17/17 pass, full suite 1840 runs 0 failures 0 errors
 **Risk:** low (test-only)
+
+## [2026-02-15 09:52] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 13 controller tests for CompactionConfigController
+**Why:** Previously untested controller handling compaction mode, memory flush, and context pruning config. Tests cover: auth gates, gateway error handling, show with config/defaults, update with valid/invalid modes, clamped numerical params (max_turns, cache_ttl, trim ratios), boolean params, multi-param updates, and gateway error reporting.
+**Files:** test/controllers/compaction_config_controller_test.rb (new)
+**Verify:** 13/13 pass, syntax check passed
+**Risk:** low (test-only)
