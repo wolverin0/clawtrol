@@ -7,7 +7,7 @@ class SwarmController < ApplicationController
     @ideas = current_user.swarm_ideas.enabled.order(favorite: :desc, category: :asc, title: :asc)
     @categories = SwarmIdea::CATEGORIES
     @models = SwarmIdea::MODELS
-    @boards = current_user.boards.order(:name)
+    @boards = current_user.boards.includes(:user).order(:name)
   end
 
   def launch
