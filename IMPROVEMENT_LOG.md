@@ -2381,3 +2381,10 @@
 **Files:** app/services/persona_generator_service.rb (new), app/controllers/boards_controller.rb (simplified), test/services/persona_generator_service_test.rb (new, 10 tests)
 **Verify:** ruby -c ✅, 10/10 service tests pass ✅, full suite 1698 runs 0 failures 0 errors ✅
 **Risk:** low (behavioral equivalent, same AgentPersona record created)
+
+## [2026-02-15 07:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Replaced 1-test placeholder for ExternalNotificationService with 14 real tests covering message formatting (emoji by status, description truncation), Telegram config detection, webhook config detection, network error handling, and edge cases (nil description, blank name).
+**Why:** Service handles outbound notifications (Telegram + webhooks) with retry logic — zero test coverage before.
+**Files:** test/services/external_notification_service_test.rb (rewritten, 14 tests)
+**Verify:** ruby -c ✅, 14/14 service tests pass ✅, full suite 1711 runs 0 failures 0 errors ✅
+**Risk:** low (test-only change)
