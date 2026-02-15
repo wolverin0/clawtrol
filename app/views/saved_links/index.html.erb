@@ -14,8 +14,8 @@
         <%= f.text_field :note, placeholder: "Why is this interesting? (optional)",
             class: "bg-bg-base border border-border rounded-lg px-4 py-3 text-content placeholder-content-muted focus:outline-none focus:border-accent w-full sm:w-48" %>
         <div class="flex items-center gap-1 whitespace-nowrap">
-          <%= f.check_box :audio_summary, class: "rounded border-border text-accent focus:ring-accent" %>
-          <%= f.label :audio_summary, "🔊 Audio", class: "text-sm text-content-muted" %>
+          <%= f.check_box :deep_summary, class: "rounded border-border text-accent focus:ring-accent" %>
+          <%= f.label :deep_summary, "📄 Deep", class: "text-sm text-content-muted" %>
         </div>
         <%= f.submit "Save Link", class: "bg-accent hover:bg-accent/80 text-white font-medium px-6 py-3 rounded-lg cursor-pointer transition-colors whitespace-nowrap" %>
       </div>
@@ -91,8 +91,8 @@
                     id: "note-input-#{link.id}",
                     class: "flex-1 bg-bg-base border border-accent rounded-lg px-3 py-1.5 text-sm text-content placeholder-content-muted focus:outline-none focus:ring-1 focus:ring-accent" %>
                 <div class="flex items-center gap-1 whitespace-nowrap">
-                  <%= f.check_box :audio_summary, class: "rounded border-border text-accent focus:ring-accent" %>
-                  <%= f.label :audio_summary, "🔊", class: "text-xs text-content-muted" %>
+                  <%= f.check_box :deep_summary, class: "rounded border-border text-accent focus:ring-accent" %>
+                  <%= f.label :deep_summary, "📄", class: "text-xs text-content-muted" %>
                 </div>
                 <%= f.submit "Save", class: "bg-accent hover:bg-accent/80 text-white text-xs font-medium px-3 py-1.5 rounded-lg cursor-pointer transition-colors" %>
                 <button type="button" onclick="document.getElementById('note-edit-<%= link.id %>').classList.add('hidden'); document.getElementById('note-display-<%= link.id %>').classList.remove('hidden');"
@@ -112,9 +112,9 @@
                 </details>
               <% end %>
 
-              <% if link.done? && link.audio_file_path.present? %>
-                <a href="<%= file_viewer_url("audio-summaries/#{File.basename(link.audio_file_path)}") %>" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-accent hover:underline mt-1">
-                  🔊 Play Audio Summary
+              <% if link.done? && link.summary_file_path.present? %>
+                <a href="<%= file_viewer_url(link.summary_file_path) %>" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-accent hover:underline mt-1">
+                  📄 Deep Summary
                 </a>
               <% end %>
 
