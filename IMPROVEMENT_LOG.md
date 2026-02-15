@@ -2021,3 +2021,45 @@
 **Files:** test/controllers/swarm_controller_test.rb
 **Verify:** 15 runs, 49 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 05:34] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** DRY refactor of GatewayConfigController. Extracted `validate_config_payload!` (size check, JSON/YAML validation), `render_gateway_result`, and `extract_config_params` — eliminating 30+ lines of exact duplication between `apply` and `patch_config` methods.
+**Why:** Both methods had identical validation logic copy-pasted. Now each is 4 lines instead of 20+.
+**Files:** app/controllers/gateway_config_controller.rb
+**Verify:** Full suite: 1434 runs, 3387 assertions, 0 failures, 0 errors ✅
+**Risk:** low
+
+## [2026-02-15 05:40] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added 4 missing FK indexes found via schema analysis: tasks.board_id (14 query references), tasks.agent_persona_id (10 refs, partial), tasks.followup_task_id (partial), nightshift_selections.nightshift_mission_id (uniqueness validation scope). Used `algorithm: :concurrently` for zero-downtime.
+**Why:** FK columns without indexes cause full table scans on JOIN/WHERE queries. board_id alone has 14 usage points across controllers and models.
+**Files:** db/migrate/20260216050001_add_remaining_fk_indexes.rb, db/schema.rb
+**Verify:** Migration ran successfully. Full suite: 1434 runs, 3387 assertions, 0 failures, 0 errors ✅
+**Risk:** low (additive, concurrent index creation)
+
+## [2026-02-15 05:48] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added Pipeline::AutoReviewService tests (17 tests, 34 assertions). Covers all 7 decision paths: empty output, failure markers, run_count guard, research/docs auto-approve, trivial/quick-fix auto-approve, validation_command execution, and default fallback. Edge cases include nil findings, threshold boundary (100 chars), and priority ordering.
+**Why:** Last untested pipeline service. The auto-review logic is critical — wrong decisions either let bad work through or create infinite requeue loops.
+**Files:** test/services/pipeline/auto_review_service_test.rb
+**Verify:** 17 runs, 34 assertions, 0 failures, 0 errors ✅
+**Risk:** low
+
+## [2026-02-15 05:56] - Category: Code Quality + Security — STATUS: ✅ VERIFIED
+**What:** Extracted `Api::HookAuthentication` concern with `authenticate_hook_token!` method. Removed duplicate hook token auth code from HooksController (2 instances) and NightshiftController (1 instance). All use `ActiveSupport::SecurityUtils.secure_compare` for timing-attack protection.
+**Why:** Same 5-line auth block was copy-pasted in 3 locations across 2 controllers. Single concern ensures consistency and makes hook auth changes atomic.
+**Files:** app/controllers/concerns/api/hook_authentication.rb, app/controllers/api/v1/hooks_controller.rb, app/controllers/api/v1/nightshift_controller.rb
+**Verify:** 121 API tests pass, 0 failures, 0 errors ✅
+**Risk:** low
+
+## [2026-02-15 06:05] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed Pipeline::Orchestrator `process!` method that didn't handle "unstarted" stage (the DB default). The case statement only matched `nil` and `""`, but `pipeline_stage` has `default: "unstarted", null: false`. New tasks with pipelines enabled were silently skipped. Added 13 tests covering all stage transitions, `ready_for_execution?`, `MAX_ITERATIONS` guard, and user override.
+**Why:** Critical bug — every new pipeline-enabled task would never start processing because "unstarted" didn't match any case branch.
+**Files:** app/services/pipeline/orchestrator.rb, test/services/pipeline/orchestrator_test.rb
+**Verify:** 64 pipeline tests pass, 0 failures ✅
+**Risk:** medium (fix changes pipeline behavior for new tasks)
+
+## [2026-02-15 06:12] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added ownership authorization in WorkflowsController#update. Previously, the `for_user` scope included global workflows (user_id: nil), allowing any authenticated user to edit them. Now returns 403 Forbidden when trying to update a workflow you don't own. Added 3 tests covering: global workflow protection, other user's workflow protection, and JSON format response.
+**Why:** Any user could edit shared/global workflows via the `for_user` scope which includes null user_id records.
+**Files:** app/controllers/workflows_controller.rb, test/controllers/workflows_controller_test.rb
+**Verify:** 7 runs, 16 assertions, 0 failures ✅
+**Risk:** low (additive auth check, no behavior change for own workflows)
