@@ -2402,3 +2402,10 @@
 **Files:** test/jobs/process_recurring_tasks_job_test.rb (new, 8 tests)
 **Verify:** ruby -c ✅, 8/8 job tests pass ✅, full suite 1731 runs 0 failures 0 errors ✅
 **Risk:** low (test-only)
+
+## [2026-02-15 07:30] - Category: Data Integrity — STATUS: ✅ VERIFIED
+**What:** Added uniqueness validation (scope: user_id) on SavedLink.url + database unique index on (user_id, url). Migration deduplicates 16 existing duplicates (keeps most recent per user+url pair).
+**Why:** No constraint prevented the same URL from being saved multiple times per user, causing duplicate processing and wasted resources.
+**Files:** app/models/saved_link.rb (uniqueness validation), db/migrate/*_add_unique_index_to_saved_links_url.rb (dedup + index)
+**Verify:** ruby -c ✅, migration ran successfully ✅, full suite 1731 runs 0 failures 0 errors ✅
+**Risk:** low (migration removes dupes keeping newest, validation prevents future dupes)
