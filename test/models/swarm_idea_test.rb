@@ -44,6 +44,67 @@ class SwarmIdeaTest < ActiveSupport::TestCase
     assert @idea.valid?
   end
 
+  test "estimated_minutes rejects values over 480" do
+    @idea.estimated_minutes = 481
+    assert_not @idea.valid?
+    assert @idea.errors[:estimated_minutes].any?
+  end
+
+  test "title rejects strings over 500 chars" do
+    @idea.title = "X" * 501
+    assert_not @idea.valid?
+    assert @idea.errors[:title].any?
+  end
+
+  test "description rejects strings over 10000 chars" do
+    @idea.description = "X" * 10_001
+    assert_not @idea.valid?
+    assert @idea.errors[:description].any?
+  end
+
+  test "category validates against CATEGORIES" do
+    @idea.category = "invalid_category"
+    assert_not @idea.valid?
+    assert @idea.errors[:category].any?
+  end
+
+  test "category allows blank" do
+    @idea.category = ""
+    assert @idea.valid?
+  end
+
+  test "suggested_model validates against MODELS" do
+    @idea.suggested_model = "imaginary_model"
+    assert_not @idea.valid?
+    assert @idea.errors[:suggested_model].any?
+  end
+
+  test "suggested_model allows blank" do
+    @idea.suggested_model = ""
+    assert @idea.valid?
+  end
+
+  test "difficulty validates against allowed values" do
+    @idea.difficulty = "impossible"
+    assert_not @idea.valid?
+    assert @idea.errors[:difficulty].any?
+
+    @idea.difficulty = "hard"
+    assert @idea.valid?
+  end
+
+  test "icon rejects long strings" do
+    @idea.icon = "X" * 11
+    assert_not @idea.valid?
+    assert @idea.errors[:icon].any?
+  end
+
+  test "times_launched rejects negative values" do
+    @idea.times_launched = -1
+    assert_not @idea.valid?
+    assert @idea.errors[:times_launched].any?
+  end
+
   # --- Associations ---
 
   test "belongs to user" do
