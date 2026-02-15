@@ -7,31 +7,26 @@ class Task < ApplicationRecord
   include Task::DependencyManagement
   include Task::AgentIntegration
 
-  # strict_loading helps detect N+1 queries in development/test
-  strict_loading :n_plus_one
-
-  belongs_to :user, inverse_of: :tasks
+  belongs_to :user
   belongs_to :board, counter_cache: true, inverse_of: :tasks
   belongs_to :agent_persona, optional: true, inverse_of: :tasks
   belongs_to :parent_task, class_name: "Task", optional: true
   belongs_to :followup_task, class_name: "Task", optional: true
-  has_many :activities, class_name: "TaskActivity", dependent: :destroy
+  has_many :activities, class_name: "TaskActivity", dependent: :destroy, inverse_of: :task
   has_many :child_tasks, class_name: "Task", foreign_key: :parent_task_id, dependent: :nullify
   has_one :source_task, class_name: "Task", foreign_key: :followup_task_id
-  has_many :notifications, dependent: :destroy
-  has_many :token_usages, dependent: :destroy
-  has_many :task_diffs, dependent: :destroy
-  # Explicit class_name/foreign_key to avoid any mis-inference (and to make autoloading deterministic)
-  has_many :agent_test_recordings,
-           class_name: "AgentTestRecording",
-           foreign_key: :task_id,
-           inverse_of: :task,
-           dependent: :nullify
+  has_many :notifications, dependent: :destroy, inverse_of: :task
+  has_many :token_usages, dependent: :destroy, inverse_of: :task
+  has_many :task_diffs, dependent: :destroy, inverse_of: :task
+  has_many :agent_test_recordings, dependent: :nullify
 
-  has_many :task_runs, dependent: :destroy
-  has_many :agent_transcripts, dependent: :nullify
-  has_many :runner_leases, dependent: :destroy
-  has_many :agent_messages, dependent: :destroy
+  has_many :task_runs, dependent: :destroy, inverse_of: :task
+  has_many :agent_transcripts, dependent: :nullify, inverse_of: :task
+  has_many :runner_leases, dependent: :destroy, inverse_of: :task
+  has_many :agent_messages, dependent: :destroy, inverse_of: :task
+
+  # Enforce eager loading to prevent N+1 queries
+  strict_loading :n_plus_one
 
   # Task dependencies (blocking relationships)
   has_many :task_dependencies, dependent: :destroy
