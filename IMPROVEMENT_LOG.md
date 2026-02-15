@@ -2028,3 +2028,10 @@
 **Files:** app/controllers/gateway_config_controller.rb
 **Verify:** Full suite: 1434 runs, 3387 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 05:40] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added 4 missing FK indexes found via schema analysis: tasks.board_id (14 query references), tasks.agent_persona_id (10 refs, partial), tasks.followup_task_id (partial), nightshift_selections.nightshift_mission_id (uniqueness validation scope). Used `algorithm: :concurrently` for zero-downtime.
+**Why:** FK columns without indexes cause full table scans on JOIN/WHERE queries. board_id alone has 14 usage points across controllers and models.
+**Files:** db/migrate/20260216050001_add_remaining_fk_indexes.rb, db/schema.rb
+**Verify:** Migration ran successfully. Full suite: 1434 runs, 3387 assertions, 0 failures, 0 errors ✅
+**Risk:** low (additive, concurrent index creation)
