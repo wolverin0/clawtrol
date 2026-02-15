@@ -1834,3 +1834,63 @@
 **Files:** app/models/workflow.rb, app/controllers/workflows_controller.rb, app/controllers/api/v1/workflows_controller.rb
 **Verify:** ruby -c ✅, 69 related tests pass ✅
 **Risk:** medium (behavioral change — workflows now user-scoped)
+
+## [2026-02-15 04:55] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extracted OpenclawCliRunnable concern from CommandController, TokensController, CronjobsController. DRYs Open3.capture3 + Timeout + error handling + ms_to_time + openclaw_timeout_seconds.
+**Why:** 3 controllers had identical CLI invocation patterns. Concern centralizes them.
+**Files:** app/controllers/concerns/openclaw_cli_runnable.rb (new), app/controllers/command_controller.rb, app/controllers/tokens_controller.rb, app/controllers/cronjobs_controller.rb
+**Verify:** ruby -c ✅, model tests pass ✅
+**Risk:** low
+
+## [2026-02-15 05:00] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Extracted TaskSerializer class for consistent JSON representation. Full mode (API) and mini mode (Telegram Mini App). Replaces inline `task.as_json` and `mini_task_json` methods.
+**Why:** JSON serialization was duplicated between API controller and Telegram Mini App controller.
+**Files:** app/serializers/task_serializer.rb (new), app/controllers/api/v1/tasks_controller.rb, app/controllers/telegram_mini_app_controller.rb
+**Verify:** ruby -c ✅, 41 task tests pass ✅
+**Risk:** low
+
+## [2026-02-15 05:03] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Created BulkTaskService. Controller was referencing it but file didn't exist — would cause NameError at runtime. Implements move_status, change_model, archive, delete with proper validation.
+**Why:** Missing service file = runtime crash on any bulk operation.
+**Files:** app/services/bulk_task_service.rb (new)
+**Verify:** ruby -c ✅, model tests pass ✅
+**Risk:** medium (bug fix — this was a runtime error waiting to happen)
+
+## [2026-02-15 05:06] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** TaskSerializer tests (10 tests, 45 assertions). Covers full/mini serialization, timestamp formatting, collection serialization, nil safety, array preservation.
+**Files:** test/serializers/task_serializer_test.rb (new)
+**Verify:** 10/10 pass ✅
+**Risk:** low
+
+## [2026-02-15 05:10] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Rewrote task_pipeline_stage_test.rb for current enum values. Old tests used `classified/researched/planned/dispatched/verified/pipeline_done`, current enum is `triaged/context_ready/routed/executing/verifying/completed/failed`. Added compiled_prompt to tests that need it.
+**Why:** All 20 pipeline tests were broken (wrong enum values + missing required fields).
+**Files:** test/models/task_pipeline_stage_test.rb
+**Verify:** 20/20 pass (43 assertions) ✅
+**Risk:** low
+
+## [2026-02-15 05:13] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** BulkTaskService tests (10 tests, 41 assertions). Covers move_status, change_model, archive, delete, error cases, board scoping, affected_statuses tracking.
+**Files:** test/services/bulk_task_service_test.rb (new)
+**Verify:** 10/10 pass ✅
+**Risk:** low
+
+## [2026-02-15 05:16] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added Content-Security-Policy sandbox header to FileViewer's raw HTML mode. `mode=raw` serves user-uploaded HTML files without sanitization — CSP sandbox prevents JS execution.
+**Why:** Raw HTML serving without CSP = XSS risk via uploaded HTML files.
+**Files:** app/controllers/file_viewer_controller.rb
+**Verify:** ruby -c ✅
+**Risk:** low
+
+## [2026-02-15 05:18] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** OpenclawCliRunnable concern tests (9 tests, 14 assertions). Covers ms_to_time, openclaw_timeout_seconds, ENV override, run_openclaw_cli result structure.
+**Files:** test/controllers/concerns/openclaw_cli_runnable_test.rb (new)
+**Verify:** 9/9 pass ✅
+**Risk:** low
+
+## [2026-02-15 05:22] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Created missing WebhookLog model. Table existed in schema, controllers referenced it, tests existed, but model file was missing. Added validations, scopes, `record!` (fire-and-forget), `trim!`, header redaction, body truncation.
+**Why:** Missing model = NameError in hooks_dashboard_controller and telegram_mini_app_controller at runtime. Also fixed 18 test errors.
+**Files:** app/models/webhook_log.rb (new)
+**Verify:** 18/18 WebhookLog tests pass ✅, full model suite 569 runs 0 errors ✅
+**Risk:** medium (bug fix — runtime errors in two controllers)
