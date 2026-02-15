@@ -41,7 +41,7 @@ class NightshiftRunnerJob < ApplicationJob
       Model preference: #{mission.model}
 
       When done, report results to:
-      curl -X POST http://192.168.100.186:4001/api/v1/nightshift/report_execution \\
+      curl -X POST #{app_base_url}/api/v1/nightshift/report_execution \\
         -H "X-Hook-Token: $CLAWTROL_HOOKS_TOKEN" \\
         -H "Content-Type: application/json" \\
         -d '{"mission_name": "#{mission.name}", "status": "completed", "result": "summary of what was done"}'

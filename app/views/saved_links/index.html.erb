@@ -113,7 +113,7 @@
               <% end %>
 
               <% if link.done? && link.audio_file_path.present? %>
-                <a href="https://dash.puntofutura.com.ar/view?file=audio-summaries/<%= File.basename(link.audio_file_path) %>" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-accent hover:underline mt-1">
+                <a href="<%= file_viewer_url("audio-summaries/#{File.basename(link.audio_file_path)}") %>" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-accent hover:underline mt-1">
                   🔊 Play Audio Summary
                 </a>
               <% end %>
