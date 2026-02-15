@@ -2103,3 +2103,10 @@
 9. **Security:** Workflow ownership authorization (prevent editing global/others' workflows)
 10. **Code Quality:** SwarmIdea model validations (8 new validations + 11 tests)
 11. **Code Quality:** Fix bare rescue in TokenUsage
+
+## [2026-02-15 05:38] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** EnvManagerController comprehensive test suite (17 tests)
+**Why:** Security-sensitive controller handling .env file contents with zero test coverage. Tests cover: auth (3), gateway config (3), file contents redaction (2), substitution validation (8), value leak prevention (1)
+**Files:** test/controllers/env_manager_controller_test.rb
+**Verify:** 17 runs, 243 assertions, 0 failures, 0 errors ✅
+**Risk:** low
