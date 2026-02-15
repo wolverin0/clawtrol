@@ -2214,3 +2214,10 @@
 **Files:** app/models/user.rb
 **Verify:** ruby -c ✅, 20 user model tests pass (0 failures, 0 errors)
 **Risk:** low (Rails encrypts transparently, existing data will be read as plaintext until re-saved)
+
+## [2026-02-15 06:22] - Category: Bug Fix + Performance — STATUS: ✅ VERIFIED
+**What:** Fix cached gateway errors + add Active Record encryption config for tests
+**Why:** 1) Gateway API controller cached error responses from the gateway client. If gateway was temporarily down, the error hash was cached for the full TTL (15-60 seconds), preventing recovery. Now error responses are not cached. 2) Test environment was missing Active Record encryption config (primary_key, deterministic_key, key_derivation_salt), causing ALL 13 gateway controller tests and other tests touching User model to fail with `ActiveRecord::Encryption::Errors::Configuration`. Added test-only deterministic keys.
+**Files:** app/controllers/api/v1/gateway_controller.rb, config/environments/test.rb
+**Verify:** ruby -c ✅, 13 gateway controller tests pass ✅ (was 13 errors before), 579 model tests pass ✅
+**Risk:** low (no behavior change for success cases; test keys are deterministic and test-only)
