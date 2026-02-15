@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_16_050001) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_16_050002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -707,6 +707,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050001) do
     t.datetime "last_outcome_at"
     t.string "last_recommended_action"
     t.uuid "last_run_id"
+    t.integer "lock_version", default: 0, null: false
     t.string "model"
     t.string "name"
     t.datetime "next_recurrence_at"
