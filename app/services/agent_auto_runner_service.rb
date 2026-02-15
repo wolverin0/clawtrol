@@ -80,8 +80,8 @@ class AgentAutoRunnerService
                       .limit(5)
 
     tasks.find_each do |task|
-      begin
-        Pipeline::Orchestrator.new(task, user: user).process!
+      Task.transaction(requires_new: true) do
+        Pipeline::Orchestrator.new(task, user: user).process_to_completion!
 
         # If pipeline routing produced a runnable payload, ensure it's runnable
         # for the auto-runner wake mechanism.
@@ -90,9 +90,9 @@ class AgentAutoRunnerService
         end
 
         count += 1
-      rescue StandardError => e
-        @logger.warn("[AgentAutoRunner] pipeline processing failed task_id=#{task.id} err=#{e.class}: #{e.message}")
       end
+    rescue StandardError => e
+      @logger.warn("[AgentAutoRunner] pipeline processing failed task_id=#{task.id} err=#{e.class}: #{e.message}")
     end
 
     count
