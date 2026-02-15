@@ -21,6 +21,41 @@ class TaskActivityTest < ActiveSupport::TestCase
     assert activity.valid?
   end
 
+  test "rejects invalid action" do
+    activity = TaskActivity.new(task: @task, action: "hacked")
+    assert_not activity.valid?
+    assert_includes activity.errors[:action], "is not included in the list"
+  end
+
+  test "rejects invalid source" do
+    activity = TaskActivity.new(task: @task, action: "created", source: "evil")
+    assert_not activity.valid?
+    assert_includes activity.errors[:source], "is not included in the list"
+  end
+
+  test "rejects invalid actor_type" do
+    activity = TaskActivity.new(task: @task, action: "created", actor_type: "alien")
+    assert_not activity.valid?
+    assert_includes activity.errors[:actor_type], "is not included in the list"
+  end
+
+  test "rejects overly long actor_name" do
+    activity = TaskActivity.new(task: @task, action: "created", actor_name: "x" * 201)
+    assert_not activity.valid?
+    assert activity.errors[:actor_name].any?
+  end
+
+  test "rejects overly long note" do
+    activity = TaskActivity.new(task: @task, action: "created", note: "x" * 2001)
+    assert_not activity.valid?
+    assert activity.errors[:note].any?
+  end
+
+  test "allows blank source and actor_type" do
+    activity = TaskActivity.new(task: @task, action: "created")
+    assert activity.valid?
+  end
+
   # --- record_creation ---
 
   test "record_creation creates web activity" do

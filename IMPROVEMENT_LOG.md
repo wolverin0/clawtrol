@@ -2316,3 +2316,10 @@
 **Files:** test/controllers/telegram_config_controller_test.rb
 **Verify:** ruby -c ✅, 12 runs 22 assertions 0 failures ✅
 **Risk:** low (test-only)
+
+## [2026-02-15 07:04] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Atomic file writes for .env and marketing index.json
+**Why:** `File.write` is not atomic — if process crashes mid-write, the file gets corrupted. Now writes to Tempfile first, then renames (atomic on same filesystem). The .env file is especially critical since it holds API keys.
+**Files:** app/controllers/keys_controller.rb, app/controllers/marketing_controller.rb
+**Verify:** ruby -c ✅, keys_controller_test passes ✅
+**Risk:** low (same-filesystem rename is atomic on Linux/macOS)
