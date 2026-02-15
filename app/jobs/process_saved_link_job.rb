@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "open3"
+
 class ProcessSavedLinkJob < ApplicationJob
   include SsrfProtection
   queue_as :default
@@ -117,18 +119,10 @@ class ProcessSavedLinkJob < ApplicationJob
   end
 
   def call_gemini_cli(prompt_text)
-    # Write prompt to temp file to avoid shell escaping issues
-    tmpfile = Rails.root.join("tmp", "gemini_prompt_#{SecureRandom.hex(8)}.txt")
-    File.write(tmpfile, prompt_text)
-
-    begin
-      # Use gemini CLI with OAuth (model: gemini-3-flash)
-      output = `cat #{tmpfile.to_s.shellescape} | gemini -m gemini-3-flash-preview 2>/dev/null`
-      raise "Gemini CLI failed (exit #{$?.exitstatus}): #{output[0..300]}" unless $?.success?
-      raise "Empty response from Gemini CLI" if output.strip.empty?
-      output.strip
-    ensure
-      File.delete(tmpfile) if File.exist?(tmpfile)
-    end
+    # Pass prompt via stdin to avoid shell injection and temp file cleanup issues
+    output, status = Open3.capture2("gemini", "-m", "gemini-3-flash-preview", stdin_data: prompt_text)
+    raise "Gemini CLI failed (exit #{status.exitstatus}): #{output[0..300]}" unless status.success?
+    raise "Empty response from Gemini CLI" if output.strip.empty?
+    output.strip
   end
 end
