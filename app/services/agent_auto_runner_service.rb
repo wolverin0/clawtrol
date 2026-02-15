@@ -76,7 +76,7 @@ class AgentAutoRunnerService
   def process_pipeline_tasks!(user)
     count = 0
     tasks = user.tasks.where(pipeline_enabled: true, status: :up_next)
-                      .where(pipeline_stage: [nil, "unstarted", "triaged", "context_ready"])
+                      .where(pipeline_stage: [nil, "", "unstarted", "triaged", "context_ready"])
                       .limit(5)
 
     tasks.find_each do |task|
