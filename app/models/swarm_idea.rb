@@ -37,8 +37,14 @@ class SwarmIdea < ApplicationRecord
   scope :by_category, ->(cat) { where(category: cat) if cat.present? }
 
   # --- Validations ---
-  validates :title, presence: true
-  validates :estimated_minutes, numericality: { greater_than: 0 }, allow_nil: true
+  validates :title, presence: true, length: { maximum: 500 }
+  validates :description, length: { maximum: 10_000 }
+  validates :category, inclusion: { in: CATEGORIES }, allow_blank: true
+  validates :suggested_model, inclusion: { in: MODELS }, allow_blank: true
+  validates :estimated_minutes, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 480 }, allow_nil: true
+  validates :icon, length: { maximum: 10 }
+  validates :difficulty, inclusion: { in: %w[easy medium hard] }, allow_blank: true
+  validates :times_launched, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
 
   # --- Instance Methods ---
 

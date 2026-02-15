@@ -2056,3 +2056,10 @@
 **Files:** app/services/pipeline/orchestrator.rb, test/services/pipeline/orchestrator_test.rb
 **Verify:** 64 pipeline tests pass, 0 failures ✅
 **Risk:** medium (fix changes pipeline behavior for new tasks)
+
+## [2026-02-15 06:12] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added ownership authorization in WorkflowsController#update. Previously, the `for_user` scope included global workflows (user_id: nil), allowing any authenticated user to edit them. Now returns 403 Forbidden when trying to update a workflow you don't own. Added 3 tests covering: global workflow protection, other user's workflow protection, and JSON format response.
+**Why:** Any user could edit shared/global workflows via the `for_user` scope which includes null user_id records.
+**Files:** app/controllers/workflows_controller.rb, test/controllers/workflows_controller_test.rb
+**Verify:** 7 runs, 16 assertions, 0 failures ✅
+**Risk:** low (additive auth check, no behavior change for own workflows)
