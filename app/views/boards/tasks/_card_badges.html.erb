@@ -107,6 +107,13 @@
   <span class="text-[10px]" title="Recurring: <%= task.recurrence_rule %>">🔄</span>
 <% end %>
 
+<%# Deep Research badge %>
+<% if task.deep_research? %>
+  <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-blue-500/20 text-blue-400" title="Deep Research: 4 parallel agents">
+    🧠
+  </span>
+<% end %>
+
 <%# Nightly badge (moon theme) %>
 <% if task.nightly? %>
   <span class="nightly-badge inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium" 

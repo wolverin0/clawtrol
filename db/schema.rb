@@ -657,6 +657,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220000) do
     t.datetime "completed_at"
     t.integer "context_usage_percent"
     t.datetime "created_at", null: false
+    t.boolean "deep_research", default: false, null: false
     t.text "description"
     t.date "due_date"
     t.datetime "error_at"
