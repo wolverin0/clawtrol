@@ -601,7 +601,17 @@ class MarketingController < ApplicationController
     # Update batch timestamp
     index_data["generated_at"] = Time.current.iso8601
 
-    File.write(index_path, JSON.pretty_generate(index_data))
+    # Atomic write to prevent corruption on crash
+    require "tempfile"
+    tmp = Tempfile.new("index.json", File.dirname(index_path))
+    begin
+      tmp.write(JSON.pretty_generate(index_data))
+      tmp.close
+      File.rename(tmp.path, index_path)
+    rescue StandardError
+      tmp.close!
+      raise
+    end
   end
 
   def infer_type_from_size(size)
