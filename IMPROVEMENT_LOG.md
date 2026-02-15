@@ -2656,3 +2656,17 @@
 **Files:** test/controllers/typing_config_controller_test.rb (new, 8 tests), test/controllers/identity_config_controller_test.rb (new, 6 tests), test/controllers/logging_config_controller_test.rb (new, 8 tests)
 **Verify:** 22/22 pass, syntax check passed
 **Risk:** low (test-only)
+
+## [2026-02-15 10:04] - Category: Code Quality (DRY) — STATUS: ✅ VERIFIED
+**What:** Extract RunnerLease.create_for_task! factory method, DRY 3 creation sites
+**Why:** RunnerLease creation pattern (7 lines: token gen, timestamps, source) was duplicated in tasks_controller.rb and task_agent_lifecycle.rb (x2). Extracted to a single `create_for_task!(task:, agent_name:, source:)` class method on RunnerLease.
+**Files:** app/models/runner_lease.rb, app/controllers/api/v1/tasks_controller.rb, app/controllers/concerns/api/task_agent_lifecycle.rb
+**Verify:** ruby -c passed all 3 files, bin/rails test — 1875 runs, 0 failures, 0 errors
+**Risk:** low (refactor, same behavior, no schema change)
+
+## [2026-02-15 10:10] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 20 controller tests for 4 previously untested config controllers (MediaConfig, MessageQueueConfig, ConfigHub, SendPolicy)
+**Why:** These controllers had zero test coverage. Tests cover: auth gates, show with config/errors/defaults, update operations with valid/invalid params, input clamping (debounce, cap), drop strategy validation, and media config (audio/video/image).
+**Files:** test/controllers/media_config_controller_test.rb (5 tests), test/controllers/message_queue_config_controller_test.rb (7 tests), test/controllers/config_hub_controller_test.rb (4 tests), test/controllers/send_policy_controller_test.rb (4 tests)
+**Verify:** 20/20 pass, syntax check passed
+**Risk:** low (test-only)
