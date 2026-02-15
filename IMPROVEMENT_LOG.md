@@ -2670,3 +2670,10 @@
 **Files:** test/controllers/media_config_controller_test.rb (5 tests), test/controllers/message_queue_config_controller_test.rb (7 tests), test/controllers/config_hub_controller_test.rb (4 tests), test/controllers/send_policy_controller_test.rb (4 tests)
 **Verify:** 20/20 pass, syntax check passed
 **Risk:** low (test-only)
+
+## [2026-02-15 10:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 9 controller tests for ChannelConfigController (last untested controller!)
+**Why:** Last controller without tests. Covers show/update for all 3 supported channels (Mattermost, Slack, Signal), unsupported channel rejection, auth gates, gateway error handling. ALL controllers now have tests.
+**Files:** test/controllers/channel_config_controller_test.rb (new, 9 tests)
+**Verify:** 9/9 pass, syntax check passed. Full suite: all controllers now covered.
+**Risk:** low (test-only)
