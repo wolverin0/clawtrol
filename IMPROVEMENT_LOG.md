@@ -2677,3 +2677,10 @@
 **Files:** test/controllers/channel_config_controller_test.rb (new, 9 tests)
 **Verify:** 9/9 pass, syntax check passed. Full suite: all controllers now covered.
 **Risk:** low (test-only)
+
+## [2026-02-15 10:22] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Fix broken test_notification action in ProfilesController
+**Why:** `ExternalNotificationService.new(current_user)` passed a User where a Task was expected. The service's constructor sets `@task = arg` and `@user = arg.user` — on a User object, `.user` returns nil, breaking all notification logic. Additionally, `notify_task_completion` doesn't accept arguments, so the OpenStruct passed to it was silently ignored. Fixed by building a proper duck-type fake_task with .user, .origin_chat_id, etc. and calling `svc.notify_task_completion` without arguments.
+**Files:** app/controllers/profiles_controller.rb
+**Verify:** ruby -c passed, bin/rails test — 1904 runs, 0 failures, 0 errors
+**Risk:** low (single endpoint fix, no schema change)
