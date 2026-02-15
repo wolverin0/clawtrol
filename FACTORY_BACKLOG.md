@@ -111,3 +111,12 @@ Priority order. MiniMax: pick the top unchecked item, implement it, mark [x] whe
 - [x] Export/Import Tasks
 
 </details>
+
+## 🔴 HIGH PRIORITY — Repo Analysis Items (from 2026-02-15)
+
+- [ ] **Codex MCP Async Integration**: Add an async task queue page inspired by codex-mcp-async. Show running Codex tasks, filter thinking logs (95% token savings), parallel execution status. Integrate with existing session explorer
+- [ ] **PAI-Style Hook Bus**: Implement an event bus / hook system inspired by Personal_AI_Infrastructure. Goal-oriented task triggers, continuous learning signals from completed tasks, cross-board event routing. New model + controller + Stimulus
+- [ ] **Persona Schema Upgrade (YAML)**: Upgrade AgentPersona to support YAML-based definitions inspired by Nerve ADK. Add YAML import/export, typed tool declarations, workflow definitions, evaluation mode config. Extend existing persona model + views
+- [ ] **Android Capability Extension**: Add Android device control panel inspired by android-mcp-server. ADB command execution, screenshot capture, UI layout analysis, package management. New /devices page extending existing node dashboard concept
+- [ ] **Desktop Automation Sandbox**: Add desktop automation config page for Spongecake-style Docker containers. Container lifecycle management (start/stop/status), noVNC embed, action queue (click/type/screenshot), session recording. New controller + views
+- [ ] **Packaged Capability Model**: Add a "Capabilities" registry inspired by make-it-heavy's tool packaging. Each capability = name + tools + config + cost estimate. Capabilities attach to boards/tasks. New model CapabilityPack, CRUD UI, assignment to tasks
