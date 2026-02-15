@@ -7,18 +7,14 @@ module Api
   module V1
     class HooksController < ActionController::API
       include Api::RateLimitable
+      include Api::HookAuthentication
 
       # Hooks are less frequent but more critical — 30/min per IP
       before_action -> { rate_limit!(limit: 30, window: 60, key_suffix: "hooks") }
+      before_action :authenticate_hook_token!
 
       # POST /api/v1/hooks/agent_complete
       def agent_complete
-        token = request.headers["X-Hook-Token"].to_s
-        configured_token = Rails.application.config.hooks_token.to_s
-        unless configured_token.present? && token.present? && ActiveSupport::SecurityUtils.secure_compare(token, configured_token)
-          return render json: { error: "unauthorized" }, status: :unauthorized
-        end
-
         task = find_task_from_params
         return render json: { error: "task not found" }, status: :not_found unless task
 
@@ -123,12 +119,6 @@ module Api
       # OpenClaw completion hook (OutcomeContract v1). This is intentionally
       # idempotent via run_id (UUID).
       def task_outcome
-        token = request.headers["X-Hook-Token"].to_s
-        configured_token = Rails.application.config.hooks_token.to_s
-        unless configured_token.present? && token.present? && ActiveSupport::SecurityUtils.secure_compare(token, configured_token)
-          return render json: { error: "unauthorized" }, status: :unauthorized
-        end
-
         task = find_task_from_params
         return render json: { error: "task not found" }, status: :not_found unless task
 

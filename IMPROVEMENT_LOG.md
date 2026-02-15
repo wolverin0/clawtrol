@@ -2035,3 +2035,10 @@
 **Files:** db/migrate/20260216050001_add_remaining_fk_indexes.rb, db/schema.rb
 **Verify:** Migration ran successfully. Full suite: 1434 runs, 3387 assertions, 0 failures, 0 errors ✅
 **Risk:** low (additive, concurrent index creation)
+
+## [2026-02-15 05:48] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added Pipeline::AutoReviewService tests (17 tests, 34 assertions). Covers all 7 decision paths: empty output, failure markers, run_count guard, research/docs auto-approve, trivial/quick-fix auto-approve, validation_command execution, and default fallback. Edge cases include nil findings, threshold boundary (100 chars), and priority ordering.
+**Why:** Last untested pipeline service. The auto-review logic is critical — wrong decisions either let bad work through or create infinite requeue loops.
+**Files:** test/services/pipeline/auto_review_service_test.rb
+**Verify:** 17 runs, 34 assertions, 0 failures, 0 errors ✅
+**Risk:** low
