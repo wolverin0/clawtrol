@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class TaskDependency < ApplicationRecord
   belongs_to :task
   belongs_to :depends_on, class_name: "Task"

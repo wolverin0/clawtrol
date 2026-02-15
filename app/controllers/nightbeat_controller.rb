@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class NightbeatController < ApplicationController
   def index
     @window_start, @window_end = overnight_window

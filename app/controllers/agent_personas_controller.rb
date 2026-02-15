@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class AgentPersonasController < ApplicationController
   before_action :require_authentication
   before_action :set_agent_persona, only: [:show, :edit, :update, :destroy]

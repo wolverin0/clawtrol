@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class InviteCode < ApplicationRecord
   belongs_to :created_by, class_name: "User"
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class TaskDiff < ApplicationRecord
   belongs_to :task
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Tracks rate limits for AI models per user
 # Used for auto-fallback when a model hits its limit
 class ModelLimit < ApplicationRecord

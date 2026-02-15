@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class FactoryLoop < ApplicationRecord
   belongs_to :user, optional: true
   has_many :factory_cycle_logs, dependent: :destroy

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class BehavioralIntervention < ApplicationRecord
   belongs_to :user
   belongs_to :audit_report, optional: true

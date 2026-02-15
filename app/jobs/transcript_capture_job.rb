@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Fallback job: captures agent output from OpenClaw session transcripts
 # when agent_complete wasn't called properly.
 #
