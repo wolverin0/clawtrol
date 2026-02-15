@@ -1,9 +1,25 @@
-one:
-  title: Example Workflow
-  active: false
-  definition: {"nodes": [{"id": "n1", "type": "trigger", "label": "Start", "x": 50, "y": 50, "props": {}}], "edges": []}
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
-two:
-  title: Active Workflow
+user_workflow:
+  title: My Workflow
   active: true
-  definition: {"nodes": [], "edges": []}
+  definition: { "nodes": [], "edges": [] }
+  user: one
+
+inactive_workflow:
+  title: Disabled Workflow
+  active: false
+  definition: { "nodes": [] }
+  user: one
+
+other_user_workflow:
+  title: Other User Workflow
+  active: true
+  definition: { "nodes": [] }
+  user: two
+
+global_workflow:
+  title: Global Workflow
+  active: true
+  definition: { "nodes": [] }
+  user:

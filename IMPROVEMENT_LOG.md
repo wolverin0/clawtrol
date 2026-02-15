@@ -1775,3 +1775,10 @@
 **Files:** app/models/agent_test_recording.rb (new)
 **Verify:** ruby -c ✅, BoardTest 24/24 pass (was 23/24+1error), TaskRunTest 42/42 pass, AgentMessageTest pass ✅
 **Risk:** low (additive — creates model for existing table/associations)
+
+## [2026-02-15 04:25] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed 4 broken TaskTest tests that referenced stale pipeline_stage enum values (`classified`, `dispatched`) which no longer exist in the Task model. The pipeline was refactored to use `triaged`, `context_ready`, `routed`, `executing`, `verifying`, `completed`, `failed` — but the tests weren't updated. Rewrote: "can set to classified" → "can set to triaged", "cannot skip stages" uses `routed` instead of `dispatched`, "dispatched requires plan" → "executing requires routed stage", "dispatched with plan" → "valid full pipeline transition" (with compiled_prompt/routed_model prereqs).
+**Why:** These 4 tests raised `ArgumentError: 'classified' is not a valid pipeline_stage` and `PG::NotNullViolation` on every test run, masking real failures.
+**Files:** test/models/task_test.rb
+**Verify:** ruby -c ✅, 41/41 TaskTest pass (79 assertions, 0 failures, 0 errors) ✅
+**Risk:** low (test fixes only)
