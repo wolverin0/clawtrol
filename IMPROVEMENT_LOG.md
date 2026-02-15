@@ -2482,3 +2482,10 @@
 **Files:** app/jobs/process_saved_link_job.rb
 **Verify:** ruby syntax OK ✅, 44 job tests pass ✅
 **Risk:** medium (security fix, changes HTTP redirect behavior — could break legitimate redirects to internal hosts, but those shouldn't exist)
+
+## [2026-02-15 08:19] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Moved `current_user.saved_links.group(:status).count` query from the view (saved_links/index.html.erb) to the controller as `@status_counts`. This follows the Rails pattern of keeping DB queries out of views.
+**Why:** Views should not make DB queries directly — this query was executing a GROUP BY COUNT on every page load inside the ERB template. Moving it to the controller makes it testable, visible in profiling tools, and follows MVC separation.
+**Files:** app/controllers/saved_links_controller.rb, app/views/saved_links/index.html.erb
+**Verify:** ruby/ERB syntax OK ✅, model tests pass ✅
+**Risk:** low (same query, different location)
