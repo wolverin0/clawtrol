@@ -14,6 +14,8 @@ end %>
 <%# Nightly card styling %>
 <% nightly_card_class = task.nightly? ? 'task-card-nightly' : '' %>
 <li id="task_<%= task.id %>"
+    role="article"
+    aria-label="Task: <%= h(task.name.truncate(80)) %> — <%= task.status.humanize %><%= ', blocked' if task.blocked? %><%= ', error' if show_error_state %>"
     class="group relative w-full bg-bg-elevated border border-border rounded-md cursor-pointer transition-all hover:bg-bg-hover overflow-visible <%= model_border_class %> <%= 'border-l-4 border-l-status-warning' if task.blocked? %> <%= 'border-l-4 border-l-red-500' if show_error_state %> <%= nightly_card_class %>"
     <% if has_current_user %>
       data-controller="dropdown delete-confirm context-menu<%= ' agent-preview' if show_agent_preview %><%= ' agent-modal' if show_agent_modal_btn %>"
