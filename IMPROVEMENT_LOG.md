@@ -1968,3 +1968,35 @@
 **Files:** app/controllers/api/v1/pipeline_controller.rb (fix), test/controllers/api/v1/pipeline_controller_test.rb (new)
 **Verify:** 9/9 pass ✅, full suite: 903 runs, 2235 assertions, 0 failures, 0 errors ✅
 **Risk:** high (critical security + bug fix)
+
+## [2026-02-15 08:10] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Fixed NoMethodError in ClawRouterService `model_available?`: referenced `limit.recorded_at` which doesn't exist on `model_limits` table. Changed to `limit.last_error_at`. Also added proper `limited?` boolean check and `resets_at` time check — previously ANY `ModelLimit` record (even non-limited ones) would mark a model as unavailable.
+**Why:** Pipeline model selection would crash with NoMethodError when checking if any model has ever had a limit recorded. Also improved logic correctness.
+**Files:** app/services/pipeline/claw_router_service.rb
+**Verify:** 34 pipeline tests pass ✅
+**Risk:** medium (bug fix in pipeline model selection)
+
+---
+
+## Session Summary (2026-02-15 07:37 - 08:10)
+
+**10 improvement cycles in ~33 minutes**
+
+### Key Metrics
+- **Tests added:** 86 new tests, 231 new assertions
+- **Bugs fixed:** 5 critical/medium bugs
+- **Test errors fixed:** 43 → 0 (full suite)
+- **Final suite:** 903 runs, 2235 assertions, 0 failures, 0 errors
+
+### Critical Bugs Found & Fixed
+1. **Pipeline API auth completely broken** — `ApiToken.find_by(token:)` on non-existent column
+2. **Pipeline routing crashes on model selection** — `model_limits.model_name` column doesn't exist
+3. **Pipeline reprocess crashes** — sets `pipeline_stage: nil` on NOT NULL column  
+4. **Pipeline model availability check crashes** — references `recorded_at` which doesn't exist
+5. **43 test errors from missing services** — `ModelPerformanceService` and `AgentActionRecorder`
+
+### Categories
+- Testing: 5 cycles (TaskImportService, Jobs, TriageService, ClawRouterService, ContextCompilerService)
+- Bug Fix: 3 cycles (missing services, ClawRouter column bugs, Pipeline API auth)
+- Performance: 1 cycle (4 missing FK indexes)
+- Code Quality: 1 cycle (53 frozen_string_literal pragmas)
