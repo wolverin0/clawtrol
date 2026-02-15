@@ -2007,3 +2007,10 @@
 **Files:** test/fixtures/workflows.yml, test/services/model_performance_service_test.rb
 **Verify:** Full suite: 1402 runs, 3297 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 05:22] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added controller tests for AuditsController (9 tests) and BehavioralInterventionsController (8 tests). Verified IDOR protection on update/destroy actions (scoped to current_user, returns 404 for other users' records).
+**Why:** Both controllers had zero test coverage. IDOR protection was present but unverified.
+**Files:** test/controllers/audits_controller_test.rb, test/controllers/behavioral_interventions_controller_test.rb
+**Verify:** 17 runs, 41 assertions, 0 failures, 0 errors ✅
+**Risk:** low
