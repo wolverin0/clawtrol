@@ -199,7 +199,7 @@ class CanvasController < ApplicationController
 
   def cost_summary_template
     today_snapshots = CostSnapshot.where("created_at >= ?", Time.current.beginning_of_day)
-    total_cost = today_snapshots.sum(:cost_usd)
+    total_cost = today_snapshots.sum(:total_cost)
 
     <<~HTML
       <div style="font-family: system-ui, -apple-system, sans-serif; padding: 16px; background: #1b2838; color: #c6d4df; border-radius: 12px;">
