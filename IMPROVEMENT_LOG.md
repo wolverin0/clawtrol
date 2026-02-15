@@ -1782,3 +1782,10 @@
 **Files:** test/models/task_test.rb
 **Verify:** ruby -c ✅, 41/41 TaskTest pass (79 assertions, 0 failures, 0 errors) ✅
 **Risk:** low (test fixes only)
+
+## [2026-02-15 04:32] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Created 11 model tests for Workflow: title presence validation, definition must be Hash (rejects string/array/nil), optional user association, `for_user` scope (includes owned + global, excludes other users'), fixture smoke tests. Also created fixtures (user-owned, inactive, other-user, global).
+**Why:** Workflow model had zero tests. The IDOR fix added `belongs_to :user` and `for_user` scope which needed test coverage. Tests verify the security fix works correctly.
+**Files:** test/models/workflow_test.rb (new), test/fixtures/workflows.yml (new)
+**Verify:** ruby -c ✅, 11/11 tests pass (25 assertions, 0 failures) ✅
+**Risk:** low (test additions only)
