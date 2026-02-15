@@ -2963,3 +2963,11 @@
 **Risk:** low (test file fix)
 
 
+## [2026-02-15 18:50] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Fix FactoryRunnerJob tests - correct error assertions
+**Why:** Fix error_message -> summary (column doesn't exist), backlog attribute, and state_before assertions.
+**Files:** test/jobs/factory_runner_job_test.rb
+**Verify:** 19 runs, 29 assertions, 0 failures
+**Risk:** low (test file fix)
+
+
