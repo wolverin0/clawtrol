@@ -2309,3 +2309,31 @@
 **Files:** test/controllers/model_providers_controller_test.rb
 **Verify:** ruby -c ✅, 12 runs 17 assertions 0 failures ✅
 **Risk:** low (test-only)
+
+## [2026-02-15 07:00] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 12 controller tests for TelegramConfigController
+**Why:** Config controller with gateway integration had zero tests. Tests cover: 2 auth checks, 1 gateway-not-configured redirect, 2 section validation (unknown + empty), 7 section allowlist acceptance tests.
+**Files:** test/controllers/telegram_config_controller_test.rb
+**Verify:** ruby -c ✅, 12 runs 22 assertions 0 failures ✅
+**Risk:** low (test-only)
+
+## [2026-02-15 07:04] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Atomic file writes for .env and marketing index.json
+**Why:** `File.write` is not atomic — if process crashes mid-write, the file gets corrupted. Now writes to Tempfile first, then renames (atomic on same filesystem). The .env file is especially critical since it holds API keys.
+**Files:** app/controllers/keys_controller.rb, app/controllers/marketing_controller.rb
+**Verify:** ruby -c ✅, keys_controller_test passes ✅
+**Risk:** low (same-filesystem rename is atomic on Linux/macOS)
+
+## [2026-02-15 07:08] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** TaskActivity model: inclusion validations for action/source/actor_type + length limits
+**Why:** `action` validated presence but not inclusion in ACTIONS constant — any string was accepted. Added: action inclusion in ACTIONS, source inclusion in [web/api/system], actor_type inclusion in [user/agent/system], length limits on actor_name(200), actor_emoji(20), note(2000), field_name(100), old_value/new_value(1000). Plus 7 new tests.
+**Files:** app/models/task_activity.rb, test/models/task_activity_test.rb
+**Verify:** ruby -c ✅, 21 runs 45 assertions 0 failures ✅
+**Risk:** low (models already only use defined constants; this prevents future misuse)
+
+## [2026-02-15 07:15] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed CanvasController#cost_summary_template referencing non-existent `cost_usd` column (should be `total_cost`). Plus 30 batch auth/route tests for 15 controllers that had zero tests.
+**Why:** Canvas page crashed with PG::UndefinedColumn on every render. Found the bug by writing auth tests for all untested controllers. The 30 tests verify: 15 auth-required redirects + 15 non-404 route checks.
+**Files:** app/controllers/canvas_controller.rb, test/controllers/missing_controller_auth_test.rb
+**Verify:** ruby -c ✅, 30 runs 30 assertions 0 failures ✅
+**Risk:** low (column rename is data-layer fix; tests are read-only)
