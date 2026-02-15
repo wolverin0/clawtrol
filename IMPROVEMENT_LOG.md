@@ -1907,3 +1907,49 @@
 **Files:** test/services/task_export_service_test.rb (new)
 **Verify:** 9/9 pass ✅
 **Risk:** low
+
+## [2026-02-15 07:37] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** TaskImportService tests (14 tests, 45 assertions). Covers JSON parsing, import, dedup, status normalization, field filtering, board scoping, edge cases.
+**Files:** test/services/task_import_service_test.rb (new)
+**Verify:** 14/14 pass ✅
+**Risk:** low
+
+## [2026-02-15 07:39] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added 4 missing FK indexes: swarm_ideas.board_id, task_runs.openclaw_session_id, users.telegram_chat_id (partial), tasks.last_run_id (partial).
+**Why:** FK columns without indexes cause slow JOINs and lookups, especially for Telegram Mini App auth.
+**Files:** db/migrate/20260215230000_add_missing_foreign_key_indexes.rb (new), db/schema.rb
+**Verify:** Migration runs ✅, tests pass ✅
+**Risk:** low (indexes only, no data change)
+
+## [2026-02-15 07:42] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Job tests for FactoryCycleTimeoutJob, NightshiftTimeoutSweeperJob, OpenclawNotifyJob, AutoClaimNotifyJob (20 tests, 29 assertions).
+**Files:** test/jobs/ (4 new files)
+**Verify:** 20/20 pass ✅
+**Risk:** low
+
+## [2026-02-15 07:45] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Added `frozen_string_literal: true` pragma to 53 Ruby files missing it (models, services, jobs, controllers).
+**Why:** Prevents accidental string mutation, minor perf improvement, Ruby best practice.
+**Files:** 53 files modified
+**Verify:** All syntax OK ✅, reduced pre-existing test errors from 49 to 43
+**Risk:** low
+
+## [2026-02-15 07:50] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Created missing ModelPerformanceService and AgentActionRecorder. Both had tests referencing them but the service files didn't exist — causing 43 test errors across the full suite.
+**Why:** Missing services = NameError at runtime + 43 test errors. ModelPerformanceService analyzes task completion by model with reports and recommendations. AgentActionRecorder parses agent transcripts to extract tool actions and generate regression tests.
+**Files:** app/services/model_performance_service.rb (new), app/services/agent_action_recorder.rb (new)
+**Verify:** Full suite: 860 runs, 2139 assertions, 0 failures, 0 errors ✅ (was 43 errors before)
+**Risk:** medium (bug fix — runtime errors in analytics + action recording)
+
+## [2026-02-15 07:55] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Pipeline::TriageService tests (14 tests, 36 assertions). Covers tag matching, name patterns, board defaults, vote weights, pipeline logging, conflict resolution.
+**Files:** test/services/pipeline/triage_service_test.rb (new)
+**Verify:** 14/14 pass ✅
+**Risk:** low
+
+## [2026-02-15 07:58] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed `PG::UndefinedColumn: column model_limits.model_name does not exist` in ClawRouterService. The column is `name`, not `model_name`. This would crash ANY pipeline routing where the user didn't manually set a model. Added 11 ClawRouterService tests.
+**Why:** Critical production bug — pipeline routing was completely broken for auto-model-selection. Every non-user-set model task would fail with a Postgres error.
+**Files:** app/services/pipeline/claw_router_service.rb (fix), test/services/pipeline/claw_router_service_test.rb (new)
+**Verify:** 11/11 pass ✅, full suite 0 errors ✅
+**Risk:** high (critical bug fix — pipeline routing)
