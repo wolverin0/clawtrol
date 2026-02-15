@@ -10,9 +10,15 @@
             class: "w-full bg-bg-base border border-border rounded-lg px-4 py-3 text-content placeholder-content-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors",
             required: true, autofocus: true %>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 items-center">
         <%= f.text_field :title, placeholder: "Title (optional)",
             class: "bg-bg-base border border-border rounded-lg px-4 py-3 text-content placeholder-content-muted focus:outline-none focus:border-accent w-full sm:w-48" %>
+
+        <label class="flex items-center gap-2 text-xs text-content-muted whitespace-nowrap px-3 py-2 bg-bg-base border border-border rounded-lg">
+          <%= f.check_box :deep_summary, class: "rounded border-border bg-bg-base text-accent focus:ring-accent" %>
+          Deep summary
+        </label>
+
         <%= f.submit "Save Link", class: "bg-accent hover:bg-accent/80 text-white font-medium px-6 py-3 rounded-lg cursor-pointer transition-colors whitespace-nowrap" %>
       </div>
     <% end %>
