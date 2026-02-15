@@ -362,4 +362,50 @@ class TaskTest < ActiveSupport::TestCase
     assert_equal 2, task.lock_version
     assert_equal "Second update", task.name
   end
+
+  # --- Completion/Archival timestamp tracking ---
+
+  test "sets completed_at when task becomes done" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), status: :inbox)
+    assert_nil task.completed_at
+
+    task.update!(status: :done)
+    assert_not_nil task.completed_at
+  end
+
+  test "clears completed_at when task moves out of done" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), status: :inbox)
+    task.update!(status: :done)
+    assert_not_nil task.completed_at
+
+    task.update!(status: :in_progress)
+    assert_nil task.completed_at
+  end
+
+  test "sets archived_at when task becomes archived" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), status: :inbox)
+    assert_nil task.archived_at
+
+    task.update!(status: :archived)
+    assert_not_nil task.archived_at
+  end
+
+  test "clears archived_at when task is unarchived" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), status: :inbox)
+    task.update!(status: :archived)
+    assert_not_nil task.archived_at
+
+    task.update!(status: :inbox)
+    assert_nil task.archived_at
+  end
+
+  test "clears archived_at when archived task moves to done" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), status: :inbox)
+    task.update!(status: :archived)
+    assert_not_nil task.archived_at
+
+    task.update!(status: :done)
+    assert_nil task.archived_at
+    assert_not_nil task.completed_at
+  end
 end
