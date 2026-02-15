@@ -139,6 +139,12 @@
   </div>
 </div>
 
+<%= link_to audits_path,
+    class: "#{icon_base_class} #{controller_name == 'audits' ? icon_active_class : icon_inactive_class}",
+    title: "Self-Audit" do %>
+  🧠
+<% end %>
+
 <div data-controller="search" data-search-url-value="<%= search_path %>" class="relative">
   <form action="<%= search_path %>" method="get" class="hidden md:block" data-turbo-frame="_top">
     <div class="relative">

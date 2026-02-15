@@ -566,6 +566,13 @@ Rails.application.routes.draw do
   get "view", to: "file_viewer#show"
   get "files", to: "file_viewer#browse", as: :browse_files
 
+  resources :audits, only: [:index] do
+    collection do
+      get :interventions
+    end
+  end
+  resources :behavioral_interventions, only: [:create, :update, :destroy]
+
   # Defines the root path route ("/")
   root "pages#home"
 end
