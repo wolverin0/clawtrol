@@ -149,6 +149,7 @@ class ModelPerformanceServiceTest < ActiveSupport::TestCase
 
   test "recommendations have valid severity values" do
     report = ModelPerformanceService.new(@user).report
+    assert_kind_of Array, report[:recommendations]
     report[:recommendations].each do |rec|
       assert_includes %w[high medium low], rec[:severity], "Invalid severity: #{rec[:severity]}"
       assert rec[:message].present?, "Recommendation must have a message"

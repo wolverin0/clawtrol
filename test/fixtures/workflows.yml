@@ -1,5 +1,11 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
+one:
+  title: Test Workflow
+  active: true
+  definition: { "nodes": [{"id": "t1", "type": "trigger", "label": "Start", "x": 0, "y": 0, "props": {}}], "edges": [] }
+  user: one
+
 user_workflow:
   title: My Workflow
   active: true
