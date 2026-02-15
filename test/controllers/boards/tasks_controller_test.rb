@@ -70,6 +70,27 @@ class Boards::TasksControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to board_path(@board)
   end
 
+  test "destroy task nullifies agent_test_recordings.task_id" do
+    recording = AgentTestRecording.create!(
+      user: @user,
+      task: @task,
+      name: "Test recording",
+      status: "recorded",
+      actions: [],
+      assertions: [],
+      metadata: {}
+    )
+
+    assert_difference "Task.count", -1 do
+      assert_no_difference "AgentTestRecording.count" do
+        delete board_task_path(@board, @task)
+      end
+    end
+
+    assert_redirected_to board_path(@board)
+    assert_nil recording.reload.task_id
+  end
+
   # --- Move between columns ---
 
   test "move task to different status" do

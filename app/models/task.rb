@@ -18,7 +18,12 @@ class Task < ApplicationRecord
   has_many :notifications, dependent: :destroy
   has_many :token_usages, dependent: :destroy
   has_many :task_diffs, dependent: :destroy
-  has_many :agent_test_recordings, dependent: :nullify
+  # Explicit class_name/foreign_key to avoid any mis-inference (and to make autoloading deterministic)
+  has_many :agent_test_recordings,
+           class_name: "AgentTestRecording",
+           foreign_key: :task_id,
+           inverse_of: :task,
+           dependent: :nullify
 
   has_many :task_runs, dependent: :destroy
   has_many :agent_transcripts, dependent: :nullify
