@@ -2173,3 +2173,10 @@
 **Files:** app/jobs/process_saved_link_job.rb
 **Verify:** Full suite: 1572 runs, 3691 assertions, 0 failures, 0 errors ✅
 **Risk:** low (blocks internal URLs — saved links should always be external)
+
+## [2026-02-15 06:26] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** SessionResetConfigController test suite (12 tests)
+**Why:** Session reset policy controller with zero test coverage — manages daily/idle/never reset modes, atHour, idleMinutes, resetByChannel, resetByType. Tests cover: auth (2), gateway config (1), show (1), mode validation (2), hour/minute clamping (2), boolean toggle (1), type filtering (1), constants (2)
+**Files:** test/controllers/session_reset_config_controller_test.rb
+**Verify:** 12 runs, 28 assertions, 0 failures, 0 errors ✅
+**Risk:** low
