@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 class AgentPersona < ApplicationRecord
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
+
   belongs_to :user, optional: true, inverse_of: :agent_personas  # nil = shared/system persona
   belongs_to :board, optional: true, inverse_of: :agent_personas
   has_many :tasks, dependent: :nullify, inverse_of: :agent_persona
