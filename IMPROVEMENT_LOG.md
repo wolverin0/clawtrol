@@ -2330,3 +2330,10 @@
 **Files:** app/models/task_activity.rb, test/models/task_activity_test.rb
 **Verify:** ruby -c ✅, 21 runs 45 assertions 0 failures ✅
 **Risk:** low (models already only use defined constants; this prevents future misuse)
+
+## [2026-02-15 07:15] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed CanvasController#cost_summary_template referencing non-existent `cost_usd` column (should be `total_cost`). Plus 30 batch auth/route tests for 15 controllers that had zero tests.
+**Why:** Canvas page crashed with PG::UndefinedColumn on every render. Found the bug by writing auth tests for all untested controllers. The 30 tests verify: 15 auth-required redirects + 15 non-404 route checks.
+**Files:** app/controllers/canvas_controller.rb, test/controllers/missing_controller_auth_test.rb
+**Verify:** ruby -c ✅, 30 runs 30 assertions 0 failures ✅
+**Risk:** low (column rename is data-layer fix; tests are read-only)
