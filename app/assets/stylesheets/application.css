@@ -96,6 +96,25 @@ body.overflow-hidden {
   height: 100%;
 }
 
+/* Pipeline stepper horizontal scrolling (task modal header) */
+.pipeline-stepper-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  padding-bottom: 2px; /* keeps iOS from clipping pills */
+}
+
+.pipeline-stepper-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.pipeline-stepper-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 2px;
+}
+
 /* Toast animations */
 @keyframes slide-in-up {
   from {

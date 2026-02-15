@@ -28,8 +28,11 @@
     <div class="h-full bg-bg-surface border border-border shadow-2xl flex flex-col rounded-xl overflow-hidden
                 lg:w-[90vw] lg:max-w-7xl lg:h-[90vh] lg:max-h-[90vh]">
 
-      <!-- Header: Column name and Close button -->
-      <div class="px-5 py-4 border-b border-border flex-shrink-0">
+      <!-- Header: status, id, actions (supports right-click + long-press context menu) -->
+      <div class="px-5 py-4 border-b border-border flex-shrink-0"
+           data-controller="dropdown delete-confirm context-menu"
+           data-action="contextmenu->dropdown#openAtCursor"
+           data-delete-confirm-item-name-value="<%= h(task.name.to_s.truncate(40)) %>">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <!-- Column/Status badge -->
@@ -56,15 +59,67 @@
             </button>
           </div>
 
-          <!-- Close button -->
+          <div class="flex items-center gap-1">
+            <!-- Menu (tap) -->
+            <button type="button"
+                    data-dropdown-target="button"
+                    data-action="click->dropdown#toggle"
+                    class="cursor-pointer p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors"
+                    aria-expanded="false"
+                    title="Task menu">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </button>
+
+            <!-- Close button -->
+            <button type="button"
+                    data-action="click->task-modal#close"
+                    class="cursor-pointer p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Context menu -->
+        <div data-dropdown-target="menu" role="menu" class="hidden fixed z-[10000] min-w-[180px] bg-bg-elevated border border-border rounded-lg shadow-lg py-1">
+          <%= link_to "Open task", board_task_path(task.board, task), class: "block w-full px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors", data: { action: "click->dropdown#close", turbo_frame: "_top" } %>
+
+          <div class="border-t border-border my-1"></div>
+
+          <% [
+            ["inbox", "📥 Inbox"],
+            ["up_next", "⏳ Up Next"],
+            ["in_progress", "🔄 In Progress"],
+            ["in_review", "👀 In Review"],
+            ["done", "✅ Done"],
+            ["archived", "📦 Archived"]
+          ].each do |status, label| %>
+            <%= button_to move_board_task_path(task.board, task),
+                method: :patch,
+                params: { status: status },
+                data: { action: "click->dropdown#close" },
+                class: "w-full flex items-center justify-between gap-3 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors #{task.status == status ? 'bg-bg-hover' : ''}" do %>
+              <span><%= label %></span>
+              <% if task.status == status %>
+                <span class="text-accent">✓</span>
+              <% end %>
+            <% end %>
+          <% end %>
+
+          <div class="border-t border-border my-1"></div>
+
           <button type="button"
-                  data-action="click->task-modal#close"
-                  class="cursor-pointer p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
+                  data-action="click->delete-confirm#open click->dropdown#close"
+                  class="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-300 hover:bg-bg-hover transition-colors">
+            🗑️ Delete
           </button>
         </div>
+
+        <%# Delete Confirmation Modal (outside dropdown) %>
+        <%= render "application/delete_modal", url: board_task_path(task.board, task) %>
       </div>
 
       <!-- Content: Single column on mobile, two columns on desktop -->
