@@ -2635,3 +2635,10 @@
 **Files:** app/controllers/agent_personas_controller.rb
 **Verify:** ruby -c passed, bin/rails test — 1823 runs, 0 failures, 0 errors
 **Risk:** low (query scoping, no schema change)
+
+## [2026-02-15 09:45] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 17 controller tests for SkillManagerController
+**Why:** Previously untested controller handling gateway API skills config. Tests cover: auth gates, gateway error handling, CRUD operations (toggle/configure/install/uninstall), input validation (invalid JSON, nested objects, oversized values, path traversal), and bundled skill discovery.
+**Files:** test/controllers/skill_manager_controller_test.rb (new)
+**Verify:** 17/17 pass, full suite 1840 runs 0 failures 0 errors
+**Risk:** low (test-only)
