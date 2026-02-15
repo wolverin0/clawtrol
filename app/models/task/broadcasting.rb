@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Task::Broadcasting
   extend ActiveSupport::Concern
 

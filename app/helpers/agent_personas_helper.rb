@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module AgentPersonasHelper
   # Determine agent status: working, rate_limited, or idle
   def agent_status(persona, active_tasks_count, rate_limited_models)

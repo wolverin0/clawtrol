@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module DiffHelper
   def render_diff_line(line)
     case line[:type]
