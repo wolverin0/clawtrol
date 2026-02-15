@@ -2720,3 +2720,10 @@
 **Files:** app/jobs/application_job.rb, agent_auto_runner_job.rb, auto_claim_notify_job.rb, openclaw_notify_job.rb, factory_cycle_timeout_job.rb, nightshift_timeout_sweeper_job.rb, run_validation_job.rb, run_debate_job.rb
 **Verify:** ruby -c all OK, 44 job tests pass (0 failures), 50 task model tests pass
 **Risk:** low — retry/discard policies are conservative, rescue blocks re-raise after cleanup
+
+## [2026-02-15 09:52] - Category: Code Quality (DRY) — STATUS: ✅ VERIFIED
+**What:** Extract TaskBroadcastable concern from 3 jobs
+**Why:** RunValidationJob, RunDebateJob, and AutoValidationJob all had identical broadcast_task_update private methods (Turbo Stream replace + KanbanChannel refresh). Extracted to app/jobs/concerns/task_broadcastable.rb. The concern also includes the KanbanChannel notification that was previously only in AutoValidationJob, improving consistency across all 3 jobs.
+**Files:** app/jobs/concerns/task_broadcastable.rb (new), run_validation_job.rb, run_debate_job.rb, auto_validation_job.rb
+**Verify:** ruby -c all OK, 44 job tests pass (0 failures)
+**Risk:** low — pure refactor, behavior preserved
