@@ -11,10 +11,10 @@ class AddIndexesForCommonQueries < ActiveRecord::Migration[8.1]
     # AgentTranscripts: cleanup by created_at
     add_index :agent_transcripts, [:created_at], name: "idx_agent_transcripts_cleanup"
     
-    # Notifications: inbox queries (unread first)
-    add_index :notifications, [:user_id, :read, :created_at], name: "idx_notifications_inbox"
+    # Notifications: inbox queries (unread first) - uses read_at column
+    add_index :notifications, [:user_id, :read_at, :created_at], name: "idx_notifications_inbox"
     
-    # FactoryCycleLogs: user lookup
-    add_index :factory_cycle_logs, [:user_id], name: "idx_cycle_logs_user"
+    # FactoryCycleLogs: loop lookup (user is via factory_loop.user)
+    add_index :factory_cycle_logs, [:factory_loop_id, :created_at], name: "idx_cycle_logs_loop_created"
   end
 end

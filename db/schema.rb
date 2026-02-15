@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_16_050005) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_16_050006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -780,6 +780,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050005) do
     t.index ["review_type"], name: "index_tasks_on_review_type", where: "(review_type IS NOT NULL)"
     t.index ["status"], name: "index_tasks_on_status"
     t.index ["user_id", "assigned_to_agent", "status"], name: "index_tasks_on_user_agent_status"
+    t.index ["user_id", "completed", "completed_at"], name: "idx_tasks_user_completed"
     t.index ["user_id", "priority", "position"], name: "idx_tasks_auto_runner_candidates", where: "((status = 1) AND (blocked = false) AND (agent_claimed_at IS NULL) AND (agent_session_id IS NULL) AND (agent_session_key IS NULL) AND (assigned_to_agent = true) AND (auto_pull_blocked = false))"
     t.index ["user_id", "status"], name: "index_tasks_on_user_status"
     t.index ["user_id"], name: "index_tasks_on_user_id"
