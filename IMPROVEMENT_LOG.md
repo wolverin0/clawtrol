@@ -2070,3 +2070,36 @@
 **Files:** app/models/swarm_idea.rb, test/models/swarm_idea_test.rb
 **Verify:** 27 model tests + 15 controller tests pass, 0 failures ✅
 **Risk:** low (validations use allow_blank to not break existing data)
+
+## [2026-02-15 06:24] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Fixed bare `rescue` in TokenUsage.resolve_persona_id to `rescue StandardError`. Bare rescue catches all exceptions including SignalException, SystemExit, LoadError — masking real errors.
+**Why:** Ruby style guide: never use bare rescue. Only the single instance in the app.
+**Files:** app/models/token_usage.rb
+**Verify:** Full suite: 1477 runs, 3461 assertions, 0 failures, 0 errors ✅
+**Risk:** low
+
+---
+
+## Session Summary (2026-02-15 05:07 - 06:25)
+
+**11 improvement cycles in ~78 minutes**
+
+### Key Metrics
+- **Tests added:** 75 new tests, 187 new assertions
+- **Bugs fixed:** 3 (missing workflow fixture, Orchestrator "unstarted" stage, bare rescue)
+- **Security fixes:** 2 (workflow ownership auth, Api::HookAuthentication DRY)
+- **Starting suite:** 1402 runs, 3274 assertions, 6 errors
+- **Final suite:** 1477 runs, 3461 assertions, 0 failures, 0 errors
+
+### Improvements by Category
+1. **Bug Fix:** Missing workflow fixture (6 errors → 0)
+2. **Testing:** AuditsController + BehavioralInterventionsController tests (17 tests)
+3. **Testing:** SwarmController tests (15 tests, IDOR verified)
+4. **Code Quality:** DRY GatewayConfigController (extract validation helpers)
+5. **Performance:** 4 missing FK indexes (tasks.board_id, agent_persona_id, followup_task_id, nightshift_selections.nightshift_mission_id)
+6. **Testing:** Pipeline::AutoReviewService tests (17 tests, all decision paths)
+7. **Code Quality + Security:** Extract Api::HookAuthentication concern (DRY 3 controllers)
+8. **Bug Fix + Testing:** Fix Orchestrator missing "unstarted" stage + 13 tests
+9. **Security:** Workflow ownership authorization (prevent editing global/others' workflows)
+10. **Code Quality:** SwarmIdea model validations (8 new validations + 11 tests)
+11. **Code Quality:** Fix bare rescue in TokenUsage
