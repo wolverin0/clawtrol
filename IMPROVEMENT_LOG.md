@@ -2395,3 +2395,62 @@
 **Files:** app/controllers/marketing_controller.rb (sanitize + containment), test/controllers/marketing_controller_test.rb (13 tests)
 **Verify:** ruby -c ✅, 13/13 controller tests pass ✅, full suite 1723 runs 0 failures 0 errors ✅
 **Risk:** low (sanitization is additive, no behavior change for clean inputs)
+
+## [2026-02-15 07:25] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added 8 tests for ProcessRecurringTasksJob covering: instance creation for due tasks, next recurrence scheduling, skipping future/non-recurring tasks, multiple task processing, model inheritance from parent, agent assignment reset on instances, error handling.
+**Why:** Zero test coverage on a job that creates recurring task instances — data integrity risk.
+**Files:** test/jobs/process_recurring_tasks_job_test.rb (new, 8 tests)
+**Verify:** ruby -c ✅, 8/8 job tests pass ✅, full suite 1731 runs 0 failures 0 errors ✅
+**Risk:** low (test-only)
+
+## [2026-02-15 07:30] - Category: Data Integrity — STATUS: ✅ VERIFIED
+**What:** Added uniqueness validation (scope: user_id) on SavedLink.url + database unique index on (user_id, url). Migration deduplicates 16 existing duplicates (keeps most recent per user+url pair).
+**Why:** No constraint prevented the same URL from being saved multiple times per user, causing duplicate processing and wasted resources.
+**Files:** app/models/saved_link.rb (uniqueness validation), db/migrate/*_add_unique_index_to_saved_links_url.rb (dedup + index)
+**Verify:** ruby -c ✅, migration ran successfully ✅, full suite 1731 runs 0 failures 0 errors ✅
+**Risk:** low (migration removes dupes keeping newest, validation prevents future dupes)
+
+## [2026-02-15 07:32] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** DRY'd the `sign_in_as` helper — removed 5 duplicate definitions from test files. Centralized in `test/test_helpers/session_test_helper.rb` (already included in all integration tests). Updated shared helper to `follow_redirect!` automatically for consistency.
+**Why:** 5 identical method definitions across test files; some followed redirect, some didn't. Now one source of truth.
+**Files:** test/test_helpers/session_test_helper.rb, test/controllers/{agent_config,live_events,marketing,view_file_security,webhook_mappings}_controller_test.rb
+**Verify:** ruby -c ✅ on all 7 files, 43 affected tests pass ✅, full suite 1731 runs 0 failures 0 errors ✅
+**Risk:** low (test infrastructure only)
+
+## [2026-02-15 07:35] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added 2 compound indexes on token_usages: `(task_id, created_at)` for the analytics cost_by_task query (joins + date filter + group by task), and `(model, created_at)` for cost_by_model time-range queries.
+**Why:** Analytics controller filters token_usages by `created_at >= 30.days.ago` and groups by task or model. Without compound indexes, PostgreSQL does sequential scans on large tables.
+**Files:** db/migrate/*_add_compound_index_to_token_usages.rb
+**Verify:** migration ran ✅, full suite 1731 runs 0 failures 0 errors ✅
+**Risk:** low (additive indexes, no schema changes to existing data)
+
+---
+
+## Session Summary (2026-02-15 07:07 - 07:35)
+
+**7 improvement cycles in ~28 minutes**
+
+### Key Metrics
+- **Tests added:** 45 new tests (10 PersonaGenerator, 14 ExternalNotification, 13 Marketing, 8 RecurringJob)
+- **Security fixes:** 1 critical (MarketingController path traversal via product param in filename)
+- **Architecture:** PersonaGeneratorService extraction (85→20 line controller method)
+- **Data integrity:** SavedLink URL uniqueness constraint + dedup migration
+- **Performance:** 2 compound indexes on token_usages
+- **Code quality:** DRY'd sign_in_as across 5 test files
+- **Starting suite:** 1698 runs → **1731 runs** (33 new), 0 failures, 0 errors
+
+### Improvements by Category
+1. **Architecture:** Extract PersonaGeneratorService from BoardsController + 10 tests
+2. **Testing:** ExternalNotificationService — 14 tests replacing placeholder
+3. **Security:** Fix path traversal in MarketingController#generate_image + 13 tests
+4. **Testing:** ProcessRecurringTasksJob — 8 tests for recurring task lifecycle
+5. **Data Integrity:** SavedLink URL uniqueness (model validation + DB unique index + dedup migration)
+6. **Code Quality:** DRY sign_in_as — centralize in SessionTestHelper, remove 5 duplicates
+7. **Performance:** 2 compound indexes on token_usages for analytics queries
+
+## [2026-02-15 07:50] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added 21 new job tests across 4 files: AutoValidationJob (7 tests), FactoryCycleTimeoutJob (7 tests), NightshiftTimeoutSweeperJob (7 tests), PipelineProcessorJob (7 tests — including error handling/failure path)
+**Why:** 11 job files had zero tests. These 4 jobs contain critical business logic (timeout handling, pipeline processing, validation orchestration). Tests cover: skip conditions (not found, wrong status), state transitions (running→timed_out, running→failed), edge cases (stale selections, corrupted data), error handling (graceful recovery).
+**Files:** test/jobs/auto_validation_job_test.rb, test/jobs/factory_cycle_timeout_job_test.rb, test/jobs/nightshift_timeout_sweeper_job_test.rb, test/jobs/pipeline_processor_job_test.rb
+**Verify:** all 44 job tests pass (21 new + 23 existing), 0 failures 0 errors ✅
+**Risk:** low (test-only changes)

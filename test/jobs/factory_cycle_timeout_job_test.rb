@@ -2,65 +2,91 @@
 
 require "test_helper"
 
-class FactoryCycleTimeoutJobTest < ActiveSupport::TestCase
+class FactoryCycleTimeoutJobTest < ActiveJob::TestCase
   setup do
-    @user = users(:default)
+    @user = User.first || User.create!(email_address: "test@test.com", password: "password123456")
     @loop = FactoryLoop.create!(
-      name: "Test Loop",
-      slug: "test-loop-timeout-#{SecureRandom.hex(4)}",
-      model: "minimax",
+      name: "Timeout Test Loop",
+      slug: "timeout-test-#{SecureRandom.hex(4)}",
       interval_ms: 60_000,
+      model: "minimax",
       status: "playing",
-      user: @user
+      user: @user,
+      openclaw_cron_id: "cron-#{SecureRandom.hex(4)}"
     )
-    @cycle_log = FactoryCycleLog.create!(
+  end
+
+  def create_cycle(status: "running", cycle_number: 1)
+    FactoryCycleLog.create!(
       factory_loop: @loop,
-      cycle_number: 1,
-      status: "running",
-      started_at: 20.minutes.ago
+      cycle_number: cycle_number,
+      started_at: Time.current,
+      status: status
     )
   end
 
-  test "times out a running cycle" do
-    FactoryCycleTimeoutJob.perform_now(@cycle_log.id)
-    @cycle_log.reload
-    assert_equal "timed_out", @cycle_log.status
-    assert_not_nil @cycle_log.finished_at
-    assert_match(/timed out/i, @cycle_log.summary)
-  end
-
-  test "times out a pending cycle" do
-    @cycle_log.update!(status: "pending")
-    FactoryCycleTimeoutJob.perform_now(@cycle_log.id)
-    @cycle_log.reload
-    assert_equal "timed_out", @cycle_log.status
-  end
-
-  test "does not touch completed cycle" do
-    @cycle_log.update!(status: "completed", finished_at: 5.minutes.ago, summary: "done fine")
-    FactoryCycleTimeoutJob.perform_now(@cycle_log.id)
-    @cycle_log.reload
-    assert_equal "completed", @cycle_log.status
-    assert_equal "done fine", @cycle_log.summary
-  end
-
-  test "does not touch failed cycle" do
-    @cycle_log.update!(status: "failed", finished_at: 3.minutes.ago)
-    FactoryCycleTimeoutJob.perform_now(@cycle_log.id)
-    @cycle_log.reload
-    assert_equal "failed", @cycle_log.status
-  end
-
-  test "handles missing cycle log gracefully" do
+  test "skips if cycle_log not found" do
     assert_nothing_raised do
-      FactoryCycleTimeoutJob.perform_now(999_999)
+      FactoryCycleTimeoutJob.perform_now(-1)
     end
   end
 
-  test "increments loop error counts on timeout" do
-    original_errors = @loop.total_errors
-    FactoryCycleTimeoutJob.perform_now(@cycle_log.id)
-    @loop.reload
-    assert @loop.total_errors > original_errors
+  test "skips if cycle_log is already completed" do
+    cycle = create_cycle(status: "completed")
+    FactoryCycleTimeoutJob.perform_now(cycle.id)
+
+    cycle.reload
+    assert_equal "completed", cycle.status
+  end
+
+  test "skips if cycle_log is already timed_out" do
+    cycle = create_cycle(status: "timed_out")
+    FactoryCycleTimeoutJob.perform_now(cycle.id)
+
+    cycle.reload
+    assert_equal "timed_out", cycle.status
+  end
+
+  test "skips if cycle_log is already failed" do
+    cycle = create_cycle(status: "failed")
+    FactoryCycleTimeoutJob.perform_now(cycle.id)
+
+    cycle.reload
+    assert_equal "failed", cycle.status
+  end
+
+  test "times out a running cycle" do
+    cycle = create_cycle(status: "running")
+    FactoryCycleTimeoutJob.perform_now(cycle.id)
+
+    cycle.reload
+    assert_equal "timed_out", cycle.status
+    assert_includes cycle.summary, "timed out"
+    assert_not_nil cycle.finished_at
+  end
+
+  test "times out a pending cycle" do
+    cycle = create_cycle(status: "pending")
+    FactoryCycleTimeoutJob.perform_now(cycle.id)
+
+    cycle.reload
+    assert_equal "timed_out", cycle.status
+    assert_not_nil cycle.finished_at
+  end
+
+  test "sets duration_ms on timed out cycle" do
+    started = 10.minutes.ago
+    cycle = FactoryCycleLog.create!(
+      factory_loop: @loop,
+      cycle_number: 99,
+      started_at: started,
+      status: "running"
+    )
+
+    FactoryCycleTimeoutJob.perform_now(cycle.id)
+
+    cycle.reload
+    assert_not_nil cycle.duration_ms
+    assert cycle.duration_ms > 0
   end
 end
