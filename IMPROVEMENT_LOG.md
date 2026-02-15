@@ -2955,3 +2955,27 @@
 **Files:** app/models/agent_persona.rb
 **Verify:** Ruby syntax OK, migration exists and schema already has tasks_count column
 **Risk:** low (additive counter_cache)
+## [2026-02-15 18:40] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Fix NightshiftRunnerJob tests - move orphaned tests inside class
+**Why:** Tests were outside the class causing syntax errors. Fixed uniqueness constraint issues and create_selection helper.
+**Files:** test/jobs/nightshift_runner_job_test.rb
+**Verify:** 17 runs, 20 assertions, 0 failures, 1 skip (expected skip for untestable orphan)
+**Risk:** low (test file fix)
+
+
+## [2026-02-15 18:50] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Fix FactoryRunnerJob tests - correct error assertions
+**Why:** Fix error_message -> summary (column doesn't exist), backlog attribute, and state_before assertions.
+**Files:** test/jobs/factory_runner_job_test.rb
+**Verify:** 19 runs, 29 assertions, 0 failures
+**Risk:** low (test file fix)
+
+
+
+## [2026-02-15 19:07] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add strict_loading to Task model to detect N+1 queries
+**Why:** strict_loading :n_plus_one warns in dev/test when N+1 queries occur, helping identify performance issues. Board and User already have it; adding to Task completes the coverage for core models.
+**Files:** app/models/task.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (additive, warning-only in dev/test)
+
