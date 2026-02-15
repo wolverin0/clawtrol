@@ -2475,3 +2475,31 @@
 **Files:** app/views/boards/_task_card.html.erb
 **Verify:** ERB syntax OK ✅, 24 boards/tasks controller tests pass ✅
 **Risk:** low (additive HTML attributes, no behavior change)
+
+## [2026-02-15 08:16] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed SSRF-via-redirect vulnerability in ProcessSavedLinkJob. The initial URL was checked against `safe_outbound_url?` (blocks private IPs, localhost, internal TLDs), but the HTTP redirect target was NOT checked. An attacker could craft a link that 301-redirects to `http://192.168.x.x/...` or `http://localhost:5432/` to access internal services. Now the redirect URL is also validated against `safe_outbound_url?` before following. Also added `URI.join` to properly resolve relative redirects.
+**Why:** Classic SSRF bypass via open redirect. Any user can save a link that redirects to internal infrastructure.
+**Files:** app/jobs/process_saved_link_job.rb
+**Verify:** ruby syntax OK ✅, 44 job tests pass ✅
+**Risk:** medium (security fix, changes HTTP redirect behavior — could break legitimate redirects to internal hosts, but those shouldn't exist)
+
+## [2026-02-15 08:19] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Moved `current_user.saved_links.group(:status).count` query from the view (saved_links/index.html.erb) to the controller as `@status_counts`. This follows the Rails pattern of keeping DB queries out of views.
+**Why:** Views should not make DB queries directly — this query was executing a GROUP BY COUNT on every page load inside the ERB template. Moving it to the controller makes it testable, visible in profiling tools, and follows MVC separation.
+**Files:** app/controllers/saved_links_controller.rb, app/views/saved_links/index.html.erb
+**Verify:** ruby/ERB syntax OK ✅, model tests pass ✅
+**Risk:** low (same query, different location)
+
+## [2026-02-15 08:22] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added a partial compound index `idx_tasks_auto_runner_candidates` on tasks(user_id, priority, position) with a WHERE clause matching the exact filters from `AgentAutoRunnerService#runnable_up_next_task_for`. This is the hot path for the auto-runner cron job that runs every ~60 seconds.
+**Why:** The auto-runner queries for eligible tasks with 7+ WHERE conditions. Without a targeted partial index, Postgres must scan the `index_tasks_on_user_agent_status` compound index then do a filter on the remaining conditions. The partial index pre-filters to only matching rows, enabling a direct index scan sorted by priority/position.
+**Files:** db/migrate/20260216050005_add_auto_runner_partial_index_to_tasks.rb
+**Verify:** migration ran ✅, 4 agent_auto_runner_service tests pass ✅
+**Risk:** low (additive index, no schema changes to existing data)
+
+## [2026-02-15 08:26] - Category: Code Quality + Testing — STATUS: ✅ VERIFIED
+**What:** Added missing validations to TaskDiff model: `file_path` length limit (max 1000), `diff_content` length limit (max 500KB), `diff_type` presence validation, and extracted DIFF_TYPES constant. Added 4 new tests for these validations.
+**Why:** TaskDiff stores user-generated content (file paths from agent output, diff content from git). Without length limits, a malicious or buggy agent could store arbitrarily large diffs or paths, consuming DB storage. The diff_type presence validation was implicitly covered by inclusion but explicit is clearer.
+**Files:** app/models/task_diff.rb, test/models/task_diff_test.rb
+**Verify:** 24 task_diff tests pass (20 existing + 4 new) ✅
+**Risk:** low (additive validations with generous limits)

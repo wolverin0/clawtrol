@@ -177,4 +177,29 @@ class TaskDiffTest < ActiveSupport::TestCase
     # Should have at least one group with changes
     assert groups.any? { |g| g[:type] == :changes }
   end
+
+  # --- New validations ---
+
+  test "file_path must not exceed 1000 chars" do
+    td = TaskDiff.new(task: @task, file_path: "a" * 1001, diff_type: "modified")
+    assert_not td.valid?
+    assert td.errors[:file_path].any?
+  end
+
+  test "diff_content must not exceed 500000 chars" do
+    td = TaskDiff.new(task: @task, file_path: "big.rb", diff_type: "modified", diff_content: "x" * 500_001)
+    assert_not td.valid?
+    assert td.errors[:diff_content].any?
+  end
+
+  test "diff_content nil is allowed" do
+    td = TaskDiff.new(task: @task, file_path: "nil_content.rb", diff_type: "modified", diff_content: nil)
+    assert td.valid?, "Expected nil diff_content to be valid: #{td.errors.full_messages}"
+  end
+
+  test "diff_type is required" do
+    td = TaskDiff.new(task: @task, file_path: "no_type.rb", diff_type: nil)
+    assert_not td.valid?
+    assert td.errors[:diff_type].any?
+  end
 end
