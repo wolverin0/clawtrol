@@ -28,6 +28,8 @@ require "fileutils"
 # - Requires: synthesis merging logic
 #
 class RunDebateJob < ApplicationJob
+  include TaskBroadcastable
+
   queue_as :default
 
   # STATUS: NOT YET IMPLEMENTED — Coming Soon
@@ -61,15 +63,4 @@ class RunDebateJob < ApplicationJob
     broadcast_task_update(task)
   end
 
-  private
-
-  def broadcast_task_update(task)
-    Turbo::StreamsChannel.broadcast_action_to(
-      "board_#{task.board_id}",
-      action: :replace,
-      target: "task_#{task.id}",
-      partial: "boards/task_card",
-      locals: { task: task }
-    )
-  end
 end

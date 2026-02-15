@@ -6,6 +6,8 @@
 # - If command passes → auto-move to done
 # - If command fails → move to up_next (truthful queue), create follow-up task
 class AutoValidationJob < ApplicationJob
+  include TaskBroadcastable
+
   queue_as :default
 
   def perform(task_id)
@@ -129,16 +131,5 @@ class AutoValidationJob < ApplicationJob
     DESC
   end
 
-  def broadcast_task_update(task)
-    Turbo::StreamsChannel.broadcast_action_to(
-      "board_#{task.board_id}",
-      action: :replace,
-      target: "task_#{task.id}",
-      partial: "boards/task_card",
-      locals: { task: task }
-    )
-
-    # Also notify WebSocket clients
-    KanbanChannel.broadcast_refresh(task.board_id, task_id: task.id, action: "update")
-  end
+  # broadcast_task_update provided by TaskBroadcastable
 end
