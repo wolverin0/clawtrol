@@ -1,0 +1,66 @@
+<%# Pipeline log panel - renders task.pipeline_log entries in a compact, mobile-readable format %>
+<%
+  log = Array(task.pipeline_log)
+  return if log.empty?
+
+  # Show most recent entries first, limit to keep modal light.
+  entries = log.last(20).reverse
+
+  def pick(entry, *keys)
+    keys.each do |k|
+      return entry[k] if entry.is_a?(Hash) && entry.key?(k)
+      ks = k.to_s
+      return entry[ks] if entry.is_a?(Hash) && entry.key?(ks)
+      sym = ks.to_sym
+      return entry[sym] if entry.is_a?(Hash) && entry.key?(sym)
+    end
+    nil
+  end
+%>
+
+<div class="rounded-lg border border-border bg-bg-elevated/30 px-4 py-3">
+  <div class="flex items-center justify-between mb-2">
+    <span class="text-xs font-medium text-content-secondary uppercase tracking-wide">Pipeline log</span>
+    <span class="text-[10px] text-content-muted"><%= entries.size %> / <%= log.size %></span>
+  </div>
+
+  <div class="space-y-2 max-h-56 overflow-y-auto">
+    <% entries.each do |entry| %>
+      <% stage = pick(entry, :stage) %>
+      <% ts = pick(entry, :timestamp, :at) %>
+      <% selected_model = pick(entry, :selected_model, :model, :routed_model) %>
+      <% prompt_length = pick(entry, :prompt_length, :compiled_prompt_length) %>
+      <% context_mode = pick(entry, :context_mode, :context_compiler_mode) %>
+      <% rag_results = pick(entry, :rag_results, :rag, :rag_hits) %>
+
+      <div class="rounded-md border border-border bg-bg-surface px-3 py-2">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <div class="text-xs text-content-secondary">
+              <span class="font-mono"><%= stage.presence || "(unknown)" %></span>
+            </div>
+            <% if ts.present? %>
+              <div class="text-[10px] text-content-muted font-mono"><%= ts %></div>
+            <% end %>
+          </div>
+
+          <% if selected_model.present? %>
+            <div class="text-[10px] text-sky-400 font-mono text-right break-all">model: <%= selected_model %></div>
+          <% end %>
+        </div>
+
+        <div class="mt-1 text-[10px] text-content-muted space-y-0.5">
+          <% if prompt_length.present? %>
+            <div>prompt: <span class="font-mono"><%= prompt_length %></span></div>
+          <% end %>
+          <% if context_mode.present? %>
+            <div>context: <span class="font-mono"><%= context_mode %></span></div>
+          <% end %>
+          <% if rag_results.present? %>
+            <div>rag: <span class="font-mono"><%= rag_results %></span></div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

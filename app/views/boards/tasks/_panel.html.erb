@@ -146,8 +146,9 @@
             </div>
           <% end %>
 
-          <%# Pipeline progress stepper %>
+          <%# Pipeline progress stepper + log viewer (in-modal) %>
           <%= render "boards/tasks/pipeline_stepper", task: task %>
+          <%= render "boards/tasks/pipeline_log_panel", task: task %>
 
           <%= form_with model: task, url: board_task_path(@board, task), method: :patch, data: { task_modal_target: "form" }, class: "space-y-6" do |form| %>
             <%= form.hidden_field :priority, value: task.priority, data: { task_modal_target: "priorityField" } %>

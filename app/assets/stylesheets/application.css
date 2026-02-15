@@ -115,6 +115,35 @@ body.overflow-hidden {
   border-radius: 2px;
 }
 
+/* Optional gradient fade on the right edge to hint scroll */
+.pipeline-stepper-fade {
+  position: relative;
+}
+
+.pipeline-stepper-fade::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0), var(--color-bg-elevated));
+}
+
+/* Task modal header: prevent iOS long-press text callout from fighting our custom context menu */
+.task-modal-header {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.task-modal-header a,
+.task-modal-header button {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* Toast animations */
 @keyframes slide-in-up {
   from {
