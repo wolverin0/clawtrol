@@ -226,6 +226,215 @@ class MarketingController < ApplicationController
     json = JSON.parse(content)
     render json: json
   rescue JSON::ParserError
-    render plain: "Invalid JSON", status: :bad_request
+    content
+  end
+
+  def mime_type_for(ext)
+    {
+      ".png" => "image/png",
+      ".jpg" => "image/jpeg",
+      ".jpeg" => "image/jpeg",
+      ".gif" => "image/gif",
+      ".webp" => "image/webp",
+      ".svg" => "image/svg+xml",
+      ".mp4" => "video/mp4",
+      ".webm" => "video/webm",
+      ".mov" => "video/quicktime",
+      ".avi" => "video/x-msvideo"
+    }[ext] || "application/octet-stream"
+  end
+
+  def build_batch_data(batch_name, batch_path)
+    index_path = File.join(batch_path, "index.json")
+
+    if File.exist?(index_path)
+      parse_index_json(batch_name, batch_path, index_path)
+    else
+      scan_media_files(batch_path, batch_name)
+    end
+  end
+
+  def parse_index_json(batch_name, batch_path, index_path)
+    content = JSON.parse(File.read(index_path))
+    generated_at = content["generated_at"] || File.mtime(index_path).iso8601
+
+    images = (content["images"] || []).map do |img|
+      {
+        product: normalize_product(img["product"]),
+        type: img["type"] || "unknown",
+        filename: img["filename"],
+        dimensions: img["dimensions"],
+        prompt: img["prompt"],
+        url: "/marketing/generated/#{batch_name}/#{img["filename"]}"
+      }
+    end
+
+    {
+      name: batch_name,
+      generated_at: generated_at,
+      images: images
+    }
+  rescue JSON::ParserError
+    scan_media_files(batch_path, batch_name)
+  end
+
+  def scan_media_files(dir_path, batch_name)
+    images = []
+    generated_at = nil
+
+    Dir.glob(File.join(dir_path, "*")).each do |file_path|
+      next unless File.file?(file_path)
+
+      ext = File.extname(file_path).downcase
+      next unless MEDIA_EXTENSIONS.include?(ext)
+
+      # Skip very small files (likely corrupt)
+      next if File.size(file_path) < 100
+
+      filename = File.basename(file_path)
+      mtime = File.mtime(file_path)
+      generated_at ||= mtime.iso8601
+      generated_at = mtime.iso8601 if mtime.iso8601 > generated_at
+
+      # Try to infer product from filename
+      product = infer_product(filename)
+      type = infer_type(filename, ext)
+
+      relative_path = if batch_name == "loose-files"
+                        "generated/#{filename}"
+      else
+                        "generated/#{batch_name}/#{filename}"
+      end
+
+      images << {
+        product: product,
+        type: type,
+        filename: filename,
+        dimensions: nil,
+        prompt: nil,
+        url: "/marketing/#{relative_path}"
+      }
+    end
+
+    {
+      name: batch_name,
+      generated_at: generated_at || Time.current.iso8601,
+      images: images
+    }
+  end
+
+  def normalize_product(product)
+    return "unknown" if product.blank?
+
+    case product.to_s.downcase
+    when /futura\s*crm/, /crm/
+      "futuracrm"
+    when /futura\s*fitness/, /fitness/
+      "futurafitness"
+    when /optima\s*delivery/, /delivery/
+      "optimadelivery"
+    when /futura/, /brand/
+      "futura"
+    else
+      product.to_s.downcase.gsub(/\s+/, "")
+    end
+  end
+
+  def infer_product(filename)
+    name = filename.downcase
+    case name
+    when /crm/, /futuracrm/
+      "futuracrm"
+    when /fitness/, /futurafitness/
+      "futurafitness"
+    when /delivery/, /optima/
+      "optimadelivery"
+    when /futura/, /brand/
+      "futura"
+    else
+      "unknown"
+    end
+  end
+
+  def infer_type(filename, ext)
+    name = filename.downcase
+    return "video" if VIDEO_EXTENSIONS.include?(ext)
+
+    case name
+    when /hero/
+      "hero"
+    when /instagram|insta|ig/
+      "instagram"
+    when /story|stories/
+      "story"
+    when /facebook|fb/
+      "facebook"
+    when /feature/
+      "feature"
+    when /post/
+      "instagram"
+    when /mobile/
+      "story"
+    when /desktop/
+      "hero"
+    else
+      "image"
+    end
+  end
+
+  def update_playground_index(filename, user_prompt, full_prompt, product, template, model, size)
+    index_path = File.join(PLAYGROUND_OUTPUT_DIR, "index.json")
+
+    # Load existing or create new
+    if File.exist?(index_path)
+      index_data = JSON.parse(File.read(index_path))
+    else
+      index_data = { "generated_at" => Time.current.iso8601, "images" => [] }
+    end
+
+    # Parse dimensions from size
+    dimensions = size
+
+    # Add new entry
+    index_data["images"] ||= []
+    index_data["images"] << {
+      "filename" => filename,
+      "product" => product,
+      "template" => template,
+      "model" => model,
+      "type" => infer_type_from_size(size),
+      "dimensions" => dimensions,
+      "prompt" => user_prompt,
+      "full_prompt" => full_prompt,
+      "generated_at" => Time.current.iso8601
+    }
+
+    # Update batch timestamp
+    index_data["generated_at"] = Time.current.iso8601
+
+    # Atomic write to prevent corruption on crash
+    require "tempfile"
+    tmp = Tempfile.new("index.json", File.dirname(index_path))
+    begin
+      tmp.write(JSON.pretty_generate(index_data))
+      tmp.close
+      File.rename(tmp.path, index_path)
+    rescue StandardError
+      tmp.close!
+      raise
+    end
+  end
+
+  def infer_type_from_size(size)
+    case size
+    when "1080x1080", "1024x1024"
+      "instagram"
+    when "1200x630"
+      "facebook"
+    when "1080x1920"
+      "story"
+    else
+      "image"
+    end
   end
 end
