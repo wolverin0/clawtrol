@@ -27,7 +27,12 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     end
 
     def notify_auto_pull_ready(task)
-      self.class.wakes << { task_id: task.id, name: task.name }
+      self.class.wakes << { task_id: task.id, name: task.name, pipeline: false }
+      true
+    end
+
+    def notify_auto_pull_ready_with_pipeline(task)
+      self.class.wakes << { task_id: task.id, name: task.name, pipeline: true }
       true
     end
   end
@@ -167,6 +172,83 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
 
     notif = Notification.order(created_at: :desc).find_by(task: task, event_type: "auto_pull_ready")
     assert notif.present?, "expected an auto_pull_ready notification"
+  end
+
+  test "pipeline tasks in up_next advance from unstarted -> triaged -> context_ready -> routed and become runnable" do
+    user = User.create!(
+      email_address: "auto_runner_pipeline_#{SecureRandom.hex(4)}@example.test",
+      password: "password123",
+      password_confirmation: "password123",
+      agent_auto_mode: true,
+      openclaw_gateway_url: "http://example.test",
+      openclaw_gateway_token: "tok"
+    )
+
+    board = Board.create!(user: user, name: "Board 20")
+
+    task = Task.create!(
+      user: user,
+      board: board,
+      name: "Pipeline task",
+      status: :up_next,
+      pipeline_enabled: true,
+      pipeline_stage: "unstarted",
+      assigned_to_agent: false,
+      blocked: false
+    )
+
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    # Stub the heavy services (context compilation / routing) to keep this test fast and deterministic.
+    begin
+      original_ctx = Pipeline::ContextCompilerService.instance_method(:call)
+      original_route = Pipeline::ClawRouterService.instance_method(:call)
+
+      Pipeline::ContextCompilerService.define_method(:call) do
+        task.update_columns(pipeline_stage: "context_ready")
+        true
+      end
+
+      Pipeline::ClawRouterService.define_method(:call) do
+        task.update_columns(
+          pipeline_stage: "routed",
+          routed_model: "codex",
+          compiled_prompt: "compiled"
+        )
+        true
+      end
+
+      travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+        # tick 1: unstarted -> triaged
+        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+        assert_equal "triaged", task.reload.pipeline_stage
+        refute task.assigned_to_agent?
+
+        Rails.cache.clear
+        cache.clear
+
+        # tick 2: triaged -> context_ready
+        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+        assert_equal "context_ready", task.reload.pipeline_stage
+
+        Rails.cache.clear
+        cache.clear
+
+        # tick 3: context_ready -> routed, becomes runnable (assigned_to_agent) and gets a pipeline wake
+        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+        task.reload
+        assert_equal "routed", task.pipeline_stage
+        assert task.pipeline_ready?
+        assert task.assigned_to_agent?
+      end
+    ensure
+      Pipeline::ContextCompilerService.define_method(:call, original_ctx)
+      Pipeline::ClawRouterService.define_method(:call, original_route)
+    end
+
+    assert_equal 1, FakeWebhookService.wakes.length
+    assert_equal({ task_id: task.id, name: task.name, pipeline: true }, FakeWebhookService.wakes.first)
   end
 
   test "nightly tasks are not auto-pulled outside the nightly window" do

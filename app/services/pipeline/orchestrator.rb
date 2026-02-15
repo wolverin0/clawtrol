@@ -16,7 +16,7 @@ module Pipeline
       return nil unless pipeline_applicable?
 
       case @task.pipeline_stage
-      when nil, ""
+      when nil, "", "unstarted"
         triage!
       when "triaged"
         compile_context!

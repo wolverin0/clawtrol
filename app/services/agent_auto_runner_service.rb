@@ -76,12 +76,19 @@ class AgentAutoRunnerService
   def process_pipeline_tasks!(user)
     count = 0
     tasks = user.tasks.where(pipeline_enabled: true, status: :up_next)
-                      .where(pipeline_stage: [nil, "triaged", "context_ready"])
+                      .where(pipeline_stage: [nil, "unstarted", "triaged", "context_ready"])
                       .limit(5)
 
     tasks.find_each do |task|
       begin
         Pipeline::Orchestrator.new(task, user: user).process!
+
+        # If pipeline routing produced a runnable payload, ensure it's runnable
+        # for the auto-runner wake mechanism.
+        if task.reload.pipeline_ready? && !task.assigned_to_agent?
+          task.assign_to_agent!
+        end
+
         count += 1
       rescue StandardError => e
         @logger.warn("[AgentAutoRunner] pipeline processing failed task_id=#{task.id} err=#{e.class}: #{e.message}")
