@@ -2941,3 +2941,10 @@
 **Files:** test/system/board_test.rb
 **Verify:** Ruby syntax OK, board model tests pass (24 runs, 0 failures)
 **Risk:** low (test additions only)
+
+## [2026-02-15 17:45] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 4 Swarm Launcher system tests (model picker, board assignment, launch button validation)
+**Why:** Backlog target was 6+ system tests for Swarm Launcher. Added tests for: model picker dropdown appears on idea selection, board assignment available before launch, launch button validation/disabling.
+**Files:** test/system/swarm_test.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (test additions only)
