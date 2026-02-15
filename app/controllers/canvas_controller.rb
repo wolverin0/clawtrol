@@ -199,7 +199,7 @@ class CanvasController < ApplicationController
   end
 
   def cost_summary_template
-    today_snapshots = CostSnapshot.where(user_id: current_user.id).where("created_at >= ?", Time.current.beginning_of_day)
+    today_snapshots = CostSnapshot.where("created_at >= ?", Time.current.beginning_of_day)
     total_cost = today_snapshots.sum(:total_cost)
 
     <<~HTML
