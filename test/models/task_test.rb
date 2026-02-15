@@ -321,4 +321,42 @@ class TaskTest < ActiveSupport::TestCase
   test "DEFAULT_MODEL is opus" do
     assert_equal "opus", Task::DEFAULT_MODEL
   end
+
+  # --- Optimistic Locking ---
+
+  test "new tasks have lock_version 0" do
+    task = Task.create!(name: "Lock test", board: boards(:one), user: users(:one))
+    assert_equal 0, task.lock_version
+  end
+
+  test "lock_version increments on update" do
+    task = Task.create!(name: "Lock test", board: boards(:one), user: users(:one))
+    assert_equal 0, task.lock_version
+    task.update!(name: "Updated name")
+    assert_equal 1, task.lock_version
+  end
+
+  test "concurrent update raises StaleObjectError" do
+    task = Task.create!(name: "Lock test", board: boards(:one), user: users(:one))
+
+    # Load the same record into two separate instances
+    task_a = Task.find(task.id)
+    task_b = Task.find(task.id)
+
+    # First update succeeds
+    task_a.update!(name: "Update A")
+
+    # Second update should fail — lock_version is stale
+    assert_raises(ActiveRecord::StaleObjectError) do
+      task_b.update!(name: "Update B")
+    end
+  end
+
+  test "sequential updates work fine" do
+    task = Task.create!(name: "Lock test", board: boards(:one), user: users(:one))
+    task.update!(name: "First update")
+    task.update!(name: "Second update")
+    assert_equal 2, task.lock_version
+    assert_equal "Second update", task.name
+  end
 end

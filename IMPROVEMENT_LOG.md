@@ -2242,3 +2242,17 @@
 **Files:** test/controllers/profiles_controller_test.rb
 **Verify:** ruby -c ✅, 8 profiles controller tests pass ✅, 595 controller tests total: 0 failures, 0 errors
 **Risk:** low (test-only change)
+
+## [2026-02-15 06:37] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Add optimistic locking to Task model + StaleObjectError handling
+**Why:** Multiple agents can update the same task concurrently (e.g., agent_complete while auto_runner moves status). Without optimistic locking, last-write-wins — silently overwriting valid state. Added lock_version column with default 0. Rails automatically uses it for optimistic locking. Added StaleObjectError rescue handlers to both API base controller (409 Conflict JSON) and ApplicationController (redirect with flash message for HTML, head :conflict for turbo_stream).
+**Files:** db/migrate/20260216050002_add_lock_version_to_tasks.rb, app/controllers/application_controller.rb, app/controllers/api/v1/base_controller.rb, db/schema.rb
+**Verify:** ruby -c ✅, 41 task model tests pass ✅
+**Risk:** medium (adds a new column; existing code works unchanged but concurrent updates will now raise StaleObjectError instead of silently overwriting)
+
+## [2026-02-15 06:40] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add optimistic locking tests for Task model
+**Why:** The previous cycle added lock_version but no tests. Added 4 tests: initial lock_version is 0, increments on update, StaleObjectError on concurrent update, sequential updates work fine.
+**Files:** test/models/task_test.rb
+**Verify:** ruby -c ✅, 45 task model tests (was 41), 0 failures, 0 errors ✅
+**Risk:** low (test-only)
