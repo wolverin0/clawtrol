@@ -2628,3 +2628,88 @@
 - `bb49a49` — WebhookLog unscoped query (data leak between users)
 - `daee940` — Canvas FactoryCycleLog/CostSnapshot unscoped queries (data leak)
 - `406ea19` — 4 unscoped cache keys (analytics, command, tokens, cronjobs)
+
+## [2026-02-15 09:38] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Scope Task count queries in AgentPersonasController to current_user
+**Why:** Task.where(agent_persona_id:...) without user scoping leaks cross-user task counts when global personas (user_id: nil) are shared. User A could see task count data from User B's tasks via shared global personas.
+**Files:** app/controllers/agent_personas_controller.rb
+**Verify:** ruby -c passed, bin/rails test — 1823 runs, 0 failures, 0 errors
+**Risk:** low (query scoping, no schema change)
+
+## [2026-02-15 09:45] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 17 controller tests for SkillManagerController
+**Why:** Previously untested controller handling gateway API skills config. Tests cover: auth gates, gateway error handling, CRUD operations (toggle/configure/install/uninstall), input validation (invalid JSON, nested objects, oversized values, path traversal), and bundled skill discovery.
+**Files:** test/controllers/skill_manager_controller_test.rb (new)
+**Verify:** 17/17 pass, full suite 1840 runs 0 failures 0 errors
+**Risk:** low (test-only)
+
+## [2026-02-15 09:52] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 13 controller tests for CompactionConfigController
+**Why:** Previously untested controller handling compaction mode, memory flush, and context pruning config. Tests cover: auth gates, gateway error handling, show with config/defaults, update with valid/invalid modes, clamped numerical params (max_turns, cache_ttl, trim ratios), boolean params, multi-param updates, and gateway error reporting.
+**Files:** test/controllers/compaction_config_controller_test.rb (new)
+**Verify:** 13/13 pass, syntax check passed
+**Risk:** low (test-only)
+
+## [2026-02-15 09:58] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 22 controller tests for 3 previously untested config controllers (TypingConfig, IdentityConfig, LoggingConfig)
+**Why:** These config controllers interact with the OpenClaw gateway API and had zero test coverage. Tests cover: auth gates, show with config/errors/defaults, update operations (modes, levels, intervals, file paths), section validation, path traversal rejection in log file, and gateway error reporting.
+**Files:** test/controllers/typing_config_controller_test.rb (new, 8 tests), test/controllers/identity_config_controller_test.rb (new, 6 tests), test/controllers/logging_config_controller_test.rb (new, 8 tests)
+**Verify:** 22/22 pass, syntax check passed
+**Risk:** low (test-only)
+
+## [2026-02-15 10:04] - Category: Code Quality (DRY) — STATUS: ✅ VERIFIED
+**What:** Extract RunnerLease.create_for_task! factory method, DRY 3 creation sites
+**Why:** RunnerLease creation pattern (7 lines: token gen, timestamps, source) was duplicated in tasks_controller.rb and task_agent_lifecycle.rb (x2). Extracted to a single `create_for_task!(task:, agent_name:, source:)` class method on RunnerLease.
+**Files:** app/models/runner_lease.rb, app/controllers/api/v1/tasks_controller.rb, app/controllers/concerns/api/task_agent_lifecycle.rb
+**Verify:** ruby -c passed all 3 files, bin/rails test — 1875 runs, 0 failures, 0 errors
+**Risk:** low (refactor, same behavior, no schema change)
+
+## [2026-02-15 10:10] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 20 controller tests for 4 previously untested config controllers (MediaConfig, MessageQueueConfig, ConfigHub, SendPolicy)
+**Why:** These controllers had zero test coverage. Tests cover: auth gates, show with config/errors/defaults, update operations with valid/invalid params, input clamping (debounce, cap), drop strategy validation, and media config (audio/video/image).
+**Files:** test/controllers/media_config_controller_test.rb (5 tests), test/controllers/message_queue_config_controller_test.rb (7 tests), test/controllers/config_hub_controller_test.rb (4 tests), test/controllers/send_policy_controller_test.rb (4 tests)
+**Verify:** 20/20 pass, syntax check passed
+**Risk:** low (test-only)
+
+## [2026-02-15 10:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 9 controller tests for ChannelConfigController (last untested controller!)
+**Why:** Last controller without tests. Covers show/update for all 3 supported channels (Mattermost, Slack, Signal), unsupported channel rejection, auth gates, gateway error handling. ALL controllers now have tests.
+**Files:** test/controllers/channel_config_controller_test.rb (new, 9 tests)
+**Verify:** 9/9 pass, syntax check passed. Full suite: all controllers now covered.
+**Risk:** low (test-only)
+
+## [2026-02-15 10:22] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Fix broken test_notification action in ProfilesController
+**Why:** `ExternalNotificationService.new(current_user)` passed a User where a Task was expected. The service's constructor sets `@task = arg` and `@user = arg.user` — on a User object, `.user` returns nil, breaking all notification logic. Additionally, `notify_task_completion` doesn't accept arguments, so the OpenStruct passed to it was silently ignored. Fixed by building a proper duck-type fake_task with .user, .origin_chat_id, etc. and calling `svc.notify_task_completion` without arguments.
+**Files:** app/controllers/profiles_controller.rb
+**Verify:** ruby -c passed, bin/rails test — 1904 runs, 0 failures, 0 errors
+**Risk:** low (single endpoint fix, no schema change)
+
+---
+
+## Session Summary (2026-02-15 09:38 - 10:30)
+
+**8 improvement cycles in ~52 minutes**
+
+### Key Metrics
+- **New tests added:** 81 tests across 8 previously untested controllers
+- **Controllers now at 100% test file coverage:** All 72 controllers have test suites
+- **Security fixes:** 1 (cross-user data leak via shared global personas)
+- **Bug fixes:** 1 (broken test_notification passing wrong type to ExternalNotificationService)
+- **DRY refactors:** 1 (RunnerLease.create_for_task! factory method, deduped 3 sites)
+- **Total test count:** 1904 runs, 4364 assertions, 0 failures, 0 errors
+
+### Improvements by Category
+1. **Security:** Scope Task count queries to current_user in AgentPersonasController (cross-user leak fix)
+2. **Testing:** 17 tests for SkillManagerController (auth, CRUD, validation, gateway errors)
+3. **Testing:** 13 tests for CompactionConfigController (compaction modes, pruning, clamping)
+4. **Testing:** 22 tests for TypingConfig + IdentityConfig + LoggingConfig controllers
+5. **Code Quality (DRY):** RunnerLease.create_for_task! factory method, DRY 3 creation sites
+6. **Testing:** 20 tests for MediaConfig + MessageQueueConfig + ConfigHub + SendPolicy controllers
+7. **Testing:** 9 tests for ChannelConfigController (last untested — 100% coverage milestone!)
+8. **Bug Fix:** Fix broken test_notification passing User instead of Task to ExternalNotificationService
+
+### Cherry-Pick Priority
+- `0b0749e` — Cross-user Task count data leak in AgentPersonasController
+- `f1c2e79` — Broken test_notification in ProfilesController
+- `d3b55ac` — RunnerLease.create_for_task! DRY extraction
