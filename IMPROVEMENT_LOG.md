@@ -2323,3 +2323,10 @@
 **Files:** app/controllers/keys_controller.rb, app/controllers/marketing_controller.rb
 **Verify:** ruby -c ✅, keys_controller_test passes ✅
 **Risk:** low (same-filesystem rename is atomic on Linux/macOS)
+
+## [2026-02-15 07:08] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** TaskActivity model: inclusion validations for action/source/actor_type + length limits
+**Why:** `action` validated presence but not inclusion in ACTIONS constant — any string was accepted. Added: action inclusion in ACTIONS, source inclusion in [web/api/system], actor_type inclusion in [user/agent/system], length limits on actor_name(200), actor_emoji(20), note(2000), field_name(100), old_value/new_value(1000). Plus 7 new tests.
+**Files:** app/models/task_activity.rb, test/models/task_activity_test.rb
+**Verify:** ruby -c ✅, 21 runs 45 assertions 0 failures ✅
+**Risk:** low (models already only use defined constants; this prevents future misuse)
