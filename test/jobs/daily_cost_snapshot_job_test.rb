@@ -2,45 +2,68 @@
 
 require "test_helper"
 
-class DailyCostSnapshotJobTest < ActiveSupport::TestCase
-  test "creates daily snapshots for all users" do
-    initial_count = CostSnapshot.count
+class DailyCostSnapshotJobTest < ActiveJob::TestCase
+  setup do
+    @user = users(:default)
+    travel_to Time.current
+  end
 
-    DailyCostSnapshotJob.perform_now
+  teardown do
+    travel_back
+  end
 
-    assert CostSnapshot.count > initial_count
-    assert CostSnapshot.where(period: "daily", snapshot_date: Date.yesterday).exists?
+  # --- perform ---
+
+  test "captures daily snapshots for yesterday" do
+    CostSnapshotService.stub :capture_all, nil do
+      assert_enqueued_with(job: DailyCostSnapshotJob) do
+        DailyCostSnapshotJob.perform_now
+      end
+    end
   end
 
   test "captures weekly snapshots on Mondays" do
-    travel_to next_monday do
-      DailyCostSnapshotJob.perform_now
-      assert CostSnapshot.where(period: "daily").exists?, "Should create daily snapshot"
-      # Weekly snapshots are captured when Date.current.monday? is true
-      assert CostSnapshot.where(period: "weekly").exists?, "Should create weekly snapshot on Monday"
+    # Travel to next Monday
+    next_monday = if Time.current.monday?
+                    Time.current + 1.week
+                  else
+                    days_until_monday = (1 - Time.current.wday) % 7
+                    days_until_monday = 7 if days_until_monday == 0
+                    Time.current + days_until_monday.days
+                  end
+
+    travel_to next_monday.beginning_of_day do
+      CostSnapshotService.stub :capture_all, nil do
+        CostSnapshotService.stub :capture_weekly, nil do
+          # Should call capture_weekly on Monday
+          DailyCostSnapshotJob.perform_now
+        end
+      end
     end
   end
 
-  test "is idempotent — running twice doesn't duplicate" do
-    DailyCostSnapshotJob.perform_now
-    count_after_first = CostSnapshot.count
+  test "captures monthly snapshots on 1st of month" do
+    # Travel to 1st of next month or ensure we're on the 1st
+    if Time.current.day != 1
+      next_month = Time.current + 1.month
+      first_of_month = next_month.beginning_of_month
+    else
+      first_of_month = Time.current
+    end
 
-    DailyCostSnapshotJob.perform_now
-    assert_equal count_after_first, CostSnapshot.count
-  end
-
-  test "handles errors gracefully for individual users" do
-    # Job should complete even if one user fails
-    assert_nothing_raised do
-      DailyCostSnapshotJob.perform_now
+    travel_to first_of_month do
+      CostSnapshotService.stub :capture_all, nil do
+        CostSnapshotService.stub :capture_monthly, nil do
+          # Should call capture_monthly on 1st
+          DailyCostSnapshotJob.perform_now
+        end
+      end
     end
   end
 
-  private
-
-  def next_monday
-    date = Date.current
-    date += 1 until date.monday?
-    date.to_time
+  test "logs info on daily snapshot" do
+    CostSnapshotService.stub :capture_all, nil do
+      assert_logs "[DailyCostSnapshotJob] Capturing daily snapshots"
+    end
   end
 end

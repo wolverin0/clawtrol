@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 class TokenUsage < ApplicationRecord
+  # Enforce eager loading to prevent N+1 queries in views
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
+
   belongs_to :task, inverse_of: :task
   belongs_to :agent_persona, optional: true
 
