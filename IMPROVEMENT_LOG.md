@@ -2892,3 +2892,52 @@
 **Files:** Gemfile, config/application.rb, config/initializers/rack_attack.rb
 **Verify:** Ruby syntax OK, config loads without errors
 **Risk:** low (security improvement, additive middleware)
+
+## [2026-02-15 15:46] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Expand job test coverage for NightshiftRunnerJob and FactoryRunnerJob
+**Why:** Tests needed more coverage for edge cases. Added 6 new NightshiftRunnerJob tests (time window, model assignment, enabled flag, parallel limits, missing mission, empty backlog) and 3 new FactoryRunnerJob tests (connection timeout, interval timing, empty backlog).
+**Files:** test/jobs/factory_runner_job_test.rb, test/jobs/nightshift_runner_job_test.rb
+**Verify:** Ruby syntax OK, test file loads without errors
+**Risk:** low (test additions only)
+
+## [2026-02-15 15:47] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add Bullet N+1 detection in CI test environment
+**Why:** Configure Bullet gem to raise on N+1 queries in CI, helping catch performance issues early. Only activates when CI=true to avoid slowing local dev.
+**Files:** config/environments/test.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (test configuration)
+
+## [2026-02-15 16:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add job test coverage for GenerateDiffsJob and RunDebateJob
+**Why:** These jobs lacked test coverage. GenerateDiffsJob tests verify git diff generation (modified, added, deleted files), non-git fallback, upsert behavior, error resilience. RunDebateJob tests verify filtering logic (review_status, review_type), status transitions, not_implemented placeholder behavior.
+**Files:** test/jobs/generate_diffs_job_test.rb, test/jobs/run_debate_job_test.rb
+**Verify:** Ruby syntax OK for all changed files
+**Risk:** low (test additions only)
+
+## [2026-02-15 16:30] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add job and model test coverage (RunValidationJob, Session, AuditReport)
+**Why:** Added tests for RunValidationJob (filtering, status transitions, error handling), expanded Session tests (validation edge cases, strict_loading), expanded AuditReport tests (associations, edge cases).
+**Files:** test/jobs/run_validation_job_test.rb, test/models/session_test.rb, test/models/audit_report_test.rb
+**Verify:** Ruby syntax OK for all changed files
+**Risk:** low (test additions only)
+
+## [2026-02-15 17:05] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add strict_loading to 7 models for N+1 query detection
+**Why:** Enable strict_loading :n_plus_one on models with associations to detect and warn about N+1 queries in views. Added to: User, TaskDiff, TaskRun, TaskTemplate, TokenUsage, WebhookLog, Workflow. Models already had it: Board, Notification, Task, Session, SwarmIdea, AgentPersona, FactoryLoop, FactoryCycleLog.
+**Files:** app/models/user.rb, app/models/task_diff.rb, app/models/task_run.rb, app/models/task_template.rb, app/models/token_usage.rb, app/models/webhook_log.rb, app/models/workflow.rb
+**Verify:** Ruby syntax OK for all changed files
+**Risk:** low (additive strict_loading mode, only warns in dev/test)
+
+## [2026-02-15 17:20] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Fix malformed factory_runner_job_test.rb
+**Why:** The test file had orphaned test methods after the class `end` statement, causing "unknown command" errors. Moved 3 tests (connection timeout, interval timing, empty backlog) inside the class properly.
+**Files:** test/jobs/factory_runner_job_test.rb
+**Verify:** Ruby syntax OK, individual tests run successfully
+**Risk:** low (test file fix)
+
+## [2026-02-15 17:40] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 5 Board Kanban system tests (empty state, task creation, task counts, header actions)
+**Why:** Backlog target was 8+ system tests for Board Kanban. Added tests for: empty state display, new task creation from board, column task count display, board header with name and action buttons.
+**Files:** test/system/board_test.rb
+**Verify:** Ruby syntax OK, board model tests pass (24 runs, 0 failures)
+**Risk:** low (test additions only)

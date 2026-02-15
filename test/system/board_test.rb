@@ -117,6 +117,71 @@ class BoardTest < ApplicationSystemTestCase
     # Columns should be visible
     assert_selector "h2", text: "Inbox", wait: 5
   end
+
+  test "column shows empty state when no tasks" do
+    # Create a new board with no tasks
+    empty_board = Board.create!(name: "Empty Board", user: @user)
+
+    visit board_path(empty_board)
+
+    # Wait for board to load
+    assert_selector "h2", text: "Empty Board", wait: 5
+
+    # Should show empty state message
+    assert_selector ".empty-state, .text-gray-500, .text-gray-400", minimum: 1
+  end
+
+  test "can create new task from board page" do
+    skip "Requires JavaScript support" unless ApplicationSystemTestCase::CHROME_AVAILABLE
+
+    visit board_path(@board)
+
+    # Wait for board
+    assert_selector "h2", text: "Inbox", wait: 5
+
+    # Click add card button
+    within "[data-status='inbox']" do
+      click_button "Add a card"
+
+      # Fill in task name
+      fill_in "Enter a title", with: "New Test Task"
+
+      # Submit
+      click_button "Add card"
+    end
+
+    # Task should appear in column
+    assert_text "New Test Task", wait: 5
+  end
+
+  test "board shows correct task count per column" do
+    # Add tasks to different statuses
+    tasks(:one).update!(status: "inbox")
+    Task.create!(name: "Task 2", user: @user, board: @board, status: "inbox")
+    Task.create!(name: "Task 3", user: @user, board: @board, status: "up_next")
+
+    visit board_path(@board)
+
+    # Wait for board
+    assert_selector "h2", text: "Inbox", wait: 5
+
+    # Inbox should have count badge showing at least 2
+    inbox_badge = find("[id='column-inbox-count']")
+    assert inbox_badge.text.to_i >= 2
+  end
+
+  test "board header shows board name and actions" do
+    visit board_path(@board)
+
+    # Wait for board
+    assert_selector "h2", text: "Inbox", wait: 5
+
+    # Board name should be visible in header
+    assert_text @board.name
+
+    # Should have some action buttons (settings, add task, etc.)
+    assert_selector "a[href*='settings'], button[class*='dropdown'], button[data-dropdown-target='button']", minimum: 1
+  end
 end
 
 class BoardNavigationTest < ApplicationSystemTestCase
