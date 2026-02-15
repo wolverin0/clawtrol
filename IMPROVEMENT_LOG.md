@@ -2576,3 +2576,10 @@
 **Files:** app/models/task.rb, test/models/task_test.rb
 **Verify:** 50 task model tests pass (45 existing + 5 new), 96 assertions, 0 failures ✅
 **Risk:** low (additive nil-clearing in callback, only affects future state transitions)
+
+## [2026-02-15 09:18] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added 6 controller tests for HotReloadController: auth redirect, gateway config check, show with reload config and uptime, update with valid mode change, invalid mode rejection, debounce_ms clamping verification.
+**Why:** HotReloadController had zero tests. Tests cover auth gating, gateway config redirect, config extraction (mode/debounce/watchConfig), uptime calculation from health data, patch validation (invalid mode not applied, debounce clamped to 100-30000).
+**Files:** test/controllers/hot_reload_controller_test.rb (new)
+**Verify:** 6 tests pass, 7 assertions, 0 failures ✅
+**Risk:** low (additive tests only)
