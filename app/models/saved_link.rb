@@ -9,7 +9,8 @@ class SavedLink < ApplicationRecord
   enum :status, { pending: 0, processing: 1, done: 2, failed: 3 }, default: :pending
 
   validates :url, presence: true, length: { maximum: 2048 },
-            format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid URL" }
+            format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid URL" },
+            uniqueness: { scope: :user_id, message: "has already been saved" }
   validates :note, length: { maximum: 500 }, allow_nil: true
   validates :summary, length: { maximum: 50_000 }, allow_nil: true
   validates :raw_content, length: { maximum: 500_000 }, allow_nil: true
