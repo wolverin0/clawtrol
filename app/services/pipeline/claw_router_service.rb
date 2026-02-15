@@ -82,7 +82,7 @@ module Pipeline
       user = @task.user
       return true unless user
 
-      limit = ModelLimit.find_by(user: user, model_name: model_name)
+      limit = ModelLimit.find_by(user: user, name: model_name)
       return true unless limit
 
       # If limit was recorded more than 2 hours ago, consider it cleared
