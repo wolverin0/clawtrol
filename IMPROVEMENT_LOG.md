@@ -2920,3 +2920,10 @@
 **Files:** test/jobs/run_validation_job_test.rb, test/models/session_test.rb, test/models/audit_report_test.rb
 **Verify:** Ruby syntax OK for all changed files
 **Risk:** low (test additions only)
+
+## [2026-02-15 17:05] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add strict_loading to 7 models for N+1 query detection
+**Why:** Enable strict_loading :n_plus_one on models with associations to detect and warn about N+1 queries in views. Added to: User, TaskDiff, TaskRun, TaskTemplate, TokenUsage, WebhookLog, Workflow. Models already had it: Board, Notification, Task, Session, SwarmIdea, AgentPersona, FactoryLoop, FactoryCycleLog.
+**Files:** app/models/user.rb, app/models/task_diff.rb, app/models/task_run.rb, app/models/task_template.rb, app/models/token_usage.rb, app/models/webhook_log.rb, app/models/workflow.rb
+**Verify:** Ruby syntax OK for all changed files
+**Risk:** low (additive strict_loading mode, only warns in dev/test)
