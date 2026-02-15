@@ -7,6 +7,9 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- wave 3 integration -- MiniMax factory 140 commits merged (`6f9b973`)
+- **boards:** agent factory - auto-generate personas per board (`cf09f2a`)
+- **tasks:** add deep research toggle for multi-agent analysis (#641) (`4ed32b2`)
 - **swarm:** favorites, board routing, launch history, pipeline stepper + bugfixes (`8459380`)
 - **saved-links:** replace audio with deep summary toggle (#640) (`2f04e65`)
 - webhook retry with exponential backoff (#635) (`3cc67b8`)
@@ -186,6 +189,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`2cd17d3`)
 - add swarm API reference + changelog entries for favorites, pipeline stepper, bugfixes (`b5d2656`)
 - update CHANGELOG.md [skip ci] (`a9a9d1a`)
 - update CHANGELOG.md [skip ci] (`d4a2096`)
