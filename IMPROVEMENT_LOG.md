@@ -2741,3 +2741,17 @@
 **Files:** test/services/session_cost_analytics_test.rb
 **Verify:** 14 runs, 38 assertions, 0 failures, 0 errors
 **Risk:** low — test-only change
+
+## [2026-02-15 10:01] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Fix NaN/division-by-zero in CostSnapshot.trend with small lookback values
+**Why:** When `lookback` was 1 or 0, `lookback / 2` (integer division) produced 0, causing `sum / 0.0` = NaN. NaN propagated through the comparison operators, making trend always return `:flat` at best, or potentially causing view rendering issues. Fixed by clamping lookback to minimum 2 and half to minimum 1. Added 2 edge case tests.
+**Files:** app/models/cost_snapshot.rb, test/models/cost_snapshot_test.rb
+**Verify:** ruby -c OK, 29 runs, 43 assertions, 0 failures, 0 errors
+**Risk:** low — defensive clamp, existing behavior preserved for normal lookback values
+
+## [2026-02-15 10:06] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 11 tests for OpenclawWebhookService (replaced 0-assertion stub)
+**Why:** Service had auto-generated skip test with 0 assertions. Added 11 real tests covering: configuration guard (blank URL/token, example URL), message format verification for notify_task_assigned/notify_auto_claimed/notify_auto_pull_ready, auth token preference (hooks_token > gateway_token, fallback), default model usage, and connection refused resilience. Uses Minitest::Mock for HTTP stubbing.
+**Files:** test/services/openclaw_webhook_service_test.rb
+**Verify:** 11 runs, 18 assertions, 0 failures, 0 errors
+**Risk:** low — test-only change
