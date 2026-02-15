@@ -77,7 +77,7 @@ class CommandController < ApplicationController
   end
 
   def command_center_cache_key(active_minutes)
-    "command_center/sessions/v1/active_minutes=#{active_minutes}"
+    "command_center/sessions/v1/user=#{current_user.id}/active_minutes=#{active_minutes}"
   end
 
   def normalize_session(session)

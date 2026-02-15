@@ -105,6 +105,6 @@ class TokensController < ApplicationController
   end
 
   def tokens_cache_key(active_minutes)
-    "tokens/index/v1/active_minutes=#{active_minutes}"
+    "tokens/index/v1/user=#{current_user.id}/active_minutes=#{active_minutes}"
   end
 end

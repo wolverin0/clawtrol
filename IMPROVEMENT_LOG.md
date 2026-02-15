@@ -2555,3 +2555,10 @@
 **Files:** app/controllers/session_maintenance_controller.rb, test/controllers/session_maintenance_controller_test.rb (new)
 **Verify:** 7 tests pass, 15 assertions, 0 failures ✅
 **Risk:** low (additive tests, update method uses same extracted helper)
+
+## [2026-02-15 09:03] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed 4 unscoped Rails cache keys that could leak data between users. AnalyticsController, CommandController, TokensController, and CronjobsController all used global cache keys (e.g. "analytics/openclaw_cost/v2/period=7d") without user scoping. In a multi-user setup, user A's cached gateway data would be served to user B.
+**Why:** Cache key collision is a data isolation bug. When user A's analytics/sessions/tokens/cronjobs are cached, user B hitting the same endpoint within the TTL would see user A's data. Fixed by adding `user=#{current_user.id}` to all 4 cache keys.
+**Files:** app/controllers/analytics_controller.rb, app/controllers/command_controller.rb, app/controllers/tokens_controller.rb, app/controllers/cronjobs_controller.rb
+**Verify:** 13 tests pass across 4 test files ✅
+**Risk:** low (cache key change only, worst case = cache miss on first request after deploy)
