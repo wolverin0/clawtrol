@@ -2447,3 +2447,10 @@
 5. **Data Integrity:** SavedLink URL uniqueness (model validation + DB unique index + dedup migration)
 6. **Code Quality:** DRY sign_in_as — centralize in SessionTestHelper, remove 5 duplicates
 7. **Performance:** 2 compound indexes on token_usages for analytics queries
+
+## [2026-02-15 07:50] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added 21 new job tests across 4 files: AutoValidationJob (7 tests), FactoryCycleTimeoutJob (7 tests), NightshiftTimeoutSweeperJob (7 tests), PipelineProcessorJob (7 tests — including error handling/failure path)
+**Why:** 11 job files had zero tests. These 4 jobs contain critical business logic (timeout handling, pipeline processing, validation orchestration). Tests cover: skip conditions (not found, wrong status), state transitions (running→timed_out, running→failed), edge cases (stale selections, corrupted data), error handling (graceful recovery).
+**Files:** test/jobs/auto_validation_job_test.rb, test/jobs/factory_cycle_timeout_job_test.rb, test/jobs/nightshift_timeout_sweeper_job_test.rb, test/jobs/pipeline_processor_job_test.rb
+**Verify:** all 44 job tests pass (21 new + 23 existing), 0 failures 0 errors ✅
+**Risk:** low (test-only changes)
