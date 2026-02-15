@@ -16,21 +16,13 @@ class SessionMaintenanceController < ApplicationController
 
   # PATCH /session-maintenance
   def update
-    patch = build_maintenance_patch
-
-    result = gateway_client.config_patch(
-      raw: patch.to_json,
-      reason: "Session maintenance config updated via ClawTrol"
+    patch_and_redirect(
+      build_maintenance_patch,
+      redirect_path: session_maintenance_path,
+      cache_key: "session_maint",
+      reason: "Session maintenance config updated via ClawTrol",
+      success_message: "Session maintenance config updated."
     )
-
-    if result["error"].present?
-      redirect_to session_maintenance_path, alert: "Failed: #{result['error']}"
-    else
-      invalidate_config_cache("session_maint")
-      redirect_to session_maintenance_path, notice: "Session maintenance config updated."
-    end
-  rescue StandardError => e
-    redirect_to session_maintenance_path, alert: "Error: #{e.message}"
   end
 
   private
