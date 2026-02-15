@@ -5,6 +5,11 @@ class NightshiftTimeoutSweeperJob < ApplicationJob
 
   STALE_THRESHOLD = 45.minutes
 
+  # Periodic sweep — discard on unexpected errors, next run will retry
+  discard_on StandardError do |job, error|
+    Rails.logger.error("[NightshiftTimeoutSweeperJob] Discarded: #{error.class}: #{error.message}")
+  end
+
   # Runs periodically (e.g. every hour via cron) to fail selections stuck in "running"
   def perform
     stale = NightshiftSelection.for_tonight
