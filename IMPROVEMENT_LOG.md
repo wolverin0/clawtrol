@@ -2994,3 +2994,11 @@
 **Verify:** Ruby syntax OK, migration file created
 **Risk:** low (additive index, no schema changes)
 
+
+## [2026-02-15 19:50] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add useful scopes to TaskRun model
+**Why:** TaskRun was missing common query scopes like recent, for_task, completed, in_progress, by_model, needs_follow_up. Adding these makes the model more usable and consistent with other models.
+**Files:** app/models/task_run.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (additive, no behavioral changes)
+
