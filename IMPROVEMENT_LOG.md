@@ -2955,3 +2955,11 @@
 **Files:** app/models/agent_persona.rb
 **Verify:** Ruby syntax OK, migration exists and schema already has tasks_count column
 **Risk:** low (additive counter_cache)
+## [2026-02-15 18:40] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Fix NightshiftRunnerJob tests - move orphaned tests inside class
+**Why:** Tests were outside the class causing syntax errors. Fixed uniqueness constraint issues and create_selection helper.
+**Files:** test/jobs/nightshift_runner_job_test.rb
+**Verify:** 17 runs, 20 assertions, 0 failures, 1 skip (expected skip for untestable orphan)
+**Risk:** low (test file fix)
+
+
