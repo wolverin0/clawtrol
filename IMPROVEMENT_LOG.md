@@ -2145,3 +2145,10 @@
 **Files:** test/controllers/channel_accounts_controller_test.rb
 **Verify:** 10 runs, 45 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 06:10] - Category: Security — STATUS: ✅ VERIFIED
+**What:** SSRF protection for ModelProvidersController#test_provider + extract SsrfProtection concern
+**Why:** `test_provider` makes HTTP requests to user-provided URLs with zero validation — a classic SSRF vulnerability. Attacker could probe internal services (postgres:5432, qdrant:6333, etc.) through the app. Extracted reusable SsrfProtection concern with private IP detection, loopback blocking, and DNS resolution checks (defense in depth). Mirrors the PRIVATE_HOST_PATTERNS already used in User#webhook_url_is_safe.
+**Files:** app/controllers/concerns/ssrf_protection.rb (new), app/controllers/model_providers_controller.rb
+**Verify:** Full suite: 1538 runs, 3635 assertions, 0 failures, 0 errors ✅
+**Risk:** medium (blocks legitimate internal provider URLs — but that's the point)

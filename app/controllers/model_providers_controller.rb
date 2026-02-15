@@ -2,6 +2,7 @@
 
 class ModelProvidersController < ApplicationController
   include GatewayClientAccessible
+  include SsrfProtection
   before_action :require_authentication
   before_action :ensure_gateway_configured!
 
@@ -49,8 +50,15 @@ class ModelProvidersController < ApplicationController
       return
     end
 
+    # SECURITY: Prevent SSRF — block requests to internal/private network hosts
+    full_url = "#{base_url.chomp('/')}/chat/completions"
+    unless safe_outbound_url?(full_url)
+      render json: { error: "URL points to private/internal network address — blocked for security" }, status: :forbidden
+      return
+    end
+
     # Simple connectivity test: send a minimal request
-    uri = URI.parse("#{base_url.chomp('/')}/chat/completions")
+    uri = URI.parse(full_url)
     req = Net::HTTP::Post.new(uri)
     req["Content-Type"] = "application/json"
     req["Authorization"] = "Bearer #{api_key}" if api_key.present?
