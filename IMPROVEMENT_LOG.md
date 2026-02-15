@@ -2374,3 +2374,10 @@
 6. **Bug Fix + Testing:** CanvasController cost_usd→total_cost + 30 batch auth tests for 15 controllers
 7. **Testing:** 10 DiscordConfigController tests (auth + section validation)
 8. **Bug Fix:** TaskActivity auto_queued ACTIONS regression fix
+
+## [2026-02-15 07:07] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Extracted PersonaGeneratorService from BoardsController — moved 85 lines of persona generation logic (task analysis, tier determination, system prompt building) into a dedicated service class.
+**Why:** BoardsController `generate_persona` + `build_persona_system_prompt` were pure business logic (no HTTP concerns). Service extraction improves testability and separates concerns. Controller reduced from 85 to 20 lines for this action.
+**Files:** app/services/persona_generator_service.rb (new), app/controllers/boards_controller.rb (simplified), test/services/persona_generator_service_test.rb (new, 10 tests)
+**Verify:** ruby -c ✅, 10/10 service tests pass ✅, full suite 1698 runs 0 failures 0 errors ✅
+**Risk:** low (behavioral equivalent, same AgentPersona record created)
