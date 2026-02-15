@@ -2815,3 +2815,10 @@
 **Files:** app/models/runner_lease.rb, test/models/runner_lease_test.rb
 **Verify:** 17 tests, 40 assertions, 0 failures
 **Risk:** low (additive behavior, existing callers already guard with .active.exists?)
+
+## [2026-02-15 10:48] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Comprehensive tests for WorkflowDefinitionValidator (2 → 27 tests)
+**Why:** Only had 2 tests for a complex validator with cycle detection, node/edge validation, normalization, and error accumulation. Now 27 tests covering: happy path DAGs, parallel branches, single nodes, all valid types, symbol keys, type normalization, props handling, cycle detection (direct/indirect/self-loop), structure validation, blank/duplicate IDs, invalid types, edge validation, empty inputs, and error accumulation.
+**Files:** test/services/workflow_definition_validator_test.rb
+**Verify:** 27 runs, 57 assertions, 0 failures
+**Risk:** low (test-only change)
