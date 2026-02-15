@@ -1,0 +1,24 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+recorded:
+  name: Login flow test
+  status: recorded
+  session_id: sess_abc123
+  action_count: 5
+  actions: [{ "type": "click", "target": "#login" }]
+  assertions: [{ "type": "visible", "selector": "#dashboard" }]
+  metadata: { "browser": "chrome" }
+  user: one
+  task: one
+
+verified:
+  name: Verified checkout test
+  status: verified
+  session_id: sess_def456
+  action_count: 8
+  actions: []
+  assertions: []
+  metadata: {}
+  user: one
+  task: one
+  verified_at: <%= 1.day.ago.to_fs(:db) %>
