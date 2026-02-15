@@ -2583,3 +2583,10 @@
 **Files:** test/controllers/hot_reload_controller_test.rb (new)
 **Verify:** 6 tests pass, 7 assertions, 0 failures ✅
 **Risk:** low (additive tests only)
+
+## [2026-02-15 09:22] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Added missing `# frozen_string_literal: true` pragma to 29 Ruby files across app/models, app/helpers, app/mailers, app/channels, app/controllers/api, app/controllers/admin, and app/controllers/concerns. All Ruby files in app/ now have the pragma.
+**Why:** `frozen_string_literal: true` prevents accidental string mutation, reduces object allocation, and is a Ruby best practice. 29 files were missing it — mostly API controllers, model concerns, helpers, and mailers.
+**Files:** 29 files (models/task/*.rb, helpers/*.rb, mailers/*.rb, channels/*.rb, api/v1/*.rb, admin/*.rb, concerns/*.rb)
+**Verify:** All 29 files pass `ruby -c` syntax check ✅
+**Risk:** very low (only adds string freezing, no behavioral change)
