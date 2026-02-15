@@ -302,6 +302,7 @@ Rails.application.routes.draw do
       get :archived
       get :column
       get :dependency_graph
+      post :generate_persona
     end
     resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "boards/tasks" do
       collection do

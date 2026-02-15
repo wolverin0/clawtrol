@@ -1,0 +1,14 @@
+<div id="board-persona-badge" class="flex items-center gap-2">
+  <% if persona.present? && persona.persisted? %>
+    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-accent/20 text-accent"
+          title="<%= persona.description %>">
+      <%= persona.emoji %> <%= persona.name %>
+      <span class="text-content-muted">· <%= persona.model %></span>
+    </span>
+  <% end %>
+
+  <%= button_to "🤖 Generate Persona", generate_persona_board_path(board),
+      method: :post,
+      class: "inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-bg-elevated hover:bg-bg-hover text-content-muted hover:text-content transition-colors cursor-pointer",
+      title: persona&.persisted? ? "Regenerate agent persona" : "Generate agent persona from task patterns" %>
+</div>

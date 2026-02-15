@@ -3,7 +3,7 @@
 class BoardsController < ApplicationController
   PER_COLUMN_ITEMS = Task::KANBAN_PER_COLUMN_ITEMS
 
-  before_action :set_board, only: [:show, :update, :destroy, :update_task_status, :archived, :column, :dependency_graph]
+  before_action :set_board, only: [:show, :update, :destroy, :update_task_status, :archived, :column, :dependency_graph, :generate_persona]
 
   def index
     # Redirect to the first board
@@ -258,7 +258,125 @@ class BoardsController < ApplicationController
     head :ok
   end
 
+  def generate_persona
+    tasks = @board.tasks
+
+    status_counts = tasks.group(:status).count
+    total = tasks.count
+
+    recent_tasks = tasks.order(created_at: :desc).limit(10).pluck(:name, :description).map do |name, description|
+      [name.to_s.truncate(200), description.to_s.truncate(200)]
+    end
+
+    common_tags = tasks.where.not(tags: nil)
+      .where("array_length(tags, 1) > 0")
+      .pluck(Arel.sql("unnest(tags)"))
+      .compact
+      .map(&:to_s)
+      .reject(&:blank?)
+      .tally
+      .sort_by { |_, count| -count }
+      .first(10)
+      .to_h
+
+    model_counts = tasks.where.not(model: [nil, ""]).group(:model).count
+    preferred_model = model_counts.max_by { |_, count| count }&.first || "sonnet"
+
+    error_tasks = tasks.where.not(error_message: [nil, ""])
+      .order(updated_at: :desc)
+      .limit(5)
+      .pluck(:name, :error_message)
+
+    tag_list = common_tags.keys.map(&:downcase)
+    tier = if (tag_list & %w[bug fix code feature refactor]).any?
+             "fast-coding"
+           elsif (tag_list & %w[research analysis report]).any?
+             "research"
+           elsif (tag_list & %w[ops infra deploy network]).any?
+             "operations"
+           else
+             "strategic-reasoning"
+           end
+
+    system_prompt = build_persona_system_prompt(
+      board: @board,
+      status_counts: status_counts,
+      total: total,
+      recent_tasks: recent_tasks,
+      common_tags: common_tags,
+      error_tasks: error_tasks,
+      preferred_model: preferred_model
+    )
+
+    persona = AgentPersona.find_or_initialize_by(board_id: @board.id, auto_generated: true)
+    persona.assign_attributes(
+      user: current_user,
+      name: "#{@board.name.parameterize}-agent",
+      description: "Auto-generated persona for #{@board.name} board (#{total} tasks analyzed)",
+      system_prompt: system_prompt,
+      model: preferred_model,
+      tier: tier,
+      tools: AgentPersona::DEFAULT_TOOLS,
+      auto_generated: true,
+      active: true,
+      emoji: @board.icon.presence || "🤖"
+    )
+
+    if persona.save
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "board-persona-badge",
+            partial: "boards/persona_badge",
+            locals: { persona: persona, board: @board }
+          )
+        end
+        format.html { redirect_to board_path(@board), notice: "🤖 Agent persona generated: #{persona.name}" }
+      end
+    else
+      redirect_to board_path(@board), alert: "Failed to generate persona: #{persona.errors.full_messages.join(', ')}"
+    end
+  end
+
   private
+
+  def build_persona_system_prompt(board:, status_counts:, total:, recent_tasks:, common_tags:, error_tasks:, preferred_model:)
+    prompt = +"# #{board.name} Board Agent\n\n"
+    prompt += "You are a specialized agent for the #{board.name} board.\n\n"
+
+    prompt += "## Board Overview\n"
+    prompt += "- Total tasks analyzed: #{total}\n"
+    status_counts.each { |status, count| prompt += "- #{status}: #{count}\n" }
+    prompt += "\n"
+
+    if common_tags.any?
+      prompt += "## Common Task Types\n"
+      common_tags.each { |tag, count| prompt += "- #{tag} (#{count} tasks)\n" }
+      prompt += "\n"
+    end
+
+    if recent_tasks.any?
+      prompt += "## Recent Task Patterns\n"
+      recent_tasks.first(5).each do |name, description|
+        prompt += "- **#{name}**"
+        prompt += ": #{description.to_s.truncate(150)}" if description.present?
+        prompt += "\n"
+      end
+      prompt += "\n"
+    end
+
+    if error_tasks.any?
+      prompt += "## Common Mistakes to Avoid\n"
+      prompt += "Based on past failures:\n"
+      error_tasks.each do |name, error|
+        prompt += "- #{name}: #{error.to_s.truncate(200)}\n"
+      end
+      prompt += "\n"
+    end
+
+    prompt += "## Preferred Model: #{preferred_model}\n"
+    prompt
+  end
 
   def scoped_tasks_for_board(board)
     # For aggregator boards, show tasks from ALL non-aggregator boards
