@@ -1,0 +1,155 @@
+<% content_for :title, "Hooks Dashboard - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🪝 Hooks & Gmail PubSub" %>
+
+<div class="py-6 space-y-6">
+  <div>
+    <h1 class="text-xl font-bold text-content">Hooks & Gmail PubSub Dashboard</h1>
+    <p class="text-sm text-content-muted mt-1">
+      Webhook mappings with match rules, JS transforms, Gmail PubSub integration, and recent hit log.
+    </p>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <%# Left: Hooks + Gmail %>
+    <div class="lg:col-span-2 space-y-4">
+      <%# Active hook mappings %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-5">
+        <h3 class="text-base font-semibold text-content mb-3">🪝 Webhook Mappings (<%= @hooks.size %>)</h3>
+
+        <% if @hooks.empty? %>
+          <div class="text-center py-6 text-content-muted">
+            <div class="text-3xl mb-2">🪝</div>
+            <div class="text-sm">No webhook mappings configured</div>
+            <div class="text-xs mt-1">Add hooks.mappings in your OpenClaw config</div>
+          </div>
+        <% else %>
+          <div class="space-y-3">
+            <% @hooks.each do |hook| %>
+              <div class="p-3 rounded-lg bg-bg-base border border-border">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs px-2 py-0.5 rounded-full
+                      <%= case hook[:source]
+                          when 'GitHub' then 'bg-purple-500/20 text-purple-400'
+                          when 'n8n' then 'bg-orange-500/20 text-orange-400'
+                          when 'Gmail' then 'bg-red-500/20 text-red-400'
+                          else 'bg-gray-500/20 text-gray-400'
+                          end %>">
+                      <%= hook[:source] %>
+                    </span>
+                    <span class="text-sm font-medium text-content"><%= ERB::Util.html_escape(hook[:description]) %></span>
+                  </div>
+                  <span class="text-xs text-content-muted">#<%= hook[:index] + 1 %></span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span class="text-content-muted">Match:</span>
+                    <code class="ml-1 bg-bg-elevated px-1 rounded text-content"><%= ERB::Util.html_escape(hook[:match].to_json.truncate(80)) %></code>
+                  </div>
+                  <div>
+                    <span class="text-content-muted">Action:</span>
+                    <code class="ml-1 bg-bg-elevated px-1 rounded text-content"><%= ERB::Util.html_escape(hook[:action].to_json.truncate(80)) %></code>
+                  </div>
+                </div>
+
+                <% if hook[:transform].present? %>
+                  <div class="mt-2 text-xs">
+                    <span class="text-content-muted">Transform:</span>
+                    <pre class="mt-1 p-2 bg-bg-elevated rounded text-[11px] text-content overflow-x-auto max-h-20"><%= ERB::Util.html_escape(hook[:transform].to_s.truncate(200)) %></pre>
+                  </div>
+                <% end %>
+
+                <% if hook[:delivery].present? && hook[:delivery].any? %>
+                  <div class="mt-1 text-xs text-content-muted">
+                    Delivery: <span class="text-content"><%= ERB::Util.html_escape(hook[:delivery].to_json.truncate(60)) %></span>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <%# Gmail PubSub %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-5">
+        <h3 class="text-base font-semibold text-content mb-3">📧 Gmail PubSub Integration</h3>
+
+        <% if @gmail_config.nil? %>
+          <div class="text-center py-4 text-content-muted">
+            <div class="text-2xl mb-1">📧</div>
+            <div class="text-sm">Gmail PubSub not configured</div>
+            <div class="text-xs mt-1">Add hooks.gmail in config to enable email-triggered agent wakes</div>
+          </div>
+        <% else %>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="p-3 rounded-lg bg-bg-base border border-border">
+              <div class="text-xs text-content-muted">Status</div>
+              <div class="text-sm font-medium mt-1 <%= @gmail_config[:enabled] ? 'text-green-400' : 'text-red-400' %>">
+                <%= @gmail_config[:enabled] ? "✅ Active" : "❌ Disabled" %>
+              </div>
+            </div>
+            <div class="p-3 rounded-lg bg-bg-base border border-border">
+              <div class="text-xs text-content-muted">Auto-Renew</div>
+              <div class="text-sm font-medium mt-1 <%= @gmail_config[:auto_renew] ? 'text-green-400' : 'text-yellow-400' %>">
+                <%= @gmail_config[:auto_renew] ? "Yes" : "No" %>
+              </div>
+            </div>
+            <% if @gmail_config[:label_watch].any? %>
+              <div class="p-3 rounded-lg bg-bg-base border border-border col-span-2">
+                <div class="text-xs text-content-muted mb-1">Watched Labels</div>
+                <div class="flex gap-1 flex-wrap">
+                  <% @gmail_config[:label_watch].each do |label| %>
+                    <span class="px-2 py-0.5 bg-accent/10 text-accent rounded text-xs"><%= ERB::Util.html_escape(label) %></span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+            <% if @gmail_config[:topic].present? %>
+              <div class="p-3 rounded-lg bg-bg-base border border-border col-span-2">
+                <div class="text-xs text-content-muted">PubSub Topic</div>
+                <code class="text-xs text-content"><%= ERB::Util.html_escape(@gmail_config[:topic]) %></code>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Right: Recent webhook hits %>
+    <div>
+      <div class="bg-bg-elevated border border-border rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-content mb-3">📊 Recent Webhook Hits</h3>
+
+        <% if @recent_hits.empty? %>
+          <div class="text-center py-6 text-content-muted">
+            <div class="text-2xl mb-1">📊</div>
+            <div class="text-sm">No webhook hits recorded</div>
+          </div>
+        <% else %>
+          <div class="space-y-2 max-h-[600px] overflow-y-auto">
+            <% @recent_hits.each do |hit| %>
+              <div class="p-2 rounded bg-bg-base border border-border/50 text-xs">
+                <div class="flex items-center justify-between">
+                  <span class="font-medium text-content truncate max-w-[150px]">
+                    <%= ERB::Util.html_escape(hit.event_type || hit.source || "webhook") %>
+                  </span>
+                  <span class="text-content-muted text-[10px]">
+                    <%= time_ago_in_words(hit.created_at) %> ago
+                  </span>
+                </div>
+                <% if hit.task_id.present? %>
+                  <span class="text-accent text-[10px]">Task #<%= hit.task_id %></span>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

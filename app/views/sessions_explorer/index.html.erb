@@ -1,0 +1,99 @@
+<% content_for :title, "Sessions - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🔗 Session Explorer" %>
+
+<div class="py-6 space-y-6">
+  <%# Header + Stats %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content">Session Explorer</h1>
+      <p class="text-sm text-content-muted mt-1">
+        <%= @total_count %> sessions (<%= @active_count %> active)
+      </p>
+    </div>
+    <a href="<%= sessions_explorer_path %>"
+       class="px-3 py-1.5 text-sm bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition-colors"
+       data-turbo-action="replace">
+      ↻ Refresh
+    </a>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <% if @total_count.zero? && @error.blank? %>
+    <%= render "shared/empty_state",
+      icon: "🔗",
+      title: "No Sessions Found",
+      description: "The OpenClaw gateway has no active sessions." %>
+  <% else %>
+    <%# Session categories %>
+    <% kind_labels = { "main" => "🏠 Main", "cron" => "⏰ Cron", "hook" => "🪝 Hook", "subagent" => "🤖 Sub-Agent", "other" => "📎 Other" } %>
+    <% kind_order = %w[main cron subagent hook other] %>
+
+    <% kind_order.each do |kind| %>
+      <% sessions = @sessions_by_kind[kind] || [] %>
+      <% next if sessions.empty? %>
+
+      <div class="bg-bg-elevated border border-border rounded-xl overflow-hidden">
+        <div class="px-4 py-3 border-b border-border bg-bg-hover/50">
+          <h2 class="text-sm font-semibold text-content flex items-center gap-2">
+            <%= kind_labels[kind] || kind.titleize %>
+            <span class="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full"><%= sessions.size %></span>
+          </h2>
+        </div>
+
+        <div class="divide-y divide-border">
+          <% sessions.each do |session| %>
+            <% key = session["key"] || session["sessionKey"] || "—" %>
+            <% model = session["model"] || session["defaultModel"] || "—" %>
+            <% status = session["status"] || "unknown" %>
+            <% is_active = status.to_s.match?(/active|running|open/) %>
+            <% last_activity = session["lastActivity"] || session["updatedAt"] %>
+            <% tokens_in = session["tokensIn"] || session["inputTokens"] || 0 %>
+            <% tokens_out = session["tokensOut"] || session["outputTokens"] || 0 %>
+            <% compactions = session["compactions"] || session["compactionCount"] || 0 %>
+            <% task_link = @task_links[key] %>
+
+            <div class="px-4 py-3 hover:bg-bg-hover/30 transition-colors">
+              <div class="flex items-center justify-between mb-1">
+                <div class="flex items-center gap-2 min-w-0">
+                  <div class="w-2 h-2 rounded-full flex-shrink-0 <%= is_active ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500' %>"></div>
+                  <span class="text-sm font-mono text-content truncate" title="<%= key %>">
+                    <%= key.to_s.truncate(40) %>
+                  </span>
+                </div>
+                <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0
+                  <%= is_active ? 'bg-emerald-400/10 text-emerald-400' : 'bg-gray-500/10 text-content-muted' %>">
+                  <%= status %>
+                </span>
+              </div>
+
+              <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-content-muted ml-4">
+                <span title="Model">🧠 <%= model %></span>
+                <% if tokens_in.to_i > 0 || tokens_out.to_i > 0 %>
+                  <span title="Tokens (in/out)">📊 <%= number_with_delimiter(tokens_in) %>↓ / <%= number_with_delimiter(tokens_out) %>↑</span>
+                <% end %>
+                <% if compactions.to_i > 0 %>
+                  <span title="Compactions">🗜️ <%= compactions %>x compacted</span>
+                <% end %>
+                <% if last_activity.present? %>
+                  <span title="Last activity">🕐 <%= last_activity.is_a?(String) ? last_activity : time_ago_in_words(Time.parse(last_activity.to_s)) + " ago" rescue last_activity %></span>
+                <% end %>
+              </div>
+
+              <% if task_link %>
+                <div class="mt-1 ml-4">
+                  <%= link_to "📋 Task ##{task_link[:id]}: #{task_link[:name].to_s.truncate(40)}",
+                    board_task_path(task_link[:board_id], task_link[:id]),
+                    class: "text-xs text-accent hover:underline",
+                    data: { turbo_frame: "_top" } %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>

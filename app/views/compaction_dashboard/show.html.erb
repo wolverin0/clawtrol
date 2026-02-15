@@ -1,0 +1,136 @@
+<% content_for(:breadcrumb_standalone) { "📊 Compaction Dashboard" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+  <%# Header %>
+  <div>
+    <h1 class="text-xl font-bold text-content font-display">Compaction Dashboard</h1>
+    <p class="text-sm text-content-muted mt-1">
+      Track session compactions, context window usage, and memory flush status.
+    </p>
+  </div>
+
+  <%# Stats Cards %>
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div class="bg-bg-surface rounded-lg border border-border p-4 text-center">
+      <div class="text-2xl font-bold text-content"><%= @stats[:total] %></div>
+      <div class="text-xs text-content-muted mt-1">Sessions</div>
+    </div>
+    <div class="bg-bg-surface rounded-lg border border-border p-4 text-center">
+      <div class="text-2xl font-bold text-content"><%= @stats[:total_compactions] %></div>
+      <div class="text-xs text-content-muted mt-1">Total Compactions</div>
+    </div>
+    <div class="bg-bg-surface rounded-lg border border-border p-4 text-center">
+      <div class="text-2xl font-bold text-content"><%= @stats[:with_compaction] %></div>
+      <div class="text-xs text-content-muted mt-1">Sessions Compacted</div>
+    </div>
+    <div class="bg-bg-surface rounded-lg border border-border p-4 text-center">
+      <div class="text-2xl font-bold text-content"><%= @stats[:avg_context_pct] %>%</div>
+      <div class="text-xs text-content-muted mt-1">Avg Context Usage</div>
+    </div>
+    <div class="bg-bg-surface rounded-lg border border-border p-4 text-center">
+      <div class="text-2xl font-bold text-content"><%= @stats[:highest_compactions] %></div>
+      <div class="text-xs text-content-muted mt-1">Highest Single Session</div>
+    </div>
+  </div>
+
+  <%# Alerts %>
+  <% if @alerts.any? %>
+    <section class="space-y-2">
+      <% @alerts.each do |alert| %>
+        <div class="flex items-center gap-2 px-3 py-2 rounded-md text-xs
+                    <%= alert[:level] == 'warning' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20' %>">
+          <span><%= alert[:level] == "warning" ? "⚠️" : "ℹ️" %></span>
+          <span class="font-mono"><%= alert[:session] %></span>
+          <span>—</span>
+          <span><%= alert[:message] %></span>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+
+  <%# Sessions Table %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">💬</span>
+      <h2 class="text-sm font-semibold text-content">Sessions</h2>
+    </div>
+
+    <% if @sessions.any? %>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="bg-bg-elevated text-content-muted">
+              <th class="text-left px-4 py-2 font-medium">Session</th>
+              <th class="text-left px-4 py-2 font-medium">Kind</th>
+              <th class="text-left px-4 py-2 font-medium">Model</th>
+              <th class="text-center px-4 py-2 font-medium">Compactions</th>
+              <th class="text-left px-4 py-2 font-medium">Context</th>
+              <th class="text-center px-4 py-2 font-medium">Memory</th>
+              <th class="text-left px-4 py-2 font-medium">Last Activity</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <% @sessions.each do |session| %>
+              <tr class="hover:bg-bg-elevated/50 transition-colors">
+                <td class="px-4 py-2 font-mono text-content truncate max-w-[200px]" title="<%= session[:key] %>">
+                  <%= session[:key].to_s.first(20) %><%= "..." if session[:key].to_s.length > 20 %>
+                </td>
+                <td class="px-4 py-2">
+                  <% kind_class = case session[:kind]
+                     when 'main' then 'bg-green-500/20 text-green-400'
+                     when 'cron' then 'bg-purple-500/20 text-purple-400'
+                     when 'hook' then 'bg-blue-500/20 text-blue-400'
+                     when 'subagent' then 'bg-orange-500/20 text-orange-400'
+                     else 'bg-gray-500/20 text-gray-400'
+                     end %>
+                  <span class="px-2 py-0.5 rounded-full text-xs <%= kind_class %>">
+                    <%= session[:kind] %>
+                  </span>
+                </td>
+                <td class="px-4 py-2 font-mono text-content-muted truncate max-w-[150px]">
+                  <%= session[:model] || "—" %>
+                </td>
+                <td class="px-4 py-2 text-center">
+                  <% if session[:compactions] > 3 %>
+                    <span class="font-bold text-yellow-400"><%= session[:compactions] %></span>
+                  <% elsif session[:compactions] > 0 %>
+                    <span class="text-content"><%= session[:compactions] %></span>
+                  <% else %>
+                    <span class="text-content-muted">0</span>
+                  <% end %>
+                </td>
+                <td class="px-4 py-2">
+                  <div class="flex items-center gap-2">
+                    <div class="flex-1 h-1.5 bg-bg-base rounded-full overflow-hidden max-w-[100px]">
+                      <div class="h-full rounded-full transition-all
+                        <%= session[:context_pct] > 80 ? 'bg-red-500' : session[:context_pct] > 50 ? 'bg-yellow-500' : 'bg-green-500' %>"
+                           style="width: <%= [session[:context_pct], 100].min %>%"></div>
+                    </div>
+                    <span class="text-content-muted whitespace-nowrap"><%= session[:context_pct] %>%</span>
+                  </div>
+                </td>
+                <td class="px-4 py-2 text-center">
+                  <% if session[:memory_flushed] %>
+                    <span class="text-green-400" title="Memory flushed">✅</span>
+                  <% else %>
+                    <span class="text-content-muted" title="No memory flush">—</span>
+                  <% end %>
+                </td>
+                <td class="px-4 py-2 text-content-muted">
+                  <%= session[:last_activity] || "—" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="p-8 text-center">
+        <span class="text-3xl">📊</span>
+        <p class="text-sm text-content-muted mt-2">No sessions found.</p>
+        <p class="text-xs text-content-muted mt-1">Session data requires a running OpenClaw gateway.</p>
+      </div>
+    <% end %>
+  </section>
+</div>

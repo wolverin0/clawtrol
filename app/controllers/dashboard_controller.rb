@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class DashboardController < ApplicationController
+  include GatewayClientAccessible
   before_action :require_authentication
 
   def show
@@ -44,9 +45,8 @@ class DashboardController < ApplicationController
 
     # OpenClaw gateway cost data (best-effort, cached)
     @gateway_cost = begin
-      client = OpenclawGatewayClient.new(current_user)
       Rails.cache.fetch("dashboard/cost/#{current_user.id}", expires_in: 60.seconds) do
-        client.usage_cost
+        gateway_client.usage_cost
       end
     rescue StandardError
       nil
@@ -71,9 +71,8 @@ class DashboardController < ApplicationController
     @feed_recent = current_user.feed_entries.newest_first.limit(5)
 
     @gateway_health = begin
-      client = OpenclawGatewayClient.new(current_user)
       Rails.cache.fetch("dashboard/health/#{current_user.id}", expires_in: 15.seconds) do
-        client.health
+        gateway_client.health
       end
     rescue StandardError
       nil

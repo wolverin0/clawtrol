@@ -1,0 +1,90 @@
+<% content_for :title, "Status - clawdeck" %>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClawDeck Status</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f23; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+    .card { background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 12px; padding: 2rem; max-width: 480px; width: 100%; }
+    h1 { font-size: 1.5rem; margin-bottom: 1.5rem; text-align: center; }
+    .status-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #2a2a4a; }
+    .status-row:last-child { border-bottom: none; }
+    .label { color: #888; font-size: 0.875rem; }
+    .value { font-size: 0.875rem; font-weight: 600; }
+    .online { color: #34d399; }
+    .offline { color: #f87171; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .dot.green { background: #34d399; }
+    .dot.red { background: #f87171; }
+    .dot.gray { background: #666; }
+    .footer { margin-top: 1rem; text-align: center; font-size: 0.75rem; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🐾 ClawDeck Status</h1>
+
+    <div class="status-row">
+      <span class="label">ClawDeck</span>
+      <span class="value online"><span class="dot green"></span>OK</span>
+    </div>
+
+    <div class="status-row">
+      <span class="label">Version</span>
+      <span class="value"><%= @status[:clawdeck_version] %></span>
+    </div>
+
+    <% gw = @status[:gateway] || {} %>
+    <div class="status-row">
+      <span class="label">Gateway</span>
+      <% if gw[:status] == "online" %>
+        <span class="value online"><span class="dot green"></span>Online</span>
+      <% else %>
+        <span class="value offline"><span class="dot red"></span>Offline</span>
+      <% end %>
+    </div>
+
+    <% if gw[:version] %>
+    <div class="status-row">
+      <span class="label">Gateway Version</span>
+      <span class="value"><%= gw[:version] %></span>
+    </div>
+    <% end %>
+
+    <% if gw[:active_sessions] %>
+    <div class="status-row">
+      <span class="label">Active Sessions</span>
+      <span class="value"><%= gw[:active_sessions] %></span>
+    </div>
+    <% end %>
+
+    <% channels = @status[:channels] || {} %>
+    <% if channels.any? %>
+      <% channels.each do |name, status_val| %>
+        <div class="status-row">
+          <span class="label"><%= name.to_s.titleize %></span>
+          <% is_connected = status_val.to_s.match?(/true|connected|online|ok/) %>
+          <span class="value <%= is_connected ? 'online' : 'offline' %>">
+            <span class="dot <%= is_connected ? 'green' : 'gray' %>"></span>
+            <%= is_connected ? "Connected" : status_val %>
+          </span>
+        </div>
+      <% end %>
+    <% end %>
+
+    <div class="status-row">
+      <span class="label">System Uptime</span>
+      <span class="value"><%= @status[:uptime] %></span>
+    </div>
+  </div>
+
+  <div class="footer">
+    Last checked: <%= @status[:timestamp] %> · Auto-refreshes every 30s
+    <script>setTimeout(() => location.reload(), 30000)</script>
+  </div>
+</body>
+</html>

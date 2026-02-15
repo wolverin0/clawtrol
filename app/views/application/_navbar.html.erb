@@ -58,7 +58,8 @@
                   data-action="click->dropdown#toggle"
                   class="flex items-center cursor-pointer"
                   aria-expanded="false"
-                  aria-haspopup="true">
+                  aria-haspopup="true"
+                  aria-label="User menu">
             <div class="w-8 h-8 rounded-md overflow-hidden bg-bg-surface flex items-center justify-center">
               <% if current_user.has_avatar? %>
                 <%= image_tag current_user.avatar_source, class: "w-full h-full object-cover", alt: "Your avatar" %>

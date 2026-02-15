@@ -1,0 +1,137 @@
+<% content_for :title, "Message Queue - clawdeck" %>
+<% content_for :breadcrumb_standalone, "📨 Message Queue Config" %>
+
+<div class="py-6 space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content">Message Queue Configuration</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Control how incoming messages are queued, debounced, and capped before processing.
+      </p>
+    </div>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <%= form_with url: message_queue_config_path, method: :patch, class: "space-y-6" do |f| %>
+
+    <%# Queue Mode %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">🔄 Queue Mode</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <% [
+          ["collect", "📥 Collect", "Batch messages together before processing. Best for multi-message conversations."],
+          ["immediate", "⚡ Immediate", "Process each message as it arrives. Lowest latency but may miss context."],
+          ["passthrough", "➡️ Passthrough", "No queuing — direct pipe. For real-time integrations."]
+        ].each do |value, label, desc| %>
+          <label class="flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors
+            <%= @queue_config[:mode] == value ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/30' %>">
+            <input type="radio" name="mode" value="<%= value %>"
+                   class="mt-0.5 text-accent focus:ring-accent/40"
+                   <%= "checked" if @queue_config[:mode] == value %>>
+            <div>
+              <div class="text-sm font-medium text-content"><%= label %></div>
+              <div class="text-xs text-content-muted mt-1"><%= desc %></div>
+            </div>
+          </label>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Debounce & Cap %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">⏱️ Debounce & Limits</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Debounce (ms)</label>
+          <input type="range" name="debounce_ms"
+                 min="100" max="15000" step="100"
+                 value="<%= @queue_config[:debounce_ms] %>"
+                 class="w-full accent-accent"
+                 data-controller="range-display"
+                 data-action="input->range-display#update"
+                 data-range-display-target="range">
+          <div class="flex justify-between text-xs text-content-muted mt-1">
+            <span>100ms</span>
+            <span data-range-display-target="display" class="font-mono text-content"><%= @queue_config[:debounce_ms] %>ms</span>
+            <span>15s</span>
+          </div>
+          <p class="text-xs text-content-muted mt-2">
+            Wait this long after the last message before processing the batch.
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Message Cap</label>
+          <input type="number" name="cap"
+                 value="<%= @queue_config[:cap] %>"
+                 min="1" max="100"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+          <p class="text-xs text-content-muted mt-2">
+            Max messages to collect before force-processing.
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Drop Strategy</label>
+          <select name="drop_strategy"
+                  class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+            <% [
+              ["oldest", "Drop Oldest — keep newest messages"],
+              ["newest", "Drop Newest — keep oldest messages"],
+              ["none", "No Drop — queue grows unbounded"]
+            ].each do |value, label| %>
+              <option value="<%= value %>" <%= "selected" if @queue_config[:drop_strategy] == value %>><%= label %></option>
+            <% end %>
+          </select>
+          <p class="text-xs text-content-muted mt-2">
+            What happens when cap is reached.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <%# Per-channel overrides %>
+    <% if @queue_config[:per_channel].any? %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-5">
+        <h3 class="text-base font-semibold text-content mb-4">📡 Per-Channel Overrides</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-content-muted text-left border-b border-border">
+                <th class="py-2 px-3">Channel</th>
+                <th class="py-2 px-3">Mode</th>
+                <th class="py-2 px-3">Debounce</th>
+                <th class="py-2 px-3">Cap</th>
+                <th class="py-2 px-3">Drop</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @queue_config[:per_channel].each do |channel, cfg| %>
+                <tr class="border-b border-border/50">
+                  <td class="py-2 px-3 font-medium text-content capitalize"><%= channel %></td>
+                  <td class="py-2 px-3 text-content-muted"><%= cfg[:mode] || "—" %></td>
+                  <td class="py-2 px-3 text-content-muted"><%= cfg[:debounce_ms] ? "#{cfg[:debounce_ms]}ms" : "—" %></td>
+                  <td class="py-2 px-3 text-content-muted"><%= cfg[:cap] || "—" %></td>
+                  <td class="py-2 px-3 text-content-muted"><%= cfg[:drop_strategy] || "—" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-xs text-content-muted mt-2">
+          Per-channel overrides can be set in the gateway config directly.
+        </p>
+      </div>
+    <% end %>
+
+    <div class="flex justify-end">
+      <button type="submit"
+              class="px-6 py-2 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/80 transition-colors">
+        💾 Save Configuration
+      </button>
+    </div>
+  <% end %>
+</div>

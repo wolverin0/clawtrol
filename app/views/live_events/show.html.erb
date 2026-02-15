@@ -1,0 +1,176 @@
+<% content_for(:breadcrumb_standalone) { "📡 Live Events" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-controller="live-events" data-live-events-poll-url-value="/live/poll.json">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">Mission Control</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Live gateway activity, sessions, cron runs, and channel status.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <div data-live-events-target="pollIndicator" class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        <span class="text-xs text-content-muted">Live</span>
+      </div>
+      <button type="button" data-action="click->live-events#togglePolling"
+              data-live-events-target="toggleBtn"
+              class="px-2 py-1 text-xs font-medium text-content-muted border border-border rounded-md hover:bg-bg-elevated transition-colors">
+        ⏸ Pause
+      </button>
+    </div>
+  </div>
+
+  <%# Gateway Status Bar %>
+  <div class="bg-bg-surface rounded-lg border border-border p-4 flex flex-wrap items-center gap-6">
+    <div class="flex items-center gap-2">
+      <span class="w-3 h-3 rounded-full <%= @gateway_status[:status] == 'online' ? 'bg-green-500' : 'bg-red-500' %>"></span>
+      <span class="text-sm font-semibold text-content">Gateway</span>
+      <span class="text-xs text-content-muted"><%= @gateway_status[:status] %></span>
+    </div>
+    <% if @gateway_status[:version] %>
+      <span class="text-xs text-content-muted">v<%= @gateway_status[:version] %></span>
+    <% end %>
+    <% if @gateway_status[:uptime] %>
+      <span class="text-xs text-content-muted">⏱ <%= @gateway_status[:uptime] %></span>
+    <% end %>
+    <% if @gateway_status[:loaded_plugins] %>
+      <span class="text-xs text-content-muted">🔌 <%= @gateway_status[:loaded_plugins] %> plugins</span>
+    <% end %>
+    <% if @gateway_status[:memory_mb] %>
+      <span class="text-xs text-content-muted">💾 <%= @gateway_status[:memory_mb] %> MB</span>
+    <% end %>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <%# Active Sessions (2/3 width) %>
+    <div class="lg:col-span-2 space-y-4">
+      <div class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+        <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">💬</span>
+            <h2 class="text-sm font-semibold text-content">Active Sessions</h2>
+            <span class="text-xs text-content-muted"><%= @active_sessions.size %></span>
+          </div>
+        </div>
+
+        <% if @active_sessions.any? %>
+          <div class="divide-y divide-border">
+            <% @active_sessions.each do |session| %>
+              <div class="px-4 py-2.5 flex items-center justify-between hover:bg-bg-elevated/30 transition-colors">
+                <div class="flex items-center gap-2 min-w-0">
+                  <% kind_class = case session[:kind]
+                     when 'main' then 'bg-green-500/20 text-green-400'
+                     when 'cron' then 'bg-purple-500/20 text-purple-400'
+                     when 'hook' then 'bg-blue-500/20 text-blue-400'
+                     when 'subagent' then 'bg-orange-500/20 text-orange-400'
+                     else 'bg-gray-500/20 text-gray-400'
+                     end %>
+                  <span class="px-1.5 py-0.5 rounded text-xs <%= kind_class %>"><%= session[:kind] %></span>
+                  <span class="text-xs font-mono text-content truncate"><%= session[:key].to_s.first(25) %></span>
+                  <% if session[:tool_in_progress] %>
+                    <span class="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded animate-pulse">
+                      🔧 <%= session[:tool_in_progress] %>
+                    </span>
+                  <% end %>
+                </div>
+                <div class="flex items-center gap-3 text-xs text-content-muted">
+                  <% if session[:model] %>
+                    <span class="font-mono"><%= session[:model].to_s.split("/").last %></span>
+                  <% end %>
+                  <% if session[:tokens_used].to_i > 0 %>
+                    <span><%= number_with_delimiter(session[:tokens_used]) %> tokens</span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="p-6 text-center text-xs text-content-muted">No active sessions</div>
+        <% end %>
+      </div>
+
+      <%# Recent Webhooks %>
+      <% if @recent_webhooks.present? && @recent_webhooks.any? %>
+        <div class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+          <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+            <span class="text-lg">🪝</span>
+            <h2 class="text-sm font-semibold text-content">Recent Webhooks</h2>
+          </div>
+          <div class="divide-y divide-border max-h-60 overflow-y-auto">
+            <% @recent_webhooks.each do |log| %>
+              <div class="px-4 py-2 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2">
+                  <span class="<%= log.success? ? 'text-green-400' : 'text-red-400' %>">
+                    <%= log.success? ? '✅' : '❌' %>
+                  </span>
+                  <span class="font-mono text-content"><%= log.event_type %></span>
+                  <span class="text-content-muted"><%= log.direction %></span>
+                  <% if log.duration_ms %>
+                    <span class="text-content-muted"><%= log.duration_ms %>ms</span>
+                  <% end %>
+                </div>
+                <span class="text-content-muted"><%= time_ago_in_words(log.created_at) %> ago</span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Right sidebar (1/3 width) %>
+    <div class="space-y-4">
+      <%# Channel Status %>
+      <div class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+        <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+          <span class="text-lg">📡</span>
+          <h2 class="text-sm font-semibold text-content">Channels</h2>
+        </div>
+        <% if @channel_status.any? %>
+          <div class="p-4 space-y-2">
+            <% @channel_status.each do |ch| %>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full <%= ch[:connected] ? 'bg-green-500' : 'bg-red-500' %>"></span>
+                  <span class="text-xs text-content"><%= ch[:name] %></span>
+                </div>
+                <span class="text-xs text-content-muted"><%= ch[:connected] ? 'connected' : 'disconnected' %></span>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="p-4 text-xs text-content-muted text-center">No channels detected</div>
+        <% end %>
+      </div>
+
+      <%# Cron Jobs %>
+      <div class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+        <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+          <span class="text-lg">⏰</span>
+          <h2 class="text-sm font-semibold text-content">Cron Jobs</h2>
+        </div>
+        <% if @recent_cron_runs.any? %>
+          <div class="divide-y divide-border">
+            <% @recent_cron_runs.each do |job| %>
+              <div class="px-4 py-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full <%= job[:enabled] ? 'bg-green-500' : 'bg-gray-500' %>"></span>
+                    <span class="text-xs font-medium text-content truncate max-w-[150px]"><%= job[:name] || job[:id] %></span>
+                  </div>
+                </div>
+                <% if job[:next_run] %>
+                  <div class="text-xs text-content-muted mt-0.5">Next: <%= job[:next_run] %></div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="p-4 text-xs text-content-muted text-center">No cron jobs</div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

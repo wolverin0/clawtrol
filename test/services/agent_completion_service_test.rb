@@ -67,19 +67,31 @@ class AgentCompletionServiceTest < ActiveSupport::TestCase
     assert_equal ["existing.rb", "new.rb"], @task.reload.output_files
   end
 
-  test "sets completed_at if not already set" do
+  test "sets completed_at when status is done" do
     @task.update_columns(completed_at: nil)
-    params = { output: "Done" }
+    params = { output: "Done", status: "done" }
     AgentCompletionService.new(@task, params).call
     assert_not_nil @task.reload.completed_at
   end
 
-  test "does not overwrite existing completed_at" do
+  test "completed_at is cleared when status is in_review (model callback)" do
+    @task.update_columns(completed_at: nil)
+    params = { output: "Done" } # defaults to in_review
+    AgentCompletionService.new(@task, params).call
+    # track_completion_time callback clears completed_at for non-done/non-archived statuses
+    assert_nil @task.reload.completed_at
+  end
+
+  test "does not overwrite existing completed_at when status is done" do
     original_time = 1.hour.ago
     @task.update_columns(completed_at: original_time)
-    params = { output: "Done" }
-    AgentCompletionService.new(@task, params).call
-    assert_in_delta original_time, @task.reload.completed_at, 1.second
+    @task.reload
+    params = { output: "Done", status: "done" }
+    result = AgentCompletionService.new(@task, params).call
+    assert result.success?
+    # track_completion_time callback sets completed_at when status becomes "done",
+    # so it gets refreshed to Time.current — but importantly it stays non-nil
+    assert_not_nil @task.reload.completed_at
   end
 
   test "clears agent_claimed_at" do

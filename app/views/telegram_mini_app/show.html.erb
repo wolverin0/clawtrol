@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ClawTrol</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: var(--tg-theme-bg-color, #1a1a2e);
+      --text: var(--tg-theme-text-color, #eee);
+      --hint: var(--tg-theme-hint-color, #999);
+      --link: var(--tg-theme-link-color, #64b5f6);
+      --btn: var(--tg-theme-button-color, #5865f2);
+      --btn-text: var(--tg-theme-button-text-color, #fff);
+      --secondary-bg: var(--tg-theme-secondary-bg-color, #16213e);
+      --section-bg: var(--tg-theme-section-bg-color, #0f3460);
+      --destructive: #e74c3c;
+      --success: #2ecc71;
+      --warning: #f39c12;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .header {
+      padding: 16px 16px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 8px 16px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tabs button {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--hint);
+      background: transparent;
+      color: var(--hint);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tabs button.active {
+      background: var(--btn);
+      color: var(--btn-text);
+      border-color: var(--btn);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-left: 4px;
+    }
+
+    .badge-count { background: var(--btn); color: var(--btn-text); }
+
+    .task-list {
+      padding: 8px 16px 100px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .task-card {
+      background: var(--secondary-bg);
+      border-radius: 12px;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,0.06);
+      transition: transform 0.1s;
+    }
+
+    .task-card:active { transform: scale(0.98); }
+
+    .task-card .task-title {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+
+    .task-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+      background: rgba(255,255,255,0.08);
+      color: var(--hint);
+    }
+
+    .status-pill {
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-inbox { background: rgba(255,193,7,0.15); color: #ffc107; }
+    .status-up_next { background: rgba(33,150,243,0.15); color: #2196f3; }
+    .status-in_progress { background: rgba(156,39,176,0.15); color: #ce93d8; }
+    .status-in_review { background: rgba(255,152,0,0.15); color: #ff9800; }
+    .status-done { background: rgba(76,175,80,0.15); color: #4caf50; }
+    .status-errored { background: rgba(244,67,54,0.15); color: #f44336; }
+
+    .task-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .task-actions button {
+      flex: 1;
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .task-actions button:active { opacity: 0.7; }
+
+    .btn-approve { background: var(--success); color: #fff; }
+    .btn-reject { background: var(--destructive); color: #fff; }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: var(--text);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--hint);
+    }
+
+    .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+    .empty-state .msg { font-size: 15px; }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--hint);
+    }
+
+    .loading .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--hint);
+      border-top-color: var(--btn);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Create task form */
+    .create-form {
+      padding: 16px;
+      display: none;
+    }
+
+    .create-form.visible { display: block; }
+
+    .form-field {
+      margin-bottom: 12px;
+    }
+
+    .form-field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--hint);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-field input,
+    .form-field textarea,
+    .form-field select {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: var(--secondary-bg);
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-field input:focus,
+    .form-field textarea:focus {
+      border-color: var(--btn);
+    }
+
+    .form-field textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .form-actions button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-create { background: var(--btn); color: var(--btn-text); }
+    .btn-cancel { background: rgba(255,255,255,0.1); color: var(--text); }
+
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.success { background: var(--success); color: #fff; }
+    .toast.error { background: var(--destructive); color: #fff; }
+
+    /* FAB */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      background: var(--btn);
+      color: var(--btn-text);
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s;
+      z-index: 50;
+    }
+
+    .fab:active { transform: scale(0.9); }
+
+    .error-banner {
+      padding: 12px 16px;
+      background: rgba(244,67,54,0.15);
+      color: #f44336;
+      font-size: 13px;
+      text-align: center;
+      display: none;
+    }
+
+    .error-banner.visible { display: block; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📟 ClawTrol</h1>
+  </div>
+
+  <div id="error-banner" class="error-banner"></div>
+
+  <div class="tabs" id="status-tabs">
+    <button data-status="in_review" class="active">Review</button>
+    <button data-status="in_progress">Working</button>
+    <button data-status="up_next">Up Next</button>
+    <button data-status="inbox">Inbox</button>
+    <button data-status="done">Done</button>
+  </div>
+
+  <div id="task-list" class="task-list">
+    <div class="loading">
+      <div class="spinner"></div>
+      <div>Loading tasks…</div>
+    </div>
+  </div>
+
+  <div id="create-form" class="create-form">
+    <div class="form-field">
+      <label>Task Title</label>
+      <input type="text" id="task-name" placeholder="What needs to be done?" maxlength="500" autofocus>
+    </div>
+    <div class="form-field">
+      <label>Description (optional)</label>
+      <textarea id="task-desc" placeholder="Details, context…" maxlength="10000"></textarea>
+    </div>
+    <div class="form-field">
+      <label>Board</label>
+      <select id="task-board">
+        <option value="">Loading boards…</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="btn-cancel" onclick="hideCreateForm()">Cancel</button>
+      <button class="btn-create" onclick="submitTask()">Create Task</button>
+    </div>
+  </div>
+
+  <button class="fab" id="fab-btn" onclick="showCreateForm()">+</button>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      tg.enableClosingConfirmation();
+    }
+
+    const BASE = '<%= request.base_url %>/telegram_app';
+    const initData = tg?.initData || '';
+    let currentStatus = 'in_review';
+    let tasks = [];
+    let boards = [];
+    let statusCounts = {};
+
+    // --- API helpers ---
+    async function api(path, body = {}) {
+      const res = await fetch(BASE + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...body, init_data: initData })
+      });
+      const data = await res.json();
+      if (!res.ok || data.ok === false) {
+        throw new Error(data.error || 'Request failed');
+      }
+      return data;
+    }
+
+    // --- Tab switching ---
+    document.querySelectorAll('#status-tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#status-tabs button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentStatus = btn.dataset.status;
+        loadTasks();
+      });
+    });
+
+    // --- Load boards ---
+    async function loadBoards() {
+      try {
+        const data = await api('/boards');
+        boards = data.boards || [];
+        const select = document.getElementById('task-board');
+        if (boards.length > 0) {
+          select.innerHTML = boards.map(b =>
+            `<option value="${b.id}">${b.icon || '📋'} ${escapeHtml(b.name)}</option>`
+          ).join('');
+        } else {
+          select.innerHTML = '<option value="">No boards</option>';
+        }
+      } catch (e) {
+        // Silently fail — boards will use default
+      }
+    }
+
+    // --- Load tasks ---
+    async function loadTasks() {
+      const list = document.getElementById('task-list');
+      list.innerHTML = '<div class="loading"><div class="spinner"></div><div>Loading…</div></div>';
+
+      try {
+        const data = await api('/tasks', { status: currentStatus });
+        tasks = data.tasks || [];
+        statusCounts[currentStatus] = tasks.length;
+        updateTabBadges();
+        renderTasks();
+        hideError();
+      } catch (e) {
+        list.innerHTML = `<div class="empty-state"><div class="emoji">⚠️</div><div class="msg">${escapeHtml(e.message)}</div></div>`;
+        showError(e.message);
+      }
+    }
+
+    function updateTabBadges() {
+      document.querySelectorAll('#status-tabs button').forEach(btn => {
+        const status = btn.dataset.status;
+        const count = statusCounts[status];
+        // Remove existing badge
+        const existing = btn.querySelector('.badge');
+        if (existing) existing.remove();
+        // Add badge if count > 0
+        if (count && count > 0) {
+          const badge = document.createElement('span');
+          badge.className = 'badge badge-count';
+          badge.textContent = count > 99 ? '99+' : count;
+          btn.appendChild(badge);
+        }
+      });
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('task-list');
+
+      if (tasks.length === 0) {
+        const msgs = {
+          in_review: ['🔍', 'No tasks in review'],
+          in_progress: ['⚡', 'No tasks in progress'],
+          up_next: ['📋', 'Queue is empty'],
+          inbox: ['📥', 'Inbox is clear'],
+          done: ['✅', 'No completed tasks']
+        };
+        const [emoji, msg] = msgs[currentStatus] || ['📋', 'No tasks'];
+        list.innerHTML = `<div class="empty-state"><div class="emoji">${emoji}</div><div class="msg">${msg}</div></div>`;
+        return;
+      }
+
+      list.innerHTML = tasks.map(t => {
+        const tags = (t.tags || []).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
+        const agent = t.assigned_to_agent ? '🤖 ' : '';
+
+        let actions = '';
+        if (currentStatus === 'in_review') {
+          actions = `
+            <div class="task-actions">
+              <button class="btn-approve" onclick="approveTask(${t.id})">✅ Approve</button>
+              <button class="btn-reject" onclick="rejectTask(${t.id})">↩️ Return</button>
+            </div>`;
+        } else if (currentStatus === 'inbox' || currentStatus === 'up_next') {
+          actions = `
+            <div class="task-actions">
+              <button class="btn-approve" onclick="approveTask(${t.id})">✅ Done</button>
+            </div>`;
+        }
+
+        return `
+          <div class="task-card" data-id="${t.id}">
+            <div class="task-title">${agent}${escapeHtml(t.name)}</div>
+            <div class="task-meta">
+              <span class="status-pill status-${t.status}">${t.status.replace('_', ' ')}</span>
+              ${tags}
+              <span class="tag">#${t.id}</span>
+            </div>
+            ${actions}
+          </div>`;
+      }).join('');
+    }
+
+    // --- Actions ---
+    async function approveTask(id) {
+      try {
+        tg?.HapticFeedback?.impactOccurred('light');
+        await api(`/tasks/${id}/approve`);
+        toast('✅ Task approved!', 'success');
+        loadTasks();
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    }
+
+    async function rejectTask(id) {
+      try {
+        const note = prompt('Rejection note (optional):');
+        tg?.HapticFeedback?.impactOccurred('medium');
+        await api(`/tasks/${id}/reject`, { note: note || '' });
+        toast('↩️ Task returned to inbox', 'success');
+        loadTasks();
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    }
+
+    // --- Create form ---
+    function showCreateForm() {
+      document.getElementById('create-form').classList.add('visible');
+      document.getElementById('fab-btn').style.display = 'none';
+      document.getElementById('task-name').focus();
+      tg?.HapticFeedback?.impactOccurred('light');
+    }
+
+    function hideCreateForm() {
+      document.getElementById('create-form').classList.remove('visible');
+      document.getElementById('fab-btn').style.display = 'flex';
+      document.getElementById('task-name').value = '';
+      document.getElementById('task-desc').value = '';
+    }
+
+    async function submitTask() {
+      const name = document.getElementById('task-name').value.trim();
+      const desc = document.getElementById('task-desc').value.trim();
+      const boardId = document.getElementById('task-board').value;
+
+      if (!name) {
+        toast('Title is required', 'error');
+        return;
+      }
+
+      try {
+        tg?.HapticFeedback?.notificationOccurred('success');
+        await api('/tasks/create', { name, description: desc, board_id: boardId || undefined });
+        toast('✅ Task created!', 'success');
+        hideCreateForm();
+        // Switch to inbox to see new task
+        currentStatus = 'inbox';
+        document.querySelectorAll('#status-tabs button').forEach(b => {
+          b.classList.toggle('active', b.dataset.status === 'inbox');
+        });
+        loadTasks();
+      } catch (e) {
+        toast(e.message, 'error');
+      }
+    }
+
+    // --- Utilities ---
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str || '';
+      return d.innerHTML;
+    }
+
+    function toast(msg, type = 'success') {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = `toast ${type} show`;
+      setTimeout(() => el.classList.remove('show'), 2500);
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-banner');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function hideError() {
+      document.getElementById('error-banner').classList.remove('visible');
+    }
+
+    // --- Init ---
+    loadTasks();
+    loadBoards();
+
+    // Auto-refresh every 30s
+    setInterval(() => loadTasks(), 30000);
+  </script>
+</body>
+</html>

@@ -8,7 +8,7 @@ class Task < ApplicationRecord
   include Task::AgentIntegration
 
   belongs_to :user
-  belongs_to :board
+  belongs_to :board, counter_cache: true
   belongs_to :agent_persona, optional: true
   belongs_to :parent_task, class_name: "Task", optional: true
   belongs_to :followup_task, class_name: "Task", optional: true
@@ -33,11 +33,40 @@ class Task < ApplicationRecord
 
   enum :priority, { none: 0, low: 1, medium: 2, high: 3 }, default: :none, prefix: true
   enum :status, { inbox: 0, up_next: 1, in_progress: 2, in_review: 3, done: 4, archived: 5 }, default: :inbox
+  # Pipeline stages - production pipeline services use these values.
+  PIPELINE_STAGES = %w[unstarted triaged context_ready routed executing verifying completed failed].freeze
+
+  # NOTE: pipeline_stage is a string column in production (not integer).
+  # Use string-backed enum to match the DB schema.
+  enum :pipeline_stage, {
+    unstarted: "unstarted",
+    triaged: "triaged",
+    context_ready: "context_ready",
+    routed: "routed",
+    executing: "executing",
+    verifying: "verifying",
+    completed: "completed",
+    failed: "failed"
+  }, default: :unstarted, prefix: :pipeline
+
+  # Pipeline stage transition rules: each stage lists valid predecessors
+  PIPELINE_TRANSITIONS = {
+    "unstarted"     => [],
+    "triaged"       => %w[unstarted failed],
+    "context_ready" => %w[triaged],
+    "routed"        => %w[context_ready],
+    "executing"     => %w[routed],
+    "verifying"     => %w[executing],
+    "completed"     => %w[verifying executing],
+    "failed"        => %w[unstarted triaged context_ready routed executing verifying]
+  }.freeze
 
   # Kanban paging
   KANBAN_PER_COLUMN_ITEMS = 25
 
   # Model options for agent LLM selection
+  # NOTE: These values are the *ClawTrol* UI/task-level model choices.
+  # They intentionally stay small and stable (opus/codex/gemini/glm/sonnet).
   MODELS = %w[opus codex gemini glm sonnet].freeze
   DEFAULT_MODEL = "opus".freeze
 
@@ -54,10 +83,7 @@ class Task < ApplicationRecord
   DEBATE_STYLES = %w[quick thorough adversarial collaborative].freeze
   DEBATE_MODELS = %w[gemini claude glm].freeze
 
-  # Pipeline stages (ClawRouter 3-layer pipeline)
-  PIPELINE_STAGES = %w[unstarted triaged context_ready routed executing verifying completed failed].freeze
-
-  # Security: allowed validation command prefixes
+  # Security: allowed validation command prefixes to prevent arbitrary command execution
   ALLOWED_VALIDATION_PREFIXES = %w[
     bin/rails
     bundle\ exec
@@ -73,31 +99,36 @@ class Task < ApplicationRecord
     ./bin/
   ].freeze
 
+  # Security: pattern to reject shell metacharacters in validation commands
   UNSAFE_COMMAND_PATTERN = /[;|&$`\\!\(\)\{\}<>]|(\$\()|(\|\|)|(&&)/
 
   validates :name, presence: true, length: { maximum: 500 }
   validates :priority, inclusion: { in: priorities.keys }
   validates :status, inclusion: { in: statuses.keys }
+  validates :pipeline_stage, inclusion: { in: pipeline_stages.keys }
   validates :model, inclusion: { in: MODELS }, allow_nil: true, allow_blank: true
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
-  validates :pipeline_stage, inclusion: { in: PIPELINE_STAGES }, allow_nil: true, allow_blank: true
   validates :description, length: { maximum: 500_000 }, allow_nil: true
-  # validates :execution_plan, length: { maximum: 100_000 }, allow_nil: true  # Column doesn't exist yet - added by factory, needs migration
+  validates :execution_plan, length: { maximum: 100_000 }, allow_nil: true
   validates :error_message, length: { maximum: 50_000 }, allow_nil: true
   validates :validation_command, length: { maximum: 1_000 }, allow_nil: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
+  validate :pipeline_stage_transition_is_valid, if: :will_save_change_to_pipeline_stage?
+  validate :dispatched_requires_plan, if: :will_save_change_to_pipeline_stage?
 
+  # Activity tracking - must be declared before callbacks that use it
   attr_accessor :activity_source, :actor_name, :actor_emoji, :activity_note
 
   after_create :record_creation_activity
   after_update :record_update_activities
   after_update :create_status_notification, if: :saved_change_to_status?
-  after_save :enqueue_pipeline_processing, if: :should_trigger_pipeline?
 
+  # Position management
   before_create :set_position
   before_save :sync_completed_with_status
   before_update :track_completion_time, if: :will_save_change_to_status?
 
+  # Order incomplete tasks by position, completed tasks by completion time (most recent first)
   scope :incomplete, -> { where(completed: false).order(position: :asc) }
   scope :completed, -> { where(completed: true).order(Arel.sql("#{table_name}.completed_at DESC")) }
   scope :assigned_to_agent, -> { where(assigned_to_agent: true).order(assigned_at: :asc) }
@@ -115,11 +146,11 @@ class Task < ApplicationRecord
       .where("description IS NULL OR description NOT LIKE ?", "%## Agent Output%")
   }
 
-  # Pipeline scopes
-  scope :pipeline_enabled, -> { where(pipeline_enabled: true) }
-  scope :pipeline_pending, -> { pipeline_enabled.where(pipeline_stage: nil) }
-  scope :pipeline_triaged, -> { pipeline_enabled.where(pipeline_stage: "triaged") }
-  scope :pipeline_routed, -> { pipeline_enabled.where(pipeline_stage: "routed") }
+# Pipeline scopes
+scope :pipeline_enabled, -> { where(pipeline_enabled: true) }
+scope :pipeline_pending, -> { pipeline_enabled.where(pipeline_stage: [nil, "", "unstarted"]) }
+scope :pipeline_triaged, -> { pipeline_enabled.where(pipeline_stage: "triaged") }
+scope :pipeline_routed, -> { pipeline_enabled.where(pipeline_stage: "routed") }
 
   scope :ordered_for_column, ->(column_status) {
     case column_status.to_s
@@ -132,38 +163,68 @@ class Task < ApplicationRecord
     end
   }
 
+  # Returns the model identifier that OpenClaw should receive for sessions_spawn.
   def openclaw_spawn_model
     OPENCLAW_MODEL_ALIASES.fetch(model.to_s, model.presence || DEFAULT_MODEL)
   end
 
-  # Pipeline helpers
-  def pipeline_active?
-    pipeline_enabled? && pipeline_stage.present?
-  end
+# Pipeline helpers
+def pipeline_active?
+  pipeline_enabled? && pipeline_stage.present? && !pipeline_stage.in?(%w[completed failed])
+end
 
-  def pipeline_ready?
-    pipeline_stage == "routed" && routed_model.present? && compiled_prompt.present?
-  end
+def pipeline_ready?
+  pipeline_stage == "routed" && routed_model.present? && compiled_prompt.present?
+end
 
-  def advance_pipeline_stage!(new_stage, log_entry = {})
-    entry = log_entry.merge(stage: new_stage, at: Time.current.iso8601)
-    current_log = Array(pipeline_log)
-    update_columns(
-      pipeline_stage: new_stage,
-      pipeline_log: current_log.push(entry)
-    )
+def advance_pipeline_stage!(new_stage, log_entry = nil)
+  updates = { pipeline_stage: new_stage }
+  if log_entry
+    current_log = pipeline_log || []
+    updates[:pipeline_log] = current_log + [log_entry.merge(timestamp: Time.current.iso8601)]
   end
+  update!(updates)
+end
+
 
   private
 
+  # Pipeline: executing stage should have compiled_prompt
+  def dispatched_requires_plan
+    return unless pipeline_stage == "executing"
+    return if compiled_prompt.present? || !pipeline_enabled?
+
+    errors.add(:pipeline_stage, "cannot move to executing without a compiled_prompt when pipeline is enabled")
+  end
+
+  # Pipeline: validate stage transitions follow the defined order
+  def pipeline_stage_transition_is_valid
+    return if new_record? # Allow any initial stage on creation
+
+    old_stage = pipeline_stage_was.to_s
+    new_stage = pipeline_stage.to_s
+
+    return if old_stage == new_stage # No change
+
+    valid_predecessors = PIPELINE_TRANSITIONS[new_stage]
+    return if valid_predecessors.nil? # Unknown stage — inclusion validation catches this
+
+    unless valid_predecessors.include?(old_stage)
+      errors.add(:pipeline_stage, "cannot transition from '#{old_stage}' to '#{new_stage}'. Valid predecessors: #{valid_predecessors.join(', ')}")
+    end
+  end
+
+  # Security: validate that validation_command is safe to execute
   def validation_command_is_safe
     cmd = validation_command.to_s.strip
 
+    # Reject shell metacharacters
     if cmd.match?(UNSAFE_COMMAND_PATTERN)
       errors.add(:validation_command, "contains unsafe shell metacharacters (no ;, |, &, $, backticks allowed)")
       return
     end
 
+    # Must start with an allowed prefix
     unless ALLOWED_VALIDATION_PREFIXES.any? { |prefix| cmd.start_with?(prefix) }
       errors.add(:validation_command, "must start with an allowed prefix: #{ALLOWED_VALIDATION_PREFIXES.join(', ')}")
     end
@@ -206,22 +267,10 @@ class Task < ApplicationRecord
     TaskActivity.record_changes(self, tracked_changes, source: source, actor_name: actor_name, actor_emoji: actor_emoji, note: activity_note) if tracked_changes.any?
   end
 
+  # Create notification on status change
   def create_status_notification
     return unless user
     old_status, new_status = saved_change_to_status
     Notification.create_for_status_change(self, old_status, new_status)
-  end
-
-  def should_trigger_pipeline?
-    return false unless pipeline_enabled?
-    return false if pipeline_stage.present?
-    return false unless saved_change_to_status?
-
-    _old, new_status = saved_change_to_status
-    %w[up_next in_progress].include?(new_status)
-  end
-
-  def enqueue_pipeline_processing
-    PipelineProcessorJob.perform_later(id)
   end
 end

@@ -1,0 +1,16 @@
+<div class="bg-bg-elevated border border-border rounded-xl p-4"
+     data-controller="plugins-status"
+     data-plugins-status-url-value="<%= api_v1_gateway_plugins_path %>">
+  <h3 class="text-sm font-semibold text-content mb-3 flex items-center gap-2">
+    <span>🧩</span> Plugins
+    <button data-action="plugins-status#refresh"
+            class="ml-auto text-xs text-content-muted hover:text-accent transition-colors"
+            title="Refresh plugin status">
+      ↻
+    </button>
+  </h3>
+
+  <div data-plugins-status-target="container">
+    <div class="text-xs text-content-muted animate-pulse">Loading...</div>
+  </div>
+</div>

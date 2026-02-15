@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ProcessSavedLinkJob < ApplicationJob
   queue_as :default
 
@@ -24,16 +26,10 @@ class ProcessSavedLinkJob < ApplicationJob
     link.update!(raw_content: content)
 
     # Call Gemini via CLI (uses OAuth, no API key needed)
-    title = link.try(:title) || link.note.presence || "(no title)"
-    prompt_text = "#{SYSTEM_PROMPT}\n\n---\nContent from: #{link.url}\nTitle: #{title}\n\n#{content}"
+    prompt_text = "#{SYSTEM_PROMPT}\n\n---\nContent from: #{link.url}\nNote: #{link.note}\n\n#{content}"
     summary = call_gemini_cli(prompt_text)
 
     link.update!(summary: summary, status: :done, processed_at: Time.current)
-
-    # Generate TTS audio if requested
-    if link.audio_summary?
-      generate_audio_summary(link, summary)
-    end
   rescue StandardError => e
     link&.update(status: :failed, error_message: "#{e.class}: #{e.message}"[0..500])
     Rails.logger.error("[ProcessSavedLinkJob] Failed for link #{saved_link_id}: #{e.message}")
@@ -104,28 +100,6 @@ class ProcessSavedLinkJob < ApplicationJob
 
     result = parts.join("\n")
     result.presence || "(Tweet content is empty — may have been deleted or is media-only)"
-  end
-
-  def generate_audio_summary(link, summary)
-    clean_text = summary.gsub(/[*#\-_`]/, "").gsub(/\s+/, " ").strip
-    return if clean_text.blank?
-
-    uri = URI("http://192.168.100.155:5051/tts")
-    response = Net::HTTP.start(uri.host, uri.port, open_timeout: 10, read_timeout: 60) do |http|
-      request = Net::HTTP::Post.new(uri, "Content-Type" => "application/json")
-      request.body = { text: clean_text, voice: "otacon", language: "English" }.to_json
-      http.request(request)
-    end
-
-    raise "TTS server error: #{response.code}" unless response.is_a?(Net::HTTPSuccess)
-
-    dir = File.expand_path("~/.openclaw/workspace/audio-summaries")
-    FileUtils.mkdir_p(dir)
-    filename = "saved-link-#{link.id}.wav"
-    File.binwrite(File.join(dir, filename), response.body)
-    link.update!(audio_file_path: filename)
-  rescue StandardError => e
-    Rails.logger.warn("[ProcessSavedLinkJob] TTS failed for link #{link.id}: #{e.message}")
   end
 
   def call_gemini_cli(prompt_text)

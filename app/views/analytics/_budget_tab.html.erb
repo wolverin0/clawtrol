@@ -1,0 +1,207 @@
+<%# Budget & Trends Tab %>
+<div class="space-y-6">
+
+  <%# Budget Summary Cards %>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <% [
+      { label: "Daily", summary: @daily_summary, budget: @current_daily_budget, period: "daily" },
+      { label: "Weekly", summary: @weekly_summary, budget: @current_weekly_budget, period: "weekly" },
+      { label: "Monthly", summary: @monthly_summary, budget: @current_monthly_budget, period: "monthly" }
+    ].each do |card| %>
+      <div class="bg-card border border-border rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-text"><%= card[:label] %></h3>
+          <% if card[:summary].present? && card[:summary][:trend] %>
+            <% trend = card[:summary][:trend] %>
+            <span class="text-xs px-2 py-0.5 rounded-full <%= trend == :up ? 'bg-red-500/20 text-red-300' : trend == :down ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300' %>">
+              <%= trend == :up ? '📈 Up' : trend == :down ? '📉 Down' : '➡️ Flat' %>
+            </span>
+          <% end %>
+        </div>
+
+        <% if card[:summary].present? && !card[:summary][:empty] %>
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <span class="text-muted">Total (<%= card[:summary][:count] || 0 %> snapshots)</span>
+              <span class="font-mono text-green-300"><%= number_to_currency(card[:summary][:total] || 0, unit: "$", precision: 4) %></span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-muted">Average</span>
+              <span class="font-mono text-text"><%= number_to_currency(card[:summary][:average] || 0, unit: "$", precision: 4) %></span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-muted">Range</span>
+              <span class="font-mono text-text">
+                <%= number_to_currency(card[:summary][:min] || 0, unit: "$", precision: 4) %> —
+                <%= number_to_currency(card[:summary][:max] || 0, unit: "$", precision: 4) %>
+              </span>
+            </div>
+          </div>
+
+          <%# Budget bar %>
+          <% if card[:budget] %>
+            <% utilization = card[:summary][:total].to_f > 0 ? ((card[:summary][:total].to_f / card[:budget].to_f) * 100).round(1) : 0 %>
+            <div class="space-y-1">
+              <div class="flex justify-between text-[10px] text-muted">
+                <span>Budget: <%= number_to_currency(card[:budget], unit: "$", precision: 2) %></span>
+                <span class="<%= utilization > 100 ? 'text-red-300' : utilization > 80 ? 'text-yellow-300' : 'text-green-300' %>"><%= utilization %>%</span>
+              </div>
+              <div class="h-2 bg-black/30 rounded-full overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-500 <%= utilization > 100 ? 'bg-red-500' : utilization > 80 ? 'bg-yellow-500' : 'bg-green-500' %>"
+                     style="width: <%= [utilization, 100].min %>%"></div>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="text-xs text-muted italic py-2">No snapshots yet. Capture one below.</div>
+        <% end %>
+
+        <%# Set budget form %>
+        <details class="text-xs">
+          <summary class="cursor-pointer text-muted hover:text-content">Set budget</summary>
+          <div class="mt-2">
+            <%= form_tag update_analytics_budget_path, method: :post, class: "flex items-center gap-2" do %>
+              <input type="hidden" name="budget_period" value="<%= card[:period] %>">
+              <span class="text-muted">$</span>
+              <input type="number" name="budget_limit" step="0.01" min="0.01"
+                     value="<%= card[:budget] %>"
+                     placeholder="e.g. 5.00"
+                     class="w-24 px-2 py-1 rounded bg-bg-elevated border border-border text-text text-xs">
+              <button type="submit" class="px-2 py-1 rounded bg-accent/20 text-accent hover:bg-accent/30 text-xs">Save</button>
+            <% end %>
+          </div>
+        </details>
+      </div>
+    <% end %>
+  </div>
+
+  <%# Actions %>
+  <div class="flex items-center gap-3">
+    <%= form_tag capture_analytics_snapshot_path, method: :post, class: "inline" do %>
+      <button type="submit" class="px-3 py-1.5 rounded-lg bg-accent/20 text-accent hover:bg-accent/30 text-sm transition-colors">
+        📸 Capture Yesterday's Snapshot
+      </button>
+    <% end %>
+    <span class="text-xs text-muted">Snapshots are captured automatically via scheduled jobs. Use this for manual capture.</span>
+  </div>
+
+  <%# Budget Alerts %>
+  <% if @budget_alerts&.any? %>
+    <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-red-300 mb-3">🚨 Budget Alerts</h3>
+      <div class="space-y-2">
+        <% @budget_alerts.each do |alert| %>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-muted">
+              <%= alert.period.capitalize %> — <%= alert.snapshot_date.strftime("%Y-%m-%d") %>
+            </span>
+            <span class="font-mono text-red-300">
+              <%= number_to_currency(alert.total_cost, unit: "$", precision: 4) %>
+              / <%= number_to_currency(alert.budget_limit, unit: "$", precision: 2) %>
+              (<%= alert.budget_utilization %>%)
+            </span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# Daily Cost Trend (CSS chart) %>
+  <div class="bg-card border border-border rounded-xl p-4">
+    <h3 class="text-sm font-semibold text-text mb-4">📊 Daily Cost Trend (Last 30 Days)</h3>
+    <% if @daily_snapshots&.any? %>
+      <% max_daily = @daily_snapshots.map(&:total_cost).max.to_f %>
+      <div class="space-y-1.5">
+        <% @daily_snapshots.each do |snap| %>
+          <% pct = max_daily.positive? ? ((snap.total_cost.to_f / max_daily) * 100) : 0 %>
+          <div class="flex items-center gap-2">
+            <div class="w-16 text-[10px] text-muted font-mono"><%= snap.snapshot_date.strftime("%m-%d") %></div>
+            <div class="flex-1 h-4 bg-black/30 rounded overflow-hidden">
+              <div class="h-full rounded transition-all
+                <%= snap.budget_exceeded? ? 'bg-red-500/70' : 'bg-accent/60' %>"
+                   style="width: <%= pct.round(1) %>%"></div>
+            </div>
+            <div class="w-20 text-right text-[10px] font-mono text-text">
+              <%= number_to_currency(snap.total_cost, unit: "$", precision: 4) %>
+            </div>
+            <div class="w-12 text-right text-[10px] font-mono text-muted">
+              <%= snap.top_model&.truncate(8) || "—" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="text-xs text-muted italic">No daily snapshots yet. Capture one to start tracking trends.</div>
+    <% end %>
+  </div>
+
+  <%# Cost by Task (Top Spenders) %>
+  <div class="bg-card border border-border rounded-xl p-4">
+    <h3 class="text-sm font-semibold text-text mb-4">🏷️ Top Cost by Task (Last 30 Days)</h3>
+    <% if @cost_by_task&.any? %>
+      <div class="divide-y divide-white/5">
+        <% max_task_cost = @cost_by_task.first&.total_cost.to_f %>
+        <% @cost_by_task.each do |usage| %>
+          <% pct = max_task_cost.positive? ? ((usage.total_cost.to_f / max_task_cost) * 100) : 0 %>
+          <div class="py-2 flex items-center gap-3">
+            <div class="w-8 text-xs text-muted font-mono">#<%= usage.task_id %></div>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs text-text truncate"><%= usage.task_name || "Untitled" %></div>
+              <div class="mt-1 h-2 bg-black/30 rounded-full overflow-hidden">
+                <div class="h-full bg-purple-500/60 rounded-full" style="width: <%= pct.round(1) %>%"></div>
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-xs font-mono text-green-300"><%= number_to_currency(usage.total_cost, unit: "$", precision: 4) %></div>
+              <div class="text-[10px] text-muted"><%= usage.usage_count %> calls</div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="text-xs text-muted italic">No task-level cost data in the last 30 days.</div>
+    <% end %>
+  </div>
+
+  <%# Monthly Snapshots %>
+  <% if @monthly_snapshots&.any? %>
+    <div class="bg-card border border-border rounded-xl p-4">
+      <h3 class="text-sm font-semibold text-text mb-4">📅 Monthly Snapshots</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="text-muted border-b border-white/10">
+              <th class="text-left py-2 px-2">Month</th>
+              <th class="text-right py-2 px-2">Cost</th>
+              <th class="text-right py-2 px-2">Tokens</th>
+              <th class="text-right py-2 px-2">Calls</th>
+              <th class="text-right py-2 px-2">Top Model</th>
+              <th class="text-right py-2 px-2">Budget</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            <% @monthly_snapshots.each do |snap| %>
+              <tr class="hover:bg-white/5">
+                <td class="py-2 px-2 font-mono text-text"><%= snap.snapshot_date.strftime("%Y-%m") %></td>
+                <td class="py-2 px-2 text-right font-mono text-green-300"><%= number_to_currency(snap.total_cost, unit: "$", precision: 4) %></td>
+                <td class="py-2 px-2 text-right font-mono text-text"><%= number_with_delimiter(snap.total_tokens) %></td>
+                <td class="py-2 px-2 text-right font-mono text-text"><%= snap.api_calls %></td>
+                <td class="py-2 px-2 text-right font-mono text-muted"><%= snap.top_model || "—" %></td>
+                <td class="py-2 px-2 text-right">
+                  <% if snap.budget_limit %>
+                    <span class="font-mono <%= snap.budget_exceeded? ? 'text-red-300' : 'text-green-300' %>">
+                      <%= snap.budget_utilization %>%
+                    </span>
+                  <% else %>
+                    <span class="text-muted">—</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+
+</div>

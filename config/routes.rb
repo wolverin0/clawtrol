@@ -36,12 +36,15 @@ Rails.application.routes.draw do
         get :tokens
       end
 
+
       # Gateway proxy endpoints
       namespace :gateway do
         get :health
         get :channels
         get :cost
         get :models
+        get :plugins
+        get :nodes_status
       end
 
       # Model performance comparison
@@ -95,8 +98,22 @@ Rails.application.routes.draw do
       get "nightshift/tonight", to: "nightshift#tonight"
       post "nightshift/tonight/approve", to: "nightshift#approve_tonight"
       post "nightshift/sync_crons", to: "nightshift#sync_crons"
-      post "nightshift/sync_tonight", to: "nightshift#sync_tonight"
+            post "nightshift/sync_tonight", to: "nightshift#sync_tonight"
       post "nightshift/report_execution", to: "nightshift#report_execution"
+
+      # Swarm Ideas API
+      resources :swarm_ideas, only: [:index, :create, :update, :destroy] do
+        member do
+          post :launch
+        end
+      end
+
+      # Pipeline API (ClawRouter 3-layer pipeline)
+      get "pipeline/status", to: "pipeline#status"
+      post "pipeline/enable_board/:board_id", to: "pipeline#enable_board"
+      post "pipeline/disable_board/:board_id", to: "pipeline#disable_board"
+      get "pipeline/task/:id/log", to: "pipeline#task_log"
+      post "pipeline/reprocess/:id", to: "pipeline#reprocess"
 
       # Factory API
       get "factory/loops", to: "factory_loops#index"
@@ -110,21 +127,8 @@ Rails.application.routes.draw do
       get "factory/loops/:id/metrics", to: "factory_loops#metrics"
       post "factory/cycles/:id/complete", to: "factory_cycles#complete"
 
-      resources :swarm_ideas, only: [:index, :create, :update, :destroy] do
-        member do
-          post :launch
-        end
-      end
-
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
-
-      # Pipeline API (ClawRouter 3-layer pipeline)
-      get "pipeline/status", to: "pipeline#status"
-      post "pipeline/enable_board/:board_id", to: "pipeline#enable_board"
-      post "pipeline/disable_board/:board_id", to: "pipeline#disable_board"
-      get "pipeline/task/:id/log", to: "pipeline#task_log"
-      post "pipeline/reprocess/:id", to: "pipeline#reprocess"
 
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
@@ -193,7 +197,7 @@ Rails.application.routes.draw do
   end
 
   # Link Inbox
-  resources :saved_links, only: [:index, :create, :destroy] do
+  resources :saved_links, only: [:index, :create, :update, :destroy] do
     post :process_all, on: :collection
   end
 
@@ -252,6 +256,131 @@ Rails.application.routes.draw do
 
   # Analytics page
   get "analytics", to: "analytics#show"
+  get "analytics/budget", to: "analytics#budget", as: :analytics_budget
+  post "analytics/budget", to: "analytics#update_budget", as: :update_analytics_budget
+  post "analytics/capture", to: "analytics#capture_snapshot", as: :capture_analytics_snapshot
+
+  # Session maintenance configuration
+  get   "session-maintenance", to: "session_maintenance#show",   as: :session_maintenance
+  patch "session-maintenance", to: "session_maintenance#update",  as: :session_maintenance_update
+
+  # Typing indicator configuration
+  get   "typing-config", to: "typing_config#show",   as: :typing_config
+  patch "typing-config", to: "typing_config#update",  as: :typing_config_update
+
+  # Identity & branding configuration
+  get   "identity-config", to: "identity_config#show",   as: :identity_config
+  patch "identity-config", to: "identity_config#update",  as: :identity_config_update
+
+  # Send policy & access groups
+  get   "send-policy", to: "send_policy#show",   as: :send_policy
+  patch "send-policy", to: "send_policy#update",  as: :send_policy_update
+
+  # Hooks & Gmail PubSub dashboard
+  get "hooks-dashboard", to: "hooks_dashboard#show", as: :hooks_dashboard
+
+  # CLI backends configuration
+  get   "cli-backends", to: "cli_backends#index",   as: :cli_backends
+  patch "cli-backends", to: "cli_backends#update",   as: :cli_backends_update
+
+  # Custom model provider registry
+  get   "model-providers",      to: "model_providers#index",         as: :model_providers
+  patch "model-providers",      to: "model_providers#update",         as: :model_providers_update
+  post  "model-providers/test", to: "model_providers#test_provider",  as: :model_providers_test
+
+  # Sandbox configuration
+  get   "sandbox-config", to: "sandbox_config#show",   as: :sandbox_config
+  patch "sandbox-config", to: "sandbox_config#update",  as: :sandbox_config_update
+
+  # Compaction & context pruning configuration
+  get   "compaction-config", to: "compaction_config#show",   as: :compaction_config
+  patch "compaction-config", to: "compaction_config#update",  as: :compaction_config_update
+
+  # Heartbeat configuration
+  get   "heartbeat-config", to: "heartbeat_config#show",   as: :heartbeat_config
+  patch "heartbeat-config", to: "heartbeat_config#update",  as: :heartbeat_config_update
+
+  # Session reset policy configuration
+  get   "session-reset", to: "session_reset_config#show",   as: :session_reset_config
+  patch "session-reset", to: "session_reset_config#update",  as: :session_reset_config_update
+
+  # Message Queue configuration
+  get   "message-queue", to: "message_queue_config#show",   as: :message_queue_config
+  patch "message-queue", to: "message_queue_config#update",  as: :message_queue_config_update
+
+  # DM Policy & Pairing Manager
+  get   "dm-policy",                to: "dm_policy#show",            as: :dm_policy
+  patch "dm-policy",                to: "dm_policy#update",           as: :dm_policy_update
+  post  "dm-policy/approve-pairing", to: "dm_policy#approve_pairing", as: :dm_policy_approve_pairing
+  post  "dm-policy/reject-pairing",  to: "dm_policy#reject_pairing",  as: :dm_policy_reject_pairing
+
+  # Multi-account channel manager
+  get   "channel-accounts", to: "channel_accounts#show",   as: :channel_accounts
+  patch "channel-accounts", to: "channel_accounts#update",  as: :channel_accounts_update
+
+  # Media (audio/video/image) configuration
+  get   "media-config", to: "media_config#show",   as: :media_config
+  patch "media-config", to: "media_config#update",  as: :media_config_update
+
+  # Webchat embed (OpenClaw webchat iframe with task context)
+  get "webchat", to: "webchat#show", as: :webchat
+
+  # Canvas / A2UI push dashboard
+  get  "canvas",          to: "canvas#show",      as: :canvas
+  post "canvas/push",     to: "canvas#push",      as: :canvas_push
+  post "canvas/snapshot", to: "canvas#snapshot",   as: :canvas_snapshot
+  post "canvas/hide",     to: "canvas#hide",       as: :canvas_hide
+  get  "canvas/templates", to: "canvas#templates", as: :canvas_templates
+
+  # Paired nodes
+  get "nodes", to: "nodes#index"
+
+  # Session explorer
+  get "sessions", to: "sessions_explorer#index", as: :sessions_explorer
+
+  # Skill browser
+  # Skills — replaced by SkillManagerController (enhanced version with gateway integration)
+  # get "skills", to: "skills#index"  # OLD read-only skill browser
+
+  # Public status page (no auth required)
+  get "status", to: "status#show"
+
+  # Telegram Mini App (no Rails auth — validated via Telegram initData)
+  # Telegram Advanced Config
+  get "telegram_config", to: "telegram_config#show", as: :telegram_config
+  post "telegram_config/update", to: "telegram_config#update", as: :telegram_config_update
+
+  # Discord Advanced Config
+  get "discord_config", to: "discord_config#show", as: :discord_config
+  post "discord_config/update", to: "discord_config#update", as: :discord_config_update
+
+  # Logging & Debug Config
+  get "logging_config", to: "logging_config#show", as: :logging_config
+  post "logging_config/update", to: "logging_config#update", as: :logging_config_update
+  get "logging_config/tail", to: "logging_config#tail", as: :logging_config_tail
+
+  # Config Hub — central navigation for all config pages
+  get "config", to: "config_hub#show", as: :config_hub
+
+  # Hot Reload Monitor
+  get "hot_reload", to: "hot_reload#show", as: :hot_reload
+  post "hot_reload/update", to: "hot_reload#update", as: :hot_reload_update
+
+  # Channel Config (Mattermost/Slack/Signal)
+  get "channel_config/:channel", to: "channel_config#show", as: :channel_config
+  post "channel_config/:channel/update", to: "channel_config#update", as: :channel_config_update
+
+  # Environment Variable Manager
+  get "env_manager", to: "env_manager#show", as: :env_manager
+  get "env_manager/file", to: "env_manager#file_contents", as: :env_manager_file
+  post "env_manager/test", to: "env_manager#test_substitution", as: :env_manager_test
+
+  get "telegram_app", to: "telegram_mini_app#show"
+  post "telegram_app/tasks", to: "telegram_mini_app#tasks"
+  post "telegram_app/boards", to: "telegram_mini_app#boards", as: :telegram_app_boards
+  post "telegram_app/tasks/create", to: "telegram_mini_app#create_task"
+  post "telegram_app/tasks/:id/approve", to: "telegram_mini_app#approve", as: :telegram_app_approve
+  post "telegram_app/tasks/:id/reject", to: "telegram_mini_app#reject", as: :telegram_app_reject
 
   # API Keys management
   get "keys", to: "keys#index"
@@ -267,7 +396,7 @@ Rails.application.routes.draw do
   # Nightbeat morning brief
   get "nightbeat", to: "nightbeat#index"
 
-  # Swarm
+  # Swarm Launcher
   get "swarm", to: "swarm#index"
   post "swarm/launch/:id", to: "swarm#launch", as: :swarm_launch
   post "swarm", to: "swarm#create", as: :create_swarm_idea
@@ -286,6 +415,63 @@ Rails.application.routes.draw do
   post "factory/:id/stop", to: "factory#stop", as: :factory_stop
   post "factory/bulk_play", to: "factory#bulk_play", as: :factory_bulk_play
   post "factory/bulk_pause", to: "factory#bulk_pause", as: :factory_bulk_pause
+
+  # Cherry-pick pipeline
+  get "factory/cherry_pick", to: "factory#cherry_pick_index", as: :factory_cherry_pick
+  post "factory/cherry_pick/preview", to: "factory#cherry_pick_preview", as: :factory_cherry_pick_preview
+  post "factory/cherry_pick/execute", to: "factory#cherry_pick_execute", as: :factory_cherry_pick_execute
+  post "factory/cherry_pick/verify", to: "factory#cherry_pick_verify", as: :factory_cherry_pick_verify
+
+  # Gateway Config Editor
+  get "gateway/config", to: "gateway_config#show", as: :gateway_config
+  post "gateway/config/apply", to: "gateway_config#apply", as: :gateway_config_apply
+  post "gateway/config/patch", to: "gateway_config#patch_config", as: :gateway_config_patch
+  post "gateway/config/restart", to: "gateway_config#restart", as: :gateway_config_restart
+
+  # Block Streaming Config
+  get "streaming", to: "block_streaming#show", as: :block_streaming
+  patch "streaming/update", to: "block_streaming#update", as: :block_streaming_update
+
+  # DM Scope Security Audit
+  get "security/dm_scope", to: "dm_scope_audit#show", as: :dm_scope_audit
+
+  # Live Events (Mission Control)
+  get "live", to: "live_events#show", as: :live_events
+  get "live/poll", to: "live_events#poll", as: :live_events_poll
+
+  # Identity Links
+  get "identity_links", to: "identity_links#index", as: :identity_links
+  post "identity_links/save", to: "identity_links#save", as: :identity_links_save
+
+  # Compaction Dashboard
+  get "compaction", to: "compaction_dashboard#show", as: :compaction_dashboard
+
+  # Memory Dashboard
+  get "memory", to: "memory_dashboard#show", as: :memory_dashboard
+  post "memory/search", to: "memory_dashboard#search", as: :memory_search
+
+  # Exec Approvals Manager
+  get "exec_approvals", to: "exec_approvals#index", as: :exec_approvals
+  post "exec_approvals/add", to: "exec_approvals#add", as: :exec_approvals_add
+  delete "exec_approvals/remove", to: "exec_approvals#remove", as: :exec_approvals_remove
+  post "exec_approvals/bulk_import", to: "exec_approvals#bulk_import", as: :exec_approvals_bulk_import
+
+  # Skill Manager
+  get "skills", to: "skill_manager#index", as: :skill_manager
+  post "skills/install", to: "skill_manager#install", as: :skill_install
+  post "skills/:name/toggle", to: "skill_manager#toggle", as: :skill_toggle
+  post "skills/:name/configure", to: "skill_manager#configure", as: :skill_configure
+  delete "skills/:name", to: "skill_manager#uninstall", as: :skill_uninstall
+
+  # Webhook Mapping Builder
+  get "webhooks/mappings", to: "webhook_mappings#index", as: :webhook_mappings
+  post "webhooks/mappings/save", to: "webhook_mappings#save", as: :webhook_mappings_save
+  post "webhooks/mappings/preview", to: "webhook_mappings#preview", as: :webhook_mappings_preview
+
+  # Multi-Agent Config
+  get "agents/config", to: "agent_config#show", as: :agent_config
+  patch "agents/config/update_agent", to: "agent_config#update_agent", as: :agent_config_update_agent
+  patch "agents/config/update_bindings", to: "agent_config#update_bindings", as: :agent_config_update_bindings
 
   # Agent Personas
   resources :agent_personas do
@@ -329,24 +515,27 @@ Rails.application.routes.draw do
         post :generate_validation_suggestion
         get :view_file
         get :diff_file
-        get :chat_history
       end
     end
   end
 
   # Redirect root board path to first board
-  get "board", to: redirect { |params, request| "/boards" }
-
+  get "board", to: redirect { |params, request|
+    # This will be handled by the controller for proper user scoping
+    "/boards"
+  }
   # Mobile quick-add task
   get "quick_add", to: "quick_add#new", as: :quick_add
   post "quick_add", to: "quick_add#create"
 
   get "pages/home"
+  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
-  # Health check
+  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
+  # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # PWA
+  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
@@ -377,6 +566,6 @@ Rails.application.routes.draw do
   get "view", to: "file_viewer#show"
   get "files", to: "file_viewer#browse", as: :browse_files
 
-  # Root
+  # Defines the root path route ("/")
   root "pages#home"
 end

@@ -1,0 +1,119 @@
+<% content_for(:breadcrumb_standalone) { "🔐 Environment Variables" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-controller="env-manager">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">Environment Variable Manager</h1>
+      <p class="text-sm text-content-muted mt-1">
+        View resolved env vars (redacted), test substitution, and manage the .env file.
+      </p>
+    </div>
+  </div>
+
+  <%# Status toast %>
+  <div data-env-manager-target="status" class="hidden text-xs px-3 py-2 rounded-md"></div>
+
+  <%# Stats %>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <% [
+      [".env Entries", @stats[:file_entries], "📁"],
+      ["Config Refs", @stats[:config_inline], "🔗"],
+      ["Shell Imports", @stats[:shell_imports], "🐚"],
+      [".env File", @env_file_exists ? "✅ Found" : "❌ Missing", "📄"],
+    ].each do |label, value, icon| %>
+      <div class="bg-bg-surface rounded-lg border border-border p-3 text-center">
+        <div class="text-lg"><%= icon %></div>
+        <div class="text-sm font-bold text-content"><%= value %></div>
+        <div class="text-[10px] text-content-muted"><%= label %></div>
+      </div>
+    <% end %>
+  </div>
+
+  <%# .env Variables List %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">🔑</span>
+      <h2 class="text-sm font-semibold text-content">.env Variables (<%= @env_entries.size %>)</h2>
+    </div>
+    <% if @env_entries.any? %>
+      <div class="max-h-96 overflow-y-auto divide-y divide-border">
+        <% @env_entries.each do |entry| %>
+          <div class="px-4 py-2 flex items-center justify-between hover:bg-bg-elevated/50">
+            <span class="text-sm font-mono text-content truncate"><%= entry[:key] %></span>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <% if entry[:has_value] %>
+                <span class="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded">set (<%= entry[:length] %> chars)</span>
+              <% else %>
+                <span class="text-[10px] px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded">empty</span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="p-6 text-center text-content-muted text-sm">
+        <% if @env_file_exists %>
+          No variables found in .env file.
+        <% else %>
+          .env file not found at <code class="font-mono text-xs"><%= EnvManagerController::ENV_FILE %></code>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+
+  <%# Test Substitution %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">🧪</span>
+      <h2 class="text-sm font-semibold text-content">Test Substitution</h2>
+    </div>
+    <div class="p-4 space-y-3">
+      <div>
+        <label class="block text-xs font-medium text-content-muted mb-1">Template string</label>
+        <input type="text"
+               data-env-manager-target="template"
+               placeholder="e.g., https://api.example.com?key=${API_KEY}&region=${REGION}"
+               class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+      </div>
+      <div class="flex justify-between items-center">
+        <p class="text-[10px] text-content-muted">Uses ${VAR} syntax. Values shown redacted.</p>
+        <button type="button"
+                data-action="click->env-manager#testSubstitution"
+                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Test
+        </button>
+      </div>
+      <div data-env-manager-target="testResult" class="hidden p-3 bg-bg-elevated rounded-md">
+      </div>
+    </div>
+  </section>
+
+  <%# Raw .env Preview %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <details>
+      <summary class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2 cursor-pointer list-none">
+        <span class="text-lg">📋</span>
+        <span class="text-sm font-semibold text-content">Raw .env (Redacted)</span>
+      </summary>
+      <div class="p-4">
+        <div data-env-manager-target="rawContent" class="text-center text-sm text-content-muted py-4">
+          <button type="button"
+                  data-action="click->env-manager#loadRaw"
+                  class="px-3 py-1.5 text-xs font-medium bg-bg-elevated text-content rounded-md hover:bg-accent/20 transition-colors">
+            Load .env contents
+          </button>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <%# Security Note %>
+  <div class="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-md">
+    <p class="text-xs text-yellow-400">
+      🔒 <strong>Security:</strong> All values are redacted in the UI. Direct .env editing is only possible on the server.
+      OpenClaw resolves ${VAR} at runtime from .env → config inline → shell environment.
+    </p>
+  </div>
+</div>

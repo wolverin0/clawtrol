@@ -1,0 +1,265 @@
+<% content_for(:breadcrumb_standalone) { "🤖 Multi-Agent Config" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">Multi-Agent Configuration</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Manage OpenClaw agents, workspaces, models, and channel routing.
+      </p>
+    </div>
+    <% if @health_data.is_a?(Hash) && @health_data["version"].present? %>
+      <span class="text-xs bg-bg-surface px-2 py-1 rounded-md text-content-muted border border-border">
+        Gateway v<%= @health_data["version"] %>
+      </span>
+    <% end %>
+  </div>
+
+  <%# Main Agent (always exists) %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🏠</span>
+        <h2 class="text-sm font-semibold text-content">Main Agent</h2>
+        <span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Active</span>
+      </div>
+    </div>
+    <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-xs font-medium text-content-muted mb-1">Workspace</label>
+        <div class="text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border">
+          <%= @default_agent[:workspace] || "~/.openclaw/workspace" %>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-content-muted mb-1">Default Model</label>
+        <div class="text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border">
+          <%= @default_agent[:model] || "—" %>
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-content-muted mb-1">Compaction</label>
+        <div class="text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border">
+          <%= @default_agent[:compaction_mode] || "auto" %>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# Named Agents %>
+  <section>
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-content">Named Agents</h2>
+      <span class="text-xs text-content-muted"><%= @agents.size %> agent<%= @agents.size == 1 ? "" : "s" %> configured</span>
+    </div>
+
+    <% if @agents.any? %>
+      <div class="space-y-3">
+        <% @agents.each do |agent| %>
+          <div class="bg-bg-surface rounded-lg border border-border overflow-hidden"
+               data-controller="agent-config-editor"
+               data-agent-config-editor-agent-id-value="<%= agent[:id] %>">
+            <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between cursor-pointer"
+                 data-action="click->agent-config-editor#toggle">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">🤖</span>
+                <h3 class="text-sm font-semibold text-content font-mono"><%= agent[:id] %></h3>
+                <% if agent[:enabled] %>
+                  <span class="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">Enabled</span>
+                <% else %>
+                  <span class="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">Disabled</span>
+                <% end %>
+                <% if agent[:model].present? %>
+                  <span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full"><%= agent[:model] %></span>
+                <% end %>
+              </div>
+              <svg data-agent-config-editor-target="chevron" class="w-4 h-4 text-content-muted transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+
+            <div data-agent-config-editor-target="panel" class="hidden p-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-content-muted mb-1">Workspace</label>
+                  <input type="text"
+                         data-agent-config-editor-target="workspace"
+                         value="<%= agent[:workspace] %>"
+                         placeholder="~/.openclaw/workspace"
+                         class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-content-muted mb-1">Model</label>
+                  <input type="text"
+                         data-agent-config-editor-target="model"
+                         value="<%= agent[:model] %>"
+                         placeholder="anthropic/claude-sonnet-4"
+                         list="available-models"
+                         class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-content-muted mb-1">Tool Profile</label>
+                  <select data-agent-config-editor-target="toolProfile"
+                          class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+                    <option value="" <%= "selected" unless agent[:tool_profile].present? %>>Default (inherit)</option>
+                    <option value="full" <%= "selected" if agent[:tool_profile] == "full" %>>Full</option>
+                    <option value="coding" <%= "selected" if agent[:tool_profile] == "coding" %>>Coding</option>
+                    <option value="messaging" <%= "selected" if agent[:tool_profile] == "messaging" %>>Messaging</option>
+                    <option value="minimal" <%= "selected" if agent[:tool_profile] == "minimal" %>>Minimal</option>
+                    <% @tool_profiles.each_key do |name| %>
+                      <% next if %w[full coding messaging minimal].include?(name) %>
+                      <option value="<%= name %>" <%= "selected" if agent[:tool_profile] == name %>><%= name.titleize %></option>
+                    <% end %>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-content-muted mb-1">Compaction</label>
+                  <select data-agent-config-editor-target="compactionMode"
+                          class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+                    <option value="" <%= "selected" unless agent[:compaction_mode].present? %>>Default</option>
+                    <option value="auto" <%= "selected" if agent[:compaction_mode] == "auto" %>>Auto</option>
+                    <option value="safeguard" <%= "selected" if agent[:compaction_mode] == "safeguard" %>>Safeguard</option>
+                    <option value="aggressive" <%= "selected" if agent[:compaction_mode] == "aggressive" %>>Aggressive</option>
+                    <option value="off" <%= "selected" if agent[:compaction_mode] == "off" %>>Off</option>
+                  </select>
+                </div>
+              </div>
+
+              <% if agent[:system_prompt].present? %>
+                <div class="mt-3">
+                  <label class="block text-xs font-medium text-content-muted mb-1">System Prompt</label>
+                  <textarea data-agent-config-editor-target="systemPrompt"
+                            rows="3"
+                            class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none resize-y"><%= agent[:system_prompt] %></textarea>
+                </div>
+              <% end %>
+
+              <% if agent[:auth].present? %>
+                <div class="mt-3">
+                  <label class="block text-xs font-medium text-content-muted mb-1">Auth</label>
+                  <div class="text-xs text-content-muted font-mono bg-bg-base rounded px-2 py-1.5 border border-border">
+                    <%= agent[:auth].is_a?(Hash) ? agent[:auth].keys.join(", ") : agent[:auth] %>
+                  </div>
+                </div>
+              <% end %>
+
+              <div class="mt-4 flex justify-end gap-2">
+                <button type="button"
+                        data-action="click->agent-config-editor#save"
+                        class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+                  Save Changes
+                </button>
+              </div>
+
+              <div data-agent-config-editor-target="status" class="mt-2 hidden text-xs px-2 py-1 rounded"></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="bg-bg-surface rounded-lg border border-border p-8 text-center">
+        <span class="text-3xl">🤖</span>
+        <p class="text-sm text-content-muted mt-2">No named agents configured.</p>
+        <p class="text-xs text-content-muted mt-1">
+          Add agents in your OpenClaw config under <code class="font-mono bg-bg-base px-1 rounded">agents.definitions</code>
+        </p>
+      </div>
+    <% end %>
+  </section>
+
+  <%# Channel Bindings %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">📡</span>
+        <h2 class="text-sm font-semibold text-content">Channel → Agent Bindings</h2>
+      </div>
+    </div>
+
+    <div class="p-4">
+      <p class="text-xs text-content-muted mb-3">
+        Route incoming messages from specific channels or senders to specific agents.
+        Default: all messages go to the <strong>main</strong> agent.
+      </p>
+
+      <% if @channel_bindings.any? %>
+        <div class="space-y-2">
+          <% @channel_bindings.each do |channel_key, agent_target| %>
+            <div class="flex items-center justify-between bg-bg-base rounded px-3 py-2 border border-border">
+              <div class="flex items-center gap-2">
+                <span class="text-sm"><%= channel_icon(channel_key) %></span>
+                <span class="text-sm font-mono text-content"><%= channel_key %></span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-content-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+                <span class="text-sm font-mono text-accent"><%= agent_target %></span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="text-center py-4">
+          <p class="text-xs text-content-muted">No custom bindings. All channels route to <strong>main</strong> agent.</p>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <%# Tool Profiles %>
+  <% if @tool_profiles.any? %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">🔧</span>
+        <h2 class="text-sm font-semibold text-content">Tool Profiles</h2>
+      </div>
+      <div class="p-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <% @tool_profiles.each do |name, tools| %>
+            <div class="bg-bg-base rounded px-3 py-2 border border-border">
+              <div class="text-sm font-semibold text-content font-mono mb-1"><%= name %></div>
+              <div class="text-xs text-content-muted">
+                <% if tools.is_a?(Array) %>
+                  <%= tools.size %> tools: <%= tools.first(5).join(", ") %><%= "..." if tools.size > 5 %>
+                <% elsif tools.is_a?(Hash) %>
+                  <%= tools.keys.join(", ") %>
+                <% else %>
+                  <%= tools %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </section>
+  <% end %>
+
+  <%# Available Models %>
+  <% if @available_models.any? %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">🧠</span>
+        <h2 class="text-sm font-semibold text-content">Available Models</h2>
+      </div>
+      <div class="p-4">
+        <div class="flex flex-wrap gap-2">
+          <% @available_models.each do |model| %>
+            <span class="text-xs font-mono bg-bg-base text-content-muted px-2 py-1 rounded border border-border">
+              <%= model %>
+            </span>
+          <% end %>
+        </div>
+      </div>
+    </section>
+  <% end %>
+
+  <%# Datalist for model autocomplete %>
+  <datalist id="available-models">
+    <% @available_models.each do |model| %>
+      <option value="<%= model %>">
+    <% end %>
+  </datalist>
+</div>

@@ -785,167 +785,28 @@ module Api
         @task = current_user.tasks.find(params[:id])
       end
 
-      # Record token usage from agent_complete params (Foxhound analytics)
-      # Accepts tokens directly in params OR extracts from session transcript
+      # Delegate token recording to TokenUsageRecorderService.
       def record_token_usage(task, params)
-        input_tokens = params[:input_tokens].to_i
-        output_tokens = params[:output_tokens].to_i
-        model = params[:token_model] || task.model
-
-        # If tokens not provided directly, try to extract from session transcript
-        if input_tokens == 0 && output_tokens == 0
-          session_tokens = extract_tokens_from_session(task)
-          if session_tokens
-            input_tokens = session_tokens[:input_tokens]
-            output_tokens = session_tokens[:output_tokens]
-            model ||= session_tokens[:model]
-          end
-        end
-
-        # Only record if we have meaningful data
-        return if input_tokens == 0 && output_tokens == 0
-
-        TokenUsage.record_from_session(
-          task: task,
-          session_data: {
-            input_tokens: input_tokens,
-            output_tokens: output_tokens,
-            model: model
-          },
-          session_key: task.agent_session_key
+        TokenUsageRecorderService.record(
+          task,
+          input_tokens: params[:input_tokens].to_i,
+          output_tokens: params[:output_tokens].to_i,
+          model: params[:token_model] || task.model
         )
-      rescue StandardError => e
-        Rails.logger.error("[Foxhound] Failed to record token usage for task #{task.id}: #{e.message}")
-      end
-
-      # Extract token counts from an OpenClaw session transcript
-      def extract_tokens_from_session(task)
-        return nil unless task.agent_session_id.present?
-
-        transcript_file = TranscriptParser.transcript_path(task.agent_session_id)
-        return nil unless transcript_file
-
-        input_tokens = 0
-        output_tokens = 0
-        model = nil
-
-        TranscriptParser.each_entry(transcript_file) do |entry, _line_num|
-          if entry["usage"].is_a?(Hash)
-            input_tokens += entry["usage"]["input_tokens"].to_i
-            output_tokens += entry["usage"]["output_tokens"].to_i
-          end
-          model ||= entry["model"] if entry["model"].present?
-        end
-
-        return nil if input_tokens == 0 && output_tokens == 0
-
-        { input_tokens: input_tokens, output_tokens: output_tokens, model: model }
-      rescue StandardError => e
-        Rails.logger.error("[Foxhound] Failed to extract tokens from session: #{e.message}")
-        nil
       end
 
       # Resolve session_id (UUID) from session_key by scanning transcript files
       # The OpenClaw gateway stores transcripts as {sessionId}.jsonl
-      # NOTE: The session_key UUID is NOT in the file, but the Task ID IS!
-      # Subagent prompts start with "## Task #ID:" which we can match
+      # Delegate to SessionResolverService for transcript scanning.
+      # Maintains backward-compatible method signature.
       def resolve_session_id_from_key(session_key, task = nil)
-        sessions_dir = TranscriptParser::SESSIONS_DIR
-        return nil unless Dir.exist?(sessions_dir)
-        return nil if session_key.blank?
-
-        # Get task_id from param or from the task's session_key context
         task_id = task&.id || @task&.id
-        return nil unless task_id.present?
-
-        # Build search patterns - the task prompt contains "Task #ID:" near the start
-        task_pattern = "Task ##{task_id}:"
-        cutoff_time = 7.days.ago  # Search up to 7 days back for session files
-
-        # Search active .jsonl files (most recent first for faster hits)
-        files = Dir.glob(File.join(sessions_dir, "*.jsonl")).sort_by { |f| -File.mtime(f).to_i }
-
-        files.each do |file|
-          # Skip old files for performance
-          next if File.mtime(file) < cutoff_time
-
-          # Read first 10 lines - the task prompt is in the first user message
-          first_lines = []
-          File.foreach(file).with_index do |line, idx|
-            break if idx >= 10
-            first_lines << line
-          end
-          content_sample = first_lines.join
-
-          # Check if this file is for our task
-          if content_sample.include?(task_pattern)
-            session_id = File.basename(file, ".jsonl")
-            Rails.logger.info("[resolve_session_id] Found session_id=#{session_id} for task #{task_id} in #{File.basename(file)}")
-            return session_id
-          end
-        end
-
-        # Also check archived files (with .deleted. suffix) if not found
-        archived_files = Dir.glob(File.join(sessions_dir, "*.jsonl.deleted.*")).sort_by { |f| -File.mtime(f).to_i }
-
-        archived_files.each do |file|
-          next if File.mtime(file) < cutoff_time
-
-          first_lines = []
-          File.foreach(file).with_index do |line, idx|
-            break if idx >= 10
-            first_lines << line
-          end
-          content_sample = first_lines.join
-
-          if content_sample.include?(task_pattern)
-            # Extract session_id from filename like "abc123.jsonl.deleted.2026-02-06..."
-            session_id = File.basename(file).sub(/\.jsonl\.deleted\..+$/, "")
-            Rails.logger.info("[resolve_session_id] Found session_id=#{session_id} (archived) for task #{task_id}")
-            return session_id
-          end
-        end
-
-        Rails.logger.info("[resolve_session_id] No session file found for task #{task_id}")
-        nil
-      rescue StandardError => e
-        Rails.logger.warn "resolve_session_id_from_key error: #{e.message}"
-        nil
+        SessionResolverService.resolve_from_key(session_key, task_id: task_id)
       end
 
-      # Scan recent transcript files for references to a task ID
-      # Used as a last-resort fallback when agent_session_key is not available
-      # Agents include the task ID in their curl commands and prompt context
+      # Delegate to SessionResolverService for task ID scanning.
       def scan_transcripts_for_task(task_id)
-        sessions_dir = TranscriptParser::SESSIONS_DIR
-        return nil unless Dir.exist?(sessions_dir)
-
-        # Look at the 30 most recent .jsonl files
-        files = Dir.glob(File.join(sessions_dir, "*.jsonl"))
-          .sort_by { |f| -File.mtime(f).to_i }
-          .first(30)
-
-        # Search patterns - agents have the task ID in their prompt
-        patterns = ["tasks/#{task_id}", "Task ##{task_id}", "task_id.*#{task_id}", "Task ID: #{task_id}"]
-
-        files.each do |file|
-          # Read first 5KB of the file (task prompt is at the top)
-          sample = File.read(file, 5000) rescue next
-
-          if patterns.any? { |p| sample.include?(p) }
-            session_id = File.basename(file, ".jsonl")
-            # Don't return if this session_id is already linked to another task
-            if Task.where(agent_session_id: session_id).where.not(id: task_id).none?
-              Rails.logger.info("[scan_transcripts] Found session_id=#{session_id} for task #{task_id}")
-              return session_id
-            end
-          end
-        end
-
-        nil
-      rescue StandardError => e
-        Rails.logger.warn "[scan_transcripts] Error scanning for task #{task_id}: #{e.message}"
-        nil
+        SessionResolverService.scan_for_task(task_id)
       end
 
       # Returns true when the request comes from an agent (X-Agent-Name header present)
@@ -977,7 +838,7 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :pipeline_stage, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :deep_research, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, :origin_chat_id, :origin_thread_id, tags: [], output_files: [], review_config: {}, review_result: {})
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :pipeline_stage, :execution_plan, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, :origin_chat_id, :origin_thread_id, tags: [], output_files: [], review_config: {}, review_result: {})
       end
 
       # Validation command execution delegated to ValidationRunnerService
@@ -1020,7 +881,7 @@ module Api
       end
 
       def task_json(task)
-        task.as_json
+        TaskSerializer.new(task).as_json
       end
     end
   end

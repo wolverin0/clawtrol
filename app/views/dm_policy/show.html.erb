@@ -1,0 +1,192 @@
+<% content_for :title, "DM Policy - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🔒 DM & Group Policies" %>
+
+<div class="py-6 space-y-6"
+     data-controller="dm-policy">
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content">DM Policy & Pairing Manager</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Control who can message your bot — DM policies, group access, pairing approvals, and per-channel overrides.
+      </p>
+    </div>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <%# Left: Global policies %>
+    <div class="lg:col-span-2 space-y-4">
+      <%= form_with url: dm_policy_path, method: :patch, class: "space-y-4" do |f| %>
+
+        <%# DM Policy %>
+        <div class="bg-bg-elevated border border-border rounded-xl p-5">
+          <h3 class="text-base font-semibold text-content mb-4">📩 Direct Message Policy</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <% [
+              ["open", "🟢 Open", "Anyone can DM the bot"],
+              ["pairing", "🔑 Pairing", "Must send pairing code first"],
+              ["allowlist", "📋 Allowlist", "Only listed user IDs"],
+              ["disabled", "🚫 Disabled", "No DMs accepted"]
+            ].each do |value, label, desc| %>
+              <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors
+                <%= @dm_config[:global_dm_policy] == value ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/30' %>">
+                <input type="radio" name="dm_policy" value="<%= value %>"
+                       class="mt-0.5 text-accent focus:ring-accent/40"
+                       <%= "checked" if @dm_config[:global_dm_policy] == value %>>
+                <div>
+                  <div class="text-sm font-medium text-content"><%= label %></div>
+                  <div class="text-xs text-content-muted"><%= desc %></div>
+                </div>
+              </label>
+            <% end %>
+          </div>
+
+          <%# Allowlist input (visible when allowlist selected) %>
+          <div class="mt-4">
+            <label class="block text-sm text-content-muted mb-1">Allow From (comma-separated user IDs)</label>
+            <input type="text" name="allow_from"
+                   value="<%= Array(@dm_config[:allow_from]).join(', ') %>"
+                   class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                   placeholder="telegram:123456, discord:789012">
+          </div>
+
+          <%# Pairing code input %>
+          <div class="mt-3">
+            <label class="block text-sm text-content-muted mb-1">Pairing Code (for pairing mode)</label>
+            <input type="text" name="pairing_code"
+                   value="<%= @dm_config[:pairing_code] %>"
+                   class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content font-mono focus:ring-2 focus:ring-accent/40"
+                   placeholder="my-secret-code">
+          </div>
+        </div>
+
+        <%# Group Policy %>
+        <div class="bg-bg-elevated border border-border rounded-xl p-5">
+          <h3 class="text-base font-semibold text-content mb-4">👥 Group Chat Policy</h3>
+          <div class="grid grid-cols-3 gap-3">
+            <% [
+              ["open", "🟢 Open", "Respond in any group"],
+              ["allowlist", "📋 Allowlist", "Only allowed groups"],
+              ["disabled", "🚫 Disabled", "Ignore all groups"]
+            ].each do |value, label, desc| %>
+              <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors
+                <%= @dm_config[:global_group_policy] == value ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/30' %>">
+                <input type="radio" name="group_policy" value="<%= value %>"
+                       class="mt-0.5 text-accent focus:ring-accent/40"
+                       <%= "checked" if @dm_config[:global_group_policy] == value %>>
+                <div>
+                  <div class="text-sm font-medium text-content"><%= label %></div>
+                  <div class="text-xs text-content-muted"><%= desc %></div>
+                </div>
+              </label>
+            <% end %>
+          </div>
+
+          <div class="mt-4">
+            <label class="block text-sm text-content-muted mb-1">Group Allow From (comma-separated group IDs)</label>
+            <input type="text" name="group_allow_from"
+                   value="<%= Array(@dm_config[:group_allow_from]).join(', ') %>"
+                   class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                   placeholder="group_id_1, group_id_2">
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button type="submit"
+                  class="px-6 py-2 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/80 transition-colors">
+            💾 Save Policies
+          </button>
+        </div>
+      <% end %>
+
+      <%# Per-channel overrides %>
+      <% if @dm_config[:per_channel].any? %>
+        <div class="bg-bg-elevated border border-border rounded-xl p-5">
+          <h3 class="text-base font-semibold text-content mb-4">📡 Per-Channel Overrides</h3>
+          <div class="space-y-2">
+            <% @dm_config[:per_channel].each do |channel, cfg| %>
+              <div class="flex items-center justify-between p-3 rounded-lg bg-bg-base border border-border">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium text-content capitalize"><%= channel %></span>
+                </div>
+                <div class="flex items-center gap-4 text-xs text-content-muted">
+                  <% if cfg[:dm_policy] %>
+                    <span>DM: <span class="font-medium text-content"><%= cfg[:dm_policy] %></span></span>
+                  <% end %>
+                  <% if cfg[:group_policy] %>
+                    <span>Group: <span class="font-medium text-content"><%= cfg[:group_policy] %></span></span>
+                  <% end %>
+                  <% if cfg[:allow_from].any? %>
+                    <span>Allowed: <span class="font-medium text-content"><%= cfg[:allow_from].size %> IDs</span></span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+          <p class="text-xs text-content-muted mt-2">
+            Per-channel overrides are configured in the
+            <%= link_to "Channel Accounts", channel_accounts_path, class: "text-accent hover:underline" %> page.
+          </p>
+        </div>
+      <% end %>
+    </div>
+
+    <%# Right: Pairing queue %>
+    <div class="space-y-4">
+      <div class="bg-bg-elevated border border-border rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-content mb-3">🔑 Pairing Approval Queue</h3>
+
+        <% if @pairing_queue.empty? %>
+          <div class="text-center py-6 text-content-muted">
+            <div class="text-3xl mb-2">✅</div>
+            <div class="text-sm">No pending pairings</div>
+          </div>
+        <% else %>
+          <div class="space-y-2">
+            <% @pairing_queue.each do |pairing| %>
+              <div class="p-3 rounded-lg bg-bg-base border border-border" id="pairing-<%= pairing[:id] %>">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-sm font-medium text-content"><%= ERB::Util.html_escape(pairing[:sender]) %></div>
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400">Pending</span>
+                </div>
+                <div class="text-xs text-content-muted mb-2">
+                  Channel: <%= ERB::Util.html_escape(pairing[:channel]) %>
+                  <% if pairing[:requested_at] %>
+                    · <%= time_ago_in_words(Time.parse(pairing[:requested_at])) rescue pairing[:requested_at] %> ago
+                  <% end %>
+                </div>
+                <div class="flex gap-2">
+                  <button class="flex-1 px-3 py-1.5 bg-green-500/20 text-green-400 rounded text-xs font-medium hover:bg-green-500/30 transition-colors"
+                          data-action="dm-policy#approvePairing"
+                          data-pairing-id="<%= pairing[:id] %>">
+                    ✅ Approve
+                  </button>
+                  <button class="flex-1 px-3 py-1.5 bg-red-500/20 text-red-400 rounded text-xs font-medium hover:bg-red-500/30 transition-colors"
+                          data-action="dm-policy#rejectPairing"
+                          data-pairing-id="<%= pairing[:id] %>">
+                    ❌ Reject
+                  </button>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+
+      <%# Security tip %>
+      <div class="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4">
+        <div class="flex items-start gap-2">
+          <span class="text-lg">⚠️</span>
+          <div class="text-xs text-content-muted">
+            <p class="font-medium text-content mb-1">Security Note</p>
+            <p>Using <strong>open</strong> DM policy means anyone can message your bot. For production, consider <strong>pairing</strong> or <strong>allowlist</strong>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

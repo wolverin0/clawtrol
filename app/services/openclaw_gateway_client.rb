@@ -3,7 +3,6 @@
 require "net/http"
 require "uri"
 require "json"
-require "cgi"
 
 # Minimal HTTP client for the OpenClaw Gateway API.
 #
@@ -41,28 +40,20 @@ class OpenclawGatewayClient
 
   def sessions_list
     get_json!("/api/sessions")
+  rescue StandardError => e
+    { "sessions" => [], "error" => e.message }
+  end
+
+  def session_detail(session_key)
+    get_json!("/api/sessions/#{session_key}")
+  rescue StandardError => e
+    { "error" => e.message }
   end
 
   # --- Gateway Status & Health ---
 
   def health
-    uri = base_uri.dup
-    uri.path = "/health"
-
-    req = Net::HTTP::Get.new(uri)
-    req["Authorization"] = "Bearer #{@user.openclaw_gateway_token}"
-    res = http_for(uri).request(req)
-
-    code = res.code.to_i
-    body = res.body.to_s
-
-    return { "status" => "unreachable", "error" => "OpenClaw gateway HTTP #{code}" } unless code >= 200 && code < 300
-
-    begin
-      JSON.parse(body)
-    rescue JSON::ParserError
-      { "status" => "ok" }
-    end
+    get_json!("/api/health")
   rescue StandardError => e
     { "status" => "unreachable", "error" => e.message }
   end
@@ -125,85 +116,119 @@ class OpenclawGatewayClient
     { "models" => [], "error" => e.message }
   end
 
-  # --- Chat / Session Messaging ---
-
-  # Send a message to an agent session via OpenClaw webhook endpoint.
-  # /api/sessions/send does not exist in gateway HTTP API.
-  def sessions_send(session_key, message)
-    hooks_token = @user.openclaw_hooks_token.presence || @user.openclaw_gateway_token
-
-    uri = base_uri.dup
-    uri.path = "/hooks/agent"
-
-    req = Net::HTTP::Post.new(uri)
-    req["Authorization"] = "Bearer #{hooks_token}"
-    req["Content-Type"] = "application/json"
-    req.body = {
-      message: message,
-      sessionKey: session_key,
-      deliver: false,
-      name: "ClawTrol Chat"
-    }.to_json
-
-    res = http_for(uri).request(req)
-    JSON.parse(res.body)
-  end
-
-  # Retrieve recent chat/session history from local OpenClaw transcript files.
-  # Session transcripts are stored at ~/.openclaw/agents/main/sessions/<sessionId>.jsonl
-  def sessions_history(session_key, limit: 20)
-    sessions_dir = File.expand_path("~/.openclaw/agents/main/sessions")
-    store_file = File.join(sessions_dir, "sessions.json")
-
-    return { "messages" => [], "error" => "sessions.json not found" } unless File.exist?(store_file)
-
-    store = JSON.parse(File.read(store_file))
-    # Try exact key first, then with agent prefix (OpenClaw stores as agent:main:<key>)
-    entry = store[session_key] || store["agent:main:#{session_key}"]
-    return { "messages" => [], "error" => "session not found" } unless entry
-
-    session_id = entry["sessionId"]
-    transcript_file = File.join(sessions_dir, "#{session_id}.jsonl")
-    return { "messages" => [], "error" => "transcript not found" } unless File.exist?(transcript_file)
-
-    messages = []
-    File.readlines(transcript_file).last(limit * 3).each do |line|
-      begin
-        entry_data = JSON.parse(line.strip)
-        # OpenClaw JSONL format: { type: "message", message: { role: "user", content: [...] } }
-        inner = entry_data["message"] || entry_data
-        next unless %w[user assistant].include?(inner["role"])
-
-        raw_content = inner["content"]
-        content_text = if raw_content.is_a?(Array)
-          raw_content.select { |c| c["type"] == "text" }.map { |c| c["text"] }.join("\n")
-        else
-          raw_content.to_s
-        end
-
-        next if content_text.blank?
-
-        messages << {
-          "role" => inner["role"],
-          "content" => content_text,
-          "timestamp" => entry_data["timestamp"] || inner["timestamp"]
-        }
-      rescue JSON::ParserError
-        next
-      end
-    end
-
-    { "messages" => messages.last(limit) }
-  rescue StandardError => e
-    { "messages" => [], "error" => e.message }
-  end
-
   # --- Agents ---
 
   def agents_list
     get_json!("/api/agents/list")
   rescue StandardError => e
     { "agents" => [], "error" => e.message }
+  end
+
+  # --- Nodes ---
+
+  def nodes_status
+    get_json!("/api/nodes/status")
+  rescue StandardError => e
+    { "nodes" => [], "error" => e.message }
+  end
+
+  def node_notify(node_id, title:, body:)
+    post_json!("/api/nodes/notify", body: { node: node_id, title: title, body: body })
+  end
+
+  # --- Config (read-only, for plugin status) ---
+
+  def config_get
+    get_json!("/api/config/get")
+  rescue StandardError => e
+    { "error" => e.message }
+  end
+
+  # Returns the config JSON schema for validation.
+  def config_schema
+    get_json!("/api/config/schema")
+  rescue StandardError => e
+    { "error" => e.message }
+  end
+
+  # Apply a full config (replaces entire config, then restarts).
+  # @param raw [String] raw YAML/JSON config string
+  # @param reason [String] optional reason for the change
+  def config_apply(raw:, reason: nil)
+    body = { raw: raw }
+    body[:reason] = reason if reason.present?
+    post_json!("/api/config/apply", body: body)
+  rescue StandardError => e
+    { "error" => e.message }
+  end
+
+  # Partial config patch (merges with existing, then restarts).
+  # @param raw [String] raw YAML/JSON partial config to merge
+  # @param reason [String] optional reason for the change
+  def config_patch(raw:, reason: nil)
+    body = { raw: raw }
+    body[:reason] = reason if reason.present?
+    post_json!("/api/config/patch", body: body)
+  rescue StandardError => e
+    { "error" => e.message }
+  end
+
+  # Restart the gateway (SIGUSR1).
+  # @param reason [String] optional reason for the restart
+  def gateway_restart(reason: nil)
+    body = {}
+    body[:reason] = reason if reason.present?
+    post_json!("/api/gateway/restart", body: body)
+  rescue StandardError => e
+    { "error" => e.message }
+  end
+
+  # Push A2UI HTML content to a node's canvas.
+  # @param node [String] node id or name
+  # @param html [String] HTML content to render
+  # @param width [Integer, nil] optional width
+  # @param height [Integer, nil] optional height
+  # @return [Hash]
+  def canvas_push(node:, html:, width: nil, height: nil)
+    validate_gateway_url!
+    body = { action: "a2ui_push", node: node, jsonl: html }
+    body[:width] = width if width
+    body[:height] = height if height
+    post_json!("/api/v1/canvas", body: body)
+  rescue StandardError => e
+    { error: e.message }
+  end
+
+  # Take a snapshot of the canvas on a node.
+  # @param node [String] node id or name
+  # @return [Hash]
+  def canvas_snapshot(node:)
+    validate_gateway_url!
+    post_json!("/api/v1/canvas", body: { action: "snapshot", node: node })
+  rescue StandardError => e
+    { error: e.message }
+  end
+
+  # Hide the canvas on a node.
+  # @param node [String] node id or name
+  # @return [Hash]
+  def canvas_hide(node:)
+    validate_gateway_url!
+    post_json!("/api/v1/canvas", body: { action: "hide", node: node })
+  rescue StandardError => e
+    { error: e.message }
+  end
+
+  # Returns a structured list of plugins with their enabled/disabled state.
+  # Extracts plugin info from the gateway health and config endpoints.
+  def plugins_status
+    health_data = health
+    config_data = config_get
+
+    plugins = extract_plugins(health_data, config_data)
+    { "plugins" => plugins, "gateway_version" => health_data["version"] }
+  rescue StandardError => e
+    { "plugins" => [], "error" => e.message }
   end
 
   private
@@ -303,5 +328,47 @@ class OpenclawGatewayClient
     raise "OpenClaw gateway HTTP #{code}: #{parsed}" unless code >= 200 && code < 300
 
     parsed
+  end
+
+  def extract_plugins(health_data, config_data)
+    plugins = []
+
+    # Extract from health data (loadedPlugins / plugins array)
+    loaded = health_data["loadedPlugins"] || health_data["plugins"] || []
+    loaded = Array(loaded)
+
+    loaded.each do |p|
+      entry = if p.is_a?(Hash)
+        {
+          "name" => p["name"] || p["id"] || "unknown",
+          "enabled" => p.fetch("enabled", true),
+          "version" => p["version"],
+          "status" => p["status"] || (p.fetch("enabled", true) ? "active" : "disabled")
+        }
+      else
+        { "name" => p.to_s, "enabled" => true, "status" => "active" }
+      end
+      plugins << entry
+    end
+
+    # If no plugins from health, try config
+    if plugins.empty? && config_data.is_a?(Hash)
+      config_plugins = config_data.dig("config", "plugins") || config_data["plugins"] || []
+      Array(config_plugins).each do |p|
+        entry = if p.is_a?(Hash)
+          {
+            "name" => p["name"] || p["package"] || "unknown",
+            "enabled" => p.fetch("enabled", true),
+            "version" => p["version"],
+            "status" => p.fetch("enabled", true) ? "configured" : "disabled"
+          }
+        else
+          { "name" => p.to_s, "enabled" => true, "status" => "configured" }
+        end
+        plugins << entry
+      end
+    end
+
+    plugins.uniq { |p| p["name"] }
   end
 end

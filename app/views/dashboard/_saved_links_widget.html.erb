@@ -31,7 +31,7 @@
             <a href="<%= link.url %>" target="_blank" rel="noopener noreferrer"
                class="text-xs text-content hover:text-accent transition-colors truncate block"
                title="<%= link.url %>">
-              <%= link.title.present? ? link.title.truncate(60) : URI.parse(link.url).host rescue link.url.truncate(60) %>
+              <%= link.note.present? ? link.note.truncate(60) : URI.parse(link.url).host rescue link.url.truncate(60) %>
             </a>
           </div>
 

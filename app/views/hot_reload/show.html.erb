@@ -1,0 +1,132 @@
+<% content_for(:breadcrumb_standalone) { "🔥 Hot Reload" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-controller="hot-reload">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">Hot Reload Monitor</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Config reload mode, debounce settings, and field-level reload classification.
+      </p>
+    </div>
+    <div class="text-sm text-content-muted">
+      Uptime: <span class="text-content font-medium"><%= @uptime %></span>
+    </div>
+  </div>
+
+  <%# Status toast %>
+  <div data-hot-reload-target="status" class="hidden text-xs px-3 py-2 rounded-md"></div>
+
+  <%# Current State Cards %>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <% mode_colors = { "hybrid" => "text-blue-400", "hot" => "text-green-400", "restart" => "text-yellow-400", "off" => "text-red-400" } %>
+    <div class="bg-bg-surface rounded-lg border border-border p-3 text-center">
+      <div class="text-lg">🔧</div>
+      <div class="text-sm font-bold <%= mode_colors[@reload_config[:mode]] || 'text-content' %>"><%= @reload_config[:mode] %></div>
+      <div class="text-[10px] text-content-muted">Reload Mode</div>
+    </div>
+    <div class="bg-bg-surface rounded-lg border border-border p-3 text-center">
+      <div class="text-lg">⏱️</div>
+      <div class="text-sm font-bold text-content"><%= @reload_config[:debounce_ms] %>ms</div>
+      <div class="text-[10px] text-content-muted">Debounce</div>
+    </div>
+    <div class="bg-bg-surface rounded-lg border border-border p-3 text-center">
+      <div class="text-lg">👁️</div>
+      <div class="text-sm font-bold text-content"><%= @reload_config[:watch_config] ? '✅ Active' : '⛔ Off' %></div>
+      <div class="text-[10px] text-content-muted">File Watcher</div>
+    </div>
+    <div class="bg-bg-surface rounded-lg border border-border p-3 text-center">
+      <div class="text-lg">⏰</div>
+      <div class="text-sm font-bold text-content"><%= @uptime %></div>
+      <div class="text-[10px] text-content-muted">Uptime</div>
+    </div>
+  </div>
+
+  <%# Config Editor %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">⚙️</span>
+      <h2 class="text-sm font-semibold text-content">Reload Config</h2>
+    </div>
+    <div class="p-4 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Mode</label>
+          <select data-hot-reload-target="mode"
+                  class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+            <% %w[hybrid hot restart off].each do |mode| %>
+              <option value="<%= mode %>" <%= 'selected' if @reload_config[:mode] == mode %>>
+                <%= { "hybrid" => "Hybrid — hot when possible, restart otherwise", "hot" => "Hot — always hot-apply (skip restart-only fields)", "restart" => "Restart — always full restart", "off" => "Off — no auto-reload" }[mode] %>
+              </option>
+            <% end %>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Debounce (ms)</label>
+          <input type="number" min="100" max="30000" step="100"
+                 data-hot-reload-target="debounce"
+                 value="<%= @reload_config[:debounce_ms] %>"
+                 class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+        </div>
+        <div class="flex items-center gap-2 pt-5">
+          <input type="checkbox"
+                 data-hot-reload-target="watchConfig"
+                 <%= 'checked' if @reload_config[:watch_config] %>
+                 class="rounded border-border text-accent focus:ring-accent" />
+          <span class="text-sm text-content">Watch config file for changes</span>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button type="button"
+                data-action="click->hot-reload#save"
+                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Save Config
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <%# Field Classification %>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <%# Hot-applicable %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">⚡</span>
+        <h2 class="text-sm font-semibold text-content">Hot-Applicable (no restart)</h2>
+      </div>
+      <div class="divide-y divide-border">
+        <% @hot_fields.each do |f| %>
+          <div class="px-4 py-2 flex items-center justify-between">
+            <span class="text-xs font-mono text-green-400"><%= f[:field] %></span>
+            <span class="text-[10px] text-content-muted"><%= f[:desc] %></span>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <%# Restart required %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">🔄</span>
+        <h2 class="text-sm font-semibold text-content">Restart Required</h2>
+      </div>
+      <div class="divide-y divide-border">
+        <% @restart_fields.each do |f| %>
+          <div class="px-4 py-2 flex items-center justify-between">
+            <span class="text-xs font-mono text-yellow-400"><%= f[:field] %></span>
+            <span class="text-[10px] text-content-muted"><%= f[:desc] %></span>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  </div>
+
+  <%# Mode explanation %>
+  <div class="p-3 bg-blue-500/10 border border-blue-500/30 rounded-md">
+    <p class="text-xs text-blue-400">
+      💡 <strong>Hybrid mode</strong> (recommended): Changes to hot-applicable fields take effect immediately.
+      Changes to restart-required fields trigger an automatic gateway restart after the debounce period.
+    </p>
+  </div>
+</div>

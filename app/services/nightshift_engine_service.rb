@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class NightshiftEngineService
   TIMEOUT_MINUTES = 30
 
@@ -9,9 +11,16 @@ class NightshiftEngineService
 
   def complete_selection(selection, status:, result: nil)
     status = status.to_s
+
+    # result column is text — serialize hashes/arrays as JSON for consistent storage
+    serialized_result = case result
+                        when Hash, Array then result.to_json
+                        else result
+                        end
+
     attrs = {
       status: status,
-      result: result
+      result: serialized_result
     }
 
     attrs[:launched_at] = Time.current if status == "running" && selection.launched_at.nil?

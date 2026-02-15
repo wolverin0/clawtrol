@@ -1,0 +1,169 @@
+<% content_for :title, "Heartbeat Config - clawdeck" %>
+<% content_for :breadcrumb_standalone, "💓 Heartbeat Config" %>
+
+<div class="py-6 space-y-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content">Heartbeat Configuration</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Configure periodic agent check-ins: interval, model, channel targeting, quiet hours, and response limits.
+      </p>
+    </div>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <%= form_with url: heartbeat_config_path, method: :patch, class: "space-y-6" do |f| %>
+
+    <%# Enable/Interval %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">💓</span>
+          <h3 class="text-base font-semibold text-content">Heartbeat</h3>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="hidden" name="enabled" value="false">
+          <input type="checkbox" name="enabled" value="true" class="sr-only peer"
+                 <%= "checked" if @heartbeat_config[:enabled] %>>
+          <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:bg-green-500 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+        </label>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Interval (minutes)</label>
+          <input type="number" name="interval_minutes"
+                 value="<%= @heartbeat_config[:interval_minutes] %>"
+                 min="5" max="1440"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+          <p class="text-xs text-content-muted mt-1">
+            Every <strong><%= @heartbeat_config[:interval_minutes] %> min</strong>
+            (<%= (@heartbeat_config[:interval_minutes] / 60.0).round(1) %> hours).
+            <% cost_warn = @heartbeat_config[:interval_minutes] <= 15 %>
+            <% if cost_warn %>
+              <span class="text-yellow-400">⚠️ Frequent heartbeats increase token costs.</span>
+            <% end %>
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Model</label>
+          <input type="text" name="model"
+                 value="<%= @heartbeat_config[:model] %>"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                 placeholder="default (uses session model)">
+          <p class="text-xs text-content-muted mt-1">
+            Tip: Use a cheap model like <code>flash</code> or <code>groq-llama</code> to save costs.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <%# Target & Response %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">🎯 Targeting & Response</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Target Channel</label>
+          <select name="target_channel"
+                  class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+            <option value="" <%= "selected" if @heartbeat_config[:target_channel].blank? %>>Default (current session)</option>
+            <% %w[telegram whatsapp discord signal slack].each do |ch| %>
+              <option value="<%= ch %>" <%= "selected" if @heartbeat_config[:target_channel] == ch %>><%= ch.capitalize %></option>
+            <% end %>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Max Response Characters</label>
+          <input type="number" name="ack_max_chars"
+                 value="<%= @heartbeat_config[:ack_max_chars] %>"
+                 min="50" max="5000"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+          <p class="text-xs text-content-muted mt-1">Truncate heartbeat responses to this length.</p>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm text-content-muted mb-1">Heartbeat Prompt</label>
+          <textarea name="prompt" rows="3"
+                    class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content font-mono focus:ring-2 focus:ring-accent/40 resize-y"
+                    placeholder="Read HEARTBEAT.md if it exists..."><%= @heartbeat_config[:prompt] %></textarea>
+          <p class="text-xs text-content-muted mt-1">The system message injected at each heartbeat. Leave blank for default.</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <input type="hidden" name="include_reasoning" value="false">
+          <input type="checkbox" name="include_reasoning" value="true"
+                 id="include_reasoning"
+                 class="rounded border-border text-accent focus:ring-accent/40"
+                 <%= "checked" if @heartbeat_config[:include_reasoning] %>>
+          <label for="include_reasoning" class="text-sm text-content">
+            Include reasoning tokens in heartbeat responses
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <%# Quiet Hours %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">🌙 Quiet Hours</h3>
+      <p class="text-sm text-content-muted mb-4">
+        During quiet hours, heartbeats still run but won't proactively message unless something urgent is found.
+      </p>
+      <div class="grid grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Start (hour)</label>
+          <input type="number" name="quiet_hours_start"
+                 value="<%= @heartbeat_config[:quiet_hours_start] %>"
+                 min="0" max="23"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+        </div>
+        <div>
+          <label class="block text-sm text-content-muted mb-1">End (hour)</label>
+          <input type="number" name="quiet_hours_end"
+                 value="<%= @heartbeat_config[:quiet_hours_end] %>"
+                 min="0" max="23"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+        </div>
+      </div>
+
+      <%# Visual quiet hours bar %>
+      <div class="mt-4 relative h-8 bg-bg-base rounded-full border border-border overflow-hidden">
+        <% qs = @heartbeat_config[:quiet_hours_start]
+           qe = @heartbeat_config[:quiet_hours_end]
+           if qs > qe # wraps midnight
+             pct_s = (qs / 24.0 * 100).round
+             pct_e = (qe / 24.0 * 100).round
+        %>
+          <div class="absolute top-0 h-full bg-indigo-500/20" style="left: <%= pct_s %>%; width: <%= 100 - pct_s %>%"></div>
+          <div class="absolute top-0 h-full bg-indigo-500/20" style="left: 0; width: <%= pct_e %>%"></div>
+        <% else %>
+          <% pct_s = (qs / 24.0 * 100).round
+             pct_e = (qe / 24.0 * 100).round %>
+          <div class="absolute top-0 h-full bg-indigo-500/20" style="left: <%= pct_s %>%; width: <%= pct_e - pct_s %>%"></div>
+        <% end %>
+        <div class="absolute inset-0 flex items-center justify-between px-3 text-[10px] text-content-muted">
+          <span>00:00</span>
+          <span>06:00</span>
+          <span>12:00</span>
+          <span>18:00</span>
+          <span>23:59</span>
+        </div>
+      </div>
+      <div class="text-xs text-content-muted mt-1 text-center">
+        🌙 Quiet: <strong><%= "%02d:00" % @heartbeat_config[:quiet_hours_start] %></strong> →
+        <strong><%= "%02d:00" % @heartbeat_config[:quiet_hours_end] %></strong>
+      </div>
+    </div>
+
+    <div class="flex justify-end">
+      <button type="submit"
+              class="px-6 py-2 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/80 transition-colors">
+        💾 Save Configuration
+      </button>
+    </div>
+  <% end %>
+</div>

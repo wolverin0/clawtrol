@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "ostruct"
 
 class Api::RateLimitableTest < ActiveSupport::TestCase
   # Test the concern in isolation using a mock controller-like object
@@ -57,7 +58,14 @@ class Api::RateLimitableTest < ActiveSupport::TestCase
 
   setup do
     @controller = FakeController.new
+    # Test env uses :null_store — rate limiting needs a real cache store
+    @original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
     Rails.cache.clear
+  end
+
+  teardown do
+    Rails.cache = @original_cache
   end
 
   test "rate_limit_identifier returns user:id for authenticated" do
@@ -79,12 +87,18 @@ class Api::RateLimitableTest < ActiveSupport::TestCase
   end
 
   test "blocks requests over limit with 429" do
-    @controller.current_user_obj = OpenStruct.new(id: 99)
-    6.times { @controller.test_rate_limit!(limit: 5, window: 60) }
-    assert_not_nil @controller.rendered
-    assert_equal :too_many_requests, @controller.rendered[:status]
-    assert_equal "Rate limit exceeded", @controller.rendered[:json][:error]
-    assert_equal "60", @controller.response_headers["Retry-After"]
+    Rails.cache.clear
+    ctrl = FakeController.new
+    ctrl.current_user_obj = OpenStruct.new(id: 99)
+    # Call one-by-one and check the count progression
+    5.times { ctrl.test_rate_limit!(limit: 5, window: 60) }
+    assert_nil ctrl.rendered, "Should NOT render for first 5 calls"
+    # 6th call should trigger 429
+    ctrl.test_rate_limit!(limit: 5, window: 60)
+    assert_not_nil ctrl.rendered, "Expected 429 render on 6th call (limit=5). Headers: #{ctrl.response_headers.inspect}"
+    assert_equal :too_many_requests, ctrl.rendered[:status]
+    assert_equal "Rate limit exceeded", ctrl.rendered[:json][:error]
+    assert_equal "60", ctrl.response_headers["Retry-After"]
   end
 
   test "different key_suffixes are independent" do

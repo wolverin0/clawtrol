@@ -1,0 +1,223 @@
+<% content_for(:breadcrumb_standalone) { "🎮 Discord Config" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-controller="discord-config">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">Discord Advanced Config</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Configure guilds, channels, actions, reaction notifications, and user allowlists.
+      </p>
+    </div>
+    <% dc_status = Array(@channel_status.is_a?(Hash) ? @channel_status["channels"] : []).find { |c| c["name"]&.match?(/discord/i) } %>
+    <div class="text-sm">
+      <% if dc_status %>
+        <span class="px-2 py-1 rounded-full text-xs font-medium
+               <%= dc_status['connected'] ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400' %>">
+          <%= dc_status['connected'] ? '🟢 Connected' : '🔴 Disconnected' %>
+        </span>
+      <% else %>
+        <span class="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">⚠️ Not configured</span>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Status toast %>
+  <div data-discord-config-target="status" class="hidden text-xs px-3 py-2 rounded-md"></div>
+
+  <%# General Settings %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">⚙️</span>
+      <h2 class="text-sm font-semibold text-content">General</h2>
+    </div>
+    <div class="p-4 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Max Lines per Message</label>
+          <input type="number" min="5" max="200"
+                 data-discord-config-target="maxLines"
+                 value="<%= @discord[:max_lines] %>"
+                 class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">DM Scope</label>
+          <select data-discord-config-target="dmScope"
+                  class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+            <option value="user" <%= 'selected' if @discord[:dm_scope] == 'user' %>>user (isolated)</option>
+            <option value="main" <%= 'selected' if @discord[:dm_scope] == 'main' %>>main (shared)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Stream Mode</label>
+          <select data-discord-config-target="streamMode"
+                  class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+            <% %w[off partial block].each do |mode| %>
+              <option value="<%= mode %>" <%= 'selected' if @discord[:stream_mode] == mode %>><%= mode.capitalize %></option>
+            <% end %>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button type="button"
+                data-action="click->discord-config#saveGeneral"
+                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Save General
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <%# Actions Toggles %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">🎛️</span>
+      <h2 class="text-sm font-semibold text-content">Action Toggles</h2>
+    </div>
+    <div class="p-4">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <% action_icons = { "reactions" => "😀", "stickers" => "🎨", "polls" => "📊", "permissions" => "🔒", "threads" => "🧵", "pins" => "📌", "search" => "🔍", "moderation" => "🛡️" } %>
+        <% @discord[:actions].each do |act| %>
+          <div class="flex items-center gap-2 p-2 bg-bg-elevated rounded-md">
+            <input type="checkbox"
+                   data-discord-config-target="action_<%= act[:name] %>"
+                   data-action-name="<%= act[:name] %>"
+                   class="discord-action-toggle rounded border-border text-accent focus:ring-accent"
+                   <%= 'checked' if act[:enabled] %> />
+            <span class="text-sm text-content"><%= action_icons[act[:name]] || "⚡" %> <%= act[:name].capitalize %></span>
+          </div>
+        <% end %>
+      </div>
+      <div class="flex justify-end mt-3">
+        <button type="button"
+                data-action="click->discord-config#saveActions"
+                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Save Actions
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <%# Reaction Notifications %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">🔔</span>
+      <h2 class="text-sm font-semibold text-content">Reaction Notifications</h2>
+    </div>
+    <div class="p-4 space-y-3">
+      <div>
+        <label class="block text-xs font-medium text-content-muted mb-1">Mode</label>
+        <select data-discord-config-target="reactionMode"
+                class="w-full sm:w-64 text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+          <% %w[off own all allowlist].each do |mode| %>
+            <option value="<%= mode %>" <%= 'selected' if @discord[:reaction_mode] == mode %>>
+              <%= { "off" => "Off — no reaction events", "own" => "Own — only bot's messages", "all" => "All — every reaction", "allowlist" => "Allowlist — specific users only" }[mode] %>
+            </option>
+          <% end %>
+        </select>
+      </div>
+      <div class="flex justify-end">
+        <button type="button"
+                data-action="click->discord-config#saveReactions"
+                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Save Reactions
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <%# User Allowlist %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">👥</span>
+      <h2 class="text-sm font-semibold text-content">User Allowlist (<%= @discord[:allowlist_users].size %>)</h2>
+    </div>
+    <div class="p-4 space-y-3">
+      <% if @discord[:allowlist_users].any? %>
+        <div class="flex flex-wrap gap-2">
+          <% @discord[:allowlist_users].each do |uid| %>
+            <span class="text-xs px-2 py-1 bg-bg-elevated rounded font-mono text-content"><%= uid %></span>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-sm text-content-muted">No user allowlist — all users can interact (subject to DM policy).</p>
+      <% end %>
+
+      <details>
+        <summary class="text-xs text-accent cursor-pointer mt-2">Edit Allowlist</summary>
+        <div class="mt-2">
+          <textarea data-discord-config-target="userAllowlist"
+                    rows="3"
+                    placeholder="One Discord user ID per line"
+                    class="w-full text-xs text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none resize-y"><%= @discord[:allowlist_users].join("\n") %></textarea>
+          <div class="flex justify-end mt-2">
+            <button type="button"
+                    data-action="click->discord-config#saveUsers"
+                    class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+              Save Users
+            </button>
+          </div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <%# Guild Config %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <details>
+      <summary class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2 cursor-pointer list-none">
+        <span class="text-lg">🏰</span>
+        <span class="text-sm font-semibold text-content">Guild Config</span>
+        <span class="text-xs text-content-muted ml-auto"><%= @discord[:guilds].size %> guilds configured</span>
+      </summary>
+      <div class="p-4 space-y-3">
+        <% if @discord[:guilds].any? %>
+          <% @discord[:guilds].each do |guild_id, conf| %>
+            <div class="p-3 bg-bg-elevated rounded-md border border-border">
+              <span class="text-sm font-mono text-accent">Guild #<%= guild_id %></span>
+              <% if conf.is_a?(Hash) && conf["channels"].is_a?(Hash) %>
+                <div class="mt-2 space-y-1">
+                  <% conf["channels"].each do |ch_id, ch_conf| %>
+                    <div class="flex items-center gap-2 text-xs">
+                      <span class="font-mono text-content-muted">#<%= ch_id %></span>
+                      <% if ch_conf.is_a?(Hash) %>
+                        <span class="<%= ch_conf['allow'] == false ? 'text-red-400' : 'text-green-400' %>">
+                          <%= ch_conf['allow'] == false ? '🚫 blocked' : '✅ allowed' %>
+                        </span>
+                        <% if ch_conf['mention'] %>
+                          <span class="text-yellow-400">@mention required</span>
+                        <% end %>
+                        <% if ch_conf['skills'].present? %>
+                          <span class="text-blue-400">skills: <%= Array(ch_conf['skills']).join(', ') %></span>
+                        <% end %>
+                      <% end %>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-sm text-content-muted">No per-guild config. All guilds use defaults.</p>
+        <% end %>
+        <p class="text-xs text-content-muted mt-2">
+          Edit per-guild/channel config via the Gateway Config Editor for complex setups.
+        </p>
+      </div>
+    </details>
+  </section>
+
+  <%# Raw Config %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <details>
+      <summary class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2 cursor-pointer list-none">
+        <span class="text-lg">📋</span>
+        <span class="text-sm font-semibold text-content">Raw Discord Config</span>
+      </summary>
+      <div class="p-4">
+        <pre class="text-xs text-content font-mono bg-bg-base rounded p-3 overflow-x-auto max-h-64 overflow-y-auto"><%= JSON.pretty_generate(@discord[:raw]) rescue @discord[:raw].to_s %></pre>
+      </div>
+    </details>
+  </section>
+</div>

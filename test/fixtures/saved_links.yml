@@ -2,22 +2,22 @@
 
 one:
   user: one
-  url: MyString
-  title: MyString
-  source_type: MyString
+  url: https://example.com/article-1
+  note: Test saved link
+  source_type: telegram
   status: 1
-  summary: MyText
-  raw_content: MyText
+  summary: A test article summary
+  raw_content: Full content here
   processed_at: 2026-02-11 18:49:27
-  error_message: MyString
+  error_message:
 
 two:
   user: two
-  url: MyString
-  title: MyString
-  source_type: MyString
-  status: 1
-  summary: MyText
-  raw_content: MyText
-  processed_at: 2026-02-11 18:49:27
-  error_message: MyString
+  url: https://example.com/article-2
+  note: Another saved link
+  source_type: manual
+  status: 0
+  summary:
+  raw_content:
+  processed_at:
+  error_message:

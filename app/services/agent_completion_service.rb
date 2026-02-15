@@ -63,6 +63,9 @@ class AgentCompletionService
     Result.new(task: @task, success: true)
   rescue ActiveRecord::RecordInvalid => e
     Result.new(task: @task, success: false, error: e.message)
+  rescue ArgumentError => e
+    # Rails enum raises ArgumentError for invalid status values
+    Result.new(task: @task, success: false, error: e.message)
   end
 
   private

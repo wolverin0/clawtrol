@@ -10,6 +10,25 @@
     </div>
   </div>
 
+  <%# Tab navigation %>
+  <div class="flex items-center gap-4 border-b border-white/10">
+    <%= link_to analytics_path(tab: "overview", period: @period),
+        class: "px-4 py-2 text-sm font-medium border-b-2 transition-colors #{@tab == 'overview' ? 'border-accent text-accent' : 'border-transparent text-muted hover:text-content'}" do %>
+      📈 Overview
+    <% end %>
+    <%= link_to analytics_path(tab: "budget", period: @period),
+        class: "px-4 py-2 text-sm font-medium border-b-2 transition-colors #{@tab == 'budget' ? 'border-accent text-accent' : 'border-transparent text-muted hover:text-content'}" do %>
+      💰 Budget & Trends
+      <% if defined?(@budget_alerts) && @budget_alerts&.any? %>
+        <span class="ml-1 px-1.5 py-0.5 text-[10px] bg-red-500/20 text-red-300 rounded-full"><%= @budget_alerts.count %></span>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if @tab == "budget" %>
+    <%= render "analytics/budget_tab" %>
+  <% else %>
+
   <div class="flex items-center justify-between flex-wrap gap-3">
     <div class="flex gap-2">
       <% %w[24h 7d 30d all].each do |p| %>
@@ -24,18 +43,26 @@
     <div class="bg-card border border-border rounded-xl p-4">
       <div class="text-2xl font-bold text-green-300"><%= number_to_currency(@total_cost || 0, unit: "$", precision: 4) %></div>
       <div class="text-sm text-muted">Total cost</div>
+      <% if @projected_monthly %>
+        <div class="text-[10px] text-muted mt-1">~<%= number_to_currency(@projected_monthly, unit: "$", precision: 2) %>/mo projected</div>
+      <% end %>
     </div>
     <div class="bg-card border border-border rounded-xl p-4">
       <div class="text-2xl font-bold text-text"><%= number_with_delimiter(@total_tokens || 0) %></div>
       <div class="text-sm text-muted">Total tokens</div>
+      <div class="text-[10px] text-muted mt-1"><%= @api_calls %> API calls</div>
     </div>
     <div class="bg-card border border-border rounded-xl p-4">
       <div class="text-2xl font-bold text-cyan-300"><%= number_with_delimiter(@total_input || 0) %></div>
       <div class="text-sm text-muted">Input tokens</div>
+      <div class="text-[10px] text-muted mt-1"><%= @cache_hit_rate %>% cache hit</div>
     </div>
     <div class="bg-card border border-border rounded-xl p-4">
       <div class="text-2xl font-bold text-purple-300"><%= number_with_delimiter(@total_output || 0) %></div>
       <div class="text-sm text-muted">Output tokens</div>
+      <% if @total_cache_read.to_i > 0 %>
+        <div class="text-[10px] text-muted mt-1"><%= number_with_delimiter(@total_cache_read) %> cached</div>
+      <% end %>
     </div>
   </div>
 
@@ -114,4 +141,6 @@
       <% end %>
     </div>
   </div>
+
+  <% end %><%# end overview tab %>
 </div>

@@ -1,0 +1,169 @@
+<% content_for :title, "Compaction Config - clawdeck" %>
+<% content_for :breadcrumb_standalone, "📦 Compaction & Pruning" %>
+
+<div class="py-6 space-y-6">
+  <div>
+    <h1 class="text-xl font-bold text-content">Compaction & Context Pruning</h1>
+    <p class="text-sm text-content-muted mt-1">
+      Control how agent conversations are compacted and how the context window is pruned.
+    </p>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <%= form_with url: compaction_config_path, method: :patch, class: "space-y-6" do |f| %>
+
+    <%# Compaction Mode %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">📦 Compaction Mode</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <% [
+          ["safeguard", "🛡️ Safeguard", "Compact only when near context limit. Preserves max history. Recommended."],
+          ["eager", "⚡ Eager", "Compact proactively after N turns. Keeps sessions lean but loses earlier context."],
+          ["never", "🚫 Never", "Never compact. Session grows until context window is full, then errors."]
+        ].each do |value, label, desc| %>
+          <label class="flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors
+            <%= @compaction[:mode] == value ? 'border-accent bg-accent/5' : 'border-border hover:border-accent/30' %>">
+            <input type="radio" name="comp_mode" value="<%= value %>"
+                   class="mt-0.5 text-accent focus:ring-accent/40"
+                   <%= "checked" if @compaction[:mode] == value %>>
+            <div>
+              <div class="text-sm font-medium text-content"><%= label %></div>
+              <div class="text-xs text-content-muted mt-1"><%= desc %></div>
+            </div>
+          </label>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Compaction Settings %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">⚙️ Compaction Settings</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Max Turns Before Compact</label>
+          <input type="number" name="max_turns"
+                 value="<%= @compaction[:max_turns_before_compact] %>"
+                 min="10" max="500"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+          <p class="text-xs text-content-muted mt-1">For eager mode: compact after this many turns.</p>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Summary Model</label>
+          <input type="text" name="summary_model"
+                 value="<%= @compaction[:summary_model] %>"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40"
+                 placeholder="default (uses session model)">
+          <p class="text-xs text-content-muted mt-1">Model used to generate compaction summaries.</p>
+        </div>
+
+        <div class="flex items-center gap-2 self-center">
+          <input type="hidden" name="memory_flush" value="false">
+          <input type="checkbox" name="memory_flush" value="true"
+                 id="memory_flush"
+                 class="rounded border-border text-accent focus:ring-accent/40"
+                 <%= "checked" if @compaction[:memory_flush] %>>
+          <label for="memory_flush" class="text-sm text-content">
+            <strong>Memory flush</strong> — write important context to memory before compacting
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <%# Context Pruning %>
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">✂️ Context Pruning</h3>
+      <p class="text-sm text-content-muted mb-4">
+        Controls how the context window is trimmed when approaching limits.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Cache TTL (minutes)</label>
+          <input type="number" name="cache_ttl"
+                 value="<%= @pruning[:cache_ttl_minutes] %>"
+                 min="5" max="1440"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+          <p class="text-xs text-content-muted mt-1">How long cached context is retained before pruning eligibility.</p>
+        </div>
+
+        <div class="flex items-center gap-2 self-end pb-2">
+          <input type="hidden" name="preserve_system" value="false">
+          <input type="checkbox" name="preserve_system" value="true"
+                 id="preserve_system"
+                 class="rounded border-border text-accent focus:ring-accent/40"
+                 <%= "checked" if @pruning[:preserve_system] %>>
+          <label for="preserve_system" class="text-sm text-content">
+            <strong>Preserve system messages</strong> — never prune system prompts
+          </label>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">
+            Soft Trim Ratio (<%= (@pruning[:soft_trim_ratio] * 100).round %>%)
+          </label>
+          <input type="range" name="soft_trim_ratio"
+                 min="0.1" max="0.95" step="0.05"
+                 value="<%= @pruning[:soft_trim_ratio] %>"
+                 class="w-full accent-accent"
+                 data-controller="range-display"
+                 data-action="input->range-display#updatePct"
+                 data-range-display-target="range">
+          <div class="flex justify-between text-xs text-content-muted mt-1">
+            <span>10%</span>
+            <span data-range-display-target="display" class="font-mono text-content"><%= (@pruning[:soft_trim_ratio] * 100).round %>%</span>
+            <span>95%</span>
+          </div>
+          <p class="text-xs text-content-muted mt-1">Start soft-trimming when context reaches this % of max.</p>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">
+            Hard Trim Ratio (<%= (@pruning[:hard_trim_ratio] * 100).round %>%)
+          </label>
+          <input type="range" name="hard_trim_ratio"
+                 min="0.5" max="0.99" step="0.01"
+                 value="<%= @pruning[:hard_trim_ratio] %>"
+                 class="w-full accent-accent"
+                 data-controller="range-display"
+                 data-action="input->range-display#updatePct"
+                 data-range-display-target="range">
+          <div class="flex justify-between text-xs text-content-muted mt-1">
+            <span>50%</span>
+            <span data-range-display-target="display" class="font-mono text-content"><%= (@pruning[:hard_trim_ratio] * 100).round %>%</span>
+            <span>99%</span>
+          </div>
+          <p class="text-xs text-content-muted mt-1">Force-trim when context reaches this %. Must be > soft trim.</p>
+        </div>
+      </div>
+
+      <%# Visual context bar %>
+      <div class="mt-4">
+        <div class="text-xs text-content-muted mb-1">Context window usage zones:</div>
+        <div class="h-6 rounded-full border border-border overflow-hidden flex">
+          <% soft_pct = (@pruning[:soft_trim_ratio] * 100).round
+             hard_pct = (@pruning[:hard_trim_ratio] * 100).round %>
+          <div class="bg-green-500/30 flex items-center justify-center text-[9px] text-green-300" style="width: <%= soft_pct %>%">
+            Normal (<%= soft_pct %>%)
+          </div>
+          <div class="bg-yellow-500/30 flex items-center justify-center text-[9px] text-yellow-300" style="width: <%= hard_pct - soft_pct %>%">
+            Soft trim
+          </div>
+          <div class="bg-red-500/30 flex items-center justify-center text-[9px] text-red-300" style="width: <%= 100 - hard_pct %>%">
+            Hard
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-end">
+      <button type="submit"
+              class="px-6 py-2 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/80 transition-colors">
+        💾 Save Configuration
+      </button>
+    </div>
+  <% end %>
+</div>

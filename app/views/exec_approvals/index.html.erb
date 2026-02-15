@@ -1,0 +1,165 @@
+<% content_for(:breadcrumb_standalone) { "🔐 Exec Approvals" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-controller="exec-approvals">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">Exec Approvals Manager</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Manage per-node command allowlists for OpenClaw exec security.
+      </p>
+    </div>
+  </div>
+
+  <%# Status %>
+  <div data-exec-approvals-target="status" class="hidden text-xs px-3 py-2 rounded-md"></div>
+
+  <%# Add Command Form %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">➕</span>
+      <h2 class="text-sm font-semibold text-content">Add Command</h2>
+    </div>
+    <div class="p-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Node</label>
+          <select data-exec-approvals-target="nodeSelect"
+                  class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+            <option value="sandbox">sandbox (default)</option>
+            <option value="gateway">gateway</option>
+            <% @node_list.each do |node| %>
+              <option value="<%= node[:id] %>">
+                <%= node[:name] %> (<%= node[:platform] || "unknown" %>) <%= node[:online] ? "🟢" : "🔴" %>
+              </option>
+            <% end %>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-xs font-medium text-content-muted mb-1">Command</label>
+          <div class="flex gap-2">
+            <input type="text"
+                   data-exec-approvals-target="commandInput"
+                   placeholder="e.g., git status, npm run build, docker ps"
+                   class="flex-1 text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+            <button type="button"
+                    data-action="click->exec-approvals#addCommand"
+                    class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors whitespace-nowrap">
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# Bulk Import %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <details>
+      <summary class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2 cursor-pointer list-none">
+        <span class="text-lg">📦</span>
+        <span class="text-sm font-semibold text-content">Bulk Import</span>
+        <span class="text-xs text-content-muted ml-2">(one command per line)</span>
+      </summary>
+      <div class="p-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Node</label>
+            <select data-exec-approvals-target="bulkNode"
+                    class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <option value="sandbox">sandbox</option>
+              <option value="gateway">gateway</option>
+              <% @node_list.each do |node| %>
+                <option value="<%= node[:id] %>"><%= node[:name] %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="md:col-span-3">
+            <label class="block text-xs font-medium text-content-muted mb-1">Commands (one per line, max 200)</label>
+            <textarea data-exec-approvals-target="bulkCommands" rows="4"
+                      placeholder="git status&#10;npm run build&#10;docker ps&#10;ls -la"
+                      class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none resize-y"></textarea>
+          </div>
+        </div>
+        <div class="mt-3 flex justify-end">
+          <button type="button"
+                  data-action="click->exec-approvals#bulkImport"
+                  class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+            Import All
+          </button>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <%# Approvals by Node %>
+  <section>
+    <h2 class="text-sm font-semibold text-content mb-3">Approved Commands by Node</h2>
+
+    <% if @approvals.any? %>
+      <div class="space-y-3">
+        <% @approvals.each do |approval| %>
+          <div class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+            <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-sm">🖥️</span>
+                <span class="text-sm font-semibold text-content font-mono"><%= approval[:node_id] %></span>
+                <span class="text-xs bg-bg-base text-content-muted px-2 py-0.5 rounded-full">
+                  <%= approval[:count] %> command<%= approval[:count] == 1 ? "" : "s" %>
+                </span>
+              </div>
+            </div>
+            <div class="p-4">
+              <div class="flex flex-wrap gap-2">
+                <% approval[:commands].each do |cmd| %>
+                  <div class="flex items-center gap-1 bg-bg-base rounded px-2 py-1 border border-border group">
+                    <code class="text-xs font-mono text-content"><%= cmd %></code>
+                    <button type="button"
+                            data-action="click->exec-approvals#removeCommand"
+                            data-node="<%= approval[:node_id] %>"
+                            data-command="<%= cmd %>"
+                            class="text-content-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all text-xs ml-1"
+                            title="Remove">✕</button>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="bg-bg-surface rounded-lg border border-border p-8 text-center">
+        <span class="text-3xl">🔐</span>
+        <p class="text-sm text-content-muted mt-2">No exec approvals configured.</p>
+        <p class="text-xs text-content-muted mt-1">
+          Add commands above or configure in <code class="font-mono bg-bg-base px-1 rounded">~/.openclaw/exec-approvals.json</code>
+        </p>
+      </div>
+    <% end %>
+  </section>
+
+  <%# Connected Nodes %>
+  <% if @node_list.any? %>
+    <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+      <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+        <span class="text-lg">📱</span>
+        <h2 class="text-sm font-semibold text-content">Connected Nodes</h2>
+      </div>
+      <div class="divide-y divide-border">
+        <% @node_list.each do |node| %>
+          <div class="px-4 py-2 flex items-center justify-between text-sm">
+            <div class="flex items-center gap-2">
+              <span class="<%= node[:online] ? 'text-green-400' : 'text-red-400' %>">●</span>
+              <span class="font-mono text-content"><%= node[:name] %></span>
+              <% if node[:platform] %>
+                <span class="text-xs text-content-muted"><%= node[:platform] %></span>
+              <% end %>
+            </div>
+            <span class="text-xs text-content-muted"><%= node[:online] ? "online" : "offline" %></span>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+</div>

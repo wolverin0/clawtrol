@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   module V1
     class SavedLinksController < BaseController
@@ -41,11 +43,11 @@ module Api
       end
 
       def saved_link_params
-        params.permit(:url, :note, :deep_summary)
+        params.permit(:url, :note)
       end
 
       def update_params
-        params.permit(:note, :summary, :raw_content, :status, :processed_at, :error_message, :deep_summary, :summary_file_path)
+        params.permit(:note, :summary, :raw_content, :status, :processed_at, :error_message)
       end
     end
   end

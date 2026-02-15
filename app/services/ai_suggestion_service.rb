@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class AiSuggestionService
   MODELS = {
     "glm" => { url: "https://api.z.ai/api/coding/paas/v4/chat/completions", model: "glm-4.7-flash" }
@@ -27,14 +29,22 @@ class AiSuggestionService
     @user.ai_api_key.present?
   end
 
+  # Maximum characters to include from task fields in prompts.
+  # Prevents oversized API requests from large descriptions (up to 500KB).
+  PROMPT_DESCRIPTION_LIMIT = 10_000
+  PROMPT_NAME_LIMIT = 500
+
   def build_followup_prompt(task)
+    name = task.name.to_s.truncate(PROMPT_NAME_LIMIT)
+    description = task.description.to_s.truncate(PROMPT_DESCRIPTION_LIMIT)
+
     <<~PROMPT
       Analyze this completed task and suggest specific, actionable follow-up tasks.
 
-      Task: #{task.name}
+      Task: #{name}
 
       Output/Results:
-      #{task.description}
+      #{description}
 
       Based on the findings above, suggest 3-5 specific next steps. Be concrete - reference specific items found.
       Format as a markdown list.
@@ -42,13 +52,17 @@ class AiSuggestionService
   end
 
   def build_enhance_prompt(task, draft)
+    name = task.name.to_s.truncate(PROMPT_NAME_LIMIT)
+    description = task.description.to_s.truncate(PROMPT_DESCRIPTION_LIMIT)
+    draft_text = draft.to_s.truncate(PROMPT_DESCRIPTION_LIMIT)
+
     <<~PROMPT
       Enhance this follow-up task description with specific details from the parent task.
 
-      Parent Task: #{task.name}
-      Parent Output: #{task.description}
+      Parent Task: #{name}
+      Parent Output: #{description}
 
-      User's Draft: #{draft}
+      User's Draft: #{draft_text}
 
       Rewrite the draft to be more specific and actionable, incorporating relevant details from the parent task output.
       Keep the same intent but add concrete details.

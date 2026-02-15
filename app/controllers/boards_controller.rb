@@ -155,13 +155,14 @@ class BoardsController < ApplicationController
 
   # GET /boards/:id/dependency_graph
   def dependency_graph
-    tasks = scoped_tasks_for_board(@board)
+    tasks = @board.tasks
       .where.not(status: "archived")
       .includes(:dependencies, :dependents)
       .select(:id, :name, :status, :blocked, :model, :board_id)
 
     deps = TaskDependency
-      .where(task_id: tasks.reselect(:id))
+      .joins(:task)
+      .where(tasks: { board_id: @board.id })
       .pluck(:task_id, :depends_on_id)
 
     respond_to do |format|
@@ -337,6 +338,8 @@ class BoardsController < ApplicationController
       redirect_to board_path(@board), alert: "Failed to generate persona: #{persona.errors.full_messages.join(', ')}"
     end
   end
+
+
 
   private
 

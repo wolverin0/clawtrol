@@ -1,0 +1,109 @@
+<% content_for :title, "Session Maintenance - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🧹 Session Maintenance" %>
+
+<div class="py-6 space-y-6">
+  <div>
+    <h1 class="text-xl font-bold text-content">Session Maintenance</h1>
+    <p class="text-sm text-content-muted mt-1">
+      Configure session store pruning, entry limits, and automatic cleanup.
+    </p>
+  </div>
+
+  <% if @error.present? %>
+    <%= render "shared/error_alert", message: @error %>
+  <% end %>
+
+  <%# Session Stats %>
+  <% if @sessions_stats.any? %>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="bg-bg-elevated border border-border rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-content"><%= @sessions_stats[:total_count] || 0 %></div>
+        <div class="text-xs text-content-muted mt-1">Total Sessions</div>
+      </div>
+      <div class="bg-bg-elevated border border-border rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-green-400"><%= @sessions_stats[:active_count] || 0 %></div>
+        <div class="text-xs text-content-muted mt-1">Active</div>
+      </div>
+      <div class="bg-bg-elevated border border-border rounded-xl p-4 text-center">
+        <div class="text-2xl font-bold text-accent"><%= number_with_delimiter(@sessions_stats[:total_tokens] || 0) %></div>
+        <div class="text-xs text-content-muted mt-1">Total Tokens</div>
+      </div>
+      <div class="bg-bg-elevated border border-border rounded-xl p-4 text-center">
+        <div class="text-sm font-medium text-content">
+          <% if @sessions_stats[:oldest] %>
+            <% begin %>
+              <%= time_ago_in_words(Time.parse(@sessions_stats[:oldest])) %> ago
+            <% rescue %>
+              <%= @sessions_stats[:oldest].to_s.truncate(20) %>
+            <% end %>
+          <% else %>
+            —
+          <% end %>
+        </div>
+        <div class="text-xs text-content-muted mt-1">Oldest Session</div>
+      </div>
+    </div>
+  <% end %>
+
+  <%= form_with url: session_maintenance_path, method: :patch, class: "space-y-6" do |f| %>
+
+    <div class="bg-bg-elevated border border-border rounded-xl p-5">
+      <h3 class="text-base font-semibold text-content mb-4">⚙️ Store Configuration</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Prune After (hours)</label>
+          <input type="number" name="prune_after_hours"
+                 value="<%= @maintenance[:prune_after_hours] %>"
+                 min="1" max="8760"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+          <p class="text-xs text-content-muted mt-1">
+            Remove sessions older than this.
+            Current: <strong><%= @maintenance[:prune_after_hours] %>h</strong>
+            (<%= (@maintenance[:prune_after_hours] / 24.0).round(1) %> days)
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Max Entries</label>
+          <input type="number" name="max_entries"
+                 value="<%= @maintenance[:max_entries] %>"
+                 min="10" max="100000"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+          <p class="text-xs text-content-muted mt-1">Maximum number of sessions to keep in store.</p>
+        </div>
+
+        <div>
+          <label class="block text-sm text-content-muted mb-1">Rotate Bytes</label>
+          <input type="number" name="rotate_bytes"
+                 value="<%= @maintenance[:rotate_bytes] %>"
+                 min="0" max="1073741824"
+                 class="w-full px-3 py-2 bg-bg-base border border-border rounded-lg text-sm text-content focus:ring-2 focus:ring-accent/40">
+          <p class="text-xs text-content-muted mt-1">
+            Rotate store when it exceeds this size (bytes). 0 = no rotation.
+            <% if @maintenance[:rotate_bytes] > 0 %>
+              (<%= number_to_human_size(@maintenance[:rotate_bytes]) %>)
+            <% end %>
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2 self-center">
+          <input type="hidden" name="auto_cleanup" value="false">
+          <input type="checkbox" name="auto_cleanup" value="true"
+                 id="auto_cleanup"
+                 class="rounded border-border text-accent focus:ring-accent/40"
+                 <%= "checked" if @maintenance[:auto_cleanup] %>>
+          <label for="auto_cleanup" class="text-sm text-content">
+            <strong>Auto cleanup</strong> — periodically prune stale sessions
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex justify-end">
+      <button type="submit"
+              class="px-6 py-2 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/80 transition-colors">
+        💾 Save Configuration
+      </button>
+    </div>
+  <% end %>
+</div>

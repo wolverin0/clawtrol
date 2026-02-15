@@ -1,0 +1,290 @@
+<% content_for(:breadcrumb_standalone) { "📱 Telegram Config" } %>
+
+<div class="max-w-6xl mx-auto px-4 py-6 space-y-6" data-controller="telegram-config">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content font-display">Telegram Advanced Config</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Configure streaming, commands, link previews, topics, proxy, and retry policy.
+      </p>
+    </div>
+    <% tg_status = Array(@channel_status.is_a?(Hash) ? @channel_status["channels"] : []).find { |c| c["name"]&.match?(/telegram/i) } %>
+    <div class="text-sm">
+      <% if tg_status %>
+        <span class="px-2 py-1 rounded-full text-xs font-medium
+               <%= tg_status['connected'] ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400' %>">
+          <%= tg_status['connected'] ? '🟢 Connected' : '🔴 Disconnected' %>
+        </span>
+      <% else %>
+        <span class="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">⚠️ Unknown</span>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Status toast %>
+  <div data-telegram-config-target="status" class="hidden text-xs px-3 py-2 rounded-md"></div>
+
+  <%# Streaming Config %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">📡</span>
+      <h2 class="text-sm font-semibold text-content">Streaming</h2>
+    </div>
+    <div class="p-4 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Stream Mode</label>
+          <select data-telegram-config-target="streamMode"
+                  class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+            <% %w[off partial block].each do |mode| %>
+              <option value="<%= mode %>" <%= 'selected' if @telegram[:stream_mode] == mode %>><%= mode.capitalize %></option>
+            <% end %>
+          </select>
+          <p class="text-[10px] text-content-muted mt-1">off = no streaming, partial = edit message, block = chunked sends</p>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Draft Chunk</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="checkbox"
+                   data-telegram-config-target="draftChunk"
+                   <%= 'checked' if @telegram[:draft_chunk] %>
+                   class="rounded border-border text-accent focus:ring-accent" />
+            <span class="text-sm text-content">Enable draft chunking</span>
+          </div>
+          <p class="text-[10px] text-content-muted mt-1">Sends message in draft form, editing as more text arrives</p>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button type="button"
+                data-action="click->telegram-config#saveStreaming"
+                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Save Streaming
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <%# Link Preview Config %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">🔗</span>
+      <h2 class="text-sm font-semibold text-content">Link Preview</h2>
+    </div>
+    <div class="p-4 space-y-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="flex items-center gap-2">
+          <input type="checkbox"
+                 data-telegram-config-target="linkPreviewDisabled"
+                 <%= 'checked' if @telegram[:link_preview]["disabled"] %>
+                 class="rounded border-border text-accent focus:ring-accent" />
+          <span class="text-sm text-content">Disable link previews</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="checkbox"
+                 data-telegram-config-target="linkPreviewSmall"
+                 <%= 'checked' if @telegram[:link_preview]["preferSmall"] %>
+                 class="rounded border-border text-accent focus:ring-accent" />
+          <span class="text-sm text-content">Prefer small previews</span>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button type="button"
+                data-action="click->telegram-config#saveLinkPreview"
+                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Save Link Preview
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <%# Custom Commands %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">⌨️</span>
+      <h2 class="text-sm font-semibold text-content">Custom Commands</h2>
+    </div>
+    <div class="p-4 space-y-3">
+      <% if @telegram[:custom_commands].any? %>
+        <div class="space-y-2">
+          <% @telegram[:custom_commands].each do |cmd| %>
+            <div class="flex items-center gap-2 text-sm">
+              <span class="font-mono text-accent bg-bg-elevated px-2 py-0.5 rounded">/<%= cmd[:name] %></span>
+              <span class="text-content-muted"><%= cmd[:description].presence || "—" %></span>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-sm text-content-muted">No custom commands configured.</p>
+      <% end %>
+
+      <details>
+        <summary class="text-xs text-accent cursor-pointer">Add/Edit Commands</summary>
+        <div class="mt-2">
+          <textarea data-telegram-config-target="commandsJson"
+                    rows="4"
+                    placeholder='[{"name": "task", "description": "Create a new task"}]'
+                    class="w-full text-xs text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none resize-y"><%= @telegram[:custom_commands].map { |c| { name: c[:name], description: c[:description] } }.to_json if @telegram[:custom_commands].any? %></textarea>
+          <div class="flex justify-end mt-2">
+            <button type="button"
+                    data-action="click->telegram-config#saveCommands"
+                    class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+              Save Commands
+            </button>
+          </div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <%# General / DM Scope / Webhook %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">⚙️</span>
+      <h2 class="text-sm font-semibold text-content">General Settings</h2>
+    </div>
+    <div class="p-4 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">DM Scope</label>
+          <select data-telegram-config-target="dmScope"
+                  class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+            <option value="user" <%= 'selected' if @telegram[:dm_scope] == 'user' %>>user (isolated per sender)</option>
+            <option value="main" <%= 'selected' if @telegram[:dm_scope] == 'main' %>>main (shared session)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Webhook Mode</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input type="checkbox"
+                   data-telegram-config-target="webhookMode"
+                   <%= 'checked' if @telegram[:webhook_mode] %>
+                   class="rounded border-border text-accent focus:ring-accent" />
+            <span class="text-sm text-content">Use webhook instead of polling</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button type="button"
+                data-action="click->telegram-config#saveGeneral"
+                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Save General
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <%# Retry Policy %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2">
+      <span class="text-lg">🔄</span>
+      <h2 class="text-sm font-semibold text-content">Retry Policy</h2>
+    </div>
+    <div class="p-4 space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Max Retries</label>
+          <input type="number" min="0" max="10"
+                 data-telegram-config-target="retryMax"
+                 value="<%= @telegram[:retry_policy]["maxRetries"] || 3 %>"
+                 class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Delay (ms)</label>
+          <input type="number" min="100" max="30000" step="100"
+                 data-telegram-config-target="retryDelay"
+                 value="<%= @telegram[:retry_policy]["delayMs"] || 1000 %>"
+                 class="w-full text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button type="button"
+                data-action="click->telegram-config#saveRetry"
+                class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+          Save Retry
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <%# Proxy %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <details>
+      <summary class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2 cursor-pointer list-none">
+        <span class="text-lg">🌐</span>
+        <span class="text-sm font-semibold text-content">Proxy</span>
+        <span class="text-xs text-content-muted ml-auto">
+          <%= @telegram[:proxy]["url"].present? ? @telegram[:proxy]["url"] : "Not configured" %>
+        </span>
+      </summary>
+      <div class="p-4">
+        <label class="block text-xs font-medium text-content-muted mb-1">Proxy URL</label>
+        <div class="flex gap-2">
+          <input type="text"
+                 data-telegram-config-target="proxyUrl"
+                 value="<%= @telegram[:proxy]["url"] %>"
+                 placeholder="https://proxy.example.com:8080"
+                 class="flex-1 text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+          <button type="button"
+                  data-action="click->telegram-config#saveProxy"
+                  class="px-3 py-1.5 text-xs font-medium bg-accent text-white rounded-md hover:bg-accent/80 transition-colors">
+            Save
+          </button>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <%# Per-Topic Config %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <details>
+      <summary class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2 cursor-pointer list-none">
+        <span class="text-lg">💬</span>
+        <span class="text-sm font-semibold text-content">Per-Topic Config</span>
+        <span class="text-xs text-content-muted ml-auto"><%= @telegram[:topics].size %> topics configured</span>
+      </summary>
+      <div class="p-4 space-y-3">
+        <% if @telegram[:topics].any? %>
+          <% @telegram[:topics].each do |topic_id, conf| %>
+            <div class="p-3 bg-bg-elevated rounded-md border border-border">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-mono text-accent">Topic #<%= topic_id %></span>
+              </div>
+              <% if conf.is_a?(Hash) %>
+                <% if conf["skills"].present? %>
+                  <div class="mt-1 flex flex-wrap gap-1">
+                    <% Array(conf["skills"]).each do |s| %>
+                      <span class="text-[10px] px-1.5 py-0.5 bg-blue-500/10 text-blue-400 rounded"><%= s %></span>
+                    <% end %>
+                  </div>
+                <% end %>
+                <% if conf["systemPrompt"].present? %>
+                  <p class="text-[10px] text-content-muted mt-1 truncate"><%= conf["systemPrompt"].truncate(100) %></p>
+                <% end %>
+              <% end %>
+            </div>
+          <% end %>
+        <% else %>
+          <p class="text-sm text-content-muted">No per-topic config. Topics inherit default settings.</p>
+        <% end %>
+        <p class="text-xs text-content-muted mt-2">
+          Edit per-topic config via the Gateway Config Editor or config file directly.
+        </p>
+      </div>
+    </details>
+  </section>
+
+  <%# Raw Config Preview %>
+  <section class="bg-bg-surface rounded-lg border border-border overflow-hidden">
+    <details>
+      <summary class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center gap-2 cursor-pointer list-none">
+        <span class="text-lg">📋</span>
+        <span class="text-sm font-semibold text-content">Raw Telegram Config</span>
+      </summary>
+      <div class="p-4">
+        <pre class="text-xs text-content font-mono bg-bg-base rounded p-3 overflow-x-auto max-h-64 overflow-y-auto"><%= JSON.pretty_generate(@telegram[:raw]) rescue @telegram[:raw].to_s %></pre>
+      </div>
+    </details>
+  </section>
+</div>

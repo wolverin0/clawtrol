@@ -35,6 +35,11 @@ default: &default
     queue: default
     schedule: every hour
 
+  daily_cost_snapshot:
+    class: DailyCostSnapshotJob
+    queue: default
+    schedule: at 2am every day
+
 development:
   <<: *default
 

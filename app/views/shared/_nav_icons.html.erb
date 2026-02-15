@@ -63,16 +63,28 @@
   🏭
 <% end %>
 
-<%= link_to swarm_path,
-    class: "#{icon_base_class} #{controller_name == 'swarm' ? icon_active_class : icon_inactive_class}",
-    title: "Swarm Launcher" do %>
-  🐝
+<%= link_to sessions_explorer_path,
+    class: "#{icon_base_class} #{controller_name == 'sessions_explorer' ? icon_active_class : icon_inactive_class}",
+    title: "Sessions" do %>
+  🔗
+<% end %>
+
+<%= link_to nodes_path,
+    class: "#{icon_base_class} #{controller_name == 'nodes' ? icon_active_class : icon_inactive_class}",
+    title: "Nodes" do %>
+  📱
+<% end %>
+
+<%= link_to skill_manager_path,
+    class: "#{icon_base_class} #{controller_name == 'skills' ? icon_active_class : icon_inactive_class}",
+    title: "Skills" do %>
+  🧩
 <% end %>
 
 <%= link_to saved_links_path,
     class: "#{icon_base_class} #{controller_name == 'saved_links' ? icon_active_class : icon_inactive_class}",
     title: "Saved Links" do %>
-  🔗
+  📥
 <% end %>
 
 <%= link_to showcases_path,
@@ -85,6 +97,18 @@
     class: "#{icon_base_class} #{controller_name == 'previews' ? icon_active_class : icon_inactive_class}",
     title: "Outputs" do %>
   👁️
+<% end %>
+
+<%= link_to gateway_config_path,
+    class: "#{icon_base_class} #{controller_name == 'gateway_config' ? icon_active_class : icon_inactive_class}",
+    title: "Gateway Config" do %>
+  ⚙️
+<% end %>
+
+<%= link_to webhook_mappings_path,
+    class: "#{icon_base_class} #{controller_name == 'webhook_mappings' ? icon_active_class : icon_inactive_class}",
+    title: "Webhook Mappings" do %>
+  🪝
 <% end %>
 
 <div class="hidden md:block relative" data-controller="dropdown">
@@ -105,6 +129,11 @@
       <%= link_to roster_agent_personas_path,
           class: "flex items-center gap-2 px-3 py-2 text-xs #{controller_name == 'agent_personas' && action_name == 'roster' ? 'text-content bg-bg-elevated' : 'text-content-secondary hover:bg-bg-elevated'} transition-colors" do %>
         📋 Roster
+      <% end %>
+      <div class="border-t border-border my-1"></div>
+      <%= link_to agent_config_path,
+          class: "flex items-center gap-2 px-3 py-2 text-xs #{controller_name == 'agent_config' ? 'text-content bg-bg-elevated' : 'text-content-secondary hover:bg-bg-elevated'} transition-colors" do %>
+        🤖 Multi-Agent Config
       <% end %>
     </div>
   </div>

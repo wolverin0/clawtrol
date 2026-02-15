@@ -1,0 +1,136 @@
+<% content_for :title, "Factory Playground" %>
+
+<div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+        🏭 Factory Playground
+      </h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        Continuous improvement dashboard — git log, diffs, and improvement tracking
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+        <%= @total_commits %> total commits
+      </span>
+      <%= link_to "🍒 Cherry-Pick", factory_cherry_pick_path, class: "text-sm px-3 py-1 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors" %>
+      <%= link_to "← Factory", factory_path, class: "text-sm text-indigo-600 dark:text-indigo-400 hover:underline" %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Git Log (left 2/3) -->
+    <div class="lg:col-span-2 space-y-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            📋 Git Log
+            <span class="text-xs font-normal text-gray-500 dark:text-gray-400">(last 50 commits)</span>
+          </h2>
+        </div>
+        <div class="divide-y divide-gray-100 dark:divide-gray-700 max-h-[600px] overflow-y-auto">
+          <% @git_log.each do |entry| %>
+            <div class="px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-750 flex items-center justify-between group">
+              <div class="flex items-center gap-3 min-w-0">
+                <code class="text-xs font-mono text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <%= link_to entry[:short_hash], factory_playground_path(commit: entry[:full_hash]),
+                      class: "hover:underline", data: { turbo_frame: "_top" } %>
+                </code>
+                <span class="text-sm text-gray-700 dark:text-gray-300 truncate">
+                  <% if entry[:message].start_with?("[factory]") %>
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 mr-1">factory</span>
+                    <%= entry[:message].sub("[factory] ", "") %>
+                  <% else %>
+                    <%= entry[:message] %>
+                  <% end %>
+                </span>
+              </div>
+              <time class="text-xs text-gray-400 dark:text-gray-500 shrink-0 ml-2" title="<%= entry[:date] %>">
+                <%= entry[:date].to_s.split(" ").first %>
+              </time>
+            </div>
+          <% end %>
+          <% if @git_log.empty? %>
+            <div class="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
+              No commits found
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Diff Viewer -->
+      <% if @selected_diff.present? %>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700" id="diff-viewer">
+          <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              🔍 Diff: <code class="text-sm font-mono text-indigo-600 dark:text-indigo-400"><%= @selected_commit&.first(7) %></code>
+            </h2>
+            <%= link_to "Close", factory_playground_path, class: "text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" %>
+          </div>
+          <div class="p-4 overflow-x-auto">
+            <pre class="text-xs font-mono leading-relaxed whitespace-pre-wrap text-gray-700 dark:text-gray-300 max-h-[500px] overflow-y-auto"><%= @selected_diff %></pre>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Right sidebar -->
+    <div class="space-y-4">
+      <!-- Stats summary -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">📊 Stats</h3>
+        <dl class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-gray-500 dark:text-gray-400">Total commits</dt>
+            <dd class="font-medium text-gray-900 dark:text-white"><%= @total_commits %></dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-gray-500 dark:text-gray-400">Recent changes</dt>
+            <dd class="font-medium text-gray-900 dark:text-white text-xs"><%= @files_changed %></dd>
+          </div>
+        </dl>
+      </div>
+
+      <!-- Backlog -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">📝 Backlog</h3>
+        </div>
+        <div class="p-4 max-h-[400px] overflow-y-auto">
+          <div class="prose prose-sm dark:prose-invert max-w-none">
+            <%# Render backlog as simple formatted text %>
+            <% @backlog.lines.each do |line| %>
+              <% if line.start_with?("# ") %>
+                <h4 class="text-sm font-bold mt-2 mb-1"><%= line.sub("# ", "").strip %></h4>
+              <% elsif line.start_with?("## ") %>
+                <h5 class="text-xs font-bold mt-2 mb-1 text-gray-600 dark:text-gray-400"><%= line.sub("## ", "").strip %></h5>
+              <% elsif line.match?(/^\- \[x\]/) %>
+                <div class="flex items-start gap-1.5 text-xs text-green-600 dark:text-green-400 line-through opacity-60">
+                  <span>✅</span><span><%= line.sub("- [x] ", "").strip.truncate(80) %></span>
+                </div>
+              <% elsif line.match?(/^\- \[ \]/) %>
+                <div class="flex items-start gap-1.5 text-xs text-gray-700 dark:text-gray-300">
+                  <span>⬜</span><span><%= line.sub("- [ ] ", "").strip.truncate(80) %></span>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Improvement Log (full width) -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        📜 Improvement Log
+      </h2>
+    </div>
+    <div class="p-4 max-h-[600px] overflow-y-auto">
+      <pre class="text-xs font-mono leading-relaxed whitespace-pre-wrap text-gray-700 dark:text-gray-300"><%= @improvement_log %></pre>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,149 @@
+<% content_for :title, "Gateway Config Editor" %>
+
+<div class="max-w-7xl mx-auto px-4 py-6 space-y-6" data-controller="gateway-config">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+        ⚙️ Gateway Config Editor
+      </h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        View and edit OpenClaw Gateway configuration. Changes trigger a gateway restart.
+      </p>
+    </div>
+    <div class="flex items-center gap-3">
+      <% if @health_data.is_a?(Hash) && @health_data["status"] != "unreachable" %>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+          🟢 Gateway Online
+        </span>
+      <% else %>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+          🔴 Gateway Unreachable
+        </span>
+      <% end %>
+      <%= link_to "← Dashboard", root_path, class: "text-sm text-indigo-600 dark:text-indigo-400 hover:underline" %>
+    </div>
+  </div>
+
+  <% if @config_data.is_a?(Hash) && @config_data["error"].present? %>
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+      <p class="text-sm text-red-700 dark:text-red-300">⚠️ <%= @config_data["error"] %></p>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Config Sections (left 2/3) -->
+    <div class="lg:col-span-2 space-y-4">
+      <% @sections.each do |section| %>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <button class="w-full px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                  data-action="gateway-config#toggleSection"
+                  data-section="<%= section[:key] %>">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <span><%= section[:icon] %></span>
+              <span><%= section[:name] %></span>
+            </h2>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-500 dark:text-gray-400"><%= section[:description] %></span>
+              <span class="chevron text-gray-400 transition-transform rotate-90">▶</span>
+            </div>
+          </button>
+          <div id="section-<%= section[:key] %>" class="p-4">
+            <% section_json = begin; JSON.pretty_generate(section[:data]); rescue; section[:data].to_s; end %>
+            <pre class="text-xs font-mono leading-relaxed whitespace-pre-wrap text-gray-700 dark:text-gray-300 max-h-[400px] overflow-y-auto bg-gray-50 dark:bg-gray-900 p-3 rounded"><%= section_json %></pre>
+            <div class="mt-2 flex justify-end">
+              <button data-action="gateway-config#copyToEditor"
+                      data-json="<%= j(section_json) %>"
+                      class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+                📋 Copy to editor
+              </button>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @sections.empty? && @config_data.is_a?(Hash) && @config_data["error"].blank? %>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">📄 Raw Config</h2>
+          <pre class="text-xs font-mono leading-relaxed whitespace-pre-wrap text-gray-700 dark:text-gray-300 max-h-[600px] overflow-y-auto bg-gray-50 dark:bg-gray-900 p-3 rounded"><%= @config_raw %></pre>
+        </div>
+      <% end %>
+
+      <!-- Raw Config Editor -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            ✏️ Config Editor
+          </h2>
+          <span data-gateway-config-target="status" class="text-sm hidden"></span>
+        </div>
+        <div class="p-4">
+          <textarea data-gateway-config-target="editor"
+                    data-action="input->gateway-config#markModified"
+                    class="w-full h-[400px] font-mono text-xs p-3 bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"
+                    placeholder="Paste config JSON or YAML here..."><%= @config_raw %></textarea>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            <strong>Apply:</strong> replaces the ENTIRE config and restarts.
+            <strong>Patch:</strong> merges with existing config and restarts.
+            Format: JSON or YAML.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right sidebar: actions + info -->
+    <div class="space-y-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-3 sticky top-4">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">⚡ Actions</h3>
+
+        <button data-action="gateway-config#patchConfig"
+                class="w-full px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+          🔧 Patch Config (merge)
+        </button>
+
+        <button data-action="gateway-config#applyConfig"
+                class="w-full px-4 py-2 text-sm font-medium rounded-lg border border-orange-300 dark:border-orange-600 text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
+          📝 Apply Full Config (replace)
+        </button>
+
+        <button data-action="gateway-config#restart"
+                class="w-full px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          🔄 Restart Gateway
+        </button>
+
+        <hr class="border-gray-200 dark:border-gray-700">
+
+        <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+          <p><strong>Patch</strong> = safe merge (adds/updates keys)</p>
+          <p><strong>Apply</strong> = full replace (overwrites everything)</p>
+          <p>Both trigger an automatic gateway restart</p>
+        </div>
+
+        <% if @health_data.is_a?(Hash) %>
+          <hr class="border-gray-200 dark:border-gray-700">
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">🏥 Gateway Info</h3>
+          <dl class="space-y-1 text-xs">
+            <% if @health_data["version"] %>
+              <div class="flex justify-between">
+                <dt class="text-gray-500 dark:text-gray-400">Version</dt>
+                <dd class="text-gray-900 dark:text-white font-mono"><%= @health_data["version"] %></dd>
+              </div>
+            <% end %>
+            <% if @health_data["uptime"] %>
+              <div class="flex justify-between">
+                <dt class="text-gray-500 dark:text-gray-400">Uptime</dt>
+                <dd class="text-gray-900 dark:text-white"><%= @health_data["uptime"] %></dd>
+              </div>
+            <% end %>
+            <% if @health_data["model"] %>
+              <div class="flex justify-between">
+                <dt class="text-gray-500 dark:text-gray-400">Model</dt>
+                <dd class="text-gray-900 dark:text-white font-mono text-[10px]"><%= @health_data["model"] %></dd>
+              </div>
+            <% end %>
+          </dl>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

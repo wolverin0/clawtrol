@@ -1,0 +1,16 @@
+<%# Shared error alert banner.
+    Usage: render "shared/error_alert", message: "Something went wrong"
+    Optional: icon (default ⚠️), dismissible (default false)
+%>
+<div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4"
+     <% if local_assigns[:dismissible] %>
+       data-controller="dismissible"
+     <% end %>>
+  <div class="flex items-center gap-2">
+    <span><%= local_assigns.fetch(:icon, "⚠️") %></span>
+    <span class="text-sm text-red-400"><%= message %></span>
+    <% if local_assigns[:dismissible] %>
+      <button class="ml-auto text-red-400 hover:text-red-300" data-action="dismissible#dismiss">✕</button>
+    <% end %>
+  </div>
+</div>

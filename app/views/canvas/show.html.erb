@@ -1,0 +1,165 @@
+<% content_for :title, "Canvas - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🖼️ Canvas / A2UI" %>
+
+<div class="py-6 space-y-6"
+     data-controller="canvas-push"
+     data-canvas-push-templates-value="<%= @templates.to_json %>">
+
+  <%# Header %>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-content">Canvas / A2UI Dashboard</h1>
+      <p class="text-sm text-content-muted mt-1">
+        Compose and push HTML widgets to connected nodes (phones, tablets, desktops).
+      </p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <%# Left: Template picker + Editor %>
+    <div class="lg:col-span-2 space-y-4">
+      <%# Template selector %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-content mb-3">📦 Preset Templates</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <% @templates.each do |tpl| %>
+            <button class="text-left px-3 py-2 rounded-lg border border-border hover:border-accent/50 hover:bg-accent/5 transition-colors text-sm"
+                    data-action="canvas-push#selectTemplate"
+                    data-template-id="<%= tpl[:id] %>">
+              <div class="font-medium text-content"><%= tpl[:name] %></div>
+              <div class="text-xs text-content-muted mt-0.5"><%= tpl[:description] %></div>
+            </button>
+          <% end %>
+        </div>
+      </div>
+
+      <%# HTML Editor %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold text-content">✏️ HTML Content</h3>
+          <div class="flex gap-2">
+            <button class="px-2 py-1 text-xs bg-accent/10 text-accent rounded hover:bg-accent/20 transition-colors"
+                    data-action="canvas-push#togglePreview"
+                    data-canvas-push-target="previewToggle">
+              👁️ Preview
+            </button>
+            <button class="px-2 py-1 text-xs bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition-colors"
+                    data-action="canvas-push#clearEditor">
+              🗑️ Clear
+            </button>
+          </div>
+        </div>
+
+        <textarea data-canvas-push-target="editor"
+                  class="w-full h-64 bg-bg-base border border-border rounded-lg p-3 font-mono text-sm text-content focus:outline-none focus:ring-2 focus:ring-accent/40 resize-y"
+                  placeholder="Paste or write your HTML widget here..."></textarea>
+
+        <%# Preview area %>
+        <div data-canvas-push-target="previewArea" class="hidden mt-3">
+          <div class="text-xs text-content-muted mb-1">Preview:</div>
+          <div data-canvas-push-target="previewFrame"
+               class="border border-border rounded-lg p-2 bg-bg-base overflow-auto max-h-80">
+          </div>
+        </div>
+      </div>
+
+      <%# Size options %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-content mb-3">📐 Dimensions (optional)</h3>
+        <div class="flex gap-4">
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-content-muted">Width:</label>
+            <input type="number" data-canvas-push-target="width"
+                   class="w-20 px-2 py-1 bg-bg-base border border-border rounded text-sm text-content focus:ring-2 focus:ring-accent/40"
+                   placeholder="auto" min="100" max="2000">
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-content-muted">Height:</label>
+            <input type="number" data-canvas-push-target="height"
+                   class="w-20 px-2 py-1 bg-bg-base border border-border rounded text-sm text-content focus:ring-2 focus:ring-accent/40"
+                   placeholder="auto" min="100" max="2000">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%# Right: Node selector + actions %>
+    <div class="space-y-4">
+      <%# Target node %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-content mb-3">📱 Target Node</h3>
+
+        <% if @nodes.empty? %>
+          <div class="text-center py-6 text-content-muted">
+            <div class="text-3xl mb-2">📱</div>
+            <div class="text-sm">No nodes paired</div>
+            <div class="text-xs mt-1">Pair a device in OpenClaw first</div>
+          </div>
+        <% else %>
+          <div class="space-y-2">
+            <% @nodes.each do |node| %>
+              <% node_id = node["id"] || node["name"] || "unknown" %>
+              <% is_online = node["status"]&.to_s&.match?(/online|connected|active/) %>
+              <% device_name = node["name"] || node["deviceName"] || node_id %>
+              <% platform = node["platform"] || node["os"] || "unknown" %>
+
+              <label class="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-accent/50 cursor-pointer transition-colors"
+                     data-action="click->canvas-push#selectNode">
+                <input type="radio" name="node_id" value="<%= ERB::Util.html_escape(node_id) %>"
+                       data-canvas-push-target="nodeRadio"
+                       class="text-accent focus:ring-accent/40">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="<%= is_online ? 'text-green-400' : 'text-gray-500' %>">●</span>
+                    <span class="text-sm font-medium text-content truncate"><%= ERB::Util.html_escape(device_name) %></span>
+                  </div>
+                  <div class="text-xs text-content-muted"><%= ERB::Util.html_escape(platform) %></div>
+                </div>
+              </label>
+            <% end %>
+          </div>
+        <% end %>
+
+        <%# Manual node input %>
+        <div class="mt-3 pt-3 border-t border-border">
+          <label class="text-xs text-content-muted block mb-1">Or enter node ID manually:</label>
+          <input type="text" data-canvas-push-target="manualNode"
+                 class="w-full px-2 py-1.5 bg-bg-base border border-border rounded text-sm text-content focus:ring-2 focus:ring-accent/40"
+                 placeholder="node-name-or-id">
+        </div>
+      </div>
+
+      <%# Action buttons %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-4 space-y-2">
+        <h3 class="text-sm font-semibold text-content mb-3">🎯 Actions</h3>
+
+        <button class="w-full px-4 py-2.5 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/80 transition-colors disabled:opacity-50"
+                data-action="canvas-push#pushToNode"
+                data-canvas-push-target="pushBtn">
+          🚀 Push to Node
+        </button>
+
+        <button class="w-full px-4 py-2 bg-bg-base border border-border text-content rounded-lg text-sm hover:bg-accent/5 transition-colors disabled:opacity-50"
+                data-action="canvas-push#takeSnapshot"
+                data-canvas-push-target="snapshotBtn">
+          📸 Take Snapshot
+        </button>
+
+        <button class="w-full px-4 py-2 bg-bg-base border border-border text-content rounded-lg text-sm hover:bg-accent/5 transition-colors disabled:opacity-50"
+                data-action="canvas-push#hideCanvas"
+                data-canvas-push-target="hideBtn">
+          🙈 Hide Canvas
+        </button>
+      </div>
+
+      <%# Status log %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-content mb-3">📊 Activity Log</h3>
+        <div data-canvas-push-target="activityLog"
+             class="space-y-1 max-h-48 overflow-y-auto text-xs font-mono text-content-muted">
+          <div class="text-center py-4 text-content-muted">No activity yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
