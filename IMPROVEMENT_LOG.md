@@ -2857,3 +2857,17 @@
 **Files:** app/models/factory_cycle_log.rb
 **Verify:** Ruby syntax OK, test file exists
 **Risk:** low (additive association, doesn't affect existing code)
+## [2026-02-15 13:07] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add strict_loading + eager loading for N+1 prevention
+**Why:** Board and Task models lacked strict_loading enforcement. Added strict_loading :n_plus_one mode to warn on N+1 queries, inverse_of to all User/Board/Task associations, and includes() calls in BoardsController and TasksController to eager load associations.
+**Files:** app/models/board.rb, app/models/task.rb, app/models/user.rb, app/controllers/api/v1/boards_controller.rb, app/controllers/api/v1/tasks_controller.rb
+**Verify:** Ruby syntax OK, Board/Task tests pass (91 runs, 173 assertions)
+**Risk:** low (additive performance improvement)
+
+
+## [2026-02-15 13:22] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add indexes for common queries + complete inverse_of associations
+**Why:** Add indexes for common filter patterns (tasks by completion, archived tasks, notifications inbox, transcript cleanup). Complete inverse_of on AgentPersona -> Board associations.
+**Files:** db/migrate/20260216050006_add_indexes_for_common_queries.rb, app/models/board.rb, app/models/agent_persona.rb
+**Verify:** Migration runs successfully, 111 model tests pass
+**Risk:** low (performance improvement, additive changes)
