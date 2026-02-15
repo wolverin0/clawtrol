@@ -2534,3 +2534,10 @@
 **Files:** app/controllers/hooks_dashboard_controller.rb, test/controllers/hooks_dashboard_controller_test.rb (new)
 **Verify:** 7 tests pass, 12 assertions, 0 failures ✅
 **Risk:** low (scoping fix is additive, tests confirm behavior)
+
+## [2026-02-15 08:45] - Category: Security + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed 2 unscoped data-leak queries in CanvasController (factory_progress_template used global FactoryCycleLog.all, cost_summary_template used unscoped CostSnapshot). Both now scoped to current_user. Added 10 controller tests covering auth, gateway config, push validation (XSS rejection), snapshot/hide parameter validation, templates endpoint.
+**Why:** FactoryCycleLog and CostSnapshot queries were not scoped to current_user — any authenticated user could see all users' factory progress and cost data in Canvas templates. Real data isolation bugs.
+**Files:** app/controllers/canvas_controller.rb, test/controllers/canvas_controller_test.rb (new)
+**Verify:** 10 tests pass, 31 assertions, 0 failures ✅
+**Risk:** low (scoping fix is additive, tests confirm behavior)
