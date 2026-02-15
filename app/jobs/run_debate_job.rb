@@ -45,6 +45,9 @@ class RunDebateJob < ApplicationJob
   # - Generate a real synthesis from their perspectives
   # - Use the debate skill: /debate [-r N] [-d STYLE] <question>
 
+  # Don't retry — debate is not yet implemented anyway
+  discard_on ActiveRecord::RecordNotFound
+
   def perform(task_id)
     task = Task.find(task_id)
     return unless task.review_status == "pending" && task.debate_review?
@@ -61,6 +64,14 @@ class RunDebateJob < ApplicationJob
     )
 
     broadcast_task_update(task)
+  rescue StandardError => e
+    # Mark review as failed so UI doesn't show perpetual "running"
+    task&.complete_review!(
+      status: "failed",
+      result: { error_summary: "Debate job crashed: #{e.message}" }
+    )
+    broadcast_task_update(task) if task
+    raise
   end
 
 end
