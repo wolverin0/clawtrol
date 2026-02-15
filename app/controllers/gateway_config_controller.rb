@@ -18,74 +18,20 @@ class GatewayConfigController < ApplicationController
   MAX_CONFIG_SIZE = 256.kilobytes
 
   def apply
-    raw = params[:config_raw].to_s.strip
-    reason = params[:reason].to_s.strip.presence || "Config update from ClawTrol"
-
-    if raw.blank?
-      render json: { success: false, error: "Config cannot be empty" }, status: :unprocessable_entity
-      return
-    end
-
-    if raw.bytesize > MAX_CONFIG_SIZE
-      render json: { success: false, error: "Config too large (max #{MAX_CONFIG_SIZE / 1024}KB)" }, status: :unprocessable_entity
-      return
-    end
-
-    # Validate JSON/YAML before sending
-    begin
-      JSON.parse(raw)
-    rescue JSON::ParserError
-      begin
-        require "yaml"
-        YAML.safe_load(raw, permitted_classes: [Symbol, Date, Time])
-      rescue StandardError => e
-        render json: { success: false, error: "Invalid config format: #{e.message}" }, status: :unprocessable_entity
-        return
-      end
-    end
+    raw, reason = extract_config_params(default_reason: "Config update from ClawTrol")
+    return unless validate_config_payload!(raw, label: "Config")
 
     result = gateway_client.config_apply(raw: raw, reason: reason)
-    if result["error"].present?
-      render json: { success: false, error: result["error"] }
-    else
-      render json: { success: true, message: "Config applied. Gateway restarting..." }
-    end
+    render_gateway_result(result, success_message: "Config applied. Gateway restarting...")
   end
 
   # POST /gateway/config/patch — merge partial config
   def patch_config
-    raw = params[:config_raw].to_s.strip
-    reason = params[:reason].to_s.strip.presence || "Config patch from ClawTrol"
-
-    if raw.blank?
-      render json: { success: false, error: "Patch cannot be empty" }, status: :unprocessable_entity
-      return
-    end
-
-    if raw.bytesize > MAX_CONFIG_SIZE
-      render json: { success: false, error: "Patch too large (max #{MAX_CONFIG_SIZE / 1024}KB)" }, status: :unprocessable_entity
-      return
-    end
-
-    # Validate JSON/YAML before sending (same as apply)
-    begin
-      JSON.parse(raw)
-    rescue JSON::ParserError
-      begin
-        require "yaml"
-        YAML.safe_load(raw, permitted_classes: [Symbol, Date, Time])
-      rescue StandardError => e
-        render json: { success: false, error: "Invalid patch format: #{e.message}" }, status: :unprocessable_entity
-        return
-      end
-    end
+    raw, reason = extract_config_params(default_reason: "Config patch from ClawTrol")
+    return unless validate_config_payload!(raw, label: "Patch")
 
     result = gateway_client.config_patch(raw: raw, reason: reason)
-    if result["error"].present?
-      render json: { success: false, error: result["error"] }
-    else
-      render json: { success: true, message: "Config patched. Gateway restarting..." }
-    end
+    render_gateway_result(result, success_message: "Config patched. Gateway restarting...")
   end
 
   # POST /gateway/config/restart — restart gateway
@@ -100,6 +46,48 @@ class GatewayConfigController < ApplicationController
   end
 
   private
+
+  def extract_config_params(default_reason:)
+    raw = params[:config_raw].to_s.strip
+    reason = params[:reason].to_s.strip.presence || default_reason
+    [raw, reason]
+  end
+
+  # Validates config payload (non-empty, size limit, valid JSON/YAML).
+  # Renders error response and returns false if invalid.
+  def validate_config_payload!(raw, label: "Config")
+    if raw.blank?
+      render json: { success: false, error: "#{label} cannot be empty" }, status: :unprocessable_entity
+      return false
+    end
+
+    if raw.bytesize > MAX_CONFIG_SIZE
+      render json: { success: false, error: "#{label} too large (max #{MAX_CONFIG_SIZE / 1024}KB)" }, status: :unprocessable_entity
+      return false
+    end
+
+    begin
+      JSON.parse(raw)
+    rescue JSON::ParserError
+      begin
+        require "yaml"
+        YAML.safe_load(raw, permitted_classes: [Symbol, Date, Time])
+      rescue StandardError => e
+        render json: { success: false, error: "Invalid #{label.downcase} format: #{e.message}" }, status: :unprocessable_entity
+        return false
+      end
+    end
+
+    true
+  end
+
+  def render_gateway_result(result, success_message:)
+    if result["error"].present?
+      render json: { success: false, error: result["error"] }
+    else
+      render json: { success: true, message: success_message }
+    end
+  end
 
   # Extract meaningful sections from config for structured display
   def extract_config_sections(config)
