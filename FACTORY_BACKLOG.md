@@ -80,9 +80,9 @@ Priority order. MiniMax: pick the top unchecked item, implement it, mark [x] whe
 
 - [ ] **Split TasksController (891 lines)**: Extract API::V1::TasksController into concerns — agent lifecycle already extracted, now extract: bulk operations, filtering/search, export, recurring tasks. Each concern <100 lines
 - [ ] **Split MarketingController (643 lines)**: Extract into sub-controllers or service objects — content generation, campaign management, analytics, social posting
-- [ ] **N+1 Query Audit**: Add `strict_loading` to key associations. Run `bullet` gem in test suite. Fix all N+1s in board views, task lists, analytics pages. Document eager loading patterns
+- [x] **N+1 Query Audit**: Add `strict_loading` to key associations. Run `bullet` gem in test suite. Fix all N+1s in board views, task lists, analytics pages. Document eager loading patterns
 - [ ] **Stimulus Controller Tests**: 106 Stimulus controllers with 0 JS tests. Add Jest/Vitest setup + test the 10 most critical controllers (task_card, board, drag_drop, form, search, chart, modal, toast, filter, websocket)
-- [ ] **API Rate Limiting**: Add Rack::Attack or similar for API endpoints. Rate limit per-token, with higher limits for internal (gateway) calls. Log rate-limited requests
+- [x] **API Rate Limiting**: Add Rack::Attack or similar for API endpoints. Rate limit per-token, with higher limits for internal (gateway) calls. Log rate-limited requests
 - [ ] **Database Indexes Audit**: Analyze slow queries from Rails logs. Add missing indexes on foreign keys, status columns, date ranges. Run EXPLAIN on top 10 queries
 
 ## 🟢 NICE TO HAVE — New Features
