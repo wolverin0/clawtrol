@@ -2117,3 +2117,10 @@
 **Files:** test/controllers/dm_policy_controller_test.rb
 **Verify:** 18 runs, 38 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 05:47] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** SandboxConfigController test suite (16 tests)
+**Why:** Security-sensitive controller managing Docker sandboxing config (modes, scopes, presets, resource limits) with zero test coverage. Tests cover: auth (2), gateway config (2), show (1), mode/scope validation (4), presets (2), booleans (1), resource limits (1), constants verification (3)
+**Files:** test/controllers/sandbox_config_controller_test.rb
+**Verify:** 16 runs, 48 assertions, 0 failures, 0 errors ✅
+**Risk:** low
