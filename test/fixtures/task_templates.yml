@@ -1,0 +1,20 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+review:
+  slug: review
+  name: Code Review
+  icon: "🔍"
+  model: opus
+  priority: 2
+  validation_command: "bin/rails test"
+  description_template: "## Code Review Task\n\n**What to review:**\n"
+  user: one
+  global: false
+
+global_bug:
+  slug: bug
+  name: Bug Fix
+  icon: "🐛"
+  model: sonnet
+  priority: 2
+  global: true
