@@ -91,6 +91,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
 ### 🐛 Bug Fixes
 
+- **api:** remove TaskSerializer references broken by wave3 merge (`48ee404`)
 - add dependency_graph to set_board before_action + aggregator support (#639) (`bf45590`)
 - **api:** remove missing TaskSerializer reference + add unstarted to pipeline stages (`8ca683e`)
 - enable SolidQueue plugin unconditionally in Puma (`71a5ed5`)
@@ -189,6 +190,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- add wave 3 features to README — pipeline, swarm, config hub, factory, API endpoints (`7e5cf33`)
+- update CHANGELOG.md [skip ci] (`2167a6d`)
 - update CHANGELOG.md [skip ci] (`2cd17d3`)
 - add swarm API reference + changelog entries for favorites, pipeline stepper, bugfixes (`b5d2656`)
 - update CHANGELOG.md [skip ci] (`a9a9d1a`)
