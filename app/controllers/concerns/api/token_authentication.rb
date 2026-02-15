@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   module TokenAuthentication
     extend ActiveSupport::Concern

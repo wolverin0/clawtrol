@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "pty"
 
 class TerminalChannel < ApplicationCable::Channel
