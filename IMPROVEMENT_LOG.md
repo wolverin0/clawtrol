@@ -2562,3 +2562,10 @@
 **Files:** app/controllers/analytics_controller.rb, app/controllers/command_controller.rb, app/controllers/tokens_controller.rb, app/controllers/cronjobs_controller.rb
 **Verify:** 13 tests pass across 4 test files ✅
 **Risk:** low (cache key change only, worst case = cache miss on first request after deploy)
+
+## [2026-02-15 09:07] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added 6 controller tests for MemoryDashboardController: auth redirect, gateway config check, show with plugin/memory data, gateway error handling, blank search query, overly long search query (500 char limit).
+**Why:** MemoryDashboardController had zero tests. Tests verify auth gating, gateway config redirection, plugin extraction from health data, memory stats extraction, search input validation (blank + length), and graceful error handling.
+**Files:** test/controllers/memory_dashboard_controller_test.rb (new)
+**Verify:** 6 tests pass, 7 assertions, 0 failures ✅
+**Risk:** low (additive tests only)
