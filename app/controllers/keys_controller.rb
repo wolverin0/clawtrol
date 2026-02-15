@@ -55,8 +55,18 @@ class KeysController < ApplicationController
       updated_keys << env_key
     end
 
-    File.write(ENV_FILE, lines.join)
-    File.chmod(0600, ENV_FILE)
+    # Atomic write: write to temp file then rename to prevent corruption on crash
+    require "tempfile"
+    tmp = Tempfile.new(".env", File.dirname(ENV_FILE))
+    begin
+      tmp.write(lines.join)
+      tmp.close
+      File.chmod(0600, tmp.path)
+      File.rename(tmp.path, ENV_FILE)
+    rescue StandardError
+      tmp.close!
+      raise
+    end
 
     notice = "✅ Updated #{updated_keys.size} key(s): #{updated_keys.join(', ')}"
     notice += " ⚠️ Rejected #{rejected_keys.size} invalid key(s): #{rejected_keys.join(', ')}" if rejected_keys.any?

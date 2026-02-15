@@ -2309,3 +2309,10 @@
 **Files:** test/controllers/model_providers_controller_test.rb
 **Verify:** ruby -c ✅, 12 runs 17 assertions 0 failures ✅
 **Risk:** low (test-only)
+
+## [2026-02-15 07:00] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 12 controller tests for TelegramConfigController
+**Why:** Config controller with gateway integration had zero tests. Tests cover: 2 auth checks, 1 gateway-not-configured redirect, 2 section validation (unknown + empty), 7 section allowlist acceptance tests.
+**Files:** test/controllers/telegram_config_controller_test.rb
+**Verify:** ruby -c ✅, 12 runs 22 assertions 0 failures ✅
+**Risk:** low (test-only)
