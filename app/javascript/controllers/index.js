@@ -44,6 +44,7 @@ import GatewayHealthController from "controllers/gateway_health_controller"
 import WebTerminalController from "controllers/web_terminal_controller"
 import DashboardRefreshController from "controllers/dashboard_refresh_controller"
 import CommandPaletteController from "controllers/command_palette_controller"
+import InlineEditController from "controllers/inline_edit_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -84,6 +85,7 @@ application.register("gateway-health", GatewayHealthController)
 application.register("web-terminal", WebTerminalController)
 application.register("dashboard-refresh", DashboardRefreshController)
 application.register("command-palette", CommandPaletteController)
+application.register("inline-edit", InlineEditController)
 
 import ThemeToggleController from "controllers/theme_toggle_controller"
 application.register("theme-toggle", ThemeToggleController)

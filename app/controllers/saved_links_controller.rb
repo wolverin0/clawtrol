@@ -21,7 +21,10 @@ class SavedLinksController < ApplicationController
   def update
     @saved_link = current_user.saved_links.find(params[:id])
     if @saved_link.update(saved_link_params)
-      redirect_to saved_links_path, notice: "Note updated!"
+      respond_to do |format|
+        format.turbo_stream
+        format.html { redirect_to saved_links_path, notice: "Note updated!" }
+      end
     else
       redirect_to saved_links_path, alert: @saved_link.errors.full_messages.join(", ")
     end

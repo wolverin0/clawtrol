@@ -47,76 +47,7 @@
   <%# Links List %>
   <% if @saved_links.any? %>
     <div class="space-y-3">
-      <% @saved_links.each do |link| %>
-        <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/30 transition-colors group">
-          <div class="flex items-start gap-3">
-            <%# Favicon %>
-            <div class="flex-shrink-0 mt-1">
-              <img src="https://www.google.com/s2/favicons?domain=<%= URI.parse(link.url).host rescue 'unknown' %>&sz=32"
-                   alt="" class="w-6 h-6 rounded" loading="lazy"
-                   onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect fill=%22%23333%22 width=%2232%22 height=%2232%22 rx=%224%22/><text x=%2216%22 y=%2222%22 text-anchor=%22middle%22 fill=%22%23888%22 font-size=%2218%22>🔗</text></svg>'">
-            </div>
-
-            <%# Content %>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <%# Source badge %>
-                <% badge = case link.source_type
-                     when "youtube" then "🎬 YouTube"
-                     when "x" then "🐦 X"
-                     when "reddit" then "🤖 Reddit"
-                     else "📄 Article"
-                   end %>
-                <span class="text-xs px-2 py-0.5 rounded-full bg-bg-base border border-border text-content-muted"><%= badge %></span>
-
-                <%# Status %>
-                <% status_style = case link.status
-                     when "pending" then "text-yellow-400"
-                     when "processing" then "text-blue-400 animate-pulse"
-                     when "done" then "text-green-400"
-                     when "failed" then "text-red-400"
-                   end %>
-                <span class="text-xs <%= status_style %>">● <%= link.status.capitalize %></span>
-
-                <span class="text-xs text-content-muted"><%= time_ago_in_words(link.created_at) %> ago</span>
-              </div>
-
-              <a href="<%= link.url %>" target="_blank" rel="noopener" class="block mt-1 text-content hover:text-accent transition-colors truncate">
-                <%= link.note.present? ? link.note : link.url %>
-              </a>
-              <% if link.note.present? %>
-                <div class="text-xs text-content-muted truncate mt-0.5"><%= link.url %></div>
-              <% end %>
-
-              <%# Expandable summary %>
-              <% if link.done? && link.summary.present? %>
-                <details class="mt-2">
-                  <summary class="text-xs text-accent cursor-pointer hover:underline">View Summary</summary>
-                  <div class="mt-2 text-sm text-content-muted bg-bg-base rounded-lg p-3 border border-border">
-                    <%= simple_format(link.summary) %>
-                  </div>
-                </details>
-              <% end %>
-
-              <% if link.failed? && link.error_message.present? %>
-                <div class="mt-1 text-xs text-red-400"><%= link.error_message %></div>
-              <% end %>
-            </div>
-
-            <%# Deep Summary Toggle + Delete %>
-            <div class="flex-shrink-0 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <%= button_to saved_link_path(link), method: :patch, class: "text-xs px-2 py-1 rounded-lg border transition-colors #{link.deep_summary? ? 'bg-purple-600/20 border-purple-500 text-purple-300' : 'bg-bg-base border-border text-content-muted hover:border-purple-500/50'}", params: { saved_link: { deep_summary: !link.deep_summary } } do %>
-                📄 Deep
-              <% end %>
-              <%= button_to saved_link_path(link), method: :delete, class: "text-content-muted hover:text-red-400 transition-colors p-1", data: { turbo_confirm: "Remove this link?" } do %>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              <% end %>
-            </div>
-          </div>
-        </div>
-      <% end %>
+      <%= render @saved_links %>
     </div>
     <%# Pagination %>
     <% if @pagy&.pages.to_i > 1 %>
