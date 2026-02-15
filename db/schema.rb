@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_16_050006) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_16_050009) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -76,6 +76,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050006) do
     t.string "project"
     t.string "role"
     t.text "system_prompt"
+    t.integer "tasks_count", default: 0
     t.string "tier"
     t.text "tools", default: [], array: true
     t.datetime "updated_at", null: false
@@ -251,6 +252,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050006) do
     t.jsonb "config", default: {}, null: false
     t.integer "consecutive_failures", default: 0, null: false
     t.datetime "created_at", null: false
+    t.integer "cycle_count", default: 0
     t.text "description"
     t.string "fallback_model"
     t.string "icon", default: "🏭"
@@ -340,6 +342,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050006) do
     t.string "model", default: "gemini"
     t.string "name", null: false
     t.integer "position", default: 0
+    t.integer "selection_count", default: 0
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.index ["category"], name: "index_nightshift_missions_on_category"
