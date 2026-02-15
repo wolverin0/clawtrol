@@ -2337,3 +2337,10 @@
 **Files:** app/controllers/canvas_controller.rb, test/controllers/missing_controller_auth_test.rb
 **Verify:** ruby -c ✅, 30 runs 30 assertions 0 failures ✅
 **Risk:** low (column rename is data-layer fix; tests are read-only)
+
+## [2026-02-15 07:21] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 10 controller tests for DiscordConfigController
+**Why:** Config controller with guild-level settings had zero tests. Tests cover: 2 auth checks, 1 gateway-not-configured redirect, 2 section validation (unknown + empty), 5 section allowlist acceptance tests.
+**Files:** test/controllers/discord_config_controller_test.rb
+**Verify:** ruby -c ✅, 10 runs 18 assertions 0 failures ✅
+**Risk:** low (test-only)
