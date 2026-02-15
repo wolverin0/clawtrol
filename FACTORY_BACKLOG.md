@@ -66,6 +66,36 @@ Priority order. MiniMax: pick the top unchecked item, implement it, mark [x] whe
 - [x] **Hot Reload Monitor**: OpenClaw has config hot reload with modes (hybrid/hot/restart/off) and debounce. Show reload mode, recent reload events, which changes were hot-applied vs required restart. Visual diff of config changes
 - [x] **File Viewer HTML Renderer**: Currently the file viewer shows HTML as raw code. For `.html` files, render them in an iframe instead of showing source code. Add toggle between "source" and "preview" modes
 
+## 🔴 HIGH PRIORITY — Testing & Quality (Sprint 2)
+
+- [ ] **Job Tests: FactoryRunnerJob**: Full test coverage — mock gateway client, test backlog parsing, cycle counting, error handling, lease acquisition. Target: 15+ tests
+- [ ] **Job Tests: NightshiftRunnerJob**: Test mission selection, time window validation, model assignment, parallel launch limits, timeout handling. Target: 15+ tests
+- [ ] **Job Tests: ProcessSavedLinkJob**: Test URL fetch, summary generation, error states (timeout, 404, paywall), status transitions. Target: 10+ tests
+- [ ] **Job Tests: TranscriptCaptureJob**: Test session key lookup, transcript fetch via gateway client, storage, offset tracking. Target: 10+ tests
+- [ ] **System Tests: Board Kanban**: Turbo-powered drag-drop, status transitions, task card rendering, filter/sort, empty states. Target: 8+ system tests
+- [ ] **System Tests: Swarm Launcher**: Idea selection, model picker, board assignment, launch flow, history display. Target: 6+ system tests
+- [ ] **Model Tests: All 34 models**: Currently only 4 model test files. Add validation tests, scope tests, association tests for remaining 30 models. Target: 100+ tests across all models
+
+## 🟡 MEDIUM PRIORITY — Refactoring & Performance
+
+- [ ] **Split TasksController (891 lines)**: Extract API::V1::TasksController into concerns — agent lifecycle already extracted, now extract: bulk operations, filtering/search, export, recurring tasks. Each concern <100 lines
+- [ ] **Split MarketingController (643 lines)**: Extract into sub-controllers or service objects — content generation, campaign management, analytics, social posting
+- [ ] **N+1 Query Audit**: Add `strict_loading` to key associations. Run `bullet` gem in test suite. Fix all N+1s in board views, task lists, analytics pages. Document eager loading patterns
+- [ ] **Stimulus Controller Tests**: 106 Stimulus controllers with 0 JS tests. Add Jest/Vitest setup + test the 10 most critical controllers (task_card, board, drag_drop, form, search, chart, modal, toast, filter, websocket)
+- [ ] **API Rate Limiting**: Add Rack::Attack or similar for API endpoints. Rate limit per-token, with higher limits for internal (gateway) calls. Log rate-limited requests
+- [ ] **Database Indexes Audit**: Analyze slow queries from Rails logs. Add missing indexes on foreign keys, status columns, date ranges. Run EXPLAIN on top 10 queries
+
+## 🟢 NICE TO HAVE — New Features
+
+- [ ] **Task Templates Library**: Pre-built task templates for common operations (deploy, audit, research, bug fix). Template = title pattern + description skeleton + tags + model suggestion + board. Quick-create from template picker
+- [ ] **Bulk Task Import (CSV/JSON)**: Upload CSV/JSON → preview → create tasks in batch. Useful for migrating backlogs or seeding boards. Map columns to task fields with drag-drop
+- [ ] **Task Time Tracking**: Auto-track time from in_progress→done. Show per-task duration, per-board throughput, agent velocity (tasks/day). Historical charts
+- [ ] **Notification Center**: In-app notification bell. Aggregate: task completions, factory cycles, nightshift results, failed jobs, budget alerts. Mark read/unread. Link to source
+- [ ] **Board Templates**: Clone a board with its config (pipeline stages, agent persona, default model). Pre-built templates: "Dev Sprint", "Research Queue", "Content Pipeline"
+- [ ] **Keyboard Shortcuts**: Vim-style navigation (j/k through tasks, enter to open, x to complete, / to search). Help overlay with ?. Make power users faster
+- [ ] **Dark Mode Polish**: Fix remaining contrast issues in charts, code blocks, and third-party embeds. Add auto-detect (prefers-color-scheme). Per-user toggle persisted in settings
+- [ ] **Mobile PWA**: Add service worker + manifest.json. Offline task viewing, push notifications for completions, home screen installable. Test on iOS Safari + Android Chrome
+
 ## ⚪ RESEARCH ITEMS — Evaluate Before Implementing
 
 - [ ] **Ralph Loop Integration**: Study vercel-labs/ralph-loop-agent. Evaluate if we can use external verification + stop hooks for complex tasks instead of manual phase management
