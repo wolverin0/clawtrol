@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_16_050002) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_16_050003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -422,6 +422,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050002) do
     t.bigint "user_id", null: false
     t.index ["status"], name: "index_saved_links_on_status"
     t.index ["user_id", "created_at"], name: "index_saved_links_on_user_id_and_created_at", order: { created_at: :desc }
+    t.index ["user_id", "url"], name: "index_saved_links_on_user_id_and_url", unique: true
     t.index ["user_id"], name: "index_saved_links_on_user_id"
   end
 

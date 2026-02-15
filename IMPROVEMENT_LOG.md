@@ -2395,3 +2395,10 @@
 **Files:** app/controllers/marketing_controller.rb (sanitize + containment), test/controllers/marketing_controller_test.rb (13 tests)
 **Verify:** ruby -c ✅, 13/13 controller tests pass ✅, full suite 1723 runs 0 failures 0 errors ✅
 **Risk:** low (sanitization is additive, no behavior change for clean inputs)
+
+## [2026-02-15 07:25] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added 8 tests for ProcessRecurringTasksJob covering: instance creation for due tasks, next recurrence scheduling, skipping future/non-recurring tasks, multiple task processing, model inheritance from parent, agent assignment reset on instances, error handling.
+**Why:** Zero test coverage on a job that creates recurring task instances — data integrity risk.
+**Files:** test/jobs/process_recurring_tasks_job_test.rb (new, 8 tests)
+**Verify:** ruby -c ✅, 8/8 job tests pass ✅, full suite 1731 runs 0 failures 0 errors ✅
+**Risk:** low (test-only)
