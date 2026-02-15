@@ -7,12 +7,14 @@ module Api
 
       # GET /api/v1/boards
       def index
-        @boards = current_user.boards.order(position: :asc, created_at: :asc)
+        @boards = current_user.boards.includes(:user).order(position: :asc, created_at: :asc)
         render json: @boards.map { |board| board_json(board) }
       end
 
       # GET /api/v1/boards/:id
       def show
+        # Eager load tasks to avoid N+1 when include_tasks is true
+        @board = current_user.boards.includes(tasks: [:board, :agent_persona]).find(params[:id])
         render json: board_json(@board, include_tasks: params[:include_tasks] == "true")
       end
 

@@ -2,8 +2,12 @@
 
 class Board < ApplicationRecord
   belongs_to :user
-  has_many :tasks, dependent: :destroy
+  has_many :tasks, dependent: :destroy, inverse_of: :board
   has_many :agent_personas, dependent: :nullify
+
+  # Enforce eager loading to prevent N+1 queries in views
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
 
   # Available board colors (Tailwind-compatible) — must be defined before validations
   COLORS = %w[gray red orange amber yellow lime green emerald teal cyan sky blue indigo violet purple fuchsia pink rose].freeze
