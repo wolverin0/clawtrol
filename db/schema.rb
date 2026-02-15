@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_16_050005) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_16_050006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -127,6 +127,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050005) do
     t.integer "tool_call_count"
     t.integer "total_tokens"
     t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "idx_agent_transcripts_cleanup"
     t.index ["session_id"], name: "index_agent_transcripts_on_session_id", unique: true
     t.index ["task_id"], name: "index_agent_transcripts_on_task_id"
     t.index ["task_run_id"], name: "index_agent_transcripts_on_task_run_id"
@@ -238,6 +239,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050005) do
     t.jsonb "state_before"
     t.string "status", default: "running", null: false
     t.text "summary"
+    t.index ["factory_loop_id", "created_at"], name: "idx_cycle_logs_loop_created"
     t.index ["factory_loop_id", "created_at"], name: "idx_cycle_logs_loop_recent", order: { created_at: :desc }
     t.index ["factory_loop_id", "cycle_number"], name: "idx_cycle_logs_loop_cycle", unique: true
     t.index ["factory_loop_id"], name: "index_factory_cycle_logs_on_factory_loop_id"
@@ -374,6 +376,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050005) do
     t.index ["task_id"], name: "index_notifications_on_task_id"
     t.index ["user_id", "created_at"], name: "index_notifications_on_user_id_and_created_at", order: { created_at: :desc }
     t.index ["user_id", "event_type", "created_at"], name: "index_notifications_on_dedup", order: { created_at: :desc }
+    t.index ["user_id", "read_at", "created_at"], name: "idx_notifications_inbox"
     t.index ["user_id", "read_at"], name: "index_notifications_on_user_unread"
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
@@ -753,6 +756,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050005) do
     t.index ["assigned_to_agent"], name: "index_tasks_on_assigned_to_agent"
     t.index ["auto_pull_blocked"], name: "index_tasks_on_auto_pull_blocked"
     t.index ["blocked"], name: "index_tasks_on_blocked"
+    t.index ["board_id", "archived_at"], name: "idx_tasks_board_archived"
     t.index ["board_id", "pipeline_stage"], name: "index_tasks_on_board_pipeline"
     t.index ["board_id", "status", "position"], name: "index_tasks_on_board_status_position"
     t.index ["board_id"], name: "index_tasks_on_board_id"
@@ -773,6 +777,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050005) do
     t.index ["review_type"], name: "index_tasks_on_review_type", where: "(review_type IS NOT NULL)"
     t.index ["status"], name: "index_tasks_on_status"
     t.index ["user_id", "assigned_to_agent", "status"], name: "index_tasks_on_user_agent_status"
+    t.index ["user_id", "completed", "completed_at"], name: "idx_tasks_user_completed"
     t.index ["user_id", "priority", "position"], name: "idx_tasks_auto_runner_candidates", where: "((status = 1) AND (blocked = false) AND (agent_claimed_at IS NULL) AND (agent_session_id IS NULL) AND (agent_session_key IS NULL) AND (assigned_to_agent = true) AND (auto_pull_blocked = false))"
     t.index ["user_id", "status"], name: "index_tasks_on_user_status"
     t.index ["user_id"], name: "index_tasks_on_user_id"
