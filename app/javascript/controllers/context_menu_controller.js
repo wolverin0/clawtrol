@@ -50,9 +50,14 @@ export default class extends Controller {
       this.suppressNextClick = true
 
       // Simulate a contextmenu event at the touch position
+      // Dispatch a contextmenu event at the touch point so dropdown#openAtCursor
+      // can anchor near the press location (and clamp to viewport).
       const contextEvent = new MouseEvent("contextmenu", {
         bubbles: true,
         cancelable: true,
+        view: window,
+        button: 2,
+        buttons: 2,
         clientX: this.touchStartX,
         clientY: this.touchStartY
       })
