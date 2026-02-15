@@ -2,95 +2,111 @@
 
 require "test_helper"
 
-class NightshiftTimeoutSweeperJobTest < ActiveSupport::TestCase
+class NightshiftTimeoutSweeperJobTest < ActiveJob::TestCase
   setup do
-    @user = users(:default)
+    @user = User.first || User.create!(email_address: "test@test.com", password: "password123456")
     @mission = NightshiftMission.create!(
       name: "Sweeper Test Mission",
-      user: @user
+      user: @user,
+      frequency: "always",
+      category: "general",
+      estimated_minutes: 30,
+      model: "gemini"
     )
   end
 
-  test "times out stale running selections" do
-    stale = NightshiftSelection.create!(
+  def create_selection(status: "pending", launched_at: nil, scheduled_date: Date.current)
+    NightshiftSelection.create!(
       nightshift_mission: @mission,
-      title: "Stale selection",
-      scheduled_date: Date.current,
-      status: "running",
-      launched_at: 50.minutes.ago
+      title: "Test Selection #{SecureRandom.hex(4)}",
+      scheduled_date: scheduled_date,
+      status: status,
+      launched_at: launched_at
     )
-
-    NightshiftTimeoutSweeperJob.perform_now
-
-    stale.reload
-    assert_equal "failed", stale.status
-    assert_match(/timed out/i, stale.result.to_s)
-    assert_not_nil stale.completed_at
   end
 
-  test "does not time out recent running selections" do
-    recent = NightshiftSelection.create!(
-      nightshift_mission: @mission,
-      title: "Recent selection",
-      scheduled_date: Date.current,
-      status: "running",
-      launched_at: 10.minutes.ago
-    )
-
-    NightshiftTimeoutSweeperJob.perform_now
-
-    recent.reload
-    assert_equal "running", recent.status
-  end
-
-  test "ignores completed selections" do
-    completed = NightshiftSelection.create!(
-      nightshift_mission: @mission,
-      title: "Done selection",
-      scheduled_date: Date.current,
-      status: "completed",
-      launched_at: 2.hours.ago,
-      completed_at: 1.hour.ago
-    )
-
-    NightshiftTimeoutSweeperJob.perform_now
-
-    completed.reload
-    assert_equal "completed", completed.status
+  test "performs without errors when no stale selections exist" do
+    assert_nothing_raised do
+      NightshiftTimeoutSweeperJob.perform_now
+    end
   end
 
   test "ignores pending selections" do
-    pending_sel = NightshiftSelection.create!(
-      nightshift_mission: @mission,
-      title: "Pending selection",
-      scheduled_date: Date.current,
-      status: "pending"
+    sel = create_selection(status: "pending")
+
+    NightshiftTimeoutSweeperJob.perform_now
+
+    sel.reload
+    assert_equal "pending", sel.status
+  end
+
+  test "ignores completed selections" do
+    sel = create_selection(status: "completed", launched_at: 2.hours.ago)
+
+    NightshiftTimeoutSweeperJob.perform_now
+
+    sel.reload
+    assert_equal "completed", sel.status
+  end
+
+  test "ignores recently launched running selections" do
+    sel = create_selection(status: "running", launched_at: 5.minutes.ago)
+
+    NightshiftTimeoutSweeperJob.perform_now
+
+    sel.reload
+    assert_equal "running", sel.status
+  end
+
+  test "times out stale running selections" do
+    sel = create_selection(status: "running", launched_at: 50.minutes.ago)
+
+    NightshiftTimeoutSweeperJob.perform_now
+
+    sel.reload
+    assert_equal "failed", sel.status
+    assert_includes sel.result, "Timed out"
+    assert_not_nil sel.completed_at
+  end
+
+  test "only affects today's selections" do
+    # Create a stale running selection for yesterday — should NOT be timed out
+    # because for_tonight scopes to Date.current
+    sel = create_selection(
+      status: "running",
+      launched_at: 50.minutes.ago,
+      scheduled_date: Date.yesterday
     )
 
     NightshiftTimeoutSweeperJob.perform_now
 
-    pending_sel.reload
-    assert_equal "pending", pending_sel.status
+    sel.reload
+    assert_equal "running", sel.status
   end
 
-  test "ignores selections from other days" do
-    yesterday = NightshiftSelection.create!(
-      nightshift_mission: @mission,
-      title: "Yesterday selection",
-      scheduled_date: Date.yesterday,
+  test "handles multiple stale selections" do
+    sel1 = create_selection(status: "running", launched_at: 1.hour.ago)
+
+    # Need a different mission for unique constraint (mission_id + scheduled_date)
+    mission2 = NightshiftMission.create!(
+      name: "Second Mission",
+      user: @user,
+      frequency: "always",
+      category: "general",
+      estimated_minutes: 15,
+      model: "opus"
+    )
+    sel2 = NightshiftSelection.create!(
+      nightshift_mission: mission2,
+      title: "Second Stale Selection",
+      scheduled_date: Date.current,
       status: "running",
       launched_at: 2.hours.ago
     )
 
     NightshiftTimeoutSweeperJob.perform_now
 
-    yesterday.reload
-    assert_equal "running", yesterday.status  # not swept — wrong date
-  end
-
-  test "handles no stale selections gracefully" do
-    assert_nothing_raised do
-      NightshiftTimeoutSweeperJob.perform_now
-    end
+    assert_equal "failed", sel1.reload.status
+    assert_equal "failed", sel2.reload.status
   end
 end
