@@ -1,98 +1,104 @@
 # frozen_string_literal: true
 
 class WebhookLog < ApplicationRecord
-  # Enforce eager loading to prevent N+1 queries in views
-  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
-  strict_loading :n_plus_one
-
-  belongs_to :user, inverse_of: :webhook_logs
+  belongs_to :user
   belongs_to :task, optional: true
 
   DIRECTIONS = %w[incoming outgoing].freeze
+  SENSITIVE_HEADERS = %w[Authorization X-Hook-Token X-Api-Key].freeze
+  MAX_BODY_SIZE = 50_000 # characters
 
   validates :direction, presence: true, inclusion: { in: DIRECTIONS }
   validates :event_type, presence: true
   validates :endpoint, presence: true, length: { maximum: 2000 }
   validates :method, presence: true
-  validates :error_message, length: { maximum: 5000 }, allow_nil: true
+  validates :error_message, length: { maximum: 5000 }
 
   scope :recent, -> { order(created_at: :desc) }
   scope :incoming, -> { where(direction: "incoming") }
+  scope :outgoing, -> { where(direction: "outgoing") }
   scope :failed, -> { where(success: false) }
 
-  MAX_BODY_BYTES = 50_000
+  # Record a webhook log entry. Never raises on failure (fire-and-forget).
+  #
+  # @param user [User] the user context
+  # @param direction [String] "incoming" or "outgoing"
+  # @param event_type [String] e.g. "agent_complete", "wake"
+  # @param endpoint [String] URL or path
+  # @param status_code [Integer, nil] HTTP status code
+  # @param error [String, nil] error message if the call failed
+  # @param request_headers [Hash] headers (sensitive values will be redacted)
+  # @param request_body [Hash] request payload (truncated if too large)
+  # @param response_body [Hash] response payload
+  # @param duration_ms [Integer, nil] request duration
+  # @return [WebhookLog, nil] the created log or nil on error
+  def self.record!(user:, direction:, event_type:, endpoint:, status_code: nil, error: nil,
+                   request_headers: {}, request_body: {}, response_body: {}, duration_ms: nil, task: nil)
+    # Determine success
+    success = if status_code.present?
+      status_code.to_i.between?(200, 299)
+    else
+      error.blank?
+    end
 
-  def self.record!(user:, direction:, event_type:, endpoint:, method: "POST", task: nil, status_code: nil,
-                   duration_ms: nil, request_headers: nil, request_body: nil, response_body: nil, error: nil)
+    # Sanitize sensitive headers
     sanitized_headers = sanitize_headers(request_headers)
-    safe_request_body = truncate_body(request_body)
-    safe_response_body = truncate_body(response_body)
 
-    attrs = {
+    # Truncate oversized bodies
+    sanitized_request_body = truncate_body(request_body)
+    sanitized_response_body = truncate_body(response_body)
+
+    create!(
       user: user,
       task: task,
       direction: direction,
       event_type: event_type,
-      endpoint: endpoint,
-      method: method,
+      endpoint: endpoint.to_s.truncate(2000),
+      method: "POST",
       status_code: status_code,
-      duration_ms: duration_ms,
-      request_headers: sanitized_headers || {},
-      request_body: safe_request_body || {},
-      response_body: safe_response_body || {},
-      error_message: error.presence,
-      success: compute_success(status_code, error)
-    }
-
-    create!(attrs)
+      success: success,
+      error_message: error&.to_s&.truncate(5000),
+      request_headers: sanitized_headers,
+      request_body: sanitized_request_body,
+      response_body: sanitized_response_body,
+      duration_ms: duration_ms
+    )
   rescue StandardError => e
     Rails.logger.warn("[WebhookLog] record! failed: #{e.class}: #{e.message}")
     nil
   end
 
-  def self.trim!(user:, keep: 200)
-    keep = keep.to_i
-    keep = 0 if keep.negative?
+  # Trim old logs, keeping only the most recent N per user.
+  #
+  # @param user [User] the user to trim logs for
+  # @param keep [Integer] number of recent logs to keep
+  def self.trim!(user:, keep: 1000)
+    cutoff_id = where(user: user)
+      .order(created_at: :desc)
+      .offset(keep)
+      .limit(1)
+      .pick(:id)
 
-    ids = where(user_id: user.id).order(created_at: :desc).offset(keep).pluck(:id)
-    where(id: ids).delete_all if ids.any?
+    return unless cutoff_id
+    where(user: user).where("id <= ?", cutoff_id).delete_all
   end
 
-  def self.compute_success(status_code, error)
-    return false if error.present?
-    return false if status_code.present? && status_code.to_i >= 400
+  private_class_method def self.sanitize_headers(headers)
+    return {} unless headers.is_a?(Hash)
 
-    status_code.present? ? status_code.to_i.between?(200, 299) : true
-  end
-
-  def self.sanitize_headers(headers)
-    return {} if headers.blank?
-
-    sanitized = headers.to_h.deep_dup
-    %w[Authorization X-Hook-Token].each do |key|
-      if sanitized.key?(key)
-        sanitized[key] = "[REDACTED]"
-      end
+    headers.each_with_object({}) do |(key, value), result|
+      result[key] = SENSITIVE_HEADERS.any? { |s| key.to_s.casecmp?(s) } ? "[REDACTED]" : value
     end
-    sanitized
-  rescue StandardError
-    {}
   end
 
-  def self.truncate_body(body)
-    return {} if body.blank?
+  private_class_method def self.truncate_body(body)
+    return {} unless body.is_a?(Hash)
 
-    json = body.is_a?(String) ? body : body.to_json
-    size = json.bytesize
-
-    return body if size <= MAX_BODY_BYTES
-
-    {
-      "_truncated" => true,
-      "_size" => size,
-      "_preview" => json.byteslice(0, MAX_BODY_BYTES)
-    }
-  rescue StandardError
-    { "_truncated" => true, "_size" => 0 }
+    json_str = body.to_json
+    if json_str.length > MAX_BODY_SIZE
+      { "_truncated" => true, "_size" => json_str.length, "_preview" => json_str[0, 500] }
+    else
+      body
+    end
   end
 end
