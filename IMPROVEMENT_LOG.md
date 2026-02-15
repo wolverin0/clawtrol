@@ -1768,3 +1768,10 @@
 **Files:** app/models/workflow.rb, app/controllers/workflows_controller.rb, app/controllers/api/v1/workflows_controller.rb
 **Verify:** ruby -c ✅, 69 related tests pass (0 failures, 0 errors) ✅. Pre-existing test errors (AgentTestRecording missing model) unrelated.
 **Risk:** medium (behavioral change — workflows now scoped to user, but table already has user_id column)
+
+## [2026-02-15 04:18] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Created missing `AgentTestRecording` model class. The `agent_test_recordings` table exists in schema and both Task and User models had `has_many :agent_test_recordings` associations, but the model file was never created. This caused `NameError: Missing model class AgentTestRecording` in BoardTest, TaskRunTest, AgentMessageTest, and TaskTest whenever those associations were loaded (e.g., `dependent: :destroy` cascades). Added proper validations, scopes, and associations.
+**Why:** Pre-existing bug that caused ~42 test errors across 4+ test files. The table was created by a migration but the model file was lost or never committed.
+**Files:** app/models/agent_test_recording.rb (new)
+**Verify:** ruby -c ✅, BoardTest 24/24 pass (was 23/24+1error), TaskRunTest 42/42 pass, AgentMessageTest pass ✅
+**Risk:** low (additive — creates model for existing table/associations)
