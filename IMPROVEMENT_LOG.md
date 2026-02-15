@@ -2263,3 +2263,10 @@
 **Files:** test/services/factory_engine_service_test.rb
 **Verify:** ruby -c ✅, 11 runs, 23 assertions, 0 failures, 0 errors ✅
 **Risk:** low (test-only)
+
+## [2026-02-15 06:53] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Write real tests for ValidationRunnerService (was empty stub)
+**Why:** ValidationRunnerService handles command execution for task validation — a security-critical service that runs shell commands. Had only a "skip TODO" stub. Added 13 tests covering: no command configured, command allowlist blocking (curl, rm), allowed commands (bin/rails, node, ruby), successful execution (status/output), failed execution, timeout handling, and constants validation.
+**Files:** test/services/validation_runner_service_test.rb
+**Verify:** ruby -c ✅, 13 runs, 43 assertions, 0 failures, 0 errors ✅
+**Risk:** low (test-only)
