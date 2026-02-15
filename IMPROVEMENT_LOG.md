@@ -2979,3 +2979,11 @@
 **Verify:** Ruby syntax OK
 **Risk:** low (additive, warning-only in dev/test)
 
+
+## [2026-02-15 19:12] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add strict_loading to ApplicationRecord base class
+**Why:** Enables N+1 query detection by default for all models. Child models can override with strict_loading_mode :disabled if needed. Task/Board/User already had it, now it's inherited by all 34 models.
+**Files:** app/models/application_record.rb
+**Verify:** Ruby syntax OK, Rails runner loads models OK
+**Risk:** low (additive, warning-only in dev/test)
+
