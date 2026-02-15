@@ -40,14 +40,20 @@ module GatewayClientAccessible
 
   # Cached config fetch with user-scoped key and error handling.
   # Replaces the repeated `fetch_config` pattern across 15+ controllers.
+  # Error responses are NOT cached to prevent transient failures from
+  # being served stale for the full TTL.
   #
   # @param cache_key [String] short key name (e.g., "typing_cfg", "identity_cfg")
   # @param expires_in [ActiveSupport::Duration] cache TTL (default: 30 seconds)
   # @return [Hash] the config hash, or { "error" => message } on failure
   def cached_config_get(cache_key, expires_in: 30.seconds)
-    Rails.cache.fetch("#{cache_key}/#{current_user.id}", expires_in: expires_in) do
-      gateway_client.config_get
-    end
+    full_key = "#{cache_key}/#{current_user.id}"
+    cached = Rails.cache.read(full_key)
+    return cached if cached && !(cached.is_a?(Hash) && cached["error"].present?)
+
+    result = gateway_client.config_get
+    Rails.cache.write(full_key, result, expires_in: expires_in) unless result.is_a?(Hash) && result["error"].present?
+    result
   rescue StandardError => e
     { "error" => e.message }
   end

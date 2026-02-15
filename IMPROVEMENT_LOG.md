@@ -2221,3 +2221,10 @@
 **Files:** app/controllers/api/v1/gateway_controller.rb, config/environments/test.rb
 **Verify:** ruby -c ✅, 13 gateway controller tests pass ✅ (was 13 errors before), 579 model tests pass ✅
 **Risk:** low (no behavior change for success cases; test keys are deterministic and test-only)
+
+## [2026-02-15 06:26] - Category: Performance/Bug Fix — STATUS: ✅ VERIFIED
+**What:** Prevent caching error responses in GatewayClientAccessible#cached_config_get
+**Why:** Same issue as the gateway controller: if the OpenClaw gateway returns an error (timeout, 500, connection refused), the error hash was being cached by Rails.cache.fetch for the full TTL. This means ALL 15+ config controllers that use cached_config_get would serve stale errors. Now error responses are not written to cache, so the next request retries.
+**Files:** app/controllers/concerns/gateway_client_accessible.rb
+**Verify:** ruby -c ✅, 13 gateway controller tests pass ✅
+**Risk:** low (only changes cache-miss behavior for error cases)
