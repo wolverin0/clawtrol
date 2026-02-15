@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class WebhookLog < ApplicationRecord
-  belongs_to :user, inverse_of: :user
+  belongs_to :user, inverse_of: :webhook_logs
   belongs_to :task, optional: true
 
   DIRECTIONS = %w[incoming outgoing].freeze
