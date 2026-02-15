@@ -2,8 +2,8 @@
 
 class AgentPersona < ApplicationRecord
   belongs_to :user, optional: true  # nil = shared/system persona
-  belongs_to :board, optional: true
-  has_many :tasks, dependent: :nullify
+  belongs_to :board, optional: true, inverse_of: :agent_personas
+  has_many :tasks, dependent: :nullify, inverse_of: :agent_persona
 
   # Model options (same as Task)
   MODELS = %w[opus codex gemini glm sonnet].freeze
