@@ -2482,3 +2482,62 @@
 **Files:** app/jobs/process_saved_link_job.rb
 **Verify:** ruby syntax OK ✅, 44 job tests pass ✅
 **Risk:** medium (security fix, changes HTTP redirect behavior — could break legitimate redirects to internal hosts, but those shouldn't exist)
+
+## [2026-02-15 08:19] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Moved `current_user.saved_links.group(:status).count` query from the view (saved_links/index.html.erb) to the controller as `@status_counts`. This follows the Rails pattern of keeping DB queries out of views.
+**Why:** Views should not make DB queries directly — this query was executing a GROUP BY COUNT on every page load inside the ERB template. Moving it to the controller makes it testable, visible in profiling tools, and follows MVC separation.
+**Files:** app/controllers/saved_links_controller.rb, app/views/saved_links/index.html.erb
+**Verify:** ruby/ERB syntax OK ✅, model tests pass ✅
+**Risk:** low (same query, different location)
+
+## [2026-02-15 08:22] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added a partial compound index `idx_tasks_auto_runner_candidates` on tasks(user_id, priority, position) with a WHERE clause matching the exact filters from `AgentAutoRunnerService#runnable_up_next_task_for`. This is the hot path for the auto-runner cron job that runs every ~60 seconds.
+**Why:** The auto-runner queries for eligible tasks with 7+ WHERE conditions. Without a targeted partial index, Postgres must scan the `index_tasks_on_user_agent_status` compound index then do a filter on the remaining conditions. The partial index pre-filters to only matching rows, enabling a direct index scan sorted by priority/position.
+**Files:** db/migrate/20260216050005_add_auto_runner_partial_index_to_tasks.rb
+**Verify:** migration ran ✅, 4 agent_auto_runner_service tests pass ✅
+**Risk:** low (additive index, no schema changes to existing data)
+
+## [2026-02-15 08:26] - Category: Code Quality + Testing — STATUS: ✅ VERIFIED
+**What:** Added missing validations to TaskDiff model: `file_path` length limit (max 1000), `diff_content` length limit (max 500KB), `diff_type` presence validation, and extracted DIFF_TYPES constant. Added 4 new tests for these validations.
+**Why:** TaskDiff stores user-generated content (file paths from agent output, diff content from git). Without length limits, a malicious or buggy agent could store arbitrarily large diffs or paths, consuming DB storage. The diff_type presence validation was implicitly covered by inclusion but explicit is clearer.
+**Files:** app/models/task_diff.rb, test/models/task_diff_test.rb
+**Verify:** 24 task_diff tests pass (20 existing + 4 new) ✅
+**Risk:** low (additive validations with generous limits)
+
+---
+
+## Session Summary (2026-02-15 07:37 - 08:27)
+
+**8 improvement cycles in ~50 minutes**
+
+### Key Metrics
+- **Tests added:** 51 new tests (21 job tests, 26 service tests, 4 model tests)
+- **Security fixes:** 1 critical (SSRF-via-redirect in ProcessSavedLinkJob)
+- **Accessibility:** ARIA attributes on kanban task cards
+- **Performance:** 1 targeted partial index for auto-runner queries
+- **Code quality:** DRY'd 11 duplicate activity_source assignments, DB query moved from view to controller, TaskDiff length validations
+- **Architecture:** SavedLinksController query extraction from view
+
+### Improvements by Category
+1. **Testing:** 21 new job tests — AutoValidation, FactoryCycleTimeout, NightshiftTimeoutSweeper, PipelineProcessor
+2. **Code Quality:** DRY activity_source — extract before_action from 11 duplicate assignments
+3. **Testing:** 26 real tests replacing placeholders — EmojiShortcodeNormalizer + WorkflowExecutionEngine
+4. **UX/Accessibility:** ARIA role and label on kanban task cards
+5. **Security:** Fix SSRF-via-redirect in ProcessSavedLinkJob — validate redirect targets
+6. **Architecture:** Move DB query from view to controller in SavedLinksController
+7. **Performance:** Partial index for auto-runner candidate task queries
+8. **Code Quality + Testing:** TaskDiff validations (length limits) + 4 new tests
+
+## [2026-02-15 08:40] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed unscoped WebhookLog query in HooksDashboardController (data leak: user A could see user B's webhook logs). Added 7 controller tests including auth, gateway config, error handling, source detection, and user-scoping verification.
+**Why:** `WebhookLog.order(created_at: :desc).limit(25)` was unscoped — any authenticated user could see ALL webhook logs regardless of ownership. Fixed to `WebhookLog.where(user: current_user)`. This is a real data isolation bug.
+**Files:** app/controllers/hooks_dashboard_controller.rb, test/controllers/hooks_dashboard_controller_test.rb (new)
+**Verify:** 7 tests pass, 12 assertions, 0 failures ✅
+**Risk:** low (scoping fix is additive, tests confirm behavior)
+
+## [2026-02-15 08:45] - Category: Security + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed 2 unscoped data-leak queries in CanvasController (factory_progress_template used global FactoryCycleLog.all, cost_summary_template used unscoped CostSnapshot). Both now scoped to current_user. Added 10 controller tests covering auth, gateway config, push validation (XSS rejection), snapshot/hide parameter validation, templates endpoint.
+**Why:** FactoryCycleLog and CostSnapshot queries were not scoped to current_user — any authenticated user could see all users' factory progress and cost data in Canvas templates. Real data isolation bugs.
+**Files:** app/controllers/canvas_controller.rb, test/controllers/canvas_controller_test.rb (new)
+**Verify:** 10 tests pass, 31 assertions, 0 failures ✅
+**Risk:** low (scoping fix is additive, tests confirm behavior)
