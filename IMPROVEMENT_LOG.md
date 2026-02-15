@@ -2228,3 +2228,10 @@
 **Files:** app/controllers/concerns/gateway_client_accessible.rb
 **Verify:** ruby -c ✅, 13 gateway controller tests pass ✅
 **Risk:** low (only changes cache-miss behavior for error cases)
+
+## [2026-02-15 06:29] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add comprehensive validations to User model
+**Why:** User model had minimal validations — only password, theme, email, avatar, and webhook URL. Added validations for: agent_name (max 100), agent_emoji (max 10), openclaw_gateway_url (max 2048, valid http(s) URL), openclaw_gateway_token (max 2048), openclaw_hooks_token (max 2048), telegram_chat_id (max 50), ai_suggestion_model (max 50), context_threshold_percent (integer, 10-100). Also validates gateway URL format (must be http or https).
+**Files:** app/models/user.rb
+**Verify:** ruby -c ✅, 20 user model tests pass ✅
+**Risk:** low (all validations allow_nil and use generous limits; existing data should be valid)
