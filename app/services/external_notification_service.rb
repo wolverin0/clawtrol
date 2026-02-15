@@ -1,7 +1,11 @@
+# frozen_string_literal: true
+
 require "net/http"
 require "uri"
 
 class ExternalNotificationService
+  DEFAULT_MISSION_CONTROL_THREAD_ID = 1
+
   def initialize(task)
     @task = task
     @user = task.user
@@ -23,8 +27,29 @@ class ExternalNotificationService
       "#{output}"
   end
 
+  def telegram_bot_token
+    ENV["CLAWTROL_TELEGRAM_BOT_TOKEN"].presence || ENV["TELEGRAM_BOT_TOKEN"].presence
+  end
+
+  # Prefer the task's recorded origin; fall back to Mission Control chat.
+  def telegram_chat_id
+    @task.origin_chat_id.presence || default_telegram_chat_id
+  end
+
+  # Prefer origin topic; when using Mission Control fallback, explicitly target topic 1
+  # (avoid Telegram "last topic" drift).
+  def telegram_thread_id
+    return @task.origin_thread_id if @task.origin_chat_id.present? && @task.origin_thread_id.present?
+
+    DEFAULT_MISSION_CONTROL_THREAD_ID if @task.origin_chat_id.blank? && default_telegram_chat_id.present?
+  end
+
+  def default_telegram_chat_id
+    ENV["CLAWTROL_TELEGRAM_CHAT_ID"].presence || ENV["TELEGRAM_CHAT_ID"].presence
+  end
+
   def telegram_configured?
-    ENV["CLAWTROL_TELEGRAM_BOT_TOKEN"].present? && @task.origin_chat_id.present?
+    telegram_bot_token.present? && telegram_chat_id.present?
   end
 
   def webhook_configured?
@@ -32,15 +57,16 @@ class ExternalNotificationService
   end
 
   def send_telegram
-    bot_token = ENV["CLAWTROL_TELEGRAM_BOT_TOKEN"]
-    uri = URI("https://api.telegram.org/bot#{bot_token}/sendMessage")
+    uri = URI("https://api.telegram.org/bot#{telegram_bot_token}/sendMessage")
 
     params = {
-      chat_id: @task.origin_chat_id,
+      chat_id: telegram_chat_id,
       text: format_message,
       parse_mode: "HTML"
     }
-    params[:message_thread_id] = @task.origin_thread_id if @task.origin_thread_id.present?
+
+    thread_id = telegram_thread_id
+    params[:message_thread_id] = thread_id if thread_id.present?
 
     Net::HTTP.post_form(uri, params)
   rescue StandardError => e
