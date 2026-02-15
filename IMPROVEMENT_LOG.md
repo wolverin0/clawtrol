@@ -2948,3 +2948,10 @@
 **Files:** test/system/swarm_test.rb
 **Verify:** Ruby syntax OK
 **Risk:** low (test additions only)
+
+## [2026-02-15 17:50] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add counter_cache to AgentPersona for tasks association
+**Why:** Missing counter_cache that already exists for Board.tasks_count. Adding tasks_count to AgentPersona speeds up task counts without N+1 queries.
+**Files:** app/models/agent_persona.rb
+**Verify:** Ruby syntax OK, migration exists and schema already has tasks_count column
+**Risk:** low (additive counter_cache)
