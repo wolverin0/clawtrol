@@ -2014,3 +2014,24 @@
 **Files:** test/controllers/audits_controller_test.rb, test/controllers/behavioral_interventions_controller_test.rb
 **Verify:** 17 runs, 41 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 05:28] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added SwarmController tests (15 tests, 49 assertions). Covers index, create, launch (HTML+JSON), update, toggle_favorite, destroy. IDOR protection verified for launch/update/destroy — all return 404 for other users' ideas.
+**Why:** SwarmController had zero test coverage. Critical since it creates tasks from ideas (security-sensitive operation).
+**Files:** test/controllers/swarm_controller_test.rb
+**Verify:** 15 runs, 49 assertions, 0 failures, 0 errors ✅
+**Risk:** low
+
+## [2026-02-15 05:34] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** DRY refactor of GatewayConfigController. Extracted `validate_config_payload!` (size check, JSON/YAML validation), `render_gateway_result`, and `extract_config_params` — eliminating 30+ lines of exact duplication between `apply` and `patch_config` methods.
+**Why:** Both methods had identical validation logic copy-pasted. Now each is 4 lines instead of 20+.
+**Files:** app/controllers/gateway_config_controller.rb
+**Verify:** Full suite: 1434 runs, 3387 assertions, 0 failures, 0 errors ✅
+**Risk:** low
+
+## [2026-02-15 05:40] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added 4 missing FK indexes found via schema analysis: tasks.board_id (14 query references), tasks.agent_persona_id (10 refs, partial), tasks.followup_task_id (partial), nightshift_selections.nightshift_mission_id (uniqueness validation scope). Used `algorithm: :concurrently` for zero-downtime.
+**Why:** FK columns without indexes cause full table scans on JOIN/WHERE queries. board_id alone has 14 usage points across controllers and models.
+**Files:** db/migrate/20260216050001_add_remaining_fk_indexes.rb, db/schema.rb
+**Verify:** Migration ran successfully. Full suite: 1434 runs, 3387 assertions, 0 failures, 0 errors ✅
+**Risk:** low (additive, concurrent index creation)
