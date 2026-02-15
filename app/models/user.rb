@@ -48,9 +48,18 @@ class User < ApplicationRecord
 
   validate :acceptable_avatar, if: :avatar_changed?
   validate :webhook_url_is_safe, if: -> { webhook_notification_url.present? }
+  validate :gateway_url_is_valid, if: -> { openclaw_gateway_url.present? }
   validates :password, length: { minimum: 8 }, if: :password_required?
   validates :password, confirmation: true, if: :password_required?
   validates :theme, inclusion: { in: THEMES }
+  validates :agent_name, length: { maximum: 100 }, allow_nil: true
+  validates :agent_emoji, length: { maximum: 10 }, allow_nil: true
+  validates :openclaw_gateway_url, length: { maximum: 2048 }, allow_nil: true
+  validates :openclaw_gateway_token, length: { maximum: 2048 }, allow_nil: true
+  validates :openclaw_hooks_token, length: { maximum: 2048 }, allow_nil: true
+  validates :telegram_chat_id, length: { maximum: 50 }, allow_nil: true
+  validates :ai_suggestion_model, length: { maximum: 50 }, allow_nil: true
+  validates :context_threshold_percent, numericality: { only_integer: true, greater_than_or_equal_to: 10, less_than_or_equal_to: 100 }
 
   after_create_commit :create_onboarding_board
 
@@ -170,6 +179,13 @@ class User < ApplicationRecord
     /\.internal\z/i,     # internal TLDs
     /\.local\z/i         # mDNS
   ].freeze
+
+  def gateway_url_is_valid
+    uri = URI.parse(openclaw_gateway_url) rescue nil
+    unless uri.is_a?(URI::HTTP)
+      errors.add(:openclaw_gateway_url, "must be a valid http(s) URL")
+    end
+  end
 
   def webhook_url_is_safe
     uri = URI.parse(webhook_notification_url) rescue nil
