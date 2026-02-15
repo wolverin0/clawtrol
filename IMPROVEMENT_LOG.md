@@ -2014,3 +2014,10 @@
 **Files:** test/controllers/audits_controller_test.rb, test/controllers/behavioral_interventions_controller_test.rb
 **Verify:** 17 runs, 41 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 05:28] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added SwarmController tests (15 tests, 49 assertions). Covers index, create, launch (HTML+JSON), update, toggle_favorite, destroy. IDOR protection verified for launch/update/destroy — all return 404 for other users' ideas.
+**Why:** SwarmController had zero test coverage. Critical since it creates tasks from ideas (security-sensitive operation).
+**Files:** test/controllers/swarm_controller_test.rb
+**Verify:** 15 runs, 49 assertions, 0 failures, 0 errors ✅
+**Risk:** low
