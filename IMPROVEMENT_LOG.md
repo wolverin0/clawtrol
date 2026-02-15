@@ -2864,3 +2864,17 @@
 **Verify:** Ruby syntax OK, Board/Task tests pass (91 runs, 173 assertions)
 **Risk:** low (additive performance improvement)
 
+
+## [2026-02-15 13:22] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add indexes for common queries + complete inverse_of associations
+**Why:** Add indexes for common filter patterns (tasks by completion, archived tasks, notifications inbox, transcript cleanup). Complete inverse_of on AgentPersona -> Board associations.
+**Files:** db/migrate/20260216050006_add_indexes_for_common_queries.rb, app/models/board.rb, app/models/agent_persona.rb
+**Verify:** Migration runs successfully, 111 model tests pass
+**Risk:** low (performance improvement, additive changes)
+
+## [2026-02-15 13:37] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Complete inverse_of coverage across all models
+**Why:** Missing inverse_of causes N+1 queries even with eager loading. Added inverse_of to 25+ associations: belongs_to :user (12 models), has_many :user (invite_codes, webhook_logs, cost_snapshots), factory_loop -> factory_cycle_logs, nightshift_mission -> nightshift_selections, task -> task_dependencies, and belongs_to :task variants in 6 models.
+**Files:** 25 model files modified
+**Verify:** Ruby syntax OK, Board/Task/Nightshift/Factory tests pass (95 runs)
+**Risk:** low (performance improvement, additive associations)
