@@ -10,7 +10,7 @@ class HooksDashboardController < ApplicationController
     config_data = fetch_config
     @hooks = extract_hooks(config_data)
     @gmail_config = extract_gmail_config(config_data)
-    @recent_hits = WebhookLog.order(created_at: :desc).limit(25)
+    @recent_hits = WebhookLog.where(user: current_user).order(created_at: :desc).limit(25)
     @error = config_data["error"] || config_data[:error] if config_data.is_a?(Hash)
   end
 
