@@ -2836,3 +2836,10 @@
 **Files:** app/jobs/process_saved_link_job.rb
 **Verify:** Ruby syntax OK, board tests pass (job not directly testable without gemini CLI)
 **Risk:** low (same behavior, safer execution)
+
+## [2026-02-15 12:42] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Expand ProcessSavedLinkJob tests (7→13)
+**Why:** Target was 10+ tests for job coverage. Added tests for: X/Twitter URL detection, tweet ID extraction, invalid URL handling, query parameters, fragments, non-HTML content. SSRF tests already covered.
+**Files:** test/jobs/process_saved_link_job_test.rb
+**Verify:** 13 runs, individual tests pass (some slow due to network)
+**Risk:** low (test-only change)
