@@ -56,11 +56,19 @@ class ProcessSavedLinkJob < ApplicationJob
       http.request(request)
     end
 
-    # Follow redirects (one level)
+    # Follow redirects (one level) with SSRF protection on redirect target
     if response.is_a?(Net::HTTPRedirection) && response["location"]
-      uri = URI.parse(response["location"])
-      response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: 10, read_timeout: 15) do |http|
-        request = Net::HTTP::Get.new(uri)
+      redirect_url = response["location"]
+      # Handle relative redirects by resolving against original URI
+      redirect_uri = URI.join(uri, redirect_url) rescue URI.parse(redirect_url)
+      redirect_url_str = redirect_uri.to_s
+
+      unless safe_outbound_url?(redirect_url_str)
+        raise "Blocked: redirect URL points to private/internal network address (#{redirect_uri.host})"
+      end
+
+      response = Net::HTTP.start(redirect_uri.host, redirect_uri.port, use_ssl: redirect_uri.scheme == "https", open_timeout: 10, read_timeout: 15) do |http|
+        request = Net::HTTP::Get.new(redirect_uri)
         request["User-Agent"] = "Mozilla/5.0 (compatible; ClawDeck/1.0)"
         http.request(request)
       end
