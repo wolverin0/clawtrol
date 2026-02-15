@@ -2270,3 +2270,35 @@
 **Files:** test/services/validation_runner_service_test.rb
 **Verify:** ruby -c ✅, 13 runs, 43 assertions, 0 failures, 0 errors ✅
 **Risk:** low (test-only)
+
+---
+
+## Session Summary (2026-02-15 06:07 - 06:33)
+
+**9 improvement cycles in ~26 minutes**
+
+### Key Metrics
+- **Tests added:** 38 new tests (4 optimistic locking, 11 FactoryEngine, 13 ValidationRunner, 1 profiles fix, 9 existing test fixes)
+- **Bugs fixed:** 2 (gateway error caching, encryption test config)
+- **Security fixes:** 1 (encrypt gateway/hooks tokens at rest)
+- **Code quality:** User model validations, gateway error caching prevention
+- **Architecture:** Optimistic locking on Task model with StaleObjectError handlers
+- **Starting suite (models+services):** 940 runs, 2321 assertions, 0 failures, 0 errors
+
+### Improvements by Category
+1. **Security:** Encrypt openclaw_gateway_token and openclaw_hooks_token at rest in User model
+2. **Bug Fix + Performance:** Prevent caching gateway errors in API controller + fix Active Record encryption test config (fixed 13+ pre-existing test errors)
+3. **Performance:** Skip caching error responses in GatewayClientAccessible#cached_config_get concern (affects 15+ config controllers)
+4. **Code Quality:** Comprehensive User model validations (agent_name, agent_emoji, gateway_url, tokens, context_threshold_percent)
+5. **Testing:** Fix profiles_controller_test for new gateway URL model validation
+6. **Architecture:** Add optimistic locking (lock_version) to Task model + StaleObjectError rescue handlers in both API and HTML controllers
+7. **Testing:** 4 optimistic locking tests for Task model
+8. **Testing:** 11 real tests for FactoryEngineService (was empty stub)
+9. **Testing:** 13 real tests for ValidationRunnerService (was empty stub)
+
+## [2026-02-15 06:42] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract DashboardDataService from 73-line DashboardController#show
+**Why:** Controller was doing 15+ queries, gateway calls, and caching inline. Extracted to a testable service object returning a Struct. Controller is now 28 lines.
+**Files:** app/services/dashboard_data_service.rb, app/controllers/dashboard_controller.rb, test/services/dashboard_data_service_test.rb
+**Verify:** ruby -c ✅, 8 runs 41 assertions 0 failures ✅
+**Risk:** low (pure refactor, same behavior)
