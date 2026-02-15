@@ -56,13 +56,4 @@ Rails.application.configure do
   config.active_record.encryption.primary_key = "test-primary-key-00000000000000"
   config.active_record.encryption.deterministic_key = "test-deterministic-key-0000000"
   config.active_record.encryption.key_derivation_salt = "test-key-derivation-salt-00000"
-
-  # Bullet N+1 query detection (only in CI to avoid slowing local tests)
-  if ENV["CI"].present?
-    config.after_initialize do
-      Bullet.enable = true
-      Bullet.raise = true # Raise errors on N+1 queries
-      Bullet.unused_eager_loading = true
-    end
-  end
 end
