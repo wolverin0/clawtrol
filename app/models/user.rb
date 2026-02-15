@@ -23,6 +23,8 @@ class User < ApplicationRecord
   has_many :webhook_logs, dependent: :delete_all
   has_many :cost_snapshots, dependent: :delete_all
   has_many :agent_test_recordings, dependent: :destroy
+  has_many :audit_reports, dependent: :destroy
+  has_many :behavioral_interventions, dependent: :destroy
   has_one_attached :avatar
   has_one :openclaw_integration_status, dependent: :destroy
 
