@@ -2503,3 +2503,48 @@
 **Files:** app/models/task_diff.rb, test/models/task_diff_test.rb
 **Verify:** 24 task_diff tests pass (20 existing + 4 new) ✅
 **Risk:** low (additive validations with generous limits)
+
+---
+
+## Session Summary (2026-02-15 07:37 - 08:27)
+
+**8 improvement cycles in ~50 minutes**
+
+### Key Metrics
+- **Tests added:** 51 new tests (21 job tests, 26 service tests, 4 model tests)
+- **Security fixes:** 1 critical (SSRF-via-redirect in ProcessSavedLinkJob)
+- **Accessibility:** ARIA attributes on kanban task cards
+- **Performance:** 1 targeted partial index for auto-runner queries
+- **Code quality:** DRY'd 11 duplicate activity_source assignments, DB query moved from view to controller, TaskDiff length validations
+- **Architecture:** SavedLinksController query extraction from view
+
+### Improvements by Category
+1. **Testing:** 21 new job tests — AutoValidation, FactoryCycleTimeout, NightshiftTimeoutSweeper, PipelineProcessor
+2. **Code Quality:** DRY activity_source — extract before_action from 11 duplicate assignments
+3. **Testing:** 26 real tests replacing placeholders — EmojiShortcodeNormalizer + WorkflowExecutionEngine
+4. **UX/Accessibility:** ARIA role and label on kanban task cards
+5. **Security:** Fix SSRF-via-redirect in ProcessSavedLinkJob — validate redirect targets
+6. **Architecture:** Move DB query from view to controller in SavedLinksController
+7. **Performance:** Partial index for auto-runner candidate task queries
+8. **Code Quality + Testing:** TaskDiff validations (length limits) + 4 new tests
+
+## [2026-02-15 08:40] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed unscoped WebhookLog query in HooksDashboardController (data leak: user A could see user B's webhook logs). Added 7 controller tests including auth, gateway config, error handling, source detection, and user-scoping verification.
+**Why:** `WebhookLog.order(created_at: :desc).limit(25)` was unscoped — any authenticated user could see ALL webhook logs regardless of ownership. Fixed to `WebhookLog.where(user: current_user)`. This is a real data isolation bug.
+**Files:** app/controllers/hooks_dashboard_controller.rb, test/controllers/hooks_dashboard_controller_test.rb (new)
+**Verify:** 7 tests pass, 12 assertions, 0 failures ✅
+**Risk:** low (scoping fix is additive, tests confirm behavior)
+
+## [2026-02-15 08:45] - Category: Security + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed 2 unscoped data-leak queries in CanvasController (factory_progress_template used global FactoryCycleLog.all, cost_summary_template used unscoped CostSnapshot). Both now scoped to current_user. Added 10 controller tests covering auth, gateway config, push validation (XSS rejection), snapshot/hide parameter validation, templates endpoint.
+**Why:** FactoryCycleLog and CostSnapshot queries were not scoped to current_user — any authenticated user could see all users' factory progress and cost data in Canvas templates. Real data isolation bugs.
+**Files:** app/controllers/canvas_controller.rb, test/controllers/canvas_controller_test.rb (new)
+**Verify:** 10 tests pass, 31 assertions, 0 failures ✅
+**Risk:** low (scoping fix is additive, tests confirm behavior)
+
+## [2026-02-15 08:53] - Category: Code Quality (DRY) — STATUS: ✅ VERIFIED
+**What:** Added `patch_and_redirect` helper to GatewayConfigPatchable concern and refactored 5 config controllers (Compaction, MessageQueue, SessionReset, Sandbox, Media) to use it. Each controller's `update` method shrank from 13-15 lines to 7 lines, eliminating duplicated gateway patch + redirect + error handling + cache invalidation + rescue blocks.
+**Why:** 5+ controllers duplicated the exact same pattern: build patch → call config_patch → check error → redirect with flash → rescue. The new `patch_and_redirect` method centralizes this, reducing ~50 lines of duplicated code and ensuring consistent error handling and cache invalidation across all config pages.
+**Files:** app/controllers/concerns/gateway_config_patchable.rb, app/controllers/compaction_config_controller.rb, app/controllers/message_queue_config_controller.rb, app/controllers/session_reset_config_controller.rb, app/controllers/sandbox_config_controller.rb, app/controllers/media_config_controller.rb
+**Verify:** 56 tests pass across 4 test files (compaction, sandbox, session_reset, config_pages) + concern test. 0 failures ✅
+**Risk:** low (extracted method preserves exact same behavior, existing tests confirm)

@@ -2,6 +2,7 @@
 
 class MediaConfigController < ApplicationController
   include GatewayClientAccessible
+  include GatewayConfigPatchable
   before_action :require_authentication
   before_action :ensure_gateway_configured!
 
@@ -14,20 +15,13 @@ class MediaConfigController < ApplicationController
 
   # PATCH /media-config
   def update
-    patch_body = build_patch_from_params
-
-    result = gateway_client.config_patch(
-      raw: patch_body.to_json,
-      reason: "Media config updated via ClawTrol UI"
+    patch_and_redirect(
+      build_patch_from_params,
+      redirect_path: media_config_path,
+      cache_key: "media_config",
+      reason: "Media config updated via ClawTrol UI",
+      success_message: "Media configuration updated. Gateway will restart to apply changes."
     )
-
-    if result["error"].present?
-      redirect_to media_config_path, alert: "Failed to update: #{result['error']}"
-    else
-      redirect_to media_config_path, notice: "Media configuration updated. Gateway will restart to apply changes."
-    end
-  rescue StandardError => e
-    redirect_to media_config_path, alert: "Update failed: #{e.message}"
   end
 
   private
