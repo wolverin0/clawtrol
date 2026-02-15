@@ -10,7 +10,7 @@ class MediaConfigController < ApplicationController
   def show
     config_data = fetch_config
     @media_config = extract_media_config(config_data)
-    @error = config_data[:error] if config_data.is_a?(Hash) && config_data[:error]
+    @error = (config_data["error"] || config_data[:error]) if config_data.is_a?(Hash)
   end
 
   # PATCH /media-config
@@ -31,7 +31,7 @@ class MediaConfigController < ApplicationController
   end
 
   def extract_media_config(config)
-    return default_media_config if config.nil? || config[:error].present?
+    return default_media_config if config.nil? || config["error"].present? || config[:error].present?
 
     tools = config.dig("tools") || config.dig(:tools) || {}
     media = tools.dig("media") || tools.dig(:media) || {}
