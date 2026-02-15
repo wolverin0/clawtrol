@@ -99,7 +99,6 @@ Priority order. MiniMax: pick the top unchecked item, implement it, mark [x] whe
 ## ⚪ RESEARCH ITEMS — Evaluate Before Implementing
 
 - [ ] **Ralph Loop Integration**: Study vercel-labs/ralph-loop-agent. Evaluate if we can use external verification + stop hooks for complex tasks instead of manual phase management
-- [ ] **ComfyUI Workflow Builder**: ClawTrol UI for building image generation workflows (planned for marketing). Needs ComfyUI running on Windows PC first
 - [ ] **Multi-tenant Support**: user_id scoping is started (nightshift, factory). Complete for all models. Add team/org concept for future scaling
 - [ ] **Canvas/A2UI Surface**: OpenClaw nodes support A2UI (JSONL-driven UI). Evaluate pushing ClawTrol task cards/dashboards directly to mobile nodes as Canvas surfaces instead of web browser
 

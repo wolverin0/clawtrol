@@ -321,7 +321,8 @@ module Api
 
       # GET /api/v1/tasks - all tasks for current user
       def index
-        @tasks = current_user.tasks
+        # Eager load associations to prevent N+1 queries
+        @tasks = current_user.tasks.includes(:board, :agent_persona, :parent_task, :followup_task)
 
         # Filter by board
         if params[:board_id].present?
