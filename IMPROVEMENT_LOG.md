@@ -2256,3 +2256,10 @@
 **Files:** test/models/task_test.rb
 **Verify:** ruby -c ✅, 45 task model tests (was 41), 0 failures, 0 errors ✅
 **Risk:** low (test-only)
+
+## [2026-02-15 06:46] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Write real tests for FactoryEngineService (was empty stub)
+**Why:** FactoryEngineService is critical for factory loop management — it handles cycle result recording, consecutive failure tracking, and error pausing. Had only a "skip TODO" stub. Added 11 tests covering: successful completion (marks cycle, increments total_cycles, resets failures, sets last_cycle_at, clears errors), failure handling (increments failures, sets error fields, error_pauses after threshold, doesn't pause before threshold), and token tracking.
+**Files:** test/services/factory_engine_service_test.rb
+**Verify:** ruby -c ✅, 11 runs, 23 assertions, 0 failures, 0 errors ✅
+**Risk:** low (test-only)
