@@ -27,7 +27,7 @@ class CompactionConfigController < ApplicationController
     if result["error"].present?
       redirect_to compaction_config_path, alert: "Failed: #{result['error']}"
     else
-      Rails.cache.delete("compaction_cfg/#{current_user.id}")
+      invalidate_config_cache("compaction_cfg")
       redirect_to compaction_config_path, notice: "Compaction & pruning config updated."
     end
   rescue StandardError => e
@@ -37,11 +37,7 @@ class CompactionConfigController < ApplicationController
   private
 
   def fetch_config
-    Rails.cache.fetch("compaction_cfg/#{current_user.id}", expires_in: 30.seconds) do
-      gateway_client.config_get
-    end
-  rescue StandardError => e
-    { error: e.message }
+    cached_config_get("compaction_cfg")
   end
 
   def extract_compaction_config(config)

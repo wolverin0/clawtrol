@@ -33,11 +33,7 @@ class MediaConfigController < ApplicationController
   private
 
   def fetch_config
-    Rails.cache.fetch("media_config/#{current_user.id}", expires_in: 30.seconds) do
-      gateway_client.config_get
-    end
-  rescue StandardError => e
-    { error: e.message }
+    cached_config_get("media_config")
   end
 
   def extract_media_config(config)

@@ -28,7 +28,7 @@ class DmPolicyController < ApplicationController
     if result["error"].present?
       redirect_to dm_policy_path, alert: "Failed: #{result['error']}"
     else
-      Rails.cache.delete("dm_policy/#{current_user.id}")
+      invalidate_config_cache("dm_policy")
       redirect_to dm_policy_path, notice: "DM/Group policies updated."
     end
   rescue StandardError => e
@@ -83,11 +83,7 @@ class DmPolicyController < ApplicationController
   private
 
   def fetch_config
-    Rails.cache.fetch("dm_policy/#{current_user.id}", expires_in: 30.seconds) do
-      gateway_client.config_get
-    end
-  rescue StandardError => e
-    { error: e.message }
+    cached_config_get("dm_policy")
   end
 
   def extract_dm_config(config)
