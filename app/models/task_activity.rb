@@ -4,7 +4,7 @@ class TaskActivity < ApplicationRecord
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
   strict_loading :n_plus_one
 
-  belongs_to :task, inverse_of: :task_activities
+  belongs_to :task, inverse_of: :activities
   belongs_to :user, optional: true
 
   ACTIONS = %w[created updated moved auto_claimed auto_queued].freeze
