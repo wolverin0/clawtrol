@@ -2,6 +2,7 @@
 
 class CliBackendsController < ApplicationController
   include GatewayClientAccessible
+  include GatewayConfigPatchable
   before_action :require_authentication
   before_action :ensure_gateway_configured!
 
@@ -20,21 +21,13 @@ class CliBackendsController < ApplicationController
       return
     end
 
-    patch = build_backend_patch(backend_id)
-
-    result = gateway_client.config_patch(
-      raw: patch.to_json,
-      reason: "CLI backend #{backend_id} updated via ClawTrol"
+    patch_and_redirect(
+      build_backend_patch(backend_id),
+      redirect_path: cli_backends_path,
+      cache_key: "cli_backends",
+      reason: "CLI backend #{backend_id} updated via ClawTrol",
+      success_message: "Backend '#{backend_id}' updated."
     )
-
-    if result["error"].present?
-      redirect_to cli_backends_path, alert: "Failed: #{result['error']}"
-    else
-      invalidate_config_cache("cli_backends")
-      redirect_to cli_backends_path, notice: "Backend '#{backend_id}' updated."
-    end
-  rescue StandardError => e
-    redirect_to cli_backends_path, alert: "Error: #{e.message}"
   end
 
   private
