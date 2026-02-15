@@ -1,0 +1,34 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+code_idea:
+  title: Refactor auth module
+  description: Extract shared auth logic
+  category: code
+  suggested_model: opus
+  estimated_minutes: 30
+  icon: "🔧"
+  enabled: true
+  favorite: false
+  times_launched: 0
+  user: one
+  board: one
+
+favorite_idea:
+  title: Research AI agents
+  description: Study latest agent patterns
+  category: research
+  suggested_model: gemini
+  estimated_minutes: 45
+  icon: "🔬"
+  enabled: true
+  favorite: true
+  times_launched: 3
+  last_launched_at: <%= 2.hours.ago.to_fs(:db) %>
+  user: one
+
+disabled_idea:
+  title: Old cleanup task
+  category: infra
+  enabled: false
+  times_launched: 0
+  user: one
