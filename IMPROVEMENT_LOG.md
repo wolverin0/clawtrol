@@ -2049,3 +2049,10 @@
 **Files:** app/controllers/concerns/api/hook_authentication.rb, app/controllers/api/v1/hooks_controller.rb, app/controllers/api/v1/nightshift_controller.rb
 **Verify:** 121 API tests pass, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 06:05] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed Pipeline::Orchestrator `process!` method that didn't handle "unstarted" stage (the DB default). The case statement only matched `nil` and `""`, but `pipeline_stage` has `default: "unstarted", null: false`. New tasks with pipelines enabled were silently skipped. Added 13 tests covering all stage transitions, `ready_for_execution?`, `MAX_ITERATIONS` guard, and user override.
+**Why:** Critical bug — every new pipeline-enabled task would never start processing because "unstarted" didn't match any case branch.
+**Files:** app/services/pipeline/orchestrator.rb, test/services/pipeline/orchestrator_test.rb
+**Verify:** 64 pipeline tests pass, 0 failures ✅
+**Risk:** medium (fix changes pipeline behavior for new tasks)
