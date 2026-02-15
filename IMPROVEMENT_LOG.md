@@ -2971,3 +2971,34 @@
 **Risk:** low (test file fix)
 
 
+
+## [2026-02-15 19:07] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add strict_loading to Task model to detect N+1 queries
+**Why:** strict_loading :n_plus_one warns in dev/test when N+1 queries occur, helping identify performance issues. Board and User already have it; adding to Task completes the coverage for core models.
+**Files:** app/models/task.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (additive, warning-only in dev/test)
+
+
+## [2026-02-15 19:12] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add strict_loading to ApplicationRecord base class
+**Why:** Enables N+1 query detection by default for all models. Child models can override with strict_loading_mode :disabled if needed. Task/Board/User already had it, now it's inherited by all 34 models.
+**Files:** app/models/application_record.rb
+**Verify:** Ruby syntax OK, Rails runner loads models OK
+**Risk:** low (additive, warning-only in dev/test)
+
+## [2026-02-15 19:40] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add missing user_id indexes to agent_transcripts, task_activities, webhook_logs
+**Why:** These tables have belongs_to :user associations but lacked user_id indexes. agent_transcripts is already heavily indexed on session_id and created_at; adding user_id speeds up user-scoped queries. task_activities and webhook_logs also need user_id indexes for efficient filtering.
+**Files:** db/migrate/20260215235000_add_missing_user_id_indexes.rb
+**Verify:** Ruby syntax OK, migration file created
+**Risk:** low (additive index, no schema changes)
+
+
+## [2026-02-15 19:50] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add useful scopes to TaskRun model
+**Why:** TaskRun was missing common query scopes like recent, for_task, completed, in_progress, by_model, needs_follow_up. Adding these makes the model more usable and consistent with other models.
+**Files:** app/models/task_run.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (additive, no behavioral changes)
+
