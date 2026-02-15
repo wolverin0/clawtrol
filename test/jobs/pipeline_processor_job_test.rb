@@ -97,6 +97,41 @@ class PipelineProcessorJobTest < ActiveJob::TestCase
     assert_equal "failed", task.pipeline_stage
   end
 
+  test "auto-runs pipeline from unstarted to routed" do
+    clawdeck = Board.create!(
+      name: "ClawDeck",
+      user: @user,
+      color: "gray",
+      icon: "📋",
+      position: 0
+    )
+
+    task = Task.create!(
+      name: "[E2E Smoke Test] Auto-run pipeline test",
+      description: "Quick test of pipeline auto-run from unstarted through to routed",
+      user: @user,
+      board: clawdeck,
+      status: :up_next,
+      pipeline_enabled: true,
+      pipeline_stage: "unstarted"
+    )
+
+    PipelineProcessorJob.perform_now(task.id)
+
+    task.reload
+    assert_equal "routed", task.pipeline_stage
+    assert_equal "feature", task.pipeline_type
+    assert task.agent_context.present?
+    assert task.routed_model.present?
+    assert task.compiled_prompt.present?
+    assert_includes task.compiled_prompt, "# Task:"
+
+    stages = Array(task.pipeline_log).map { |e| e["stage"] }.compact
+    assert_includes stages, "triage"
+    assert_includes stages, "context_compilation"
+    assert_includes stages, "routing"
+  end
+
   test "marks task as failed on exception and logs error" do
     task = Task.create!(
       name: "Error task",
