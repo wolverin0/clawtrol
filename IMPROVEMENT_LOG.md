@@ -2316,3 +2316,75 @@
 **Files:** test/controllers/telegram_config_controller_test.rb
 **Verify:** ruby -c ✅, 12 runs 22 assertions 0 failures ✅
 **Risk:** low (test-only)
+
+## [2026-02-15 07:04] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Atomic file writes for .env and marketing index.json
+**Why:** `File.write` is not atomic — if process crashes mid-write, the file gets corrupted. Now writes to Tempfile first, then renames (atomic on same filesystem). The .env file is especially critical since it holds API keys.
+**Files:** app/controllers/keys_controller.rb, app/controllers/marketing_controller.rb
+**Verify:** ruby -c ✅, keys_controller_test passes ✅
+**Risk:** low (same-filesystem rename is atomic on Linux/macOS)
+
+## [2026-02-15 07:08] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** TaskActivity model: inclusion validations for action/source/actor_type + length limits
+**Why:** `action` validated presence but not inclusion in ACTIONS constant — any string was accepted. Added: action inclusion in ACTIONS, source inclusion in [web/api/system], actor_type inclusion in [user/agent/system], length limits on actor_name(200), actor_emoji(20), note(2000), field_name(100), old_value/new_value(1000). Plus 7 new tests.
+**Files:** app/models/task_activity.rb, test/models/task_activity_test.rb
+**Verify:** ruby -c ✅, 21 runs 45 assertions 0 failures ✅
+**Risk:** low (models already only use defined constants; this prevents future misuse)
+
+## [2026-02-15 07:15] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed CanvasController#cost_summary_template referencing non-existent `cost_usd` column (should be `total_cost`). Plus 30 batch auth/route tests for 15 controllers that had zero tests.
+**Why:** Canvas page crashed with PG::UndefinedColumn on every render. Found the bug by writing auth tests for all untested controllers. The 30 tests verify: 15 auth-required redirects + 15 non-404 route checks.
+**Files:** app/controllers/canvas_controller.rb, test/controllers/missing_controller_auth_test.rb
+**Verify:** ruby -c ✅, 30 runs 30 assertions 0 failures ✅
+**Risk:** low (column rename is data-layer fix; tests are read-only)
+
+## [2026-02-15 07:21] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 10 controller tests for DiscordConfigController
+**Why:** Config controller with guild-level settings had zero tests. Tests cover: 2 auth checks, 1 gateway-not-configured redirect, 2 section validation (unknown + empty), 5 section allowlist acceptance tests.
+**Files:** test/controllers/discord_config_controller_test.rb
+**Verify:** ruby -c ✅, 10 runs 18 assertions 0 failures ✅
+**Risk:** low (test-only)
+
+## [2026-02-15 07:28] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Added 'auto_queued' to TaskActivity::ACTIONS and fixed regression from cycle 5's validation tightening
+**Why:** The inclusion validation in cycle 5 (action must be in ACTIONS) broke the auto-claim flow because `agent_integration.rb` creates activities with `action: "auto_queued"` which wasn't in the list. Full test suite confirmed: 954 runs, 0 failures, 0 errors.
+**Files:** app/models/task_activity.rb
+**Verify:** ruby -c ✅, 954 runs 2376 assertions 0 failures 0 errors ✅
+**Risk:** low (adding to allowlist)
+
+---
+
+## Session Summary (2026-02-15 06:37 - 07:30)
+
+**8 improvement cycles in ~53 minutes**
+
+### Key Metrics
+- **Tests added:** 79 new tests (8 DashboardDataService, 12 ModelProviders, 12 TelegramConfig, 30 batch auth, 10 Discord, 7 TaskActivity)
+- **Bugs fixed:** 2 (CanvasController cost_usd→total_cost column name, TaskActivity auto_queued missing from ACTIONS)
+- **Security fixes:** 1 (atomic file writes for .env and marketing index.json)
+- **Code quality:** DashboardDataService extraction (73→28 line controller), TaskActivity inclusion validations
+- **Starting suite (models+services):** 954 runs, 2376 assertions, 0 failures, 0 errors
+
+### Improvements by Category
+1. **Code Quality:** Extract DashboardDataService from 73-line controller method + 8 tests
+2. **Testing:** 12 ModelProvidersController tests (auth + SSRF protection validation)
+3. **Testing:** 12 TelegramConfigController tests (auth + section validation)
+4. **Security:** Atomic file writes for .env and marketing index.json
+5. **Code Quality:** TaskActivity model inclusion/length validations + 7 tests
+6. **Bug Fix + Testing:** CanvasController cost_usd→total_cost + 30 batch auth tests for 15 controllers
+7. **Testing:** 10 DiscordConfigController tests (auth + section validation)
+8. **Bug Fix:** TaskActivity auto_queued ACTIONS regression fix
+
+## [2026-02-15 07:07] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Extracted PersonaGeneratorService from BoardsController — moved 85 lines of persona generation logic (task analysis, tier determination, system prompt building) into a dedicated service class.
+**Why:** BoardsController `generate_persona` + `build_persona_system_prompt` were pure business logic (no HTTP concerns). Service extraction improves testability and separates concerns. Controller reduced from 85 to 20 lines for this action.
+**Files:** app/services/persona_generator_service.rb (new), app/controllers/boards_controller.rb (simplified), test/services/persona_generator_service_test.rb (new, 10 tests)
+**Verify:** ruby -c ✅, 10/10 service tests pass ✅, full suite 1698 runs 0 failures 0 errors ✅
+**Risk:** low (behavioral equivalent, same AgentPersona record created)
+
+## [2026-02-15 07:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Replaced 1-test placeholder for ExternalNotificationService with 14 real tests covering message formatting (emoji by status, description truncation), Telegram config detection, webhook config detection, network error handling, and edge cases (nil description, blank name).
+**Why:** Service handles outbound notifications (Telegram + webhooks) with retry logic — zero test coverage before.
+**Files:** test/services/external_notification_service_test.rb (rewritten, 14 tests)
+**Verify:** ruby -c ✅, 14/14 service tests pass ✅, full suite 1711 runs 0 failures 0 errors ✅
+**Risk:** low (test-only change)

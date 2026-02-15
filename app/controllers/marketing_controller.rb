@@ -48,13 +48,12 @@ class MarketingController < ApplicationController
   end
 
   def generate_image
-    result = MarketingImageService.call(
-      prompt: params[:prompt].to_s.strip,
-      product: params[:product].to_s,
-      template: params[:template].to_s,
-      size: params[:size].to_s,
-      variant_seed: params[:variant_seed].to_i
-    )
+    prompt = params[:prompt].to_s.strip
+    model = params[:model] || "gpt-image-1"
+    product = sanitize_filename_component(params[:product].to_s.presence || "futura")
+    template = params[:template] || "none"
+    size = params[:size] || "1024x1024"
+    variant_seed = params[:variant_seed].to_i # For generating variants with slight differences
 
     unless result[:success]
       error = result[:error]
@@ -82,21 +81,106 @@ class MarketingController < ApplicationController
       params[:size].to_s
     )
 
-    render json: {
-      success: true,
-      url: save_result[:serve_url],
-      filename: save_result[:filename],
-      product: params[:product].to_s.presence || "futura",
-      template: params[:template].to_s,
-      model: "gpt-image-1",
-      prompt: params[:prompt].to_s.strip,
-      full_prompt: result[:revised_prompt],
-      size: params[:size].to_s,
-      generated_at: Time.current.iso8601
-    }
-  rescue StandardError => e
-    Rails.logger.error("Image generation failed: #{e.message}")
-    render json: { error: "Generation failed: #{e.message}" }, status: :internal_server_error
+    # Combine context + user prompt + template style
+    prompt_parts = [product_context, prompt]
+    prompt_parts << "Style: #{template_style}" if template_style.present?
+
+    # Add subtle variation for variant generation
+    if variant_seed > 0
+      variations = ["with dynamic composition", "with creative angle", "with alternative lighting", "with fresh perspective"]
+      prompt_parts << variations[variant_seed % variations.length]
+    end
+
+    full_prompt = prompt_parts.join(". ")
+
+    begin
+      # Call OpenAI gpt-image-1 API
+      uri = URI("https://api.openai.com/v1/images/generations")
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.read_timeout = 120
+      http.open_timeout = 30
+
+      request = Net::HTTP::Post.new(uri)
+      request["Content-Type"] = "application/json"
+      request["Authorization"] = "Bearer #{OPENAI_API_KEY}"
+
+      request.body = {
+        model: "gpt-image-1",
+        prompt: full_prompt,
+        size: size,
+        n: 1,
+        output_format: "png"
+      }.to_json
+
+      response = http.request(request)
+      result = JSON.parse(response.body)
+
+      if response.code.to_i != 200
+        error_msg = result.dig("error", "message") || "API request failed"
+        render json: { error: error_msg }, status: :bad_gateway
+        return
+      end
+
+      # Get base64 image data (gpt-image-1 returns b64_json by default)
+      image_data = result.dig("data", 0, "b64_json")
+      image_url = result.dig("data", 0, "url")
+
+      if image_data.nil? && image_url.nil?
+        render json: { error: "No image data in response" }, status: :bad_gateway
+        return
+      end
+
+      # If we got a URL instead of b64, fetch it
+      if image_data.nil? && image_url
+        image_response = Net::HTTP.get_response(URI(image_url))
+        image_data = Base64.strict_encode64(image_response.body)
+      end
+
+      # Save the image
+      timestamp = Time.current.strftime("%Y%m%d_%H%M%S")
+      filename = "#{product}_#{timestamp}.png"
+
+      FileUtils.mkdir_p(PLAYGROUND_OUTPUT_DIR)
+      file_path = File.join(PLAYGROUND_OUTPUT_DIR, filename)
+
+      # SECURITY: Verify the resolved file path stays within the output directory
+      unless File.expand_path(file_path).start_with?(File.expand_path(PLAYGROUND_OUTPUT_DIR) + "/")
+        render json: { error: "Invalid filename" }, status: :unprocessable_entity
+        return
+      end
+
+      File.open(file_path, "wb") do |f|
+        f.write(Base64.decode64(image_data))
+      end
+
+      # Update index.json
+      update_playground_index(filename, prompt, full_prompt, product, template, model, size)
+
+      # Return the URL that can be served by the existing show action
+      serve_url = "/marketing/generated/playground-live/#{filename}"
+
+      render json: {
+        success: true,
+        url: serve_url,
+        filename: filename,
+        product: product,
+        template: template,
+        model: model,
+        prompt: prompt,
+        full_prompt: full_prompt,
+        size: size,
+        generated_at: Time.current.iso8601
+      }
+
+    rescue Net::ReadTimeout, Net::OpenTimeout => e
+      render json: { error: "Request timed out. Please try again." }, status: :gateway_timeout
+    rescue JSON::ParserError => e
+      render json: { error: "Invalid response from API" }, status: :bad_gateway
+    rescue StandardError => e
+      Rails.logger.error("Image generation failed: #{e.message}")
+      render json: { error: "Generation failed: #{e.message}" }, status: :internal_server_error
+    end
   end
 
   def publish_to_n8n
@@ -195,8 +279,65 @@ class MarketingController < ApplicationController
     nil
   end
 
+  # Sanitize a single filename component (product name, template name, etc.)
+  # to prevent path traversal via user-controlled filename parts.
+  # Strips everything except alphanumerics, hyphens, and underscores.
   def sanitize_filename_component(input)
-    input.to_s.gsub(/[^a-zA-Z0-9_-]/, "").presence || "unnamed"
+    sanitized = input.to_s.gsub(/[^a-zA-Z0-9\-_]/, "")
+    sanitized.presence || "unknown"
+  end
+
+  def build_tree(root_path, search_query = "")
+    tree = { name: "marketing", path: "", type: :directory, children: [] }
+
+    return tree unless Dir.exist?(root_path)
+
+    entries = Dir.glob("#{root_path}/**/*", File::FNM_DOTMATCH).reject { |f| File.basename(f).start_with?(".") }
+
+    entries.each do |full_path|
+      relative = full_path.sub("#{root_path}/", "")
+      next if search_query.present? && !relative.downcase.include?(search_query.downcase)
+
+      parts = relative.split("/")
+      insert_into_tree(tree, parts, File.directory?(full_path), relative)
+    end
+
+    sort_tree(tree)
+    tree
+  end
+
+  def insert_into_tree(tree, parts, is_dir, full_relative_path)
+    current = tree
+
+    parts.each_with_index do |part, index|
+      is_last = index == parts.length - 1
+      existing = current[:children].find { |c| c[:name] == part }
+
+      if existing
+        current = existing
+      else
+        node = {
+          name: part,
+          path: parts[0..index].join("/"),
+          type: is_last && !is_dir ? :file : :directory,
+          children: []
+        }
+        node[:extension] = File.extname(part).downcase if node[:type] == :file
+        current[:children] << node
+        current = node
+      end
+    end
+  end
+
+  def sort_tree(node)
+    return unless node[:children]
+
+    node[:children].sort_by! { |c| [c[:type] == :directory ? 0 : 1, c[:name].downcase] }
+    node[:children].each { |c| sort_tree(c) }
+  end
+
+  def viewable?(ext)
+    VIEWABLE_EXTENSIONS.include?(ext)
   end
 
   def image?(ext)
