@@ -2548,3 +2548,10 @@
 **Files:** app/controllers/concerns/gateway_config_patchable.rb, app/controllers/compaction_config_controller.rb, app/controllers/message_queue_config_controller.rb, app/controllers/session_reset_config_controller.rb, app/controllers/sandbox_config_controller.rb, app/controllers/media_config_controller.rb
 **Verify:** 56 tests pass across 4 test files (compaction, sandbox, session_reset, config_pages) + concern test. 0 failures ✅
 **Risk:** low (extracted method preserves exact same behavior, existing tests confirm)
+
+## [2026-02-15 08:58] - Category: Testing + Code Quality — STATUS: ✅ VERIFIED
+**What:** Added 7 controller tests for SessionMaintenanceController (auth, gateway config, show with config/sessions, error handling, update with clamping, update error). Also refactored the `update` method to use `patch_and_redirect` concern helper (6th controller DRY'd).
+**Why:** SessionMaintenanceController had zero tests. Tests verify auth gating, gateway error handling, config extraction, session stats aggregation, parameter clamping (prune_after_hours 0→1), and error flash messages.
+**Files:** app/controllers/session_maintenance_controller.rb, test/controllers/session_maintenance_controller_test.rb (new)
+**Verify:** 7 tests pass, 15 assertions, 0 failures ✅
+**Risk:** low (additive tests, update method uses same extracted helper)
