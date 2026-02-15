@@ -4,7 +4,7 @@ class BehavioralIntervention < ApplicationRecord
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
   strict_loading :n_plus_one
 
-  belongs_to :user, inverse_of: :user
+  belongs_to :user, inverse_of: :behavioral_interventions
   belongs_to :audit_report, optional: true
 
   STATUSES = %w[active resolved regressed].freeze

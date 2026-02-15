@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# == Schema Information
 #
 # Table name: swarm_ideas
 #
@@ -25,10 +24,13 @@
 #  updated_at        :datetime         not null
 #
 class SwarmIdea < ApplicationRecord
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
+
   MODELS = %w[opus codex gemini glm groq cerebras minimax flash].freeze
   CATEGORIES = %w[code research marketing infra fitness finance personal].freeze
-  belongs_to :user, inverse_of: :user
-  belongs_to :board, optional: true
+  belongs_to :user, inverse_of: :swarm_ideas
+  belongs_to :board, optional: true, inverse_of: :swarm_ideas
 
   # --- Scopes ---
   scope :favorites, -> { where(favorite: true) }
@@ -55,6 +57,6 @@ class SwarmIdea < ApplicationRecord
 
   # Returns a display string like "x3" for launch count, or nil if never launched
   def launch_count_display
-    times_launched.to_i > 0 ? "\u00d7#{times_launched}" : nil
+    times_launched.to_i > 0 ? "×#{times_launched}" : nil
   end
 end
