@@ -2684,3 +2684,32 @@
 **Files:** app/controllers/profiles_controller.rb
 **Verify:** ruby -c passed, bin/rails test — 1904 runs, 0 failures, 0 errors
 **Risk:** low (single endpoint fix, no schema change)
+
+---
+
+## Session Summary (2026-02-15 09:38 - 10:30)
+
+**8 improvement cycles in ~52 minutes**
+
+### Key Metrics
+- **New tests added:** 81 tests across 8 previously untested controllers
+- **Controllers now at 100% test file coverage:** All 72 controllers have test suites
+- **Security fixes:** 1 (cross-user data leak via shared global personas)
+- **Bug fixes:** 1 (broken test_notification passing wrong type to ExternalNotificationService)
+- **DRY refactors:** 1 (RunnerLease.create_for_task! factory method, deduped 3 sites)
+- **Total test count:** 1904 runs, 4364 assertions, 0 failures, 0 errors
+
+### Improvements by Category
+1. **Security:** Scope Task count queries to current_user in AgentPersonasController (cross-user leak fix)
+2. **Testing:** 17 tests for SkillManagerController (auth, CRUD, validation, gateway errors)
+3. **Testing:** 13 tests for CompactionConfigController (compaction modes, pruning, clamping)
+4. **Testing:** 22 tests for TypingConfig + IdentityConfig + LoggingConfig controllers
+5. **Code Quality (DRY):** RunnerLease.create_for_task! factory method, DRY 3 creation sites
+6. **Testing:** 20 tests for MediaConfig + MessageQueueConfig + ConfigHub + SendPolicy controllers
+7. **Testing:** 9 tests for ChannelConfigController (last untested — 100% coverage milestone!)
+8. **Bug Fix:** Fix broken test_notification passing User instead of Task to ExternalNotificationService
+
+### Cherry-Pick Priority
+- `0b0749e` — Cross-user Task count data leak in AgentPersonasController
+- `f1c2e79` — Broken test_notification in ProfilesController
+- `d3b55ac` — RunnerLease.create_for_task! DRY extraction
