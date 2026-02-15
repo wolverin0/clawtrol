@@ -4,10 +4,18 @@ class TaskActivity < ApplicationRecord
   belongs_to :task
   belongs_to :user, optional: true
 
-  validates :action, presence: true
-
   ACTIONS = %w[created updated moved auto_claimed].freeze
   TRACKED_FIELDS = %w[name priority due_date].freeze
+
+  validates :action, presence: true, inclusion: { in: ACTIONS }
+  validates :source, inclusion: { in: %w[web api system], allow_blank: true }
+  validates :actor_type, inclusion: { in: %w[user agent system], allow_blank: true }
+  validates :actor_name, length: { maximum: 200 }, allow_blank: true
+  validates :actor_emoji, length: { maximum: 20 }, allow_blank: true
+  validates :note, length: { maximum: 2000 }, allow_blank: true
+  validates :field_name, length: { maximum: 100 }, allow_blank: true
+  validates :old_value, length: { maximum: 1000 }, allow_blank: true
+  validates :new_value, length: { maximum: 1000 }, allow_blank: true
 
   scope :recent, -> { order(created_at: :desc) }
 
