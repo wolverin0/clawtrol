@@ -282,32 +282,35 @@ class TaskTest < ActiveSupport::TestCase
 
   # --- Pipeline Stage Transitions ---
 
-  test "can set pipeline stage to classified from unstarted" do
+  test "can set pipeline stage to triaged from unstarted" do
     task = Task.create!(name: "Pipeline test", board: boards(:one), user: users(:one), pipeline_stage: :unstarted)
-    task.pipeline_stage = :classified
+    task.pipeline_stage = :triaged
     assert task.valid?
   end
 
   test "cannot skip pipeline stages" do
     task = Task.create!(name: "Pipeline skip", board: boards(:one), user: users(:one), pipeline_stage: :unstarted)
-    task.pipeline_stage = :dispatched
+    task.pipeline_stage = :routed
     assert_not task.valid?
     assert task.errors[:pipeline_stage].any?
   end
 
-  test "dispatched requires execution plan" do
-    task = Task.create!(name: "No plan", board: boards(:one), user: users(:one), pipeline_stage: :unstarted)
-    task.update_columns(pipeline_stage: Task.pipeline_stages[:planned]) # skip validations to set up state
-    task.pipeline_stage = :dispatched
+  test "executing requires routed stage" do
+    task = Task.create!(name: "Not routed", board: boards(:one), user: users(:one), pipeline_stage: :unstarted)
+    task.update_columns(pipeline_stage: Task.pipeline_stages[:triaged]) # skip validations to set up state
+    task.pipeline_stage = :executing
     assert_not task.valid?
     assert task.errors[:pipeline_stage].any?
   end
 
-  test "dispatched with execution plan is valid" do
-    task = Task.create!(name: "With plan", board: boards(:one), user: users(:one), pipeline_stage: :unstarted, execution_plan: "Step 1: do the thing")
-    task.update_columns(pipeline_stage: Task.pipeline_stages[:planned])
-    task.pipeline_stage = :dispatched
-    assert task.valid?
+  test "valid transition through full pipeline" do
+    task = Task.create!(name: "Full pipeline", board: boards(:one), user: users(:one), pipeline_stage: :unstarted,
+                         compiled_prompt: "Execute this task", routed_model: "opus", pipeline_enabled: true)
+    # Set to routed via SQL to skip transition validation, then reload
+    task.update_columns(pipeline_stage: "routed")
+    task.reload
+    task.pipeline_stage = :executing
+    assert task.valid?, "Expected executing from routed to be valid, errors: #{task.errors.full_messages}"
   end
 
   # --- Constants ---
