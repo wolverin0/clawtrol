@@ -2822,3 +2822,10 @@
 **Files:** test/services/workflow_definition_validator_test.rb
 **Verify:** 27 runs, 57 assertions, 0 failures
 **Risk:** low (test-only change)
+
+## [2026-02-15 10:56] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 17 new Task model tests for agent_integration concern (50→67 tests)
+**Why:** Task model has 824 lines across 3 files with only 50 tests. Added coverage for: assign/unassign agent, error tracking (set_error!/clear_error!), handoff!, retry counting, review lifecycle (start_review!/complete_review!), review type predicates, create_followup_task!, followup_task?, and runner_lease_active? queries.
+**Files:** test/models/task_test.rb
+**Verify:** 67 runs, 130 assertions, 0 failures
+**Risk:** low (test-only change)
