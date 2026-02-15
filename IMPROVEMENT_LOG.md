@@ -2534,3 +2534,45 @@
 **Files:** app/controllers/hooks_dashboard_controller.rb, test/controllers/hooks_dashboard_controller_test.rb (new)
 **Verify:** 7 tests pass, 12 assertions, 0 failures ✅
 **Risk:** low (scoping fix is additive, tests confirm behavior)
+
+## [2026-02-15 08:45] - Category: Security + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed 2 unscoped data-leak queries in CanvasController (factory_progress_template used global FactoryCycleLog.all, cost_summary_template used unscoped CostSnapshot). Both now scoped to current_user. Added 10 controller tests covering auth, gateway config, push validation (XSS rejection), snapshot/hide parameter validation, templates endpoint.
+**Why:** FactoryCycleLog and CostSnapshot queries were not scoped to current_user — any authenticated user could see all users' factory progress and cost data in Canvas templates. Real data isolation bugs.
+**Files:** app/controllers/canvas_controller.rb, test/controllers/canvas_controller_test.rb (new)
+**Verify:** 10 tests pass, 31 assertions, 0 failures ✅
+**Risk:** low (scoping fix is additive, tests confirm behavior)
+
+## [2026-02-15 08:53] - Category: Code Quality (DRY) — STATUS: ✅ VERIFIED
+**What:** Added `patch_and_redirect` helper to GatewayConfigPatchable concern and refactored 5 config controllers (Compaction, MessageQueue, SessionReset, Sandbox, Media) to use it. Each controller's `update` method shrank from 13-15 lines to 7 lines, eliminating duplicated gateway patch + redirect + error handling + cache invalidation + rescue blocks.
+**Why:** 5+ controllers duplicated the exact same pattern: build patch → call config_patch → check error → redirect with flash → rescue. The new `patch_and_redirect` method centralizes this, reducing ~50 lines of duplicated code and ensuring consistent error handling and cache invalidation across all config pages.
+**Files:** app/controllers/concerns/gateway_config_patchable.rb, app/controllers/compaction_config_controller.rb, app/controllers/message_queue_config_controller.rb, app/controllers/session_reset_config_controller.rb, app/controllers/sandbox_config_controller.rb, app/controllers/media_config_controller.rb
+**Verify:** 56 tests pass across 4 test files (compaction, sandbox, session_reset, config_pages) + concern test. 0 failures ✅
+**Risk:** low (extracted method preserves exact same behavior, existing tests confirm)
+
+## [2026-02-15 08:58] - Category: Testing + Code Quality — STATUS: ✅ VERIFIED
+**What:** Added 7 controller tests for SessionMaintenanceController (auth, gateway config, show with config/sessions, error handling, update with clamping, update error). Also refactored the `update` method to use `patch_and_redirect` concern helper (6th controller DRY'd).
+**Why:** SessionMaintenanceController had zero tests. Tests verify auth gating, gateway error handling, config extraction, session stats aggregation, parameter clamping (prune_after_hours 0→1), and error flash messages.
+**Files:** app/controllers/session_maintenance_controller.rb, test/controllers/session_maintenance_controller_test.rb (new)
+**Verify:** 7 tests pass, 15 assertions, 0 failures ✅
+**Risk:** low (additive tests, update method uses same extracted helper)
+
+## [2026-02-15 09:03] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed 4 unscoped Rails cache keys that could leak data between users. AnalyticsController, CommandController, TokensController, and CronjobsController all used global cache keys (e.g. "analytics/openclaw_cost/v2/period=7d") without user scoping. In a multi-user setup, user A's cached gateway data would be served to user B.
+**Why:** Cache key collision is a data isolation bug. When user A's analytics/sessions/tokens/cronjobs are cached, user B hitting the same endpoint within the TTL would see user A's data. Fixed by adding `user=#{current_user.id}` to all 4 cache keys.
+**Files:** app/controllers/analytics_controller.rb, app/controllers/command_controller.rb, app/controllers/tokens_controller.rb, app/controllers/cronjobs_controller.rb
+**Verify:** 13 tests pass across 4 test files ✅
+**Risk:** low (cache key change only, worst case = cache miss on first request after deploy)
+
+## [2026-02-15 09:07] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added 6 controller tests for MemoryDashboardController: auth redirect, gateway config check, show with plugin/memory data, gateway error handling, blank search query, overly long search query (500 char limit).
+**Why:** MemoryDashboardController had zero tests. Tests verify auth gating, gateway config redirection, plugin extraction from health data, memory stats extraction, search input validation (blank + length), and graceful error handling.
+**Files:** test/controllers/memory_dashboard_controller_test.rb (new)
+**Verify:** 6 tests pass, 7 assertions, 0 failures ✅
+**Risk:** low (additive tests only)
+
+## [2026-02-15 09:14] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed stale `archived_at` timestamp on unarchived tasks. The `track_completion_time` callback only cleared `completed_at` when leaving `done`, but never cleared `archived_at` when leaving `archived`. This meant unarchived tasks retained a stale `archived_at` timestamp. Added 5 new tests for completion/archival timestamp lifecycle (set on done, clear on un-done, set on archived, clear on unarchived, clear on archived→done transition).
+**Why:** Stale `archived_at` could cause issues with any code that checks `task.archived_at.present?` to determine if a task was ever archived, queries using `archived_at` for ordering, or the `archived` scope. The fix ensures both timestamps are cleared when leaving their respective terminal states.
+**Files:** app/models/task.rb, test/models/task_test.rb
+**Verify:** 50 task model tests pass (45 existing + 5 new), 96 assertions, 0 failures ✅
+**Risk:** low (additive nil-clearing in callback, only affects future state transitions)
