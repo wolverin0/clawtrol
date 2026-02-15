@@ -1,62 +1,101 @@
 # frozen_string_literal: true
 
-# Service for applying bulk actions to a set of tasks on a board.
-# Used by Boards::TasksController#bulk_update.
+# Handles bulk task operations: move status, change model, archive, delete.
+# Extracted from Boards::TasksController to keep controllers thin.
+#
+# Usage:
+#   result = BulkTaskService.new(
+#     board: board,
+#     task_ids: [1, 2, 3],
+#     action_type: "move_status",
+#     value: "done"
+#   ).call
+#
+#   result.success        # => true/false
+#   result.error          # => error message (if failed)
+#   result.affected_count # => number of tasks affected
+#   result.affected_statuses # => ["inbox", "done"] (statuses touched)
 class BulkTaskService
-  Result = Struct.new(
-    :success,
-    :error,
-    :affected_count,
-    :affected_statuses,
-    keyword_init: true
-  )
+  Result = Struct.new(:success, :error, :affected_count, :affected_statuses, keyword_init: true)
 
-  VALID_ACTIONS = %w[move_status change_model archive delete].freeze
+  ALLOWED_ACTIONS = %w[move_status change_model archive delete].freeze
+
+  attr_reader :board, :task_ids, :action_type, :value
 
   def initialize(board:, task_ids:, action_type:, value: nil)
     @board = board
-    @task_ids = Array(task_ids).map(&:to_i).uniq
+    @task_ids = Array(task_ids).map(&:to_i).reject(&:zero?)
     @action_type = action_type.to_s
     @value = value
   end
 
   def call
-    return Result.new(success: false, error: "No tasks selected", affected_count: 0, affected_statuses: []) if @task_ids.empty?
-    return Result.new(success: false, error: "Unknown action", affected_count: 0, affected_statuses: []) unless VALID_ACTIONS.include?(@action_type)
+    return Result.new(success: false, error: "No tasks selected") if task_ids.empty?
+    return Result.new(success: false, error: "Invalid action: #{action_type}") unless ALLOWED_ACTIONS.include?(action_type)
 
-    tasks = @board.tasks.where(id: @task_ids)
-    return Result.new(success: false, error: "No matching tasks found", affected_count: 0, affected_statuses: []) if tasks.empty?
+    tasks = board.tasks.where(id: task_ids)
+    return Result.new(success: false, error: "No matching tasks found") if tasks.empty?
 
-    affected_statuses = tasks.distinct.pluck(:status)
+    affected_statuses = tasks.pluck(:status).uniq
 
-    case @action_type
+    case action_type
     when "move_status"
-      new_status = @value.to_s
-      begin
-        Task.statuses.fetch(new_status)
-      rescue KeyError
-        return Result.new(success: false, error: "Invalid status", affected_count: 0, affected_statuses: affected_statuses)
-      end
-
-      affected = tasks.update_all(status: Task.statuses.fetch(new_status), updated_at: Time.current)
-      Result.new(success: true, affected_count: affected, affected_statuses: (affected_statuses + [new_status]).uniq)
-
+      move_status(tasks, affected_statuses)
     when "change_model"
-      # Task model validation already restricts values; keep this permissive here.
-      affected = tasks.update_all(model: @value.presence, updated_at: Time.current)
-      Result.new(success: true, affected_count: affected, affected_statuses: affected_statuses)
-
+      change_model(tasks, affected_statuses)
     when "archive"
-      affected = tasks.update_all(status: Task.statuses.fetch("archived"), updated_at: Time.current)
-      Result.new(success: true, affected_count: affected, affected_statuses: (affected_statuses + ["archived"]).uniq)
-
+      archive_tasks(tasks, affected_statuses)
     when "delete"
-      count = 0
-      tasks.find_each do |task|
-        task.destroy!
-        count += 1
-      end
-      Result.new(success: true, affected_count: count, affected_statuses: affected_statuses)
+      delete_tasks(tasks, affected_statuses)
     end
+  rescue StandardError => e
+    Rails.logger.error("[BulkTaskService] #{action_type} failed: #{e.message}")
+    Result.new(success: false, error: e.message)
+  end
+
+  private
+
+  def move_status(tasks, affected_statuses)
+    unless Task.statuses.key?(value)
+      return Result.new(success: false, error: "Invalid status: #{value}")
+    end
+
+    count = tasks.update_all(
+      status: Task.statuses[value],
+      updated_at: Time.current
+    )
+
+    affected_statuses << value
+    Result.new(success: true, affected_count: count, affected_statuses: affected_statuses.uniq)
+  end
+
+  def change_model(tasks, affected_statuses)
+    if value.present? && !Task::MODELS.include?(value)
+      return Result.new(success: false, error: "Invalid model: #{value}")
+    end
+
+    count = tasks.update_all(
+      model: value.presence,
+      updated_at: Time.current
+    )
+
+    Result.new(success: true, affected_count: count, affected_statuses: affected_statuses)
+  end
+
+  def archive_tasks(tasks, affected_statuses)
+    count = tasks.update_all(
+      status: Task.statuses["archived"],
+      updated_at: Time.current
+    )
+
+    affected_statuses << "archived"
+    Result.new(success: true, affected_count: count, affected_statuses: affected_statuses.uniq)
+  end
+
+  def delete_tasks(tasks, affected_statuses)
+    count = tasks.count
+    tasks.destroy_all
+
+    Result.new(success: true, affected_count: count, affected_statuses: affected_statuses)
   end
 end
