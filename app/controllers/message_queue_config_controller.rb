@@ -27,7 +27,7 @@ class MessageQueueConfigController < ApplicationController
     if result["error"].present?
       redirect_to message_queue_config_path, alert: "Failed: #{result['error']}"
     else
-      Rails.cache.delete("queue_config/#{current_user.id}")
+      invalidate_config_cache("queue_config")
       redirect_to message_queue_config_path, notice: "Message queue configuration updated."
     end
   rescue StandardError => e
@@ -37,11 +37,7 @@ class MessageQueueConfigController < ApplicationController
   private
 
   def fetch_config
-    Rails.cache.fetch("queue_config/#{current_user.id}", expires_in: 30.seconds) do
-      gateway_client.config_get
-    end
-  rescue StandardError => e
-    { error: e.message }
+    cached_config_get("queue_config")
   end
 
   def extract_queue_config(config)

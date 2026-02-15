@@ -27,7 +27,7 @@ class SessionResetConfigController < ApplicationController
     if result["error"].present?
       redirect_to session_reset_config_path, alert: "Failed: #{result['error']}"
     else
-      Rails.cache.delete("session_reset/#{current_user.id}")
+      invalidate_config_cache("session_reset")
       redirect_to session_reset_config_path, notice: "Session reset policy updated."
     end
   rescue StandardError => e
@@ -37,11 +37,7 @@ class SessionResetConfigController < ApplicationController
   private
 
   def fetch_config
-    Rails.cache.fetch("session_reset/#{current_user.id}", expires_in: 30.seconds) do
-      gateway_client.config_get
-    end
-  rescue StandardError => e
-    { error: e.message }
+    cached_config_get("session_reset")
   end
 
   def extract_reset_config(config)

@@ -30,7 +30,7 @@ class CliBackendsController < ApplicationController
     if result["error"].present?
       redirect_to cli_backends_path, alert: "Failed: #{result['error']}"
     else
-      Rails.cache.delete("cli_backends/#{current_user.id}")
+      invalidate_config_cache("cli_backends")
       redirect_to cli_backends_path, notice: "Backend '#{backend_id}' updated."
     end
   rescue StandardError => e
@@ -40,11 +40,7 @@ class CliBackendsController < ApplicationController
   private
 
   def fetch_config
-    Rails.cache.fetch("cli_backends/#{current_user.id}", expires_in: 30.seconds) do
-      gateway_client.config_get
-    end
-  rescue StandardError => e
-    { error: e.message }
+    cached_config_get("cli_backends")
   end
 
   def extract_backends(config)
