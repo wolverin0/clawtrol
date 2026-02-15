@@ -5,7 +5,7 @@ class NightshiftMission < ApplicationRecord
   strict_loading :n_plus_one
 
   belongs_to :user, optional: true
-  has_many :nightshift_selections, dependent: :destroy, inverse_of: :nightshift_mission
+  has_many :nightshift_selections, dependent: :destroy, inverse_of: :nightshift_mission, counter_cache: :selection_count
 
   belongs_to :user, optional: true, inverse_of: :nightshift_missions
   has_many :nightshift_selections, dependent: :destroy, inverse_of: :nightshift_mission, counter_cache: :selection_count
