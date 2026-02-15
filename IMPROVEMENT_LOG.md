@@ -2713,3 +2713,10 @@
 - `0b0749e` — Cross-user Task count data leak in AgentPersonasController
 - `f1c2e79` — Broken test_notification in ProfilesController
 - `d3b55ac` — RunnerLease.create_for_task! DRY extraction
+
+## [2026-02-15 09:45] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Add robust error handling to all background jobs
+**Why:** 8 jobs had zero error handling — crashes would leave reviews stuck in "running" state, leak exceptions to ActiveJob without recovery. Added: retry_on for deadlocks + network errors in ApplicationJob base, discard_on for record-not-found in notification jobs, rescue blocks in RunValidationJob/RunDebateJob to mark reviews as failed on crash instead of staying perpetually "running".
+**Files:** app/jobs/application_job.rb, agent_auto_runner_job.rb, auto_claim_notify_job.rb, openclaw_notify_job.rb, factory_cycle_timeout_job.rb, nightshift_timeout_sweeper_job.rb, run_validation_job.rb, run_debate_job.rb
+**Verify:** ruby -c all OK, 44 job tests pass (0 failures), 50 task model tests pass
+**Risk:** low — retry/discard policies are conservative, rescue blocks re-raise after cleanup

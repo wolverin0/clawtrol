@@ -3,6 +3,9 @@
 class FactoryCycleTimeoutJob < ApplicationJob
   queue_as :default
 
+  # If the cycle log is gone, nothing to timeout
+  discard_on ActiveRecord::RecordNotFound
+
   def perform(cycle_log_id)
     cycle_log = FactoryCycleLog.find_by(id: cycle_log_id)
     return unless cycle_log
