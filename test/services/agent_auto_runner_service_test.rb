@@ -54,7 +54,8 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       board: board,
       name: "Stuck task",
       status: :up_next,
-      assigned_to_agent: true
+      assigned_to_agent: true,
+      pipeline_enabled: false
     )
 
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
@@ -99,7 +100,8 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       board: board,
       name: "Missing lease task",
       status: :up_next,
-      assigned_to_agent: true
+      assigned_to_agent: true,
+      pipeline_enabled: false
     )
 
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
@@ -144,6 +146,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       status: :up_next,
       assigned_to_agent: true,
       blocked: false,
+      pipeline_enabled: false,
       model: "gemini",
       validation_command: "bin/rails test"
     )
@@ -220,22 +223,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       end
 
       travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
-        # tick 1: unstarted -> triaged
-        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
-        assert_equal "triaged", task.reload.pipeline_stage
-        refute task.assigned_to_agent?
-
-        Rails.cache.clear
-        cache.clear
-
-        # tick 2: triaged -> context_ready
-        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
-        assert_equal "context_ready", task.reload.pipeline_stage
-
-        Rails.cache.clear
-        cache.clear
-
-        # tick 3: context_ready -> routed, becomes runnable (assigned_to_agent) and gets a pipeline wake
+        # single tick: unstarted -> ... -> routed
         AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
         task.reload
         assert_equal "routed", task.pipeline_stage
@@ -262,6 +250,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       name: "Nightly task",
       status: :up_next,
       blocked: false,
+      pipeline_enabled: false,
       nightly: true
     )
 
