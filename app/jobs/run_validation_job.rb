@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class RunValidationJob < ApplicationJob
+  include TaskBroadcastable
+
   queue_as :default
 
   # Don't retry validation — it could re-run expensive commands
@@ -24,17 +26,5 @@ class RunValidationJob < ApplicationJob
     )
     broadcast_task_update(task) if task
     raise # re-raise for ActiveJob retry/discard logic
-  end
-
-  private
-
-  def broadcast_task_update(task)
-    Turbo::StreamsChannel.broadcast_action_to(
-      "board_#{task.board_id}",
-      action: :replace,
-      target: "task_#{task.id}",
-      partial: "boards/task_card",
-      locals: { task: task }
-    )
   end
 end
