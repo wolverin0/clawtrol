@@ -2042,3 +2042,10 @@
 **Files:** test/services/pipeline/auto_review_service_test.rb
 **Verify:** 17 runs, 34 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 05:56] - Category: Code Quality + Security — STATUS: ✅ VERIFIED
+**What:** Extracted `Api::HookAuthentication` concern with `authenticate_hook_token!` method. Removed duplicate hook token auth code from HooksController (2 instances) and NightshiftController (1 instance). All use `ActiveSupport::SecurityUtils.secure_compare` for timing-attack protection.
+**Why:** Same 5-line auth block was copy-pasted in 3 locations across 2 controllers. Single concern ensures consistency and makes hook auth changes atomic.
+**Files:** app/controllers/concerns/api/hook_authentication.rb, app/controllers/api/v1/hooks_controller.rb, app/controllers/api/v1/nightshift_controller.rb
+**Verify:** 121 API tests pass, 0 failures, 0 errors ✅
+**Risk:** low
