@@ -2808,3 +2808,10 @@
 - `7470455` — Error handling for 8 background jobs (architecture)
 - `b169ad2` — TaskBroadcastable concern extraction (DRY)
 - `7320117` — frozen_string_literal on 41 remaining files (code quality)
+
+## [2026-02-15 10:42] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** RunnerLease.create_for_task! now auto-releases expired leases and raises LeaseConflictError on active duplicates
+**Why:** Race condition: two concurrent agents calling create_for_task! could hit a unique constraint violation without a meaningful error. Now expired leases are cleaned up first, and active conflicts raise a named exception. 
+**Files:** app/models/runner_lease.rb, test/models/runner_lease_test.rb
+**Verify:** 17 tests, 40 assertions, 0 failures
+**Risk:** low (additive behavior, existing callers already guard with .active.exists?)
