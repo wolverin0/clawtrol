@@ -1953,3 +1953,18 @@
 **Files:** app/services/pipeline/claw_router_service.rb (fix), test/services/pipeline/claw_router_service_test.rb (new)
 **Verify:** 11/11 pass ✅, full suite 0 errors ✅
 **Risk:** high (critical bug fix — pipeline routing)
+
+## [2026-02-15 08:00] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Pipeline::ContextCompilerService tests (9 tests, 19 assertions). Covers context structure, task/board info, dependencies, pipeline logging, edge cases.
+**Files:** test/services/pipeline/context_compiler_service_test.rb (new)
+**Verify:** 9/9 pass ✅
+**Risk:** low
+
+## [2026-02-15 08:05] - Category: Security + Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** THREE fixes in pipeline controller:
+1. **CRITICAL Auth Bug**: Pipeline API used `ApiToken.find_by(token: token)` but there's no `token` column — should be `ApiToken.authenticate(token)` (SHA256 digest lookup). This means pipeline API auth was COMPLETELY BROKEN — no one could authenticate.
+2. **Reprocess Bug**: `reprocess` action set `pipeline_stage: nil` but column has NOT NULL constraint, causing PG::NotNullViolation. Fixed to reset to `"unstarted"`.
+3. Added 9 controller tests covering auth, status, task_log, enable/disable board, reprocess.
+**Files:** app/controllers/api/v1/pipeline_controller.rb (fix), test/controllers/api/v1/pipeline_controller_test.rb (new)
+**Verify:** 9/9 pass ✅, full suite: 903 runs, 2235 assertions, 0 failures, 0 errors ✅
+**Risk:** high (critical security + bug fix)
