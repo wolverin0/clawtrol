@@ -2569,3 +2569,10 @@
 **Files:** test/controllers/memory_dashboard_controller_test.rb (new)
 **Verify:** 6 tests pass, 7 assertions, 0 failures ✅
 **Risk:** low (additive tests only)
+
+## [2026-02-15 09:14] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed stale `archived_at` timestamp on unarchived tasks. The `track_completion_time` callback only cleared `completed_at` when leaving `done`, but never cleared `archived_at` when leaving `archived`. This meant unarchived tasks retained a stale `archived_at` timestamp. Added 5 new tests for completion/archival timestamp lifecycle (set on done, clear on un-done, set on archived, clear on unarchived, clear on archived→done transition).
+**Why:** Stale `archived_at` could cause issues with any code that checks `task.archived_at.present?` to determine if a task was ever archived, queries using `archived_at` for ordering, or the `archived` scope. The fix ensures both timestamps are cleared when leaving their respective terminal states.
+**Files:** app/models/task.rb, test/models/task_test.rb
+**Verify:** 50 task model tests pass (45 existing + 5 new), 96 assertions, 0 failures ✅
+**Risk:** low (additive nil-clearing in callback, only affects future state transitions)

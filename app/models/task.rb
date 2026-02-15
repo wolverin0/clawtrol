@@ -241,13 +241,18 @@ end
     self.completed = (status == "done")
   end
 
+  # Track completion and archival timestamps.
+  # Clears stale timestamps when moving out of terminal states
+  # to prevent stale data on unarchived/reopened tasks.
   def track_completion_time
     if status == "done"
       self.completed_at = Time.current
+      self.archived_at = nil
     elsif status == "archived"
       self.archived_at = Time.current
     else
       self.completed_at = nil
+      self.archived_at = nil
     end
   end
 
