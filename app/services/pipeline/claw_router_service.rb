@@ -47,6 +47,10 @@ module Pipeline
       # User-set model always wins
       return @task.model if @task.model.present?
 
+      # Planning tasks must never route to low tiers (e.g. glm).
+      # Snake requirement: minimum gemini3 pro preview or codex; default to codex.
+      return "codex" if planning_task?
+
       # Nightshift uses mission model if available
       if @task.pipeline_type == "nightshift" && @task.respond_to?(:nightshift_mission)
         mission_model = @task.nightshift_mission&.model
@@ -56,6 +60,13 @@ module Pipeline
       # Tier from pipeline config
       tier_name = pipeline_cfg&.dig(:model_tier)&.to_s || "free"
       resolve_model_from_tier(tier_name)
+    end
+
+    def planning_task?
+      normalized_tags = Array(@task.tags).map { |t| t.to_s.downcase.strip }
+      return true if normalized_tags.include?("planning")
+
+      @task.name.to_s.start_with?("[Planning]")
     end
 
     def resolve_model_from_tier(tier_name)
