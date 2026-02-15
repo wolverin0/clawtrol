@@ -2885,3 +2885,10 @@
 **Files:** app/models/session.rb, test/models/session_test.rb
 **Verify:** Ruby syntax OK
 **Risk:** low (additive model improvements)
+
+## [2026-02-15 15:40] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Add Rack::Attack API rate limiting
+**Why:** API endpoints lacked rate limiting, vulnerable to abuse. Added rack-attack gem with tiered limits: 100 req/min (auth), 20 req/min (anon), 30 req/min (writes). Whitelisted internal gateway requests. Special throttle for task creation to prevent spam.
+**Files:** Gemfile, config/application.rb, config/initializers/rack_attack.rb
+**Verify:** Ruby syntax OK, config loads without errors
+**Risk:** low (security improvement, additive middleware)
