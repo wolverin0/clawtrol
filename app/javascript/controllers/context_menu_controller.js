@@ -11,14 +11,20 @@ export default class extends Controller {
     this.pressTimer = null
     this.touchStartX = 0
     this.touchStartY = 0
+    this.longPressTriggered = false
+    this.suppressNextClick = false
 
     this.onTouchStart = this.onTouchStart.bind(this)
     this.onTouchEnd = this.onTouchEnd.bind(this)
     this.onTouchMove = this.onTouchMove.bind(this)
+    this.onTouchCancel = this.onTouchCancel.bind(this)
+    this.onClickCapture = this.onClickCapture.bind(this)
 
     this.element.addEventListener("touchstart", this.onTouchStart, { passive: true })
     this.element.addEventListener("touchend", this.onTouchEnd)
     this.element.addEventListener("touchmove", this.onTouchMove)
+    this.element.addEventListener("touchcancel", this.onTouchCancel)
+    this.element.addEventListener("click", this.onClickCapture, true)
   }
 
   disconnect() {
@@ -26,15 +32,21 @@ export default class extends Controller {
     this.element.removeEventListener("touchstart", this.onTouchStart)
     this.element.removeEventListener("touchend", this.onTouchEnd)
     this.element.removeEventListener("touchmove", this.onTouchMove)
+    this.element.removeEventListener("touchcancel", this.onTouchCancel)
+    this.element.removeEventListener("click", this.onClickCapture, true)
   }
 
   onTouchStart(event) {
     const touch = event.touches[0]
     this.touchStartX = touch.clientX
     this.touchStartY = touch.clientY
+    this.longPressTriggered = false
 
     this.clearTimer()
     this.pressTimer = setTimeout(() => {
+      this.longPressTriggered = true
+      this.suppressNextClick = true
+
       // Simulate a contextmenu event at the touch position
       const contextEvent = new MouseEvent("contextmenu", {
         bubbles: true,
@@ -48,6 +60,16 @@ export default class extends Controller {
 
   onTouchEnd(event) {
     this.clearTimer()
+
+    // After long-press, block the synthetic click so modal doesn't open/flicker
+    if (this.longPressTriggered) {
+      event.preventDefault()
+    }
+  }
+
+  onTouchCancel() {
+    this.clearTimer()
+    this.longPressTriggered = false
   }
 
   onTouchMove(event) {
@@ -60,6 +82,15 @@ export default class extends Controller {
         this.clearTimer()
       }
     }
+  }
+
+  onClickCapture(event) {
+    if (!this.suppressNextClick) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    this.suppressNextClick = false
+    this.longPressTriggered = false
   }
 
   clearTimer() {
