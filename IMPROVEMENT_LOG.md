@@ -2131,3 +2131,10 @@
 **Files:** app/controllers/concerns/gateway_client_accessible.rb, app/controllers/concerns/gateway_config_patchable.rb, app/controllers/{hooks_dashboard,cli_backends,session_reset_config,model_providers,compaction_config,sandbox_config,media_config,channel_accounts,send_policy,message_queue_config,dm_policy}_controller.rb
 **Verify:** Full suite: 1528 runs, 3790 assertions, 0 failures, 0 errors ✅
 **Risk:** low (behavioral identity — same caching, same error handling)
+
+## [2026-02-15 06:00] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Fix MediaConfigController ignoring gateway errors (symbol-only key check)
+**Why:** `cached_config_get` returns `{ "error" => msg }` (string keys), but `extract_media_config` and `show` only checked `config[:error]` (symbol key). When gateway errored, the error was silently ignored and blank defaults weren't applied — user saw empty config instead of error message. All other controllers already check both `config["error"]` AND `config[:error]`.
+**Files:** app/controllers/media_config_controller.rb
+**Verify:** Full suite: 1528 runs, 3790 assertions, 0 failures, 0 errors ✅
+**Risk:** low (adds missing error check, no behavior change on success path)
