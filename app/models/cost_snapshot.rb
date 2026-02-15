@@ -60,6 +60,8 @@ class CostSnapshot < ApplicationRecord
   class << self
     # Get the trend direction: :up, :down, :flat
     def trend(user:, period: "daily", lookback: 7)
+      lookback = [lookback.to_i, 2].max  # Need at least 2 data points for trend
+
       snapshots = for_user(user)
         .where(period: period)
         .order(snapshot_date: :desc)
@@ -68,8 +70,9 @@ class CostSnapshot < ApplicationRecord
 
       return :flat if snapshots.size < 2
 
-      recent_avg = snapshots.first(lookback / 2).sum / (lookback / 2).to_f
-      older_avg = snapshots.last(lookback / 2).sum / (lookback / 2).to_f
+      half = [lookback / 2, 1].max  # Avoid division by zero
+      recent_avg = snapshots.first(half).sum / half.to_f
+      older_avg = snapshots.last(half).sum / half.to_f
 
       return :flat if older_avg.zero?
 
