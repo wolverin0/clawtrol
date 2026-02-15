@@ -181,7 +181,8 @@ class CanvasController < ApplicationController
   end
 
   def factory_progress_template
-    recent = FactoryCycleLog.order(created_at: :desc).limit(5)
+    user_cycle_scope = FactoryCycleLog.joins(:factory_loop).where(factory_loops: { user_id: current_user.id })
+    recent = user_cycle_scope.order(created_at: :desc).limit(5)
     items = recent.map { |c| "<li>#{ERB::Util.html_escape(c.category)}: #{ERB::Util.html_escape(c.description&.truncate(60))}</li>" }.join
 
     <<~HTML
@@ -191,15 +192,15 @@ class CanvasController < ApplicationController
           #{items.presence || "<li>No recent cycles</li>"}
         </ul>
         <div style="margin-top: 8px; font-size: 10px; color: #484f58; text-align: right;">
-          Total cycles: #{FactoryCycleLog.count}
+          Total cycles: #{user_cycle_scope.count}
         </div>
       </div>
     HTML
   end
 
   def cost_summary_template
-    today_snapshots = CostSnapshot.where("created_at >= ?", Time.current.beginning_of_day)
-    total_cost = today_snapshots.sum(:cost_usd)
+    today_snapshots = CostSnapshot.where(user_id: current_user.id).where("created_at >= ?", Time.current.beginning_of_day)
+    total_cost = today_snapshots.sum(:total_cost)
 
     <<~HTML
       <div style="font-family: system-ui, -apple-system, sans-serif; padding: 16px; background: #1b2838; color: #c6d4df; border-radius: 12px;">
