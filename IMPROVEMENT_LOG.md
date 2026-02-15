@@ -1740,3 +1740,66 @@
 **Files:** app/controllers/boards/tasks_controller.rb
 **Verify:** 1361 tests pass ✅
 **Risk:** low
+
+## [2026-02-15 03:45] - Category: Code Quality + Testing — STATUS: ✅ VERIFIED
+**What:** Added comprehensive validations for NightshiftMission (name length, frequency/category/model inclusion, estimated_minutes range, position non-negative, days_of_week array of 1-7, icon length, description length) and NightshiftSelection (title presence+length, scheduled_date presence, result length, uniqueness of mission per date, completed_at requires terminal status, launched_at not future). Created 34 model tests covering all validations, scopes, due_tonight? logic, and to_mission_hash.
+**Why:** Re-implementing lost improvement from previous factory runs. Both models had minimal validations; mission only had `validates :name, presence: true`, selection only had status inclusion. Without these, invalid data could persist in DB.
+**Files:** app/models/nightshift_mission.rb, app/models/nightshift_selection.rb, test/models/nightshift_mission_test.rb (new), test/models/nightshift_selection_test.rb (new)
+**Verify:** ruby -c ✅, 34/34 tests pass (70 assertions, 0 failures) ✅
+**Risk:** low (additive validations, existing data should conform)
+
+## [2026-02-15 03:55] - Category: UX/Frontend (Accessibility) — STATUS: ✅ VERIFIED
+**What:** Created reusable FocusTrap helper class (app/javascript/helpers/focus_trap.js) implementing WCAG 2.1 keyboard navigation: Tab/Shift+Tab cycling, Escape to close, auto-focus first element, restore previous focus on deactivate. Applied to generic modal_controller.js (used by followup, new_task, keyboard_help, etc.) and delete_confirm_controller.js. Both now set role="dialog"/role="alertdialog" and aria-modal="true" when opened. Added importmap pin for helpers directory.
+**Why:** Re-implementing lost improvement. The generic modal_controller had Escape support but NO focus trapping — Tab key would escape the modal, breaking keyboard-only navigation. The delete_confirm had manual ESC handling but same gap.
+**Files:** app/javascript/helpers/focus_trap.js (new), app/javascript/controllers/modal_controller.js, app/javascript/controllers/delete_confirm_controller.js, config/importmap.rb
+**Verify:** node -c ✅ on all 3 JS files, ruby -c ✅ on importmap.rb
+**Risk:** low (additive accessibility, no behavioral change for mouse users)
+
+## [2026-02-15 04:02] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Created 35 model tests for TaskTemplate (18 tests: validations for name/slug/model/priority/validation_command safety, slug uniqueness per user + global, find_for_user priority, display_name, to_task_attributes, scopes) and TaskActivity (17 tests: action validation, record_creation web/api, record_status_change tracking, record_changes filtering, description generation for all action types, recent scope ordering, fixture smoke). Created fixtures for both models.
+**Why:** Re-implementing lost improvement. These models had zero test coverage. TaskTemplate has critical security validation (validation_command safety). TaskActivity tracks audit history.
+**Files:** test/models/task_template_test.rb (new), test/models/task_activity_test.rb (new), test/fixtures/task_templates.yml (new), test/fixtures/task_activities.yml (new)
+**Verify:** ruby -c ✅, 35/35 tests pass (73 assertions, 0 failures) ✅
+**Risk:** low (test additions only)
+
+## [2026-02-15 04:12] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed IDOR vulnerability on Workflow model. `Workflow.find(params[:id])` in both API and web controllers allowed any authenticated user to access/modify any workflow. Added `belongs_to :user` to model, created `for_user` scope (includes user-owned + global), scoped all controller queries through `Workflow.for_user(current_user)`, and auto-assign `user: current_user` on create.
+**Why:** The workflows table has a `user_id` column but it was unused — any user could execute or edit any workflow by guessing IDs. Critical security fix.
+**Files:** app/models/workflow.rb, app/controllers/workflows_controller.rb, app/controllers/api/v1/workflows_controller.rb
+**Verify:** ruby -c ✅, 69 related tests pass (0 failures, 0 errors) ✅. Pre-existing test errors (AgentTestRecording missing model) unrelated.
+**Risk:** medium (behavioral change — workflows now scoped to user, but table already has user_id column)
+
+## [2026-02-15 04:18] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Created missing `AgentTestRecording` model class. The `agent_test_recordings` table exists in schema and both Task and User models had `has_many :agent_test_recordings` associations, but the model file was never created. This caused `NameError: Missing model class AgentTestRecording` in BoardTest, TaskRunTest, AgentMessageTest, and TaskTest whenever those associations were loaded (e.g., `dependent: :destroy` cascades). Added proper validations, scopes, and associations.
+**Why:** Pre-existing bug that caused ~42 test errors across 4+ test files. The table was created by a migration but the model file was lost or never committed.
+**Files:** app/models/agent_test_recording.rb (new)
+**Verify:** ruby -c ✅, BoardTest 24/24 pass (was 23/24+1error), TaskRunTest 42/42 pass, AgentMessageTest pass ✅
+**Risk:** low (additive — creates model for existing table/associations)
+
+## [2026-02-15 04:25] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed 4 broken TaskTest tests that referenced stale pipeline_stage enum values (`classified`, `dispatched`) which no longer exist in the Task model. The pipeline was refactored to use `triaged`, `context_ready`, `routed`, `executing`, `verifying`, `completed`, `failed` — but the tests weren't updated. Rewrote: "can set to classified" → "can set to triaged", "cannot skip stages" uses `routed` instead of `dispatched`, "dispatched requires plan" → "executing requires routed stage", "dispatched with plan" → "valid full pipeline transition" (with compiled_prompt/routed_model prereqs).
+**Why:** These 4 tests raised `ArgumentError: 'classified' is not a valid pipeline_stage` and `PG::NotNullViolation` on every test run, masking real failures.
+**Files:** test/models/task_test.rb
+**Verify:** ruby -c ✅, 41/41 TaskTest pass (79 assertions, 0 failures, 0 errors) ✅
+**Risk:** low (test fixes only)
+
+## [2026-02-15 04:32] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Created 11 model tests for Workflow: title presence validation, definition must be Hash (rejects string/array/nil), optional user association, `for_user` scope (includes owned + global, excludes other users'), fixture smoke tests. Also created fixtures (user-owned, inactive, other-user, global).
+**Why:** Workflow model had zero tests. The IDOR fix added `belongs_to :user` and `for_user` scope which needed test coverage. Tests verify the security fix works correctly.
+**Files:** test/models/workflow_test.rb (new), test/fixtures/workflows.yml (new)
+**Verify:** ruby -c ✅, 11/11 tests pass (25 assertions, 0 failures) ✅
+**Risk:** low (test additions only)
+
+## [2026-02-15 04:38] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Created 15 model tests for AgentTestRecording (model was created in cycle 5): name presence + length, status inclusion for all 4 statuses, session_id length constraint, action_count non-negative, user required + task optional, scopes (recent, by_status, verified, for_task), fixture smoke tests. Created fixtures with recorded and verified recordings.
+**Why:** New model created this session had zero tests. Validates all validations + scopes work correctly.
+**Files:** test/models/agent_test_recording_test.rb (new), test/fixtures/agent_test_recordings.yml (new)
+**Verify:** ruby -c ✅, 15/15 tests pass (29 assertions, 0 failures) ✅
+**Risk:** low (test additions only)
+
+## [2026-02-15 04:42] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Created 17 model tests for SwarmIdea: title presence, estimated_minutes positive/nil, associations (user required, board optional), scopes (favorites, enabled, recently_launched, by_category with nil), instance methods (launched_today? current/past/never, launch_count_display with/without launches), fixture smoke tests. Created fixtures for code_idea, favorite_idea, disabled_idea.
+**Why:** SwarmIdea model had zero tests. Tests cover all validations, scopes, and instance methods.
+**Files:** test/models/swarm_idea_test.rb (new), test/fixtures/swarm_ideas.yml (new)
+**Verify:** ruby -c ✅, 17/17 tests pass (38 assertions, 0 failures) ✅
+**Risk:** low (test additions only)
