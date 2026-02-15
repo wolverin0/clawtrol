@@ -1803,3 +1803,34 @@
 **Files:** test/models/swarm_idea_test.rb (new), test/fixtures/swarm_ideas.yml (new)
 **Verify:** ruby -c ✅, 17/17 tests pass (38 assertions, 0 failures) ✅
 **Risk:** low (test additions only)
+
+## [2026-02-15 04:50] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Created 17 model tests for SwarmIdea and 14 model tests for AgentTranscript. SwarmIdea: validations, scopes (favorites, enabled, recently_launched, by_category), instance methods (launched_today?, launch_count_display). AgentTranscript: session_id presence + uniqueness, status inclusion, optional associations, scopes (recent, for_task, with_prompt), integration test for `capture_from_jsonl!` (valid JSONL parsing, duplicate skip, error handling). Created fixtures for both.
+**Why:** Both models had zero test coverage. AgentTranscript has complex file parsing logic (`capture_from_jsonl!`) that deserved integration tests.
+**Files:** test/models/swarm_idea_test.rb (new), test/fixtures/swarm_ideas.yml (new), test/models/agent_transcript_test.rb (new), test/fixtures/agent_transcripts.yml (new)
+**Verify:** ruby -c ✅, SwarmIdea 17/17 pass, AgentTranscript 14/14 pass (total 73 assertions) ✅
+**Risk:** low (test additions only)
+
+## [2026-02-15 04:32] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Created 11 Workflow model tests: title presence, definition must be Hash (rejects string/array/nil), optional user, `for_user` scope (owned + global, excludes other users), fixture smoke tests.
+**Files:** test/models/workflow_test.rb (new), test/fixtures/workflows.yml (new)
+**Verify:** 11/11 pass (25 assertions) ✅
+**Risk:** low
+
+## [2026-02-15 04:25] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed 4 broken TaskTest pipeline_stage tests referencing stale enum values (`classified`, `dispatched`). Pipeline was refactored to `triaged/context_ready/routed/executing/verifying/completed/failed` but tests weren't updated.
+**Files:** test/models/task_test.rb
+**Verify:** 41/41 TaskTest pass ✅
+**Risk:** low
+
+## [2026-02-15 04:18] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Created missing `AgentTestRecording` model. Table and associations existed but model file was missing. Caused `NameError` in 4+ test files (BoardTest, TaskRunTest, AgentMessageTest, TaskTest).
+**Files:** app/models/agent_test_recording.rb (new)
+**Verify:** BoardTest 24/24 pass (was 23+1error), TaskRunTest 42/42 pass ✅
+**Risk:** low
+
+## [2026-02-15 04:12] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed IDOR on Workflow model. `Workflow.find(params[:id])` unscoped in both API and web controllers. Added `belongs_to :user`, `for_user` scope, scoped all queries.
+**Files:** app/models/workflow.rb, app/controllers/workflows_controller.rb, app/controllers/api/v1/workflows_controller.rb
+**Verify:** ruby -c ✅, 69 related tests pass ✅
+**Risk:** medium (behavioral change — workflows now user-scoped)
