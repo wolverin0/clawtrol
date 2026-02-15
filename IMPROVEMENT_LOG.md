@@ -2166,3 +2166,17 @@
 **Files:** test/controllers/heartbeat_config_controller_test.rb
 **Verify:** 13 runs, 27 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 06:22] - Category: Security — STATUS: ✅ VERIFIED
+**What:** SSRF protection for ProcessSavedLinkJob (fetch_content)
+**Why:** `fetch_content` makes HTTP GET requests to user-provided URLs (saved links) without SSRF validation. Users could save links like `http://192.168.100.186:5432/` or `http://169.254.169.254/latest/meta-data/` to probe internal services. Now blocks private/internal URLs before fetching. Reuses the SsrfProtection concern from cycle 7.
+**Files:** app/jobs/process_saved_link_job.rb
+**Verify:** Full suite: 1572 runs, 3691 assertions, 0 failures, 0 errors ✅
+**Risk:** low (blocks internal URLs — saved links should always be external)
+
+## [2026-02-15 06:26] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** SessionResetConfigController test suite (12 tests)
+**Why:** Session reset policy controller with zero test coverage — manages daily/idle/never reset modes, atHour, idleMinutes, resetByChannel, resetByType. Tests cover: auth (2), gateway config (1), show (1), mode validation (2), hour/minute clamping (2), boolean toggle (1), type filtering (1), constants (2)
+**Files:** test/controllers/session_reset_config_controller_test.rb
+**Verify:** 12 runs, 28 assertions, 0 failures, 0 errors ✅
+**Risk:** low
