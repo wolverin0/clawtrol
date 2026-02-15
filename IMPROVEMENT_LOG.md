@@ -1740,3 +1740,10 @@
 **Files:** app/controllers/boards/tasks_controller.rb
 **Verify:** 1361 tests pass ✅
 **Risk:** low
+
+## [2026-02-15 03:45] - Category: Code Quality + Testing — STATUS: ✅ VERIFIED
+**What:** Added comprehensive validations for NightshiftMission (name length, frequency/category/model inclusion, estimated_minutes range, position non-negative, days_of_week array of 1-7, icon length, description length) and NightshiftSelection (title presence+length, scheduled_date presence, result length, uniqueness of mission per date, completed_at requires terminal status, launched_at not future). Created 34 model tests covering all validations, scopes, due_tonight? logic, and to_mission_hash.
+**Why:** Re-implementing lost improvement from previous factory runs. Both models had minimal validations; mission only had `validates :name, presence: true`, selection only had status inclusion. Without these, invalid data could persist in DB.
+**Files:** app/models/nightshift_mission.rb, app/models/nightshift_selection.rb, test/models/nightshift_mission_test.rb (new), test/models/nightshift_selection_test.rb (new)
+**Verify:** ruby -c ✅, 34/34 tests pass (70 assertions, 0 failures) ✅
+**Risk:** low (additive validations, existing data should conform)

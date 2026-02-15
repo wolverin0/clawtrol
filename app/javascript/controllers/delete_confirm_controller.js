@@ -1,7 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
+import { FocusTrap } from "helpers/focus_trap"
 
 // Unified delete confirmation modal controller
 // Supports modes: "single" (default), "all", "completed"
+// Accessibility: focus trap, Escape to close, ARIA attributes
 // Usage: data-controller="delete-confirm" data-delete-confirm-mode-value="all"
 export default class extends Controller {
   static targets = ["modal", "backdrop", "itemName", "form", "description"]
@@ -12,7 +14,7 @@ export default class extends Controller {
   }
 
   connect() {
-    this.handleKeydown = this.handleKeydown.bind(this)
+    this.focusTrap = new FocusTrap(this.modalTarget, { onEscape: () => this.close() })
   }
 
   open(event) {
@@ -53,14 +55,12 @@ export default class extends Controller {
       this.modalTarget.classList.add("opacity-100", "scale-100")
     })
 
-    // Add keyboard listener
-    document.addEventListener("keydown", this.handleKeydown)
+    // ARIA attributes
+    this.modalTarget.setAttribute("role", "alertdialog")
+    this.modalTarget.setAttribute("aria-modal", "true")
 
-    // Focus the cancel button for accessibility
-    const cancelButton = this.modalTarget.querySelector('[data-action*="close"]')
-    if (cancelButton) {
-      setTimeout(() => cancelButton.focus(), 100)
-    }
+    // Activate focus trap (handles Escape + Tab + initial focus)
+    this.focusTrap.activate()
   }
 
   close(event) {
@@ -80,8 +80,8 @@ export default class extends Controller {
       this.backdropTarget.classList.add("hidden")
     }, 200)
 
-    // Remove keyboard listener
-    document.removeEventListener("keydown", this.handleKeydown)
+    // Deactivate focus trap
+    this.focusTrap.deactivate()
   }
 
   closeOnBackdrop(event) {
@@ -95,19 +95,13 @@ export default class extends Controller {
     event.preventDefault()
     event.stopPropagation()
 
-    // Remove keyboard listener
-    document.removeEventListener("keydown", this.handleKeydown)
+    // Deactivate focus trap
+    this.focusTrap.deactivate()
 
     // Close the modal
     this.close()
 
     // Submit the form - Turbo will handle it
     this.formTarget.requestSubmit()
-  }
-
-  handleKeydown(event) {
-    if (event.key === "Escape") {
-      this.close()
-    }
   }
 }
