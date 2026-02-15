@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class ProcessSavedLinkJob < ApplicationJob
+  include SsrfProtection
   queue_as :default
 
   SYSTEM_PROMPT = <<~PROMPT.freeze
@@ -38,6 +39,11 @@ class ProcessSavedLinkJob < ApplicationJob
   private
 
   def fetch_content(url)
+    # SECURITY: Prevent SSRF — block fetching from internal/private network hosts
+    unless safe_outbound_url?(url)
+      raise "Blocked: URL points to private/internal network address"
+    end
+
     # X/Twitter: use fxtwitter API for tweet content
     if url.match?(%r{(x\.com|twitter\.com)/.+/status/(\d+)})
       return fetch_tweet(url)
