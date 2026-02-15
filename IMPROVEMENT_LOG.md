@@ -2892,3 +2892,17 @@
 **Files:** Gemfile, config/application.rb, config/initializers/rack_attack.rb
 **Verify:** Ruby syntax OK, config loads without errors
 **Risk:** low (security improvement, additive middleware)
+
+## [2026-02-15 15:46] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Expand job test coverage for NightshiftRunnerJob and FactoryRunnerJob
+**Why:** Tests needed more coverage for edge cases. Added 6 new NightshiftRunnerJob tests (time window, model assignment, enabled flag, parallel limits, missing mission, empty backlog) and 3 new FactoryRunnerJob tests (connection timeout, interval timing, empty backlog).
+**Files:** test/jobs/factory_runner_job_test.rb, test/jobs/nightshift_runner_job_test.rb
+**Verify:** Ruby syntax OK, test file loads without errors
+**Risk:** low (test additions only)
+
+## [2026-02-15 15:47] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add Bullet N+1 detection in CI test environment
+**Why:** Configure Bullet gem to raise on N+1 queries in CI, helping catch performance issues early. Only activates when CI=true to avoid slowing local dev.
+**Files:** config/environments/test.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (test configuration)
