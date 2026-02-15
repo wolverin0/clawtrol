@@ -2,6 +2,7 @@
 
 class SessionResetConfigController < ApplicationController
   include GatewayClientAccessible
+  include GatewayConfigPatchable
   before_action :require_authentication
   before_action :ensure_gateway_configured!
 
@@ -17,21 +18,13 @@ class SessionResetConfigController < ApplicationController
 
   # PATCH /session-reset
   def update
-    patch = build_reset_patch
-
-    result = gateway_client.config_patch(
-      raw: patch.to_json,
-      reason: "Session reset policy updated via ClawTrol"
+    patch_and_redirect(
+      build_reset_patch,
+      redirect_path: session_reset_config_path,
+      cache_key: "session_reset",
+      reason: "Session reset policy updated via ClawTrol",
+      success_message: "Session reset policy updated."
     )
-
-    if result["error"].present?
-      redirect_to session_reset_config_path, alert: "Failed: #{result['error']}"
-    else
-      invalidate_config_cache("session_reset")
-      redirect_to session_reset_config_path, notice: "Session reset policy updated."
-    end
-  rescue StandardError => e
-    redirect_to session_reset_config_path, alert: "Error: #{e.message}"
   end
 
   private
