@@ -2295,3 +2295,10 @@
 7. **Testing:** 4 optimistic locking tests for Task model
 8. **Testing:** 11 real tests for FactoryEngineService (was empty stub)
 9. **Testing:** 13 real tests for ValidationRunnerService (was empty stub)
+
+## [2026-02-15 06:42] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract DashboardDataService from 73-line DashboardController#show
+**Why:** Controller was doing 15+ queries, gateway calls, and caching inline. Extracted to a testable service object returning a Struct. Controller is now 28 lines.
+**Files:** app/services/dashboard_data_service.rb, app/controllers/dashboard_controller.rb, test/services/dashboard_data_service_test.rb
+**Verify:** ruby -c ✅, 8 runs 41 assertions 0 failures ✅
+**Risk:** low (pure refactor, same behavior)
