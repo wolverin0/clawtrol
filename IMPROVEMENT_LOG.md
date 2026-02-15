@@ -1754,3 +1754,10 @@
 **Files:** app/javascript/helpers/focus_trap.js (new), app/javascript/controllers/modal_controller.js, app/javascript/controllers/delete_confirm_controller.js, config/importmap.rb
 **Verify:** node -c ✅ on all 3 JS files, ruby -c ✅ on importmap.rb
 **Risk:** low (additive accessibility, no behavioral change for mouse users)
+
+## [2026-02-15 04:02] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Created 35 model tests for TaskTemplate (18 tests: validations for name/slug/model/priority/validation_command safety, slug uniqueness per user + global, find_for_user priority, display_name, to_task_attributes, scopes) and TaskActivity (17 tests: action validation, record_creation web/api, record_status_change tracking, record_changes filtering, description generation for all action types, recent scope ordering, fixture smoke). Created fixtures for both models.
+**Why:** Re-implementing lost improvement. These models had zero test coverage. TaskTemplate has critical security validation (validation_command safety). TaskActivity tracks audit history.
+**Files:** test/models/task_template_test.rb (new), test/models/task_activity_test.rb (new), test/fixtures/task_templates.yml (new), test/fixtures/task_activities.yml (new)
+**Verify:** ruby -c ✅, 35/35 tests pass (73 assertions, 0 failures) ✅
+**Risk:** low (test additions only)
