@@ -2235,3 +2235,10 @@
 **Files:** app/models/user.rb
 **Verify:** ruby -c ✅, 20 user model tests pass ✅
 **Risk:** low (all validations allow_nil and use generous limits; existing data should be valid)
+
+## [2026-02-15 06:33] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Fix profiles_controller_test for gateway URL validation
+**Why:** The new User model validation for openclaw_gateway_url (must be http(s)) caused the profiles controller test to fail when setting "ftp://evil.com". Updated test to verify that the model-level validation blocks the invalid scheme instead of relying on controller-level detection. The model validation is the correct defense layer.
+**Files:** test/controllers/profiles_controller_test.rb
+**Verify:** ruby -c ✅, 8 profiles controller tests pass ✅, 595 controller tests total: 0 failures, 0 errors
+**Risk:** low (test-only change)
