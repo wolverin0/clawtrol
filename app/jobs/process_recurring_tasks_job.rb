@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class ProcessRecurringTasksJob < ApplicationJob
   queue_as :default
 

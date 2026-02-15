@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CommandController < ApplicationController
   include OpenclawCliRunnable
 

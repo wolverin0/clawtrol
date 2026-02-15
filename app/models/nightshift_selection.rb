@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class NightshiftSelection < ApplicationRecord
   belongs_to :nightshift_mission
 

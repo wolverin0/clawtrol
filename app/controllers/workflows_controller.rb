@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class WorkflowsController < ApplicationController
   before_action :require_authentication
   before_action :set_workflow, only: [:edit, :update, :editor]
