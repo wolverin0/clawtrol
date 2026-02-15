@@ -2409,3 +2409,10 @@
 **Files:** app/models/saved_link.rb (uniqueness validation), db/migrate/*_add_unique_index_to_saved_links_url.rb (dedup + index)
 **Verify:** ruby -c ✅, migration ran successfully ✅, full suite 1731 runs 0 failures 0 errors ✅
 **Risk:** low (migration removes dupes keeping newest, validation prevents future dupes)
+
+## [2026-02-15 07:32] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** DRY'd the `sign_in_as` helper — removed 5 duplicate definitions from test files. Centralized in `test/test_helpers/session_test_helper.rb` (already included in all integration tests). Updated shared helper to `follow_redirect!` automatically for consistency.
+**Why:** 5 identical method definitions across test files; some followed redirect, some didn't. Now one source of truth.
+**Files:** test/test_helpers/session_test_helper.rb, test/controllers/{agent_config,live_events,marketing,view_file_security,webhook_mappings}_controller_test.rb
+**Verify:** ruby -c ✅ on all 7 files, 43 affected tests pass ✅, full suite 1731 runs 0 failures 0 errors ✅
+**Risk:** low (test infrastructure only)
