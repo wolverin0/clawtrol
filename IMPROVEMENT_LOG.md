@@ -2906,3 +2906,10 @@
 **Files:** config/environments/test.rb
 **Verify:** Ruby syntax OK
 **Risk:** low (test configuration)
+
+## [2026-02-15 16:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add job test coverage for GenerateDiffsJob and RunDebateJob
+**Why:** These jobs lacked test coverage. GenerateDiffsJob tests verify git diff generation (modified, added, deleted files), non-git fallback, upsert behavior, error resilience. RunDebateJob tests verify filtering logic (review_status, review_type), status transitions, not_implemented placeholder behavior.
+**Files:** test/jobs/generate_diffs_job_test.rb, test/jobs/run_debate_job_test.rb
+**Verify:** Ruby syntax OK for all changed files
+**Risk:** low (test additions only)
