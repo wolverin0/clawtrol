@@ -897,3 +897,120 @@ Content-Type: application/json
   }
 }
 ```
+
+---
+
+## Swarm Ideas
+
+Swarm Ideas are curated task templates that can be batch-launched to create tasks.
+
+### List Swarm Ideas (UI only)
+
+```http
+GET /swarm
+```
+
+Returns the Swarm Launcher UI page (HTML). Requires browser session auth.
+
+### Create Swarm Idea
+
+```http
+POST /swarm
+Content-Type: application/x-www-form-urlencoded
+```
+
+**Parameters (scoped to `swarm_idea[]`):**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `title` | string | yes | Idea title |
+| `description` | text | no | Detailed task description |
+| `category` | string | no | One of: code, research, marketing, infra, fitness, finance, personal |
+| `suggested_model` | string | no | One of: opus, codex, gemini, glm, groq, cerebras, minimax, flash |
+| `board_id` | integer | no | Target board for launched tasks |
+| `estimated_minutes` | integer | no | Estimated execution time |
+| `difficulty` | string | no | easy, medium, hard |
+| `pipeline_type` | string | no | quick-fix, bug-fix, feature, research, architecture |
+| `icon` | string | no | Emoji icon |
+| `source` | string | no | Where the idea came from |
+| `project` | string | no | Related project name |
+| `favorite` | boolean | no | Mark as favorite (default: false) |
+| `enabled` | boolean | no | Whether idea is active (default: true) |
+
+### Launch Swarm Idea
+
+```http
+POST /swarm/launch/:id
+Content-Type: application/json
+Accept: application/json
+```
+
+**Body:**
+```json
+{
+  "model": "codex",
+  "board_id": 4
+}
+```
+
+Both parameters are optional — falls back to idea defaults, then board defaults.
+
+**Response:**
+```json
+{
+  "success": true,
+  "task_id": 639,
+  "name": "Add dependency visualization",
+  "model": "codex",
+  "times_launched": 2,
+  "launched_today": true
+}
+```
+
+Creates a task with `status: up_next`, `assigned_to_agent: true`, `pipeline_enabled: true`, and tags including the category + "swarm".
+
+### Update Swarm Idea
+
+```http
+PATCH /swarm/:id
+Content-Type: application/json
+Accept: application/json
+```
+
+**Body:** Same parameters as Create (scoped to `swarm_idea[]`).
+
+**Response:**
+```json
+{ "success": true }
+```
+
+### Toggle Favorite
+
+```http
+PATCH /swarm/:id/toggle_favorite
+Accept: application/json
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "favorite": true
+}
+```
+
+### Delete Swarm Idea
+
+```http
+DELETE /swarm/:id
+Accept: application/json
+```
+
+**Response:**
+```json
+{ "success": true }
+```
+
+### Batch Launch (Frontend)
+
+The Stimulus controller supports multi-select batch launch from the UI. Select multiple cards and click LAUNCH — each idea is launched sequentially via individual POST requests to `/swarm/launch/:id` with per-card model and board overrides.
