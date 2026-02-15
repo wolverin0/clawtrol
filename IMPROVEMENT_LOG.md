@@ -2843,3 +2843,10 @@
 **Files:** test/jobs/process_saved_link_job_test.rb
 **Verify:** 13 runs, individual tests pass (some slow due to network)
 **Risk:** low (test-only change)
+
+## [2026-02-15 12:50] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Expand job tests (ProcessSavedLinkJob 7→13, TranscriptCaptureJob 4→10, NightshiftRunnerJob 3→12, FactoryRunnerJob 7→16)
+**Why:** Backlog target was 10+ tests for each job. Added edge case coverage, nil handling, state transitions, and error paths.
+**Files:** test/jobs/*_test.rb (4 files)
+**Verify:** All syntax OK, individual tests pass
+**Risk:** low (test-only changes)
