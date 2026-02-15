@@ -79,7 +79,7 @@ module Api
         task = current_user.tasks.find(params[:id])
 
         task.update_columns(
-          pipeline_stage: nil,
+          pipeline_stage: "unstarted",
           pipeline_type: nil,
           routed_model: nil,
           compiled_prompt: nil,
@@ -94,12 +94,12 @@ module Api
       private
 
       def authenticate_user!
-        # Try API token auth first
-        token = request.headers["Authorization"]&.sub("Bearer ", "")
+        # Try API token auth first (uses SHA256 digest lookup)
+        token = request.headers["Authorization"]&.sub(/\ABearer\s+/i, "")
         if token.present?
-          api_token = ApiToken.find_by(token: token)
-          if api_token
-            @current_user = api_token.user
+          user = ApiToken.authenticate(token)
+          if user
+            @current_user = user
             return
           end
         end
