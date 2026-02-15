@@ -2987,3 +2987,10 @@
 **Verify:** Ruby syntax OK, Rails runner loads models OK
 **Risk:** low (additive, warning-only in dev/test)
 
+## [2026-02-15 19:40] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add missing user_id indexes to agent_transcripts, task_activities, webhook_logs
+**Why:** These tables have belongs_to :user associations but lacked user_id indexes. agent_transcripts is already heavily indexed on session_id and created_at; adding user_id speeds up user-scoped queries. task_activities and webhook_logs also need user_id indexes for efficient filtering.
+**Files:** db/migrate/20260215235000_add_missing_user_id_indexes.rb
+**Verify:** Ruby syntax OK, migration file created
+**Risk:** low (additive index, no schema changes)
+
