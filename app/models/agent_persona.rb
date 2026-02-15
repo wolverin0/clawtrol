@@ -2,6 +2,7 @@
 
 class AgentPersona < ApplicationRecord
   belongs_to :user, optional: true  # nil = shared/system persona
+  belongs_to :board, optional: true
   has_many :tasks, dependent: :nullify
 
   # Model options (same as Task)
@@ -25,6 +26,8 @@ class AgentPersona < ApplicationRecord
   scope :by_project, ->(project) { where(project: project) }
   scope :global, -> { where(project: "global") }
   scope :for_user, ->(user) { where(user_id: [nil, user&.id]) }
+  scope :auto_generated, -> { where(auto_generated: true) }
+  scope :for_board, ->(board) { where(board_id: board.id) }
 
   # Generate spawn prompt for agent
   def spawn_prompt

@@ -1,6 +1,7 @@
 class Board < ApplicationRecord
   belongs_to :user
   has_many :tasks, dependent: :destroy
+  has_many :agent_personas, dependent: :nullify
 
   validates :name, presence: true
   validates :position, presence: true

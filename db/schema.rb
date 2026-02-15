@@ -65,6 +65,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220000) do
 
   create_table "agent_personas", force: :cascade do |t|
     t.boolean "active", default: true
+    t.boolean "auto_generated", default: false
+    t.bigint "board_id"
     t.datetime "created_at", null: false
     t.text "description"
     t.string "emoji", default: "🤖"
@@ -78,6 +80,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220000) do
     t.text "tools", default: [], array: true
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.index ["board_id"], name: "index_agent_personas_on_board_id"
     t.index ["user_id", "name"], name: "index_agent_personas_on_user_id_and_name", unique: true
     t.index ["user_id"], name: "index_agent_personas_on_user_id"
   end
@@ -821,6 +824,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220000) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "agent_messages", "tasks", column: "source_task_id", on_delete: :nullify
   add_foreign_key "agent_messages", "tasks", on_delete: :cascade
+  add_foreign_key "agent_personas", "boards"
   add_foreign_key "agent_personas", "users"
   add_foreign_key "agent_test_recordings", "tasks"
   add_foreign_key "agent_test_recordings", "users"
