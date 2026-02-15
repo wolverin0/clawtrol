@@ -1754,3 +1754,31 @@
 **Files:** app/javascript/helpers/focus_trap.js (new), app/javascript/controllers/modal_controller.js, app/javascript/controllers/delete_confirm_controller.js, config/importmap.rb
 **Verify:** node -c ✅ on all 3 JS files, ruby -c ✅ on importmap.rb
 **Risk:** low (additive accessibility, no behavioral change for mouse users)
+
+## [2026-02-15 04:02] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Created 35 model tests for TaskTemplate (18 tests: validations for name/slug/model/priority/validation_command safety, slug uniqueness per user + global, find_for_user priority, display_name, to_task_attributes, scopes) and TaskActivity (17 tests: action validation, record_creation web/api, record_status_change tracking, record_changes filtering, description generation for all action types, recent scope ordering, fixture smoke). Created fixtures for both models.
+**Why:** Re-implementing lost improvement. These models had zero test coverage. TaskTemplate has critical security validation (validation_command safety). TaskActivity tracks audit history.
+**Files:** test/models/task_template_test.rb (new), test/models/task_activity_test.rb (new), test/fixtures/task_templates.yml (new), test/fixtures/task_activities.yml (new)
+**Verify:** ruby -c ✅, 35/35 tests pass (73 assertions, 0 failures) ✅
+**Risk:** low (test additions only)
+
+## [2026-02-15 04:12] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed IDOR vulnerability on Workflow model. `Workflow.find(params[:id])` in both API and web controllers allowed any authenticated user to access/modify any workflow. Added `belongs_to :user` to model, created `for_user` scope (includes user-owned + global), scoped all controller queries through `Workflow.for_user(current_user)`, and auto-assign `user: current_user` on create.
+**Why:** The workflows table has a `user_id` column but it was unused — any user could execute or edit any workflow by guessing IDs. Critical security fix.
+**Files:** app/models/workflow.rb, app/controllers/workflows_controller.rb, app/controllers/api/v1/workflows_controller.rb
+**Verify:** ruby -c ✅, 69 related tests pass (0 failures, 0 errors) ✅. Pre-existing test errors (AgentTestRecording missing model) unrelated.
+**Risk:** medium (behavioral change — workflows now scoped to user, but table already has user_id column)
+
+## [2026-02-15 04:18] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Created missing `AgentTestRecording` model class. The `agent_test_recordings` table exists in schema and both Task and User models had `has_many :agent_test_recordings` associations, but the model file was never created. This caused `NameError: Missing model class AgentTestRecording` in BoardTest, TaskRunTest, AgentMessageTest, and TaskTest whenever those associations were loaded (e.g., `dependent: :destroy` cascades). Added proper validations, scopes, and associations.
+**Why:** Pre-existing bug that caused ~42 test errors across 4+ test files. The table was created by a migration but the model file was lost or never committed.
+**Files:** app/models/agent_test_recording.rb (new)
+**Verify:** ruby -c ✅, BoardTest 24/24 pass (was 23/24+1error), TaskRunTest 42/42 pass, AgentMessageTest pass ✅
+**Risk:** low (additive — creates model for existing table/associations)
+
+## [2026-02-15 04:25] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed 4 broken TaskTest tests that referenced stale pipeline_stage enum values (`classified`, `dispatched`) which no longer exist in the Task model. The pipeline was refactored to use `triaged`, `context_ready`, `routed`, `executing`, `verifying`, `completed`, `failed` — but the tests weren't updated. Rewrote: "can set to classified" → "can set to triaged", "cannot skip stages" uses `routed` instead of `dispatched`, "dispatched requires plan" → "executing requires routed stage", "dispatched with plan" → "valid full pipeline transition" (with compiled_prompt/routed_model prereqs).
+**Why:** These 4 tests raised `ArgumentError: 'classified' is not a valid pipeline_stage` and `PG::NotNullViolation` on every test run, masking real failures.
+**Files:** test/models/task_test.rb
+**Verify:** ruby -c ✅, 41/41 TaskTest pass (79 assertions, 0 failures, 0 errors) ✅
+**Risk:** low (test fixes only)
