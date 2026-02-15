@@ -2628,3 +2628,10 @@
 - `bb49a49` — WebhookLog unscoped query (data leak between users)
 - `daee940` — Canvas FactoryCycleLog/CostSnapshot unscoped queries (data leak)
 - `406ea19` — 4 unscoped cache keys (analytics, command, tokens, cronjobs)
+
+## [2026-02-15 09:38] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Scope Task count queries in AgentPersonasController to current_user
+**Why:** Task.where(agent_persona_id:...) without user scoping leaks cross-user task counts when global personas (user_id: nil) are shared. User A could see task count data from User B's tasks via shared global personas.
+**Files:** app/controllers/agent_personas_controller.rb
+**Verify:** ruby -c passed, bin/rails test — 1823 runs, 0 failures, 0 errors
+**Risk:** low (query scoping, no schema change)
