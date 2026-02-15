@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class TaskDependency < ApplicationRecord
-  belongs_to :task
+  belongs_to :task, inverse_of: :task
   belongs_to :depends_on, class_name: "Task"
 
   validates :task_id, uniqueness: { scope: :depends_on_id, message: "already has this dependency" }

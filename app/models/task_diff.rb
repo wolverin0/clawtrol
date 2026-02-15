@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class TaskDiff < ApplicationRecord
-  belongs_to :task
+  belongs_to :task, inverse_of: :task
 
   DIFF_TYPES = %w[modified added deleted].freeze
 

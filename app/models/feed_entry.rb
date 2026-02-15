@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class FeedEntry < ApplicationRecord
-  belongs_to :user
+  belongs_to :user, inverse_of: :user
 
   enum :status, { unread: 0, read: 1, saved: 2, dismissed: 3 }, default: :unread
 

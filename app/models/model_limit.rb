@@ -3,7 +3,7 @@
 # Tracks rate limits for AI models per user
 # Used for auto-fallback when a model hits its limit
 class ModelLimit < ApplicationRecord
-  belongs_to :user
+  belongs_to :user, inverse_of: :user
 
   validates :name, presence: true
   validates :name, inclusion: { in: Task::MODELS }

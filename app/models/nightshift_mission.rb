@@ -2,7 +2,7 @@
 
 class NightshiftMission < ApplicationRecord
   belongs_to :user, optional: true
-  has_many :nightshift_selections, dependent: :destroy
+  has_many :nightshift_selections, dependent: :destroy, inverse_of: :nightshift_mission
 
   FREQUENCIES = %w[always weekly one_time auto_generated manual].freeze
   CATEGORIES = %w[general infra security research code finance social network].freeze
