@@ -67,7 +67,7 @@ class BoardsController < ApplicationController
     end
 
     # Get all boards for the sidebar
-    @boards = current_user.boards.order(position: :asc)
+    @boards = current_user.boards.includes(:user).order(position: :asc)
 
     # Pre-compute task counts per board to avoid N+1 in board tabs partial.
     # Single query: GROUP BY board_id where status != done → Hash { board_id => count }
@@ -92,7 +92,7 @@ class BoardsController < ApplicationController
 
   def archived
     @board_page = true
-    @boards = current_user.boards.order(position: :asc)
+    @boards = current_user.boards.includes(:user).order(position: :asc)
     @board_active_counts = current_user.tasks.where.not(status: :done)
                                        .group(:board_id).count
     @board_archived_count = @board.tasks.archived.count

@@ -5,7 +5,7 @@ class QuickAddController < ApplicationController
 
   # GET /quick_add
   def new
-    @boards = current_user.boards.order(:name)
+    @boards = current_user.boards.includes(:user).order(:name)
     @default_board = @boards.first
   end
 
