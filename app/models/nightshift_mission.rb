@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 class NightshiftMission < ApplicationRecord
-  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
-  strict_loading :n_plus_one
+  belongs_to :user, optional: true
+  has_many :nightshift_selections, dependent: :destroy, inverse_of: :nightshift_mission
 
   belongs_to :user, optional: true, inverse_of: :nightshift_missions
   has_many :nightshift_selections, dependent: :destroy, inverse_of: :nightshift_mission, counter_cache: :selection_count

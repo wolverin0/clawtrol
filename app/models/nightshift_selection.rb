@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class NightshiftSelection < ApplicationRecord
-  belongs_to :nightshift_mission
+  belongs_to :nightshift_mission, inverse_of: :nightshift_selections
 
   STATUSES = %w[pending running completed failed].freeze
 

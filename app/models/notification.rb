@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 class Notification < ApplicationRecord
-  belongs_to :user
-  belongs_to :task, optional: true
+  belongs_to :user, inverse_of: :user
+  belongs_to :task, optional: true, inverse_of: :task
 
   DEDUP_WINDOW = 5.minutes
   CAP_PER_USER = 200
