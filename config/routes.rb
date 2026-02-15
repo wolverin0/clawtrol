@@ -272,6 +272,8 @@ Rails.application.routes.draw do
   post "swarm/launch/:id", to: "swarm#launch", as: :swarm_launch
   post "swarm", to: "swarm#create", as: :create_swarm_idea
   delete "swarm/:id", to: "swarm#destroy", as: :destroy_swarm_idea
+  patch "swarm/:id", to: "swarm#update", as: :update_swarm_idea
+  patch "swarm/:id/toggle_favorite", to: "swarm#toggle_favorite", as: :toggle_favorite_swarm_idea
 
   # Factory dashboard
   get "factory", to: "factory#index"
