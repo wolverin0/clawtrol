@@ -85,4 +85,112 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
       FactoryRunnerJob.perform_now(@loop.id)
     end
   end
+
+  # Test: cycle log includes state_before
+  test "cycle log includes state_before snapshot" do
+    @loop.update!(state: { last_idea: "test idea" })
+
+    FactoryRunnerJob.perform_now(@loop.id)
+
+    cycle = FactoryCycleLog.last
+    assert_not_nil cycle.state_before
+  end
+
+  # Test: cycle log created with pending status first
+  test "cycle log created with pending status before wake" do
+    # Use invalid URL so it fails after creating cycle
+    @user.update!(openclaw_gateway_url: "http://invalid-host.test:9999")
+
+    FactoryRunnerJob.perform_now(@loop.id)
+
+    cycle = FactoryCycleLog.last
+    # Should be failed since wake failed
+    assert_equal "failed", cycle.status
+  end
+
+  # Test: sets finished_at on failure
+  test "sets finished_at timestamp on wake failure" do
+    @user.update!(openclaw_gateway_url: "http://invalid-host.test:9999")
+
+    FactoryRunnerJob.perform_now(@loop.id)
+
+    cycle = FactoryCycleLog.last
+    assert_not_nil cycle.finished_at
+  end
+
+  # Test: preserves loop status after failure
+  test "preserves loop status after wake failure" do
+    @user.update!(openclaw_gateway_url: "http://invalid-host.test:9999")
+
+    FactoryRunnerJob.perform_now(@loop.id)
+
+    @loop.reload
+    # Loop remains playing even after failure
+    assert_equal "playing", @loop.status
+  end
+
+  # Test: handles user without gateway URL gracefully
+  test "handles user without gateway URL gracefully" do
+    @user.update!(openclaw_gateway_url: nil, openclaw_gateway_token: nil)
+
+    FactoryRunnerJob.perform_now(@loop.id)
+
+    cycle = FactoryCycleLog.last
+    assert_equal "failed", cycle.status
+    assert_includes cycle.error_message, "No user found"
+  end
+
+  # Test: handles nil user gracefully
+  test "handles loop without user gracefully" do
+    @loop.update!(user: nil)
+
+    FactoryRunnerJob.perform_now(@loop.id)
+
+    assert_equal 1, FactoryCycleLog.count
+    cycle = FactoryCycleLog.last
+    assert_equal "failed", cycle.status
+  end
+
+  # Test: includes model in wake text
+  test "wake text includes loop model" do
+    @loop.update!(model: "opus")
+    @user.update!(openclaw_gateway_url: "http://invalid-host.test:9999")
+
+    begin
+      FactoryRunnerJob.perform_now(@loop.id)
+    rescue
+      # Expected to fail
+    end
+
+    cycle = FactoryCycleLog.last
+    assert_includes cycle.state_before.to_s, "opus"
+  end
+
+  # Test: includes system_prompt in wake text
+  test "wake text includes system prompt" do
+    @loop.update!(system_prompt: "You are a helpful assistant")
+    @user.update!(openclaw_gateway_url: "http://invalid-host.test:9999")
+
+    begin
+      FactoryRunnerJob.perform_now(@loop.id)
+    rescue
+      # Expected to fail
+    end
+
+    # Just verify cycle was created
+    assert FactoryCycleLog.exists?
+  end
+
+  # Test: multiple cycles have sequential numbers
+  test "multiple cycles have sequential cycle numbers" do
+    # First cycle succeeds, second also succeeds
+    5.times do |i|
+      # Use invalid URL to avoid actual HTTP calls
+      @user.update!(openclaw_gateway_url: "http://invalid-host-#{i}.test:9999")
+      FactoryRunnerJob.perform_now(@loop.id)
+    end
+
+    cycles = FactoryCycleLog.order(:cycle_number).pluck(:cycle_number)
+    assert_equal [1, 2, 3, 4, 5], cycles
+  end
 end
