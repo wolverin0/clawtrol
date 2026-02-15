@@ -39,8 +39,9 @@
          style="width: <%= progress %>%"></div>
   </div>
 
-  <!-- Stage steps -->
-  <div class="flex items-center gap-1 overflow-x-auto">
+  <!-- Stage steps (mobile: allow horizontal touch scroll; prevent outer container from capturing swipe) -->
+  <div data-testid="pipeline-strip"
+       class="pipeline-stepper-scroll flex items-center gap-1 w-full min-w-0 overflow-x-auto overscroll-x-contain touch-pan-x [-webkit-overflow-scrolling:touch]">
     <% stages.each_with_index do |stage, idx| %>
       <%
         state = if current_stage == "failed" && idx == current_idx

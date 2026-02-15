@@ -248,6 +248,9 @@ Rails.application.routes.draw do
   # Token usage
   resources :tokens, only: [:index]
 
+  # Pipeline progress dashboard
+  get "pipeline", to: "pipeline_dashboard#show", as: :pipeline_dashboard
+
   # Workflows
   resources :workflows, only: [:index, :new, :create, :edit, :update] do
     collection do
@@ -266,6 +269,8 @@ Rails.application.routes.draw do
   get "analytics/budget", to: "analytics#budget", as: :analytics_budget
   post "analytics/budget", to: "analytics#update_budget", as: :update_analytics_budget
   post "analytics/capture", to: "analytics#capture_snapshot", as: :capture_analytics_snapshot
+
+  # Pipeline progress dashboard
 
   # Session maintenance configuration
   get   "session-maintenance", to: "session_maintenance#show",   as: :session_maintenance

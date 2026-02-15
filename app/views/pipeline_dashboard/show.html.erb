@@ -1,0 +1,143 @@
+<% content_for :title, "Pipeline Dashboard - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🧪 Pipeline" %>
+
+<div class="py-6 space-y-4">
+  <div class="bg-bg-elevated border border-border rounded-xl p-4">
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="text-lg font-semibold text-content font-display truncate">Pipeline Dashboard</h2>
+        <p class="text-sm text-content-muted">Tracks pipeline progress for <span class="font-medium">pipeline_enabled</span> tasks.</p>
+      </div>
+
+      <div class="text-xs text-content-muted flex-shrink-0">
+        Showing <span class="text-content font-medium"><%= @tasks.size %></span>
+      </div>
+    </div>
+
+    <%= form_with url: pipeline_dashboard_path, method: :get, local: true, class: "mt-4 grid grid-cols-2 lg:grid-cols-6 gap-2" do %>
+      <div class="col-span-2 lg:col-span-2">
+        <input type="text"
+               name="q"
+               value="<%= h(@query) %>"
+               placeholder="Search id or name"
+               class="w-full bg-bg-surface border border-border rounded-md px-3 py-2 text-sm text-content placeholder-content-muted" />
+      </div>
+
+      <div>
+        <select name="board_id" class="w-full bg-bg-surface border border-border rounded-md px-3 py-2 text-sm text-content">
+          <option value="">All boards</option>
+          <% @boards.each do |b| %>
+            <option value="<%= b.id %>" <%= "selected" if @filter_board_id.to_s == b.id.to_s %>><%= b.icon %> <%= b.name %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <select name="status" class="w-full bg-bg-surface border border-border rounded-md px-3 py-2 text-sm text-content">
+          <option value="">All status</option>
+          <% @status_options.each do |s| %>
+            <option value="<%= s %>" <%= "selected" if @filter_status == s %>><%= s.humanize %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <select name="pipeline_stage" class="w-full bg-bg-surface border border-border rounded-md px-3 py-2 text-sm text-content">
+          <option value="">All stages</option>
+          <% @stage_options.each do |st| %>
+            <option value="<%= st %>" <%= "selected" if @filter_stage == st %>><%= st.humanize %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div>
+        <select name="routed_model" class="w-full bg-bg-surface border border-border rounded-md px-3 py-2 text-sm text-content">
+          <option value="">All models</option>
+          <% @model_options.each do |m| %>
+            <option value="<%= m %>" <%= "selected" if @filter_model == m %>><%= m %></option>
+          <% end %>
+        </select>
+      </div>
+
+      <div class="col-span-2 lg:col-span-6 flex items-center justify-between pt-1">
+        <div class="text-xs text-content-muted">
+          Tip: add <span class="font-mono">?limit=500</span> if you need more.
+        </div>
+        <div class="flex gap-2">
+          <%= link_to "Reset", pipeline_dashboard_path, class: "px-3 py-2 text-sm rounded-md border border-border bg-bg-surface text-content-secondary hover:bg-bg-hover" %>
+          <button type="submit" class="px-3 py-2 text-sm rounded-md bg-accent text-white hover:bg-accent/90">Filter</button>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="space-y-2">
+    <% if @tasks.empty? %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-8 text-center">
+        <div class="text-2xl mb-2">🦞</div>
+        <div class="text-sm text-content-muted">No pipeline-enabled tasks match the current filters.</div>
+      </div>
+    <% end %>
+
+    <% @tasks.each do |task| %>
+      <% stages = Task::PIPELINE_STAGES %>
+      <% idx = stages.index(task.pipeline_stage.to_s) || -1 %>
+      <% progress = stages.any? ? (((idx + 1).to_f / stages.length) * 100).round : 0 %>
+      <% log = Array(task.pipeline_log) %>
+      <% last = log.last || {} %>
+      <% last_stage = (last["stage"] || last[:stage]).to_s.presence %>
+      <% last_at = (last["at"] || last[:at] || last["timestamp"] || last[:timestamp]).to_s.presence %>
+
+      <div class="bg-bg-elevated border border-border rounded-xl p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-sm text-content-muted font-mono flex-shrink-0">#<%= task.id %></span>
+              <span class="text-lg flex-shrink-0"><%= task.board.icon %></span>
+              <%= link_to task.name, board_task_path(task.board, task), class: "text-sm font-medium text-content hover:text-accent truncate", data: { turbo_frame: "_top" } %>
+            </div>
+
+            <div class="mt-1 text-xs text-content-muted flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span><%= task.board.name %></span>
+              <span class="px-1.5 py-0.5 rounded bg-bg-surface border border-border"><%= task.status.humanize %></span>
+              <span class="px-1.5 py-0.5 rounded bg-bg-surface border border-border"><%= task.pipeline_stage.to_s.humanize.presence || "Unstarted" %></span>
+              <% if task.routed_model.present? %>
+                <span class="px-1.5 py-0.5 rounded bg-bg-surface border border-border">Model: <span class="text-sky-400"><%= task.routed_model %></span></span>
+              <% end %>
+            </div>
+          </div>
+
+          <div class="flex-shrink-0 text-right">
+            <div class="text-xs text-content-muted"><%= progress %>%</div>
+            <div class="w-20 h-1.5 bg-bg-surface rounded-full overflow-hidden mt-1">
+              <div class="h-full rounded-full <%= task.pipeline_stage == 'failed' ? 'bg-red-500' : 'bg-emerald-500' %>" style="width: <%= progress %>%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-2">
+          <div class="text-xs text-content-muted">
+            <span class="text-content-secondary font-medium">Last log:</span>
+            <% if last_stage.present? %>
+              <span class="font-mono"><%= last_stage %></span>
+            <% else %>
+              <span class="font-mono">(none)</span>
+            <% end %>
+            <% if last_at.present? %>
+              <span class="ml-1">@ <%= last_at %></span>
+            <% end %>
+          </div>
+
+          <div class="text-xs text-content-muted lg:col-span-2">
+            <% if task.error_message.present? %>
+              <span class="text-red-300 font-medium">Error:</span>
+              <span class="text-red-200"><%= truncate(task.error_message.to_s, length: 220) %></span>
+            <% else %>
+              <span class="text-content-muted">&nbsp;</span>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

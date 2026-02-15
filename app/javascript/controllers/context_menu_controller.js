@@ -20,19 +20,21 @@ export default class extends Controller {
     this.onTouchCancel = this.onTouchCancel.bind(this)
     this.onClickCapture = this.onClickCapture.bind(this)
 
-    this.element.addEventListener("touchstart", this.onTouchStart, { passive: true })
-    this.element.addEventListener("touchend", this.onTouchEnd)
-    this.element.addEventListener("touchmove", this.onTouchMove)
-    this.element.addEventListener("touchcancel", this.onTouchCancel)
+    // Capture phase so long-press still works inside nested headers/modals.
+    // Keep touchstart non-passive so we can prevent default behaviors after long-press.
+    this.element.addEventListener("touchstart", this.onTouchStart, { passive: false, capture: true })
+    this.element.addEventListener("touchend", this.onTouchEnd, { capture: true })
+    this.element.addEventListener("touchmove", this.onTouchMove, { capture: true })
+    this.element.addEventListener("touchcancel", this.onTouchCancel, { capture: true })
     this.element.addEventListener("click", this.onClickCapture, true)
   }
 
   disconnect() {
     this.clearTimer()
-    this.element.removeEventListener("touchstart", this.onTouchStart)
-    this.element.removeEventListener("touchend", this.onTouchEnd)
-    this.element.removeEventListener("touchmove", this.onTouchMove)
-    this.element.removeEventListener("touchcancel", this.onTouchCancel)
+    this.element.removeEventListener("touchstart", this.onTouchStart, { capture: true })
+    this.element.removeEventListener("touchend", this.onTouchEnd, { capture: true })
+    this.element.removeEventListener("touchmove", this.onTouchMove, { capture: true })
+    this.element.removeEventListener("touchcancel", this.onTouchCancel, { capture: true })
     this.element.removeEventListener("click", this.onClickCapture, true)
   }
 
