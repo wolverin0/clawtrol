@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_15_230000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -584,6 +584,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.index ["board_id"], name: "index_swarm_ideas_on_board_id"
     t.index ["category"], name: "index_swarm_ideas_on_category"
     t.index ["user_id", "enabled"], name: "index_swarm_ideas_on_user_id_and_enabled"
     t.index ["user_id", "favorite"], name: "index_swarm_ideas_on_user_id_and_favorite"
@@ -648,6 +649,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.text "summary"
     t.bigint "task_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["openclaw_session_id"], name: "index_task_runs_on_openclaw_session_id"
     t.index ["run_id"], name: "index_task_runs_on_run_id", unique: true
     t.index ["task_id", "run_number"], name: "index_task_runs_on_task_id_and_run_number", unique: true
     t.index ["task_id"], name: "index_task_runs_on_task_id"
@@ -754,6 +756,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.index ["description"], name: "index_tasks_on_description_trigram", opclass: :gin_trgm_ops, using: :gin
     t.index ["error_at"], name: "index_tasks_on_error_at", where: "(error_at IS NOT NULL)"
     t.index ["followup_task_id"], name: "index_tasks_on_followup_task_id"
+    t.index ["last_run_id"], name: "index_tasks_on_last_run_id_partial", where: "(last_run_id IS NOT NULL)"
     t.index ["name"], name: "index_tasks_on_name_trigram", opclass: :gin_trgm_ops, using: :gin
     t.index ["next_recurrence_at"], name: "index_tasks_on_next_recurrence_at"
     t.index ["nightly"], name: "index_tasks_on_nightly"
@@ -818,6 +821,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
     t.string "webhook_notification_url"
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "(provider IS NOT NULL)"
+    t.index ["telegram_chat_id"], name: "index_users_on_telegram_chat_id_partial", where: "(telegram_chat_id IS NOT NULL)"
   end
 
   create_table "webhook_logs", force: :cascade do |t|
