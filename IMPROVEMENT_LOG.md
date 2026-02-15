@@ -3002,3 +3002,10 @@
 **Verify:** Ruby syntax OK
 **Risk:** low (additive, no behavioral changes)
 
+
+## [2026-02-15 20:37] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract TaskFiltering concern from TasksController
+**Why:** Reduces TasksController complexity by extracting filtering (board_id, status, blocked, tag, priority), ordering (assigned_at, status+position, custom order_by), and pagination logic into a reusable concern. Includes search query support and pagination headers helper.
+**Files:** app/controllers/concerns/api/task_filtering.rb, test/controllers/concerns/api/task_filtering_test.rb
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (extraction/refactor, no behavioral changes)
