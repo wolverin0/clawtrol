@@ -2110,3 +2110,10 @@
 **Files:** test/controllers/env_manager_controller_test.rb
 **Verify:** 17 runs, 243 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 05:42] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** DmPolicyController comprehensive test suite (18 tests)
+**Why:** Security-critical controller managing DM policies, pairing approvals/rejections, allowlists — zero test coverage previously. Tests cover: auth (4), gateway config (3), show (1), approve/reject pairing validation (5), policy value validation (5)
+**Files:** test/controllers/dm_policy_controller_test.rb
+**Verify:** 18 runs, 38 assertions, 0 failures, 0 errors ✅
+**Risk:** low
