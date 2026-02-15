@@ -47,11 +47,7 @@ class ChannelAccountsController < ApplicationController
   end
 
   def fetch_config
-    Rails.cache.fetch("channel_accounts/#{current_user.id}", expires_in: 30.seconds) do
-      gateway_client.config_get
-    end
-  rescue StandardError => e
-    { error: e.message }
+    cached_config_get("channel_accounts")
   end
 
   def extract_channel_accounts(config)

@@ -17,11 +17,7 @@ class HooksDashboardController < ApplicationController
   private
 
   def fetch_config
-    Rails.cache.fetch("hooks_dashboard/#{current_user.id}", expires_in: 30.seconds) do
-      gateway_client.config_get
-    end
-  rescue StandardError => e
-    { error: e.message }
+    cached_config_get("hooks_dashboard")
   end
 
   def extract_hooks(config)

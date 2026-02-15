@@ -31,7 +31,7 @@ class ModelProvidersController < ApplicationController
     if result["error"].present?
       redirect_to model_providers_path, alert: "Failed: #{result['error']}"
     else
-      Rails.cache.delete("model_providers/#{current_user.id}")
+      invalidate_config_cache("model_providers")
       redirect_to model_providers_path, notice: "Provider '#{provider_id}' updated."
     end
   rescue StandardError => e
@@ -83,11 +83,7 @@ class ModelProvidersController < ApplicationController
   private
 
   def fetch_config
-    Rails.cache.fetch("model_providers/#{current_user.id}", expires_in: 30.seconds) do
-      gateway_client.config_get
-    end
-  rescue StandardError => e
-    { error: e.message }
+    cached_config_get("model_providers")
   end
 
   def fetch_models_list

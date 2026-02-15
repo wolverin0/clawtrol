@@ -37,4 +37,25 @@ module GatewayClientAccessible
       format.json { render json: { error: "Gateway not configured" }, status: :service_unavailable }
     end
   end
+
+  # Cached config fetch with user-scoped key and error handling.
+  # Replaces the repeated `fetch_config` pattern across 15+ controllers.
+  #
+  # @param cache_key [String] short key name (e.g., "typing_cfg", "identity_cfg")
+  # @param expires_in [ActiveSupport::Duration] cache TTL (default: 30 seconds)
+  # @return [Hash] the config hash, or { "error" => message } on failure
+  def cached_config_get(cache_key, expires_in: 30.seconds)
+    Rails.cache.fetch("#{cache_key}/#{current_user.id}", expires_in: expires_in) do
+      gateway_client.config_get
+    end
+  rescue StandardError => e
+    { "error" => e.message }
+  end
+
+  # Invalidate a cached config key for the current user.
+  #
+  # @param cache_key [String] the same key used in cached_config_get
+  def invalidate_config_cache(cache_key)
+    Rails.cache.delete("#{cache_key}/#{current_user.id}")
+  end
 end
