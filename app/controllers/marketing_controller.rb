@@ -149,77 +149,19 @@ class MarketingController < ApplicationController
   end
 
   def publish_to_n8n
-    image_url = params[:image_url].to_s.strip
-    caption = params[:caption].to_s.strip
-    hashtags = params[:hashtags] || []
-    platforms = params[:platforms] || { "facebook" => true, "instagram" => true }
-    cta = params[:cta].to_s.strip
-    product = params[:product].to_s.strip
+    result = SocialMediaPublisher.call(
+      image_url: params[:image_url].to_s.strip,
+      caption: params[:caption].to_s.strip,
+      hashtags: params[:hashtags] || [],
+      platforms: params[:platforms] || { "facebook" => true, "instagram" => true },
+      cta: params[:cta].to_s.strip,
+      product: params[:product].to_s.strip
+    )
 
-    if image_url.blank?
-      render json: { error: "Image URL is required" }, status: :unprocessable_entity
-      return
-    end
-
-    # Build full image URL if relative
-    base_url = request.base_url
-    full_image_url = image_url.start_with?("http") ? image_url : "#{base_url}#{image_url}"
-
-    # Prepare payload for n8n webhook
-    payload = {
-      image_url: full_image_url,
-      caption: caption,
-      hashtags: hashtags,
-      hashtags_string: hashtags.map { |t| "##{t}" }.join(" "),
-      platforms: platforms,
-      cta: cta,
-      product: product,
-      queued_at: Time.current.iso8601,
-      source: "clawtrol-playground"
-    }
-
-    begin
-      uri = URI(N8N_WEBHOOK_URL)
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.read_timeout = 30
-      http.open_timeout = 10
-
-      request = Net::HTTP::Post.new(uri)
-      request["Content-Type"] = "application/json"
-      request.body = payload.to_json
-
-      response = http.request(request)
-
-      if response.code.to_i >= 200 && response.code.to_i < 300
-        render json: {
-          success: true,
-          message: "Post queued successfully!",
-          webhook_response: response.body,
-          payload: payload
-        }
-      else
-        render json: {
-          success: false,
-          error: "Webhook returned #{response.code}",
-          details: response.body
-        }, status: :bad_gateway
-      end
-
-    rescue Net::ReadTimeout, Net::OpenTimeout => e
-      # n8n might not be configured yet, still return success to not block the UI
-      Rails.logger.warn("n8n webhook timeout: #{e.message}")
-      render json: {
-        success: true,
-        warning: "Post queued locally (n8n webhook not responding)",
-        payload: payload
-      }
-    rescue StandardError => e
-      Rails.logger.error("n8n webhook failed: #{e.message}")
-      render json: {
-        success: true,
-        warning: "Post queued locally (n8n error: #{e.message})",
-        payload: payload
-      }
+    if result[:success]
+      render json: result
+    else
+      render json: result, status: :bad_gateway
     end
   end
 
