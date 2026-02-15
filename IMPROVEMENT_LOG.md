@@ -2755,3 +2755,10 @@
 **Files:** test/services/openclaw_webhook_service_test.rb
 **Verify:** 11 runs, 18 assertions, 0 failures, 0 errors
 **Risk:** low — test-only change
+
+## [2026-02-15 10:10] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 10 tests for AiSuggestionService (replaced 0-assertion stub)
+**Why:** Service had auto-generated skip test with 0 assertions. Added 10 real tests covering: fallback when not configured (nil and empty key), enhance_description pass-through when unconfigured, prompt construction (includes task name/description/draft), prompt truncation for oversized inputs, API error resilience (returns nil), and nil-safe handling for task name/description.
+**Files:** test/services/ai_suggestion_service_test.rb
+**Verify:** 10 runs, 23 assertions, 0 failures, 0 errors
+**Risk:** low — test-only change
