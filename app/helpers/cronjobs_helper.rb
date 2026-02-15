@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module CronjobsHelper
   DAY_NAMES = {
     "0" => "Sunday",
