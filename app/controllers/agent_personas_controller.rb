@@ -14,7 +14,8 @@ class AgentPersonasController < ApplicationController
     @agent_personas = @agent_personas.by_tier(params[:tier]) if params[:tier].present?
 
     # Precompute active task counts per persona (tasks with status=in_progress)
-    @active_task_counts = Task.where(
+    # Scope to current_user to prevent cross-user data leaks via shared global personas
+    @active_task_counts = current_user.tasks.where(
       agent_persona_id: @agent_personas.pluck(:id),
       status: :in_progress
     ).group(:agent_persona_id).count
@@ -45,7 +46,7 @@ class AgentPersonasController < ApplicationController
                                .or(AgentPersona.where(user_id: nil))
                                .where(active: true)
     all_ids = all_personas.pluck(:id)
-    all_counts = Task.where(agent_persona_id: all_ids, status: :in_progress).group(:agent_persona_id).count
+    all_counts = current_user.tasks.where(agent_persona_id: all_ids, status: :in_progress).group(:agent_persona_id).count
     @stats = {
       total: all_personas.count,
       working: all_counts.count { |_id, c| c > 0 },
