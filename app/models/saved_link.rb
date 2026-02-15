@@ -4,7 +4,7 @@ class SavedLink < ApplicationRecord
   enum :status, { pending: 0, processing: 1, done: 2, failed: 3 }, default: :pending
 
   validates :url, presence: true, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid URL" }
-  validates :audio_file_path, length: { maximum: 1024 }, allow_blank: true
+  validates :summary_file_path, length: { maximum: 1024 }, allow_blank: true
 
   before_validation :detect_source_type, if: -> { source_type.blank? && url.present? }
 

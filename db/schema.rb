@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_15_210000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_15_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -161,6 +161,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_210000) do
     t.index ["user_id", "name"], name: "index_boards_on_user_id_and_name", unique: true
     t.index ["user_id", "position"], name: "index_boards_on_user_id_and_position"
     t.index ["user_id"], name: "index_boards_on_user_id"
+  end
+
+  create_table "cost_snapshots", force: :cascade do |t|
+    t.integer "api_calls", default: 0, null: false
+    t.boolean "budget_exceeded", default: false, null: false
+    t.decimal "budget_limit", precision: 10, scale: 2
+    t.jsonb "cost_by_model", default: {}, null: false
+    t.jsonb "cost_by_source", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.string "period", default: "daily", null: false
+    t.date "snapshot_date", null: false
+    t.jsonb "tokens_by_model", default: {}, null: false
+    t.decimal "total_cost", precision: 12, scale: 6, default: "0.0", null: false
+    t.integer "total_input_tokens", default: 0, null: false
+    t.integer "total_output_tokens", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["budget_exceeded"], name: "index_cost_snapshots_on_budget_exceeded"
+    t.index ["snapshot_date"], name: "index_cost_snapshots_on_snapshot_date"
+    t.index ["user_id", "period", "snapshot_date"], name: "idx_cost_snapshots_user_period_date", unique: true
+    t.index ["user_id"], name: "index_cost_snapshots_on_user_id"
   end
 
   create_table "factory_cycle_logs", force: :cascade do |t|
@@ -349,9 +370,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_210000) do
   end
 
   create_table "saved_links", force: :cascade do |t|
-    t.string "audio_file_path"
-    t.boolean "audio_summary", default: false
     t.datetime "created_at", null: false
+    t.boolean "deep_summary", default: false
     t.string "error_message"
     t.string "note"
     t.datetime "processed_at"
@@ -359,6 +379,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_210000) do
     t.string "source_type"
     t.integer "status"
     t.text "summary"
+    t.string "summary_file_path"
     t.datetime "updated_at", null: false
     t.string "url"
     t.bigint "user_id", null: false
@@ -508,12 +529,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_210000) do
   end
 
   create_table "swarm_ideas", force: :cascade do |t|
+    t.integer "board_id"
     t.string "category"
     t.datetime "created_at", null: false
     t.text "description"
     t.string "difficulty"
     t.boolean "enabled", default: true
     t.integer "estimated_minutes", default: 15
+    t.boolean "favorite", default: false, null: false
     t.string "icon", default: "🚀"
     t.datetime "last_launched_at"
     t.string "pipeline_type"
@@ -526,6 +549,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_210000) do
     t.bigint "user_id"
     t.index ["category"], name: "index_swarm_ideas_on_category"
     t.index ["user_id", "enabled"], name: "index_swarm_ideas_on_user_id_and_enabled"
+    t.index ["user_id", "favorite"], name: "index_swarm_ideas_on_user_id_and_favorite"
     t.index ["user_id"], name: "index_swarm_ideas_on_user_id"
   end
 
@@ -803,6 +827,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_210000) do
   add_foreign_key "agent_transcripts", "tasks"
   add_foreign_key "api_tokens", "users"
   add_foreign_key "boards", "users"
+  add_foreign_key "cost_snapshots", "users"
   add_foreign_key "factory_cycle_logs", "factory_loops"
   add_foreign_key "factory_loops", "users"
   add_foreign_key "feed_entries", "users"
