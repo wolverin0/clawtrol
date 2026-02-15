@@ -7,6 +7,13 @@ Rails.application.routes.draw do
     namespace :v1 do
       resource :settings, only: [ :show, :update ]
 
+      resources :audits, only: [] do
+        collection do
+          post :ingest
+          get :latest
+        end
+      end
+
       # Agent Personas
       resources :agent_personas, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
