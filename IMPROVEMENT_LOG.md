@@ -2850,3 +2850,10 @@
 **Files:** test/jobs/*_test.rb (4 files), app/jobs/run_debate_job.rb
 **Verify:** All syntax OK, individual tests pass
 **Risk:** low (test-only changes + minor doc cleanup)
+
+## [2026-02-15 12:51] - Category: Model/Architecture — STATUS: ✅ VERIFIED
+**What:** Add user association + delegate to FactoryCycleLog
+**Why:** FactoryCycleLog needs user access via factory_loop for scoping. Added belongs_to :user (optional), delegate :user to :factory_loop, and cleaned up the model with proper associations.
+**Files:** app/models/factory_cycle_log.rb
+**Verify:** Ruby syntax OK, test file exists
+**Risk:** low (additive association, doesn't affect existing code)
