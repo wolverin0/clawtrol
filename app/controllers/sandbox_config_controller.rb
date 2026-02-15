@@ -42,7 +42,7 @@ class SandboxConfigController < ApplicationController
     if result["error"].present?
       redirect_to sandbox_config_path, alert: "Failed: #{result['error']}"
     else
-      Rails.cache.delete("sandbox_cfg/#{current_user.id}")
+      invalidate_config_cache("sandbox_cfg")
       redirect_to sandbox_config_path, notice: "Sandbox configuration updated."
     end
   rescue StandardError => e
@@ -52,11 +52,7 @@ class SandboxConfigController < ApplicationController
   private
 
   def fetch_config
-    Rails.cache.fetch("sandbox_cfg/#{current_user.id}", expires_in: 30.seconds) do
-      gateway_client.config_get
-    end
-  rescue StandardError => e
-    { error: e.message }
+    cached_config_get("sandbox_cfg")
   end
 
   def extract_sandbox_config(config)

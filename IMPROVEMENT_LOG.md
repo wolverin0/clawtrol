@@ -2124,3 +2124,10 @@
 **Files:** test/controllers/sandbox_config_controller_test.rb
 **Verify:** 16 runs, 48 assertions, 0 failures, 0 errors ✅
 **Risk:** low
+
+## [2026-02-15 05:55] - Category: Code Quality (DRY) — STATUS: ✅ VERIFIED
+**What:** DRY fetch_config across 11 gateway config controllers — extract cached_config_get to GatewayClientAccessible concern
+**Why:** 11 controllers had identical 7-line fetch_config methods (cache + gateway_client.config_get + rescue). Moved cached_config_get/invalidate_config_cache from GatewayConfigPatchable → GatewayClientAccessible (which all 15+ gateway controllers already include). Each controller's fetch_config reduced from 7 lines to 1.
+**Files:** app/controllers/concerns/gateway_client_accessible.rb, app/controllers/concerns/gateway_config_patchable.rb, app/controllers/{hooks_dashboard,cli_backends,session_reset_config,model_providers,compaction_config,sandbox_config,media_config,channel_accounts,send_policy,message_queue_config,dm_policy}_controller.rb
+**Verify:** Full suite: 1528 runs, 3790 assertions, 0 failures, 0 errors ✅
+**Risk:** low (behavioral identity — same caching, same error handling)
