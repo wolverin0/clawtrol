@@ -4,7 +4,7 @@ module Api
   module V1
     class WorkflowsController < BaseController
       def run
-        workflow = Workflow.find(params[:id])
+        workflow = Workflow.for_user(current_user).find(params[:id])
 
         engine = WorkflowExecutionEngine.new(workflow, user: current_user)
         result = engine.run
