@@ -32,6 +32,11 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       self.class.wakes << { task_id: task.id, name: task.name }
       true
     end
+
+    def notify_auto_pull_ready_with_pipeline(task)
+      self.class.wakes << { task_id: task.id, name: task.name, pipeline: true }
+      true
+    end
   end
 
   test "demotes in_progress tasks with expired runner leases" do
@@ -194,5 +199,348 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
 
     assert_equal 0, FakeWebhookService.wakes.length
     assert_equal "up_next", nightly.reload.status
+  end
+
+  # --- Zombie detection ---
+
+  test "notifies about zombie tasks stale for over 30 minutes" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      zombie = Task.create!(
+        user: user,
+        board: board,
+        name: "Zombie task",
+        status: :up_next,
+        assigned_to_agent: true
+      )
+
+      # Need an active lease so it doesn't get demoted
+      RunnerLease.create!(
+        task: zombie,
+        agent_name: "Ghost Agent",
+        lease_token: SecureRandom.hex(16),
+        source: "test",
+        started_at: 45.minutes.ago,
+        last_heartbeat_at: 5.minutes.ago,
+        expires_at: 10.minutes.from_now
+      )
+
+      # Bypass validation to set in_progress + stale timestamps
+      zombie.update_columns(
+        status: Task.statuses[:in_progress],
+        agent_claimed_at: 60.minutes.ago,
+        updated_at: 45.minutes.ago
+      )
+
+      stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+      assert stats[:zombie_tasks] > 0, "expected zombies, got stats=#{stats.inspect}"
+
+      notif = Notification.order(created_at: :desc).find_by(user: user, event_type: "zombie_detected")
+      assert notif.present?, "expected a zombie_detected notification"
+      assert_match(/zombie/i, notif.message)
+    end
+  end
+
+  test "zombie notifications respect cooldown" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      zombie = Task.create!(
+        user: user,
+        board: board,
+        name: "Zombie task cooldown",
+        status: :up_next,
+        assigned_to_agent: true
+      )
+
+      RunnerLease.create!(
+        task: zombie,
+        agent_name: "Ghost Agent",
+        lease_token: SecureRandom.hex(16),
+        source: "test",
+        started_at: 45.minutes.ago,
+        last_heartbeat_at: 5.minutes.ago,
+        expires_at: 10.minutes.from_now
+      )
+
+      zombie.update_columns(
+        status: Task.statuses[:in_progress],
+        agent_claimed_at: 60.minutes.ago,
+        updated_at: 45.minutes.ago
+      )
+
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      # First run: should notify
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+      count_after_first = Notification.where(user: user, event_type: "zombie_detected").count
+
+      # Second run immediately: cooldown should prevent duplicate
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+      count_after_second = Notification.where(user: user, event_type: "zombie_detected").count
+
+      assert_equal count_after_first, count_after_second, "zombie notification should not duplicate within cooldown"
+    end
+  end
+
+  # --- User filtering ---
+
+  test "skips users without gateway config" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: nil, openclaw_gateway_token: nil)
+
+    board = boards(:one)
+    Task.create!(
+      user: user,
+      board: board,
+      name: "Should not wake",
+      status: :up_next,
+      assigned_to_agent: true,
+      blocked: false
+    )
+
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+    assert_equal 0, stats[:users_woken]
+    assert_equal 0, FakeWebhookService.wakes.length
+  end
+
+  test "skips users with agent_auto_mode disabled" do
+    user = users(:one)
+    user.update!(agent_auto_mode: false, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+    Task.create!(
+      user: user,
+      board: board,
+      name: "Auto mode off",
+      status: :up_next,
+      assigned_to_agent: true,
+      blocked: false
+    )
+
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+    assert_equal 0, stats[:users_considered]
+    assert_equal 0, FakeWebhookService.wakes.length
+  end
+
+  # --- Blocked/recurring exclusion ---
+
+  test "does not wake for blocked tasks" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+    Task.create!(
+      user: user,
+      board: board,
+      name: "Blocked task",
+      status: :up_next,
+      assigned_to_agent: true,
+      blocked: true
+    )
+
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+    end
+
+    assert_equal 0, FakeWebhookService.wakes.length
+  end
+
+  test "does not wake for recurring template tasks" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+    Task.create!(
+      user: user,
+      board: board,
+      name: "Recurring template",
+      status: :up_next,
+      assigned_to_agent: true,
+      blocked: false,
+      recurring: true,
+      parent_task_id: nil
+    )
+
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+    end
+
+    assert_equal 0, FakeWebhookService.wakes.length
+  end
+
+  # --- Does not wake if agent is already working ---
+
+  test "does not wake if user has active lease on in_progress task" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+    working = Task.create!(
+      user: user,
+      board: board,
+      name: "Currently running",
+      status: :up_next,
+      assigned_to_agent: true
+    )
+
+    RunnerLease.create!(
+      task: working,
+      agent_name: "Active Agent",
+      lease_token: SecureRandom.hex(16),
+      source: "test",
+      started_at: 2.minutes.ago,
+      last_heartbeat_at: 1.minute.ago,
+      expires_at: 13.minutes.from_now
+    )
+
+    # Bypass validation to set in_progress
+    working.update_columns(status: Task.statuses[:in_progress])
+
+    waiting = Task.create!(
+      user: user,
+      board: board,
+      name: "Waiting task",
+      status: :up_next,
+      assigned_to_agent: true,
+      blocked: false
+    )
+
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+      assert_equal 0, stats[:users_woken]
+    end
+
+    assert_equal 0, FakeWebhookService.wakes.length
+  end
+
+  # --- auto_pull_blocked ---
+
+  test "does not wake for auto_pull_blocked tasks" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+    Task.create!(
+      user: user,
+      board: board,
+      name: "Pull blocked",
+      status: :up_next,
+      assigned_to_agent: true,
+      blocked: false,
+      auto_pull_blocked: true
+    )
+
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+    end
+
+    assert_equal 0, FakeWebhookService.wakes.length
+  end
+
+  # --- Failure cooldown ---
+
+  test "does not wake for tasks with recent auto_pull errors" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      Task.create!(
+        user: user,
+        board: board,
+        name: "Recently errored",
+        status: :up_next,
+        assigned_to_agent: true,
+        blocked: false,
+        auto_pull_last_error_at: 2.minutes.ago
+      )
+
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+    end
+
+    assert_equal 0, FakeWebhookService.wakes.length
+  end
+
+  test "wakes for tasks with old auto_pull errors past cooldown" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      Task.create!(
+        user: user,
+        board: board,
+        name: "Old error task",
+        status: :up_next,
+        assigned_to_agent: true,
+        blocked: false,
+        auto_pull_last_error_at: 10.minutes.ago
+      )
+
+      stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+      assert_equal 1, stats[:users_woken], "stats=#{stats.inspect}"
+    end
+
+    assert_equal 1, FakeWebhookService.wakes.length
+  end
+
+  # --- Stats reporting ---
+
+  test "run! returns accurate stats hash" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+
+      assert_kind_of Hash, stats
+      assert stats.key?(:users_considered)
+      assert stats.key?(:users_woken)
+      assert stats.key?(:tasks_demoted)
+      assert stats.key?(:zombie_tasks)
+      assert stats.key?(:pipeline_processed)
+      assert_kind_of Integer, stats[:users_considered]
+    end
   end
 end
