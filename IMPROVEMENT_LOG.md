@@ -2727,3 +2727,52 @@
 **Files:** app/jobs/concerns/task_broadcastable.rb (new), run_validation_job.rb, run_debate_job.rb, auto_validation_job.rb
 **Verify:** ruby -c all OK, 44 job tests pass (0 failures)
 **Risk:** low — pure refactor, behavior preserved
+
+## [2026-02-15 09:50] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 17 tests for ValidationSuggestionService (replaced 0-assertion stub)
+**Why:** Service had auto-generated skip test with 0 assertions. Added 17 real tests covering: empty/nil output_files, test file detection (_test.rb/_spec.rb), view-only/CSS-only skipping, JS syntax checking, Ruby implementation→test file matching, Python fallback, unknown file types, class method interface, and rule_based_only mode.
+**Files:** test/services/validation_suggestion_service_test.rb
+**Verify:** 17 runs, 24 assertions, 0 failures, 0 errors
+**Risk:** low — test-only change
+
+## [2026-02-15 09:56] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 14 tests for SessionCostAnalytics (replaced 0-assertion stub)
+**Why:** Service had auto-generated skip test with 0 assertions. Added 14 real tests covering: empty directories, single/multiple messages, multiple sessions, model breakdown ordering, cache hit rate computation, period filtering (7d vs all), top sessions limit (5), non-assistant message skipping, malformed JSON resilience, invalid period fallback, and daily series normalization. Uses temp directory override to isolate from real session files.
+**Files:** test/services/session_cost_analytics_test.rb
+**Verify:** 14 runs, 38 assertions, 0 failures, 0 errors
+**Risk:** low — test-only change
+
+## [2026-02-15 10:01] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Fix NaN/division-by-zero in CostSnapshot.trend with small lookback values
+**Why:** When `lookback` was 1 or 0, `lookback / 2` (integer division) produced 0, causing `sum / 0.0` = NaN. NaN propagated through the comparison operators, making trend always return `:flat` at best, or potentially causing view rendering issues. Fixed by clamping lookback to minimum 2 and half to minimum 1. Added 2 edge case tests.
+**Files:** app/models/cost_snapshot.rb, test/models/cost_snapshot_test.rb
+**Verify:** ruby -c OK, 29 runs, 43 assertions, 0 failures, 0 errors
+**Risk:** low — defensive clamp, existing behavior preserved for normal lookback values
+
+## [2026-02-15 10:06] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 11 tests for OpenclawWebhookService (replaced 0-assertion stub)
+**Why:** Service had auto-generated skip test with 0 assertions. Added 11 real tests covering: configuration guard (blank URL/token, example URL), message format verification for notify_task_assigned/notify_auto_claimed/notify_auto_pull_ready, auth token preference (hooks_token > gateway_token, fallback), default model usage, and connection refused resilience. Uses Minitest::Mock for HTTP stubbing.
+**Files:** test/services/openclaw_webhook_service_test.rb
+**Verify:** 11 runs, 18 assertions, 0 failures, 0 errors
+**Risk:** low — test-only change
+
+## [2026-02-15 10:10] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 10 tests for AiSuggestionService (replaced 0-assertion stub)
+**Why:** Service had auto-generated skip test with 0 assertions. Added 10 real tests covering: fallback when not configured (nil and empty key), enhance_description pass-through when unconfigured, prompt construction (includes task name/description/draft), prompt truncation for oversized inputs, API error resilience (returns nil), and nil-safe handling for task name/description.
+**Files:** test/services/ai_suggestion_service_test.rb
+**Verify:** 10 runs, 23 assertions, 0 failures, 0 errors
+**Risk:** low — test-only change
+
+## [2026-02-15 10:14] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 11 tests for TranscriptWatcher (replaced 0-assertion stub)
+**Why:** Service had auto-generated skip test with 0 assertions. Added 11 real tests covering: singleton behavior, running state tracking, session ID validation regex (valid alphanumeric and dangerous path traversal IDs), offset tracking and reset, task lookup by session (matching in_progress, empty for unknown, excludes non-active statuses), stop idempotency, and offset clearing on stop.
+**Files:** test/services/transcript_watcher_test.rb
+**Verify:** 11 runs, 24 assertions, 0 failures, 0 errors
+**Risk:** low — test-only change
+
+## [2026-02-15 10:18] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add frozen_string_literal pragma to remaining 41 Ruby files
+**Why:** Previous factory run added pragma to 29 files but missed 41 more (mostly test files). frozen_string_literal: true prevents accidental string mutation, reduces object allocations, and is a Rails/Ruby best practice. Now ALL .rb files in app/ and test/ have the pragma.
+**Files:** 41 files across test/models, test/controllers, test/services, test/views, test/helpers, test/mailers
+**Verify:** All 41 files pass ruby -c, full test suite: 1964 runs, 4493 assertions, 0 failures, 0 errors
+**Risk:** low — pragma only, no behavioral change
