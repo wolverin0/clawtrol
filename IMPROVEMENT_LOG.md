@@ -2489,3 +2489,10 @@
 **Files:** app/controllers/saved_links_controller.rb, app/views/saved_links/index.html.erb
 **Verify:** ruby/ERB syntax OK ✅, model tests pass ✅
 **Risk:** low (same query, different location)
+
+## [2026-02-15 08:22] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added a partial compound index `idx_tasks_auto_runner_candidates` on tasks(user_id, priority, position) with a WHERE clause matching the exact filters from `AgentAutoRunnerService#runnable_up_next_task_for`. This is the hot path for the auto-runner cron job that runs every ~60 seconds.
+**Why:** The auto-runner queries for eligible tasks with 7+ WHERE conditions. Without a targeted partial index, Postgres must scan the `index_tasks_on_user_agent_status` compound index then do a filter on the remaining conditions. The partial index pre-filters to only matching rows, enabling a direct index scan sorted by priority/position.
+**Files:** db/migrate/20260216050005_add_auto_runner_partial_index_to_tasks.rb
+**Verify:** migration ran ✅, 4 agent_auto_runner_service tests pass ✅
+**Risk:** low (additive index, no schema changes to existing data)
