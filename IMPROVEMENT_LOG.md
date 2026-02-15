@@ -2302,3 +2302,10 @@
 **Files:** app/services/dashboard_data_service.rb, app/controllers/dashboard_controller.rb, test/services/dashboard_data_service_test.rb
 **Verify:** ruby -c ✅, 8 runs 41 assertions 0 failures ✅
 **Risk:** low (pure refactor, same behavior)
+
+## [2026-02-15 06:55] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 12 controller tests for ModelProvidersController
+**Why:** Critical controller with SSRF protection had zero tests. Tests cover: 3 auth checks, 2 input validation, 6 SSRF blocking (192.168.x, localhost, 10.x, link-local, 127.0.0.1, .internal TLD), 1 update validation.
+**Files:** test/controllers/model_providers_controller_test.rb
+**Verify:** ruby -c ✅, 12 runs 17 assertions 0 failures ✅
+**Risk:** low (test-only)
