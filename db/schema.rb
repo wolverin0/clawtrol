@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_15_220000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_15_220002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -142,6 +142,40 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220000) do
     t.bigint "user_id", null: false
     t.index ["token_digest"], name: "index_api_tokens_on_token_digest", unique: true
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
+  end
+
+  create_table "audit_reports", force: :cascade do |t|
+    t.jsonb "anti_pattern_counts", default: {}
+    t.datetime "created_at", null: false
+    t.integer "messages_analyzed", default: 0
+    t.decimal "overall_score", precision: 4, scale: 1, null: false
+    t.string "report_path"
+    t.string "report_type", null: false
+    t.jsonb "scores", default: {}
+    t.integer "session_files_analyzed", default: 0
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.jsonb "worst_moments", default: []
+    t.index ["user_id", "report_type", "created_at"], name: "index_audit_reports_on_user_id_and_report_type_and_created_at"
+    t.index ["user_id"], name: "index_audit_reports_on_user_id"
+  end
+
+  create_table "behavioral_interventions", force: :cascade do |t|
+    t.bigint "audit_report_id"
+    t.decimal "baseline_score", precision: 4, scale: 1
+    t.string "category", null: false
+    t.datetime "created_at", null: false
+    t.decimal "current_score", precision: 4, scale: 1
+    t.text "notes"
+    t.datetime "regressed_at"
+    t.datetime "resolved_at"
+    t.text "rule", null: false
+    t.string "status", default: "active", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["audit_report_id"], name: "index_behavioral_interventions_on_audit_report_id"
+    t.index ["user_id", "status"], name: "index_behavioral_interventions_on_user_id_and_status"
+    t.index ["user_id"], name: "index_behavioral_interventions_on_user_id"
   end
 
   create_table "boards", force: :cascade do |t|
@@ -831,6 +865,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_15_220000) do
   add_foreign_key "agent_transcripts", "task_runs"
   add_foreign_key "agent_transcripts", "tasks"
   add_foreign_key "api_tokens", "users"
+  add_foreign_key "audit_reports", "users"
+  add_foreign_key "behavioral_interventions", "audit_reports"
+  add_foreign_key "behavioral_interventions", "users"
   add_foreign_key "boards", "users"
   add_foreign_key "cost_snapshots", "users"
   add_foreign_key "factory_cycle_logs", "factory_loops"
