@@ -5,7 +5,7 @@ class FactoryLoop < ApplicationRecord
   strict_loading :n_plus_one
 
   belongs_to :user, optional: true
-  has_many :factory_cycle_logs, dependent: :destroy, inverse_of: :factory_loop
+  has_many :factory_cycle_logs, dependent: :destroy, inverse_of: :factory_loop, counter_cache: :cycle_count
 
   STATUSES = %w[idle playing paused stopped error error_paused].freeze
 
