@@ -1,0 +1,22 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+parsed:
+  session_id: sess_parsed_001
+  session_key: key_001
+  status: parsed
+  model: opus
+  prompt_text: "Fix the login bug"
+  output_text: "I've fixed the login bug by..."
+  total_tokens: 5000
+  input_tokens: 3000
+  output_tokens: 2000
+  message_count: 10
+  tool_call_count: 3
+  runtime_seconds: 120
+  task: one
+  metadata: { "source_path": "/tmp/test.jsonl" }
+
+failed:
+  session_id: sess_failed_002
+  status: failed
+  metadata: { "error": "Parse error" }
