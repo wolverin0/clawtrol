@@ -1894,3 +1894,16 @@
 **Files:** app/models/webhook_log.rb (new)
 **Verify:** 18/18 WebhookLog tests pass ✅, full model suite 569 runs 0 errors ✅
 **Risk:** medium (bug fix — runtime errors in two controllers)
+
+## [2026-02-15 05:26] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Created missing TaskExportService. Referenced in API tasks controller `export` action but file didn't exist — would cause NameError at runtime. Implements JSON and CSV export with board/status/tag/archive filtering.
+**Why:** Missing service file = runtime crash on task export.
+**Files:** app/services/task_export_service.rb (new)
+**Verify:** ruby -c ✅, model tests pass ✅
+**Risk:** medium (bug fix — runtime error on export endpoint)
+
+## [2026-02-15 05:29] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** TaskExportService tests (9 tests, 35 assertions). Covers default filtering, include_archived, board filter, status filter, tag filter, JSON output, CSV output, empty results.
+**Files:** test/services/task_export_service_test.rb (new)
+**Verify:** 9/9 pass ✅
+**Risk:** low
