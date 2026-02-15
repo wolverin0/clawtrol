@@ -50,7 +50,9 @@ class FileViewerController < ApplicationController
         render inline: html_preview_template(relative, content), content_type: "text/html"
         return
       elsif mode == "raw"
-        # Serve raw HTML for iframe src
+        # Serve raw HTML for iframe src — sandboxed with strict CSP
+        response.headers["Content-Security-Policy"] = "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; sandbox"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
         render inline: content, content_type: "text/html"
         return
       end
