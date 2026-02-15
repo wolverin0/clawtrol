@@ -7,10 +7,7 @@ class TaskActivity < ApplicationRecord
   belongs_to :task, inverse_of: :task_activities
   belongs_to :user, optional: true
 
-  belongs_to :task, inverse_of: :activities
-  belongs_to :user, optional: true, inverse_of: :task_activities
-
-  ACTIONS = %w[created updated moved auto_claimed].freeze
+  ACTIONS = %w[created updated moved auto_claimed auto_queued].freeze
   TRACKED_FIELDS = %w[name priority due_date].freeze
 
   validates :action, presence: true, inclusion: { in: ACTIONS }
