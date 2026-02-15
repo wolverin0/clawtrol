@@ -47,7 +47,7 @@ class MarketingController < ApplicationController
   def generate_image
     prompt = params[:prompt].to_s.strip
     model = params[:model] || "gpt-image-1"
-    product = params[:product] || "futura"
+    product = sanitize_filename_component(params[:product].to_s.presence || "futura")
     template = params[:template] || "none"
     size = params[:size] || "1024x1024"
     variant_seed = params[:variant_seed].to_i # For generating variants with slight differences
@@ -129,6 +129,12 @@ class MarketingController < ApplicationController
 
       FileUtils.mkdir_p(PLAYGROUND_OUTPUT_DIR)
       file_path = File.join(PLAYGROUND_OUTPUT_DIR, filename)
+
+      # SECURITY: Verify the resolved file path stays within the output directory
+      unless File.expand_path(file_path).start_with?(File.expand_path(PLAYGROUND_OUTPUT_DIR) + "/")
+        render json: { error: "Invalid filename" }, status: :unprocessable_entity
+        return
+      end
 
       File.open(file_path, "wb") do |f|
         f.write(Base64.decode64(image_data))
@@ -335,6 +341,14 @@ class MarketingController < ApplicationController
     return "" if components.any?(&:blank?)
 
     cleaned
+  end
+
+  # Sanitize a single filename component (product name, template name, etc.)
+  # to prevent path traversal via user-controlled filename parts.
+  # Strips everything except alphanumerics, hyphens, and underscores.
+  def sanitize_filename_component(input)
+    sanitized = input.to_s.gsub(/[^a-zA-Z0-9\-_]/, "")
+    sanitized.presence || "unknown"
   end
 
   def build_tree(root_path, search_query = "")
