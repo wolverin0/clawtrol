@@ -877,11 +877,18 @@ module Api
       end
 
       def dependency_json(task)
-        TaskSerializer.dependency_json(task)
+        {
+          id: task.id,
+          name: task.name,
+          status: task.status,
+          blocked: task.blocked?,
+          dependencies: task.dependencies.pluck(:id),
+          dependents: task.dependents.pluck(:id)
+        }
       end
 
       def task_json(task)
-        TaskSerializer.new(task).as_json
+        task.as_json
       end
     end
   end
