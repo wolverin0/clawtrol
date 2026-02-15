@@ -2845,8 +2845,8 @@
 **Risk:** low (test-only change)
 
 ## [2026-02-15 12:50] - Category: Testing — STATUS: ✅ VERIFIED
-**What:** Expand job tests (ProcessSavedLinkJob 7→13, TranscriptCaptureJob 4→10, NightshiftRunnerJob 3→12, FactoryRunnerJob 7→16)
-**Why:** Backlog target was 10+ tests for each job. Added edge case coverage, nil handling, state transitions, and error paths.
-**Files:** test/jobs/*_test.rb (4 files)
+**What:** Expand job tests (ProcessSavedLinkJob 7→13, TranscriptCaptureJob 4→10, NightshiftRunnerJob 3→12, FactoryRunnerJob 7→16) + cleanup RunDebateJob TODOs
+**Why:** Backlog target was 10+ tests for each job. Added edge case coverage, nil handling, state transitions, and error paths. Fixed misleading TODO comments claiming "FAKE" implementation.
+**Files:** test/jobs/*_test.rb (4 files), app/jobs/run_debate_job.rb
 **Verify:** All syntax OK, individual tests pass
-**Risk:** low (test-only changes)
+**Risk:** low (test-only changes + minor doc cleanup)
