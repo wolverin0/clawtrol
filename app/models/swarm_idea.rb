@@ -27,7 +27,7 @@
 class SwarmIdea < ApplicationRecord
   MODELS = %w[opus codex gemini glm groq cerebras minimax flash].freeze
   CATEGORIES = %w[code research marketing infra fitness finance personal].freeze
-  belongs_to :user
+  belongs_to :user, inverse_of: :user
   belongs_to :board, optional: true
 
   # --- Scopes ---

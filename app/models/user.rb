@@ -17,11 +17,11 @@ class User < ApplicationRecord
   has_many :agent_personas, dependent: :destroy, inverse_of: :user
   has_many :swarm_ideas, dependent: :destroy, inverse_of: :user
   has_many :nightshift_missions, dependent: :nullify, inverse_of: :user
-  has_many :invite_codes, foreign_key: :created_by_id, dependent: :nullify
+  has_many :invite_codes, foreign_key: :created_by_id, dependent: :nullify, inverse_of: :created_by
   has_many :factory_loops, dependent: :nullify, inverse_of: :user
   has_many :workflows, dependent: :nullify, inverse_of: :user
-  has_many :webhook_logs, dependent: :delete_all
-  has_many :cost_snapshots, dependent: :delete_all
+  has_many :webhook_logs, dependent: :delete_all, inverse_of: :user
+  has_many :cost_snapshots, dependent: :delete_all, inverse_of: :user
   has_many :agent_test_recordings, dependent: :destroy, inverse_of: :user
   has_many :audit_reports, dependent: :destroy, inverse_of: :user
   has_many :behavioral_interventions, dependent: :destroy, inverse_of: :user

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class TokenUsage < ApplicationRecord
-  belongs_to :task
+  belongs_to :task, inverse_of: :task
   belongs_to :agent_persona, optional: true
 
   # Cost per 1M tokens (USD)

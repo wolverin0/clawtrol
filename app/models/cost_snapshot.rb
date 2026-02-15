@@ -3,7 +3,7 @@
 # Periodic cost snapshots for budget tracking and trend analysis.
 # Captured daily/weekly/monthly by CostSnapshotService.
 class CostSnapshot < ApplicationRecord
-  belongs_to :user
+  belongs_to :user, inverse_of: :user
 
   PERIODS = %w[daily weekly monthly].freeze
 

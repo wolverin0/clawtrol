@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class SavedLink < ApplicationRecord
-  belongs_to :user
+  belongs_to :user, inverse_of: :user
 
   enum :status, { pending: 0, processing: 1, done: 2, failed: 3 }, default: :pending
 
