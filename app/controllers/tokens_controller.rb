@@ -1,7 +1,6 @@
-require "open3"
-require "timeout"
-
 class TokensController < ApplicationController
+  include OpenclawCliRunnable
+
   before_action :require_authentication
 
   def index
@@ -64,11 +63,7 @@ class TokensController < ApplicationController
   end
 
   def run_openclaw_sessions(active_minutes)
-    stdout, stderr, status = Timeout.timeout(openclaw_timeout_seconds) do
-      Open3.capture3("openclaw", "sessions", "--active", active_minutes.to_s, "--json")
-    end
-
-    { stdout: stdout, stderr: stderr, exitstatus: status&.exitstatus }
+    run_openclaw_cli("sessions", "--active", active_minutes.to_s, "--json")
   end
 
   def normalize_session(session)
@@ -99,19 +94,6 @@ class TokensController < ApplicationController
       abortedLastRun: session["abortedLastRun"],
       kind: session["key"].to_s.include?(":cron:") ? "cron" : "agent"
     }
-  end
-
-  def ms_to_time(ms)
-    return nil if ms.blank?
-    Time.at(ms.to_f / 1000.0)
-  rescue StandardError
-    nil
-  end
-
-  def openclaw_timeout_seconds
-    Integer(ENV.fetch("OPENCLAW_COMMAND_TIMEOUT_SECONDS", "20"))
-  rescue ArgumentError
-    20
   end
 
   def cache_ttl

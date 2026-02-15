@@ -1,7 +1,6 @@
-require "open3"
-require "timeout"
-
 class CommandController < ApplicationController
+  include OpenclawCliRunnable
+
   def index
     respond_to do |format|
       format.html
@@ -66,27 +65,7 @@ class CommandController < ApplicationController
   end
 
   def run_openclaw_sessions(active_minutes)
-    stdout, stderr, status = Timeout.timeout(openclaw_timeout_seconds) do
-      Open3.capture3(
-        "openclaw",
-        "sessions",
-        "--active",
-        active_minutes.to_s,
-        "--json"
-      )
-    end
-
-    {
-      stdout: stdout,
-      stderr: stderr,
-      exitstatus: status&.exitstatus
-    }
-  end
-
-  def openclaw_timeout_seconds
-    Integer(ENV.fetch("OPENCLAW_COMMAND_TIMEOUT_SECONDS", "20"))
-  rescue ArgumentError
-    20
+    run_openclaw_cli("sessions", "--active", active_minutes.to_s, "--json")
   end
 
   def command_center_cache_ttl

@@ -1,7 +1,6 @@
-require "open3"
-require "timeout"
-
 class CronjobsController < ApplicationController
+  include OpenclawCliRunnable
+
   def index
     respond_to do |format|
       format.html
@@ -64,15 +63,13 @@ class CronjobsController < ApplicationController
 
     cmd = desired ? %w[openclaw cron enable] : %w[openclaw cron disable]
 
-    stdout, stderr, status = Timeout.timeout(openclaw_timeout_seconds) do
-      Open3.capture3(*cmd, id)
-    end
+    result = run_openclaw_cli(*cmd[1..], id)
 
-    if status&.exitstatus != 0
+    if result[:exitstatus] != 0
       msg = "openclaw cron #{desired ? "enable" : "disable"} failed"
-      msg += " (exit=#{status&.exitstatus})" if status&.exitstatus
-      msg += ": #{stderr.strip}" if stderr.present?
-      return render json: { ok: false, error: msg, stdout: stdout.to_s }, status: :unprocessable_entity
+      msg += " (exit=#{result[:exitstatus]})" if result[:exitstatus]
+      msg += ": #{result[:stderr].strip}" if result[:stderr].present?
+      return render json: { ok: false, error: msg, stdout: result[:stdout].to_s }, status: :unprocessable_entity
     end
 
     render json: { ok: true, id: id, enabled: desired }
@@ -86,15 +83,13 @@ class CronjobsController < ApplicationController
     id = params[:id].to_s
     return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
 
-    stdout, stderr, status = Timeout.timeout(openclaw_timeout_seconds) do
-      Open3.capture3("openclaw", "cron", "run", id)
-    end
+    result = run_openclaw_cli("cron", "run", id)
 
-    if status&.exitstatus != 0
+    if result[:exitstatus] != 0
       msg = "openclaw cron run failed"
-      msg += " (exit=#{status&.exitstatus})" if status&.exitstatus
-      msg += ": #{stderr.strip}" if stderr.present?
-      return render json: { ok: false, error: msg, stdout: stdout.to_s }, status: :unprocessable_entity
+      msg += " (exit=#{result[:exitstatus]})" if result[:exitstatus]
+      msg += ": #{result[:stderr].strip}" if result[:stderr].present?
+      return render json: { ok: false, error: msg, stdout: result[:stdout].to_s }, status: :unprocessable_entity
     end
 
     render json: { ok: true, id: id }
@@ -145,15 +140,7 @@ class CronjobsController < ApplicationController
   end
 
   def run_openclaw_cron_list
-    stdout, stderr, status = Timeout.timeout(openclaw_timeout_seconds) do
-      Open3.capture3("openclaw", "cron", "list", "--json")
-    end
-
-    {
-      stdout: stdout,
-      stderr: stderr,
-      exitstatus: status&.exitstatus
-    }
+    run_openclaw_cli("cron", "list", "--json")
   end
 
   def normalize_job(job)
@@ -187,19 +174,6 @@ class CronjobsController < ApplicationController
       scheduleText: "(unparseable)",
       raw: job
     }
-  end
-
-  def ms_to_time(ms)
-    return nil if ms.blank?
-    Time.at(ms.to_f / 1000.0)
-  rescue StandardError
-    nil
-  end
-
-  def openclaw_timeout_seconds
-    Integer(ENV.fetch("OPENCLAW_COMMAND_TIMEOUT_SECONDS", "20"))
-  rescue ArgumentError
-    20
   end
 
   def cache_ttl
