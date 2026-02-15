@@ -2475,3 +2475,10 @@
 **Files:** app/views/boards/_task_card.html.erb
 **Verify:** ERB syntax OK ✅, 24 boards/tasks controller tests pass ✅
 **Risk:** low (additive HTML attributes, no behavior change)
+
+## [2026-02-15 08:16] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed SSRF-via-redirect vulnerability in ProcessSavedLinkJob. The initial URL was checked against `safe_outbound_url?` (blocks private IPs, localhost, internal TLDs), but the HTTP redirect target was NOT checked. An attacker could craft a link that 301-redirects to `http://192.168.x.x/...` or `http://localhost:5432/` to access internal services. Now the redirect URL is also validated against `safe_outbound_url?` before following. Also added `URI.join` to properly resolve relative redirects.
+**Why:** Classic SSRF bypass via open redirect. Any user can save a link that redirects to internal infrastructure.
+**Files:** app/jobs/process_saved_link_job.rb
+**Verify:** ruby syntax OK ✅, 44 job tests pass ✅
+**Risk:** medium (security fix, changes HTTP redirect behavior — could break legitimate redirects to internal hosts, but those shouldn't exist)
