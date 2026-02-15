@@ -2454,3 +2454,17 @@
 **Files:** test/jobs/auto_validation_job_test.rb, test/jobs/factory_cycle_timeout_job_test.rb, test/jobs/nightshift_timeout_sweeper_job_test.rb, test/jobs/pipeline_processor_job_test.rb
 **Verify:** all 44 job tests pass (21 new + 23 existing), 0 failures 0 errors ✅
 **Risk:** low (test-only changes)
+
+## [2026-02-15 07:58] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** DRY'd 11 duplicate `@task.activity_source = "web"` calls in Boards::TasksController into a single `before_action :set_web_activity_source`. Only `create` retains the inline assignment (because `@task` isn't yet initialized by `set_task`).
+**Why:** 11 identical lines across update/destroy/assign/unassign/move/move_to_board/handoff/revalidate/run_validation/run_debate/create_followup is textbook DRY violation. One before_action replaces all with zero behavior change.
+**Files:** app/controllers/boards/tasks_controller.rb
+**Verify:** ruby syntax OK ✅, 24 boards/tasks controller tests pass ✅, 589 model tests pass ✅
+**Risk:** low (identical behavior, just moved)
+
+## [2026-02-15 08:06] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Replaced 2 placeholder test files with 26 real tests: EmojiShortcodeNormalizer (9 tests) and WorkflowExecutionEngine (17 tests). Covers expression evaluation (equality, inequality, numeric, contains, empty, boolean), workflow execution (trigger, router, conditional, delay, tool, agent, unknown type, empty nodes, variable interpolation from upstream nodes), and edge cases (invalid definition, nil input).
+**Why:** Both services had only `skip "TODO"` placeholder tests. WorkflowExecutionEngine is a complex 250-line service with an expression evaluator, 8 node types, and variable interpolation — untested code in a DAG execution engine is a real risk.
+**Files:** test/services/emoji_shortcode_normalizer_test.rb, test/services/workflow_execution_engine_test.rb
+**Verify:** 26 tests pass (9 + 17), 0 failures 0 errors ✅
+**Risk:** low (test-only changes)
