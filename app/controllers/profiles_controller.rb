@@ -82,15 +82,20 @@ class ProfilesController < ApplicationController
   end
 
   def test_notification
-    svc = ExternalNotificationService.new(current_user)
-    svc.notify_task_completion(
-      OpenStruct.new(
-        id: 0,
-        name: "Test Notification",
-        status: "in_review",
-        description: "This is a test notification from ClawTrol"
-      )
+    # Build a duck-type task object that ExternalNotificationService expects:
+    # must respond to .user, .id, .name, .status, .description, .origin_chat_id, .origin_thread_id
+    fake_task = OpenStruct.new(
+      id: 0,
+      user: current_user,
+      name: "Test Notification",
+      status: "in_review",
+      description: "This is a test notification from ClawTrol",
+      origin_chat_id: current_user.telegram_chat_id,
+      origin_thread_id: nil
     )
+
+    svc = ExternalNotificationService.new(fake_task)
+    svc.notify_task_completion
 
     render json: { success: true }
   rescue StandardError => e
