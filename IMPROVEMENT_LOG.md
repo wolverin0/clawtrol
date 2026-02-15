@@ -2649,3 +2649,10 @@
 **Files:** test/controllers/compaction_config_controller_test.rb (new)
 **Verify:** 13/13 pass, syntax check passed
 **Risk:** low (test-only)
+
+## [2026-02-15 09:58] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add 22 controller tests for 3 previously untested config controllers (TypingConfig, IdentityConfig, LoggingConfig)
+**Why:** These config controllers interact with the OpenClaw gateway API and had zero test coverage. Tests cover: auth gates, show with config/errors/defaults, update operations (modes, levels, intervals, file paths), section validation, path traversal rejection in log file, and gateway error reporting.
+**Files:** test/controllers/typing_config_controller_test.rb (new, 8 tests), test/controllers/identity_config_controller_test.rb (new, 6 tests), test/controllers/logging_config_controller_test.rb (new, 8 tests)
+**Verify:** 22/22 pass, syntax check passed
+**Risk:** low (test-only)
