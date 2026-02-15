@@ -885,9 +885,7 @@ module Api
       end
 
       def task_json(task)
-        task.as_json.merge(
-          "openclaw_spawn_model" => task.openclaw_spawn_model
-        )
+        TaskSerializer.new(task).as_json
       end
     end
   end
