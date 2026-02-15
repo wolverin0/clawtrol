@@ -2864,3 +2864,10 @@
 **Verify:** Ruby syntax OK, Board/Task tests pass (91 runs, 173 assertions)
 **Risk:** low (additive performance improvement)
 
+
+## [2026-02-15 13:22] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add indexes for common queries + complete inverse_of associations
+**Why:** Add indexes for common filter patterns (tasks by completion, archived tasks, notifications inbox, transcript cleanup). Complete inverse_of on AgentPersona -> Board associations.
+**Files:** db/migrate/20260216050006_add_indexes_for_common_queries.rb, app/models/board.rb, app/models/agent_persona.rb
+**Verify:** Migration runs successfully, 111 model tests pass
+**Risk:** low (performance improvement, additive changes)
