@@ -2207,3 +2207,10 @@
 9. **Testing:** HeartbeatConfigController tests (13 tests, config validation + clamping)
 10. **Security:** SSRF protection for ProcessSavedLinkJob
 11. **Testing:** SessionResetConfigController tests (12 tests, mode/clamping/type validation)
+
+## [2026-02-15 06:15] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Encrypt openclaw_gateway_token and openclaw_hooks_token at rest
+**Why:** These are sensitive credentials (gateway auth tokens, webhook secrets) stored unencrypted in the users table. ai_api_key and telegram_bot_token were already encrypted but gateway/hooks tokens were missed. Using Rails 7+ built-in encryption.
+**Files:** app/models/user.rb
+**Verify:** ruby -c ✅, 20 user model tests pass (0 failures, 0 errors)
+**Risk:** low (Rails encrypts transparently, existing data will be read as plaintext until re-saved)
