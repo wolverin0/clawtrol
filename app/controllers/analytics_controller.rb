@@ -116,7 +116,7 @@ class AnalyticsController < ApplicationController
   end
 
   def analytics_cache_key(period)
-    "analytics/openclaw_cost/v2/period=#{period}"
+    "analytics/openclaw_cost/v2/user=#{Current.user&.id}/period=#{period}"
   end
 
   def load_budget_data
