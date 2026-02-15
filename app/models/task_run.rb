@@ -17,4 +17,12 @@ class TaskRun < ApplicationRecord
   validates :run_id, presence: true, uniqueness: true
   validates :run_number, presence: true, uniqueness: { scope: :task_id, message: "must be unique per task" }
   validates :recommended_action, presence: true, inclusion: { in: RECOMMENDED_ACTIONS }
+
+  # --- Scopes ---
+  scope :recent, -> { order(created_at: :desc) }
+  scope :for_task, ->(task_id) { where(task_id: task_id) }
+  scope :completed, -> { where.not(ended_at: nil) }
+  scope :in_progress, -> { where(ended_at: nil) }
+  scope :by_model, ->(model) { where(model_used: model) }
+  scope :needs_follow_up, -> { where(needs_follow_up: true) }
 end
