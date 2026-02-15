@@ -3,15 +3,15 @@ class WorkflowsController < ApplicationController
   before_action :set_workflow, only: [:edit, :update, :editor]
 
   def index
-    @workflows = Workflow.order(created_at: :desc)
+    @workflows = Workflow.for_user(current_user).order(created_at: :desc)
   end
 
   def new
-    @workflow = Workflow.new
+    @workflow = Workflow.new(user: current_user)
   end
 
   def create
-    @workflow = Workflow.new(workflow_params)
+    @workflow = Workflow.new(workflow_params.merge(user: current_user))
 
     if @workflow.save
       redirect_to editor_workflow_path(@workflow), notice: "Workflow created."
@@ -53,14 +53,14 @@ class WorkflowsController < ApplicationController
   # - GET /workflows/editor (new workflow in editor)
   # - GET /workflows/:id/editor (existing workflow)
   def editor
-    @workflow ||= Workflow.new(title: "Untitled")
+    @workflow ||= Workflow.new(title: "Untitled", user: current_user)
     render :editor
   end
 
   private
 
   def set_workflow
-    @workflow = Workflow.find(params[:id]) if params[:id].present?
+    @workflow = Workflow.for_user(current_user).find(params[:id]) if params[:id].present?
   end
 
   def workflow_params

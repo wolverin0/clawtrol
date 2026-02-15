@@ -1,5 +1,9 @@
 class Workflow < ApplicationRecord
+  belongs_to :user, optional: true
+
   validates :title, presence: true
+
+  scope :for_user, ->(user) { where(user_id: [user.id, nil]) }
 
   validate :definition_must_be_hash
 
