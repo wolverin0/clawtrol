@@ -108,7 +108,7 @@ class CronjobsController < ApplicationController
   end
 
   def fetch_cronjobs
-    result = Rails.cache.fetch("cronjobs/index/v1", expires_in: cache_ttl) do
+    result = Rails.cache.fetch("cronjobs/index/v1/user=#{current_user.id}", expires_in: cache_ttl) do
       run_openclaw_cron_list
     end
 
