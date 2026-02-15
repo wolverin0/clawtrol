@@ -242,5 +242,89 @@ class RunnerLeaseTest < ActiveSupport::TestCase
     assert_nil lease.released_at
     lease.release!
     assert_not_nil lease.released_at
+    assert_not lease.active?
+  end
+
+  # --- Scopes ---
+
+  test "active scope excludes released leases" do
+    # Use different tasks to avoid unique constraint on (task_id) for active leases
+    task_two = tasks(:two)
+
+    active = build_lease(lease_token: "active-1")
+    active.save!
+
+    released = build_lease(task: task_two, lease_token: "released-1", released_at: @now)
+    released.save!
+
+    results = RunnerLease.active
+    assert_includes results, active
+    assert_not_includes results, released
+  end
+
+  test "expired scope finds expired leases" do
+    # Use different tasks to avoid unique constraint on (task_id) for active leases
+    task_two = tasks(:two)
+
+    expired = build_lease(lease_token: "expired-1", expires_at: 1.minute.ago)
+    expired.save!
+
+    fresh = build_lease(task: task_two, lease_token: "fresh-1")
+    fresh.save!
+
+    results = RunnerLease.expired
+    assert_includes results, expired
+    assert_not_includes results, fresh
+  end
+
+  # --- create_for_task! ---
+
+  test "create_for_task! creates lease with correct defaults" do
+    lease = RunnerLease.create_for_task!(task: @task, agent_name: "Otacon", source: "test")
+    assert lease.persisted?
+    assert_equal "Otacon", lease.agent_name
+    assert_equal "test", lease.source
+    assert lease.active?
+    assert_equal 48, lease.lease_token.length # SecureRandom.hex(24)
+  end
+
+  test "create_for_task! releases expired leases first" do
+    # Create an expired lease manually
+    expired = build_lease(expires_at: 1.minute.ago)
+    expired.save!(validate: false) # skip unique constraint check since it's "active" in DB sense
+
+    # Should succeed because expired lease gets released first
+    new_lease = RunnerLease.create_for_task!(task: @task, agent_name: "Agent", source: "test")
+    assert new_lease.persisted?
+    assert expired.reload.released_at.present?
+  end
+
+  test "create_for_task! raises LeaseConflictError for active lease" do
+    RunnerLease.create_for_task!(task: @task, agent_name: "Agent1", source: "test")
+
+    assert_raises RunnerLease::LeaseConflictError do
+      RunnerLease.create_for_task!(task: @task, agent_name: "Agent2", source: "test")
+    end
+  end
+
+  # --- LEASE_DURATION ---
+
+  test "LEASE_DURATION is 15 minutes" do
+    assert_equal 15.minutes, RunnerLease::LEASE_DURATION
+  end
+
+  private
+
+  def build_lease(**overrides)
+    defaults = {
+      task: @task,
+      lease_token: SecureRandom.hex(24),
+      agent_name: "Otacon",
+      source: "test",
+      started_at: @now,
+      last_heartbeat_at: @now,
+      expires_at: @now + RunnerLease::LEASE_DURATION
+    }
+    RunnerLease.new(defaults.merge(overrides))
   end
 end
