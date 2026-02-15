@@ -1761,3 +1761,10 @@
 **Files:** test/models/task_template_test.rb (new), test/models/task_activity_test.rb (new), test/fixtures/task_templates.yml (new), test/fixtures/task_activities.yml (new)
 **Verify:** ruby -c ✅, 35/35 tests pass (73 assertions, 0 failures) ✅
 **Risk:** low (test additions only)
+
+## [2026-02-15 04:12] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed IDOR vulnerability on Workflow model. `Workflow.find(params[:id])` in both API and web controllers allowed any authenticated user to access/modify any workflow. Added `belongs_to :user` to model, created `for_user` scope (includes user-owned + global), scoped all controller queries through `Workflow.for_user(current_user)`, and auto-assign `user: current_user` on create.
+**Why:** The workflows table has a `user_id` column but it was unused — any user could execute or edit any workflow by guessing IDs. Critical security fix.
+**Files:** app/models/workflow.rb, app/controllers/workflows_controller.rb, app/controllers/api/v1/workflows_controller.rb
+**Verify:** ruby -c ✅, 69 related tests pass (0 failures, 0 errors) ✅. Pre-existing test errors (AgentTestRecording missing model) unrelated.
+**Risk:** medium (behavioral change — workflows now scoped to user, but table already has user_id column)
