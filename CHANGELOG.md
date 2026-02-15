@@ -6,9 +6,6 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 ## February 2026
 
 ### 🚀 Features
-- **swarm:** favorites system, board routing, launch history tracking, batch JSON API (#638) (`8459380`)
-- **swarm:** toggle_favorite + update API endpoints with JSON responses (#638) (`8459380`)
-- **kanban:** add missing pipeline_stepper partial — fixes 500 on all task modals (#638) (`8459380`)
 
 - **swarm:** favorites, board routing, launch history, pipeline stepper + bugfixes (`8459380`)
 - **saved-links:** replace audio with deep summary toggle (#640) (`2f04e65`)
@@ -90,8 +87,6 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Agent integration enhancements (`42d206b`)
 - Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
 ### 🐛 Bug Fixes
-- **transcript:** fix task.title → task.name in TranscriptCaptureJob (#638) (`8459380`)
-- **swarm:** fix launch returning HTML redirect instead of JSON (#638) (`8459380`)
 
 - add dependency_graph to set_board before_action + aggregator support (#639) (`bf45590`)
 - **api:** remove missing TaskSerializer reference + add unstarted to pipeline stages (`8ca683e`)
@@ -191,6 +186,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- add swarm API reference + changelog entries for favorites, pipeline stepper, bugfixes (`b5d2656`)
+- update CHANGELOG.md [skip ci] (`a9a9d1a`)
 - update CHANGELOG.md [skip ci] (`d4a2096`)
 - update CHANGELOG.md [skip ci] (`445ac3b`)
 - update CHANGELOG.md [skip ci] (`1e86992`)
@@ -247,9 +244,6 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 ## January 2026
 
 ### 🚀 Features
-- **swarm:** favorites system, board routing, launch history tracking, batch JSON API (#638) (`8459380`)
-- **swarm:** toggle_favorite + update API endpoints with JSON responses (#638) (`8459380`)
-- **kanban:** add missing pipeline_stepper partial — fixes 500 on all task modals (#638) (`8459380`)
 
 - add onboarding board with starter tasks for new users (`a3b95e0`)
 - add Discord community links (readme, dropdown, footer) (`c6506f6`)
