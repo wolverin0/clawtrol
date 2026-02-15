@@ -6,6 +6,7 @@ class Boards::TasksController < ApplicationController
 
   before_action :set_board
   before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file, :diff_file, :generate_validation_suggestion, :chat_history]
+  before_action :set_web_activity_source, only: [:update, :destroy, :assign, :unassign, :move, :move_to_board, :handoff, :revalidate, :run_validation, :run_debate, :create_followup]
 
   def show
     @api_token = current_user.api_token
@@ -57,7 +58,6 @@ class Boards::TasksController < ApplicationController
   end
 
   def update
-    @task.activity_source = "web"
     if @task.update(task_params)
       respond_to do |format|
         format.turbo_stream
@@ -70,7 +70,6 @@ class Boards::TasksController < ApplicationController
 
   def destroy
     @status = @task.status
-    @task.activity_source = "web"
     @task.destroy
     respond_to do |format|
       format.turbo_stream
@@ -79,7 +78,6 @@ class Boards::TasksController < ApplicationController
   end
 
   def assign
-    @task.activity_source = "web"
     @task.assign_to_agent!
     respond_to do |format|
       format.turbo_stream do
@@ -93,7 +91,6 @@ class Boards::TasksController < ApplicationController
   end
 
   def unassign
-    @task.activity_source = "web"
     @task.unassign_from_agent!
     respond_to do |format|
       format.turbo_stream do
@@ -108,7 +105,6 @@ class Boards::TasksController < ApplicationController
 
   def move
     @old_status = @task.status
-    @task.activity_source = "web"
 
     if @task.update(status: params[:status])
       respond_to do |format|
@@ -128,7 +124,6 @@ class Boards::TasksController < ApplicationController
   def move_to_board
     target_board = current_user.boards.find(params[:target_board_id])
 
-    @task.activity_source = "web"
     @task.update!(board_id: target_board.id)
 
     respond_to do |format|
@@ -166,7 +161,6 @@ class Boards::TasksController < ApplicationController
 
     include_transcript = params[:include_transcript] == "1"
 
-    @task.activity_source = "web"
     @task.activity_note = "Handoff from #{@task.model || 'default'} to #{new_model}"
     @task.handoff!(new_model: new_model, include_transcript: include_transcript)
 
@@ -182,7 +176,6 @@ class Boards::TasksController < ApplicationController
       return
     end
 
-    @task.activity_source = "web"
     ValidationRunnerService.new(@task).call
 
     respond_to do |format|
@@ -216,7 +209,6 @@ class Boards::TasksController < ApplicationController
       return
     end
 
-    @task.activity_source = "web"
     @task.start_review!(type: "command", config: { command: command })
     @task.update!(validation_command: command)
 
@@ -341,7 +333,6 @@ class Boards::TasksController < ApplicationController
     models = Array(params[:models]).reject(&:blank?)
     models = %w[gemini claude glm] if models.empty?
 
-    @task.activity_source = "web"
     @task.start_review!(
       type: "debate",
       config: {
@@ -428,7 +419,6 @@ class Boards::TasksController < ApplicationController
   end
 
   def create_followup
-    @task.activity_source = "web"
 
     result = TaskFollowupService.new(@task).call(
       name: params[:followup_name],
@@ -534,6 +524,10 @@ class Boards::TasksController < ApplicationController
     # Allow 'title' as alias for 'name'
     permitted[:name] = permitted.delete(:title) if permitted[:title].present? && permitted[:name].blank?
     permitted
+  end
+
+  def set_web_activity_source
+    @task.activity_source = "web" if @task
   end
 
   # Validation command execution delegated to ValidationRunnerService
