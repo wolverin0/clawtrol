@@ -258,6 +258,18 @@
                   </div>
                 </div>
 
+                <!-- Row 2, Col 3: Deep Research -->
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm text-content-muted">🧠 Deep Research</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <%= form.check_box :deep_research, class: "sr-only peer", data: { action: "change->task-modal#scheduleAutoSave" } %>
+                      <div class="w-9 h-5 bg-bg-elevated rounded-full peer peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                    </label>
+                  </div>
+                  <p class="text-[10px] text-content-muted">4 parallel agents analyze from different angles</p>
+                </div>
+
                 <!-- Row 3: Validation Command (full width) -->
                 <div class="col-span-2 space-y-2">
                   <div class="flex items-center justify-between">
