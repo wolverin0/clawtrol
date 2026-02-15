@@ -96,8 +96,14 @@ module Pipeline
       limit = ModelLimit.find_by(user: user, name: model_name)
       return true unless limit
 
-      # If limit was recorded more than 2 hours ago, consider it cleared
-      return true if limit.recorded_at.present? && limit.recorded_at < 2.hours.ago
+      # Model is available if not currently rate-limited
+      return true unless limit.limited?
+
+      # If limit was last errored more than 2 hours ago, consider it cleared
+      return true if limit.last_error_at.present? && limit.last_error_at < 2.hours.ago
+
+      # If resets_at is in the past, consider it cleared
+      return true if limit.resets_at.present? && limit.resets_at < Time.current
 
       false
     rescue StandardError
