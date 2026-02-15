@@ -2590,3 +2590,10 @@
 **Files:** 29 files (models/task/*.rb, helpers/*.rb, mailers/*.rb, channels/*.rb, api/v1/*.rb, admin/*.rb, concerns/*.rb)
 **Verify:** All 29 files pass `ruby -c` syntax check ✅
 **Risk:** very low (only adds string freezing, no behavioral change)
+
+## [2026-02-15 09:27] - Category: Testing + Code Quality — STATUS: ✅ VERIFIED
+**What:** Added 7 controller tests for CliBackendsController (auth, gateway config, show with backends, update requires backend_id, update success, update error, empty config). Refactored update method to use `patch_and_redirect` concern helper (7th controller DRY'd).
+**Why:** CliBackendsController had zero tests and duplicated the patch+redirect pattern. Tests verify auth gating, backend extraction from config (sorted by fallbackPriority), parameter validation, gateway error handling, and empty config graceful handling.
+**Files:** app/controllers/cli_backends_controller.rb, test/controllers/cli_backends_controller_test.rb (new)
+**Verify:** 7 tests pass, 17 assertions, 0 failures ✅
+**Risk:** low (additive tests, DRY refactor uses existing helper)
