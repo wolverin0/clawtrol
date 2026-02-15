@@ -22,9 +22,8 @@
   <div class="flex items-center gap-4 text-sm text-content-muted flex-wrap">
     <span><%= @saved_links.count %> links</span>
     <span>·</span>
-    <% status_counts = current_user.saved_links.group(:status).count %>
     <% %w[pending processing done failed].each do |s| %>
-      <% count = status_counts[s] || 0 %>
+      <% count = @status_counts[s] || 0 %>
       <% if count > 0 %>
         <%= link_to saved_links_path(status: s),
             class: "hover:text-accent transition-colors #{'text-accent font-medium' if params[:status] == s}" do %>

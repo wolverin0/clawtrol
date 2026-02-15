@@ -3,6 +3,7 @@
 class SavedLinksController < ApplicationController
   def index
     @saved_links = current_user.saved_links.newest_first
+    @status_counts = current_user.saved_links.group(:status).count
   end
 
   def create
