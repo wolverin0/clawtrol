@@ -45,121 +45,106 @@ class MarketingController < ApplicationController
   end
 
   def generate_image
-    prompt = params[:prompt].to_s.strip
-    model = params[:model] || "gpt-image-1"
-    product = params[:product] || "futura"
-    template = params[:template] || "none"
-    size = params[:size] || "1024x1024"
-    variant_seed = params[:variant_seed].to_i # For generating variants with slight differences
+    result = MarketingImageService.call(
+      prompt: params[:prompt].to_s.strip,
+      product: params[:product].to_s,
+      template: params[:template].to_s,
+      size: params[:size].to_s,
+      variant_seed: params[:variant_seed].to_i
+    )
 
-    if prompt.blank?
-      render json: { error: "Prompt is required" }, status: :unprocessable_entity
+    unless result[:success]
+      error = result[:error]
+      status = error&.include?("time out") ? :gateway_timeout : :unprocessable_entity
+      render json: { error: error }, status: status
       return
     end
 
-    # Only gpt-image-1 is supported for now
-    unless model == "gpt-image-1"
-      render json: { error: "Model not supported yet" }, status: :unprocessable_entity
+    # Save the image to disk
+    save_result = save_generated_image(result[:image_url], params[:product].to_s.presence || "futura")
+
+    unless save_result[:success]
+      render json: { error: save_result[:error] }, status: :internal_server_error
       return
     end
 
-    # Build full prompt with product context and template style
-    product_context = PRODUCT_CONTEXTS[product.downcase] || PRODUCT_CONTEXTS["futura"]
-    template_style = TEMPLATE_STYLES[template.downcase] || ""
+    # Update index
+    update_playground_index(
+      save_result[:filename],
+      params[:prompt].to_s.strip,
+      result[:revised_prompt] || params[:prompt].to_s,
+      params[:product].to_s.presence || "futura",
+      params[:template].to_s,
+      "gpt-image-1",
+      params[:size].to_s
+    )
 
-    # Combine context + user prompt + template style
-    prompt_parts = [product_context, prompt]
-    prompt_parts << "Style: #{template_style}" if template_style.present?
+    render json: {
+      success: true,
+      url: save_result[:serve_url],
+      filename: save_result[:filename],
+      product: params[:product].to_s.presence || "futura",
+      template: params[:template].to_s,
+      model: "gpt-image-1",
+      prompt: params[:prompt].to_s.strip,
+      full_prompt: result[:revised_prompt],
+      size: params[:size].to_s,
+      generated_at: Time.current.iso8601
+    }
+  rescue StandardError => e
+    Rails.logger.error("Image generation failed: #{e.message}")
+    render json: { error: "Generation failed: #{e.message}" }, status: :internal_server_error
+  end
 
-    # Add subtle variation for variant generation
-    if variant_seed > 0
-      variations = ["with dynamic composition", "with creative angle", "with alternative lighting", "with fresh perspective"]
-      prompt_parts << variations[variant_seed % variations.length]
+  private
+
+  def save_generated_image(image_url, product)
+    return failure("No image URL in response") if image_url.blank?
+
+    # Fetch image data (URL or base64)
+    image_data = fetch_image_data(image_url)
+    return image_data unless image_data[:success]
+
+    # Save the image
+    timestamp = Time.current.strftime("%Y%m%d_%H%M%S")
+    filename = "#{product}_#{timestamp}.png"
+
+    FileUtils.mkdir_p(PLAYGROUND_OUTPUT_DIR)
+    file_path = File.join(PLAYGROUND_OUTPUT_DIR, filename)
+
+    # SECURITY: Verify the resolved file path stays within the output directory
+    unless File.expand_path(file_path).start_with?(File.expand_path(PLAYGROUND_OUTPUT_DIR) + "/")
+      return failure("Invalid filename")
     end
 
-    full_prompt = prompt_parts.join(". ")
+    File.open(file_path, "wb") { |f| f.write(Base64.decode64(image_data[:data])) }
 
+    { success: true, filename: filename, serve_url: "/marketing/generated/playground-live/#{filename}" }
+  rescue StandardError => e
+    failure("Failed to save image: #{e.message}")
+  end
+
+  def fetch_image_data(image_url)
+    # If it's a data URL or base64, decode directly
+    if image_url.start_with?("data:")
+      # Extract base64 from data URL
+      match = image_url.match(/data:image\/\w+;base64,(.+)/)
+      return { success: true, data: match[1] } if match
+      return failure("Invalid data URL format")
+    end
+
+    # If it's a URL, fetch it
     begin
-      # Call OpenAI gpt-image-1 API
-      uri = URI("https://api.openai.com/v1/images/generations")
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.read_timeout = 120
-      http.open_timeout = 30
-
-      request = Net::HTTP::Post.new(uri)
-      request["Content-Type"] = "application/json"
-      request["Authorization"] = "Bearer #{OPENAI_API_KEY}"
-
-      request.body = {
-        model: "gpt-image-1",
-        prompt: full_prompt,
-        size: size,
-        n: 1,
-        output_format: "png"
-      }.to_json
-
-      response = http.request(request)
-      result = JSON.parse(response.body)
-
-      if response.code.to_i != 200
-        error_msg = result.dig("error", "message") || "API request failed"
-        render json: { error: error_msg }, status: :bad_gateway
-        return
+      response = Net::HTTP.get_response(URI(image_url))
+      if response.code.to_i == 200
+        { success: true, data: Base64.strict_encode64(response.body) }
+      else
+        failure("Failed to fetch image: HTTP #{response.code}")
       end
-
-      # Get base64 image data (gpt-image-1 returns b64_json by default)
-      image_data = result.dig("data", 0, "b64_json")
-      image_url = result.dig("data", 0, "url")
-
-      if image_data.nil? && image_url.nil?
-        render json: { error: "No image data in response" }, status: :bad_gateway
-        return
-      end
-
-      # If we got a URL instead of b64, fetch it
-      if image_data.nil? && image_url
-        image_response = Net::HTTP.get_response(URI(image_url))
-        image_data = Base64.strict_encode64(image_response.body)
-      end
-
-      # Save the image
-      timestamp = Time.current.strftime("%Y%m%d_%H%M%S")
-      filename = "#{product}_#{timestamp}.png"
-
-      FileUtils.mkdir_p(PLAYGROUND_OUTPUT_DIR)
-      file_path = File.join(PLAYGROUND_OUTPUT_DIR, filename)
-
-      File.open(file_path, "wb") do |f|
-        f.write(Base64.decode64(image_data))
-      end
-
-      # Update index.json
-      update_playground_index(filename, prompt, full_prompt, product, template, model, size)
-
-      # Return the URL that can be served by the existing show action
-      serve_url = "/marketing/generated/playground-live/#{filename}"
-
-      render json: {
-        success: true,
-        url: serve_url,
-        filename: filename,
-        product: product,
-        template: template,
-        model: model,
-        prompt: prompt,
-        full_prompt: full_prompt,
-        size: size,
-        generated_at: Time.current.iso8601
-      }
-
-    rescue Net::ReadTimeout, Net::OpenTimeout => e
-      render json: { error: "Request timed out. Please try again." }, status: :gateway_timeout
-    rescue JSON::ParserError => e
-      render json: { error: "Invalid response from API" }, status: :bad_gateway
+    rescue Net::OpenTimeout, Net::ReadTimeout
+      failure("Request timed out")
     rescue StandardError => e
-      Rails.logger.error("Image generation failed: #{e.message}")
-      render json: { error: "Generation failed: #{e.message}" }, status: :internal_server_error
+      failure("Failed to fetch image: #{e.message}")
     end
   end
 
