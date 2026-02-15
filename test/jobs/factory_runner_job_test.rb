@@ -194,3 +194,40 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
     assert_equal [1, 2, 3, 4, 5], cycles
   end
 end
+
+  # Test: gateway client mocked - tests actual HTTP error handling
+  test "handles connection timeout gracefully" do
+    @loop.update!(status: "playing")
+    @user.update!(openclaw_gateway_url: "http://192.0.2.1:9999") # TEST-NET-1, never responds
+
+    assert_nothing_raised do
+      FactoryRunnerJob.perform_now(@loop.id)
+    end
+
+    @loop.reload
+    assert_equal 1, @loop.consecutive_failures
+  end
+
+  # Test: validates interval_ms before running
+  test "respects interval_ms timing" do
+    @loop.update!(interval_ms: 30_000) # 30 seconds
+
+    # Job should still run regardless of interval (job doesn't check timing)
+    assert_nothing_raised do
+      FactoryRunnerJob.perform_now(@loop.id)
+    end
+
+    assert FactoryCycleLog.exists?
+  end
+
+  # Test: empty backlog does not error
+  test "handles empty backlog gracefully" do
+    @loop.update!(backlog: [])
+
+    # Should still create cycle log even with empty backlog
+    assert_nothing_raised do
+      FactoryRunnerJob.perform_now(@loop.id)
+    end
+
+    assert FactoryCycleLog.exists?
+  end

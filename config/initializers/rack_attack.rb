@@ -60,7 +60,7 @@ class Rack::Attack
   self.throttled_response_retry_after_header = true
 
   # Custom response when rate limited
-  throttled_respond do |env|
+  throttled_response do |env|
     retry_after = (env["rack.attack.match_data"] || {})["period"] || 60
 
     [

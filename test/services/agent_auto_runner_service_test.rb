@@ -280,10 +280,6 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
         updated_at: 45.minutes.ago
       )
 
-    FakeWebhookService.wakes = []
-    cache = ActiveSupport::Cache::MemoryStore.new
-
-    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
       # First run: should notify
       AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
       count_after_first = Notification.where(user: user, event_type: "zombie_detected").count
@@ -541,6 +537,61 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       assert stats.key?(:zombie_tasks)
       assert stats.key?(:pipeline_processed)
       assert_kind_of Integer, stats[:users_considered]
+    end
+  end
+
+  # --- Pipeline processing ---
+
+  test "processes pipeline tasks with all starting states (nil, empty string, unstarted)" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+
+    # Create tasks with different starting states
+    task_nil = Task.create!(
+      user: user,
+      board: board,
+      name: "Task with nil stage",
+      status: :up_next,
+      assigned_to_agent: true,
+      pipeline_enabled: true,
+      pipeline_stage: nil
+    )
+
+    task_empty = Task.create!(
+      user: user,
+      board: board,
+      name: "Task with empty string stage",
+      status: :up_next,
+      assigned_to_agent: true,
+      pipeline_enabled: true,
+      pipeline_stage: ""
+    )
+
+    task_unstarted = Task.create!(
+      user: user,
+      board: board,
+      name: "Task with unstarted stage",
+      status: :up_next,
+      assigned_to_agent: true,
+      pipeline_enabled: true,
+      pipeline_stage: "unstarted"
+    )
+
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+      assert stats[:pipeline_processed] >= 3, "expected at least 3 tasks processed, got stats=#{stats.inspect}"
+    end
+
+    # All tasks should now be triaged (or further along)
+    [task_nil, task_empty, task_unstarted].each do |task|
+      task.reload
+      assert task.pipeline_stage.in?(%w[triaged context_ready routed executing]),
+             "task #{task.id} (#{task.name}) expected to advance beyond unstarted, got stage=#{task.pipeline_stage}"
     end
   end
 end
