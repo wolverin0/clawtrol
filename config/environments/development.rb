@@ -37,8 +37,13 @@ Rails.application.configure do
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
 
-  # Set localhost to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  # Set APP_BASE_URL to be used by links generated in mailer templates.
+  if ENV["APP_BASE_URL"].present?
+    uri = URI.parse(ENV["APP_BASE_URL"])
+    config.action_mailer.default_url_options = { host: uri.host, port: uri.port }
+  else
+    config.action_mailer.default_url_options = { host: "localhost", port: 4001 }
+  end
 
   # Use letter_opener to preview emails in browser during development
   config.action_mailer.delivery_method = :letter_opener

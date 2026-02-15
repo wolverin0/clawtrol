@@ -22,6 +22,14 @@
   .ns-card.selected {
     box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
   }
+  .ns-card.selected .ns-checkbox {
+    border-color: #34d399 !important;
+    background-color: #34d399 !important;
+  }
+  .ns-card.selected .ns-checkmark {
+    opacity: 1 !important;
+    color: #0d1117;
+  }
   .ns-launch:hover {
     box-shadow: 0 0 25px rgba(0, 255, 65, 0.6);
   }
@@ -106,8 +114,8 @@
            data-mission-enabled="<%= mission.enabled %>"
            data-nightshift-target="card">
         <div class="flex justify-between items-start gap-4">
-          <div class="w-6 h-6 border-2 border-border rounded flex items-center justify-center shrink-0 transition-all bg-bg-base <%= 'border-emerald-400 bg-emerald-400' if is_selected %>">
-            <span class="font-bold transition-all <%= is_selected ? 'text-bg-base opacity-100' : 'opacity-0' %>">&#10003;</span>
+          <div class="ns-checkbox w-6 h-6 border-2 border-border rounded flex items-center justify-center shrink-0 transition-all bg-bg-base">
+            <span class="ns-checkmark font-bold transition-all opacity-0">&#10003;</span>
           </div>
           <div>
             <div class="text-base font-semibold text-content">
