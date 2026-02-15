@@ -55,11 +55,9 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
 
   test "test_connection blocks ftp scheme" do
     sign_in_as(@user)
-    @user.update!(openclaw_gateway_url: "ftp://evil.com")
-    post test_connection_settings_path
-    json = JSON.parse(response.body)
-    assert_equal false, json["gateway_reachable"]
-    assert_match(/scheme/i, json["error"].to_s)
+    # ftp:// is rejected at model validation level — can't save an invalid scheme
+    assert_not @user.update(openclaw_gateway_url: "ftp://evil.com")
+    assert_includes @user.errors[:openclaw_gateway_url], "must be a valid http(s) URL"
   end
 
   test "test_connection handles missing gateway URL gracefully" do
