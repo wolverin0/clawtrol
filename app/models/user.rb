@@ -3,6 +3,10 @@
 class User < ApplicationRecord
   has_secure_password validations: false
 
+  # Enforce eager loading to prevent N+1 queries in views
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
+
   THEMES = %w[default vaporwave].freeze
 
   has_many :sessions, dependent: :destroy, inverse_of: :user
