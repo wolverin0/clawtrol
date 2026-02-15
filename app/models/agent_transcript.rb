@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class AgentTranscript < ApplicationRecord
-  belongs_to :task, optional: true
+  belongs_to :task, optional: true, inverse_of: :task
   belongs_to :task_run, optional: true
 
   validates :session_id, presence: true, uniqueness: true

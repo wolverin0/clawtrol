@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class BehavioralIntervention < ApplicationRecord
-  belongs_to :user
+  belongs_to :user, inverse_of: :user
   belongs_to :audit_report, optional: true
 
   STATUSES = %w[active resolved regressed].freeze

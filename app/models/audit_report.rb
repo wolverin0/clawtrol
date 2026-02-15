@@ -2,7 +2,7 @@
 
 class AuditReport < ApplicationRecord
   belongs_to :user
-  has_many :behavioral_interventions
+  has_many :behavioral_interventions, dependent: :destroy, inverse_of: :audit_report
 
   validates :report_type, inclusion: { in: %w[daily weekly] }
   validates :overall_score, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 10 }

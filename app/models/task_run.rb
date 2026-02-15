@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class TaskRun < ApplicationRecord
-  belongs_to :task
+  belongs_to :task, inverse_of: :task
 
   RECOMMENDED_ACTIONS = %w[
     in_review

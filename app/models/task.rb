@@ -29,7 +29,7 @@ class Task < ApplicationRecord
   strict_loading :n_plus_one
 
   # Task dependencies (blocking relationships)
-  has_many :task_dependencies, dependent: :destroy
+  has_many :task_dependencies, dependent: :destroy, inverse_of: :task
   has_many :dependencies, through: :task_dependencies, source: :depends_on
   has_many :inverse_dependencies, class_name: "TaskDependency", foreign_key: :depends_on_id, dependent: :destroy
   has_many :dependents, through: :inverse_dependencies, source: :task

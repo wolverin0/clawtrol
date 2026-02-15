@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class OpenclawIntegrationStatus < ApplicationRecord
-  belongs_to :user
+  belongs_to :user, inverse_of: :user
 
   enum :memory_search_status, {
     unknown: 0,
