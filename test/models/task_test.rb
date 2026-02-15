@@ -359,4 +359,183 @@ class TaskTest < ActiveSupport::TestCase
     assert_equal 2, task.lock_version
     assert_equal "Second update", task.name
   end
+
+  # --- Completion/Archival timestamp tracking ---
+
+  test "sets completed_at when task becomes done" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), status: :inbox)
+    assert_nil task.completed_at
+
+    task.update!(status: :done)
+    assert_not_nil task.completed_at
+  end
+
+  test "clears completed_at when task moves out of done" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), status: :inbox)
+    task.update!(status: :done)
+    assert_not_nil task.completed_at
+
+    task.update!(status: :in_progress)
+    assert_nil task.completed_at
+  end
+
+  test "sets archived_at when task becomes archived" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), status: :inbox)
+    assert_nil task.archived_at
+
+    task.update!(status: :archived)
+    assert_not_nil task.archived_at
+  end
+
+  test "clears archived_at when task is unarchived" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), status: :inbox)
+    task.update!(status: :archived)
+    assert_not_nil task.archived_at
+
+    task.update!(status: :inbox)
+    assert_nil task.archived_at
+  end
+
+  test "clears archived_at when archived task moves to done" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), status: :inbox)
+    task.update!(status: :archived)
+    assert_not_nil task.archived_at
+
+    task.update!(status: :done)
+    assert_nil task.archived_at
+    assert_not_nil task.completed_at
+  end
+
+  # --- Agent Integration: assign/unassign ---
+
+  test "assign_to_agent! sets assigned_to_agent and assigned_at" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one))
+    task.assign_to_agent!
+    assert task.assigned_to_agent?
+    assert_not_nil task.assigned_at
+  end
+
+  test "unassign_from_agent! clears assignment" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one))
+    task.assign_to_agent!
+    task.unassign_from_agent!
+    assert_not task.assigned_to_agent?
+    assert_nil task.assigned_at
+  end
+
+  # --- Agent Integration: error tracking ---
+
+  test "set_error! records error message and timestamp" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one))
+    task.set_error!("Rate limit exceeded")
+    assert_equal "Rate limit exceeded", task.error_message
+    assert_not_nil task.error_at
+    assert task.errored?
+  end
+
+  test "clear_error! removes error state" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one))
+    task.set_error!("Some error")
+    task.clear_error!
+    assert_nil task.error_message
+    assert_nil task.error_at
+    assert_not task.errored?
+  end
+
+  # --- Agent Integration: handoff ---
+
+  test "handoff! changes model and resets state for retry" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), model: "opus", status: :inbox)
+    task.handoff!(new_model: "sonnet")
+    assert_equal "sonnet", task.model
+  end
+
+  # --- Agent Integration: retry ---
+
+  test "increment_retry! increases retry_count" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one))
+    assert_equal 0, task.retry_count
+    task.increment_retry!
+    assert_equal 1, task.retry_count
+  end
+
+  test "max_retries_exceeded? returns false when under limit" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), retry_count: 0)
+    assert_not task.max_retries_exceeded?
+  end
+
+  test "max_retries_exceeded? returns true at limit" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), retry_count: 3)
+    assert task.max_retries_exceeded?
+  end
+
+  # --- Agent Integration: review lifecycle ---
+
+  test "start_review! sets review fields" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one))
+    task.start_review!(type: "command", config: { command: "bin/rails test" })
+    assert_equal "command", task.review_type
+    assert_equal "pending", task.review_status
+    assert_equal({ "command" => "bin/rails test" }, task.review_config)
+  end
+
+  test "complete_review! sets status and result" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one), status: :in_review)
+    task.start_review!(type: "command", config: {})
+    task.complete_review!(status: "passed", result: { summary: "All tests pass" })
+    assert_equal "passed", task.review_status
+    assert_equal "All tests pass", task.review_result["summary"]
+    assert task.review_result["completed_at"].present?
+  end
+
+  test "review_in_progress? returns true when running" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one))
+    task.update!(review_status: "running", review_type: "command")
+    assert task.review_in_progress?
+  end
+
+  test "command_review? returns true for command type" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one))
+    task.update!(review_type: "command")
+    assert task.command_review?
+    assert_not task.debate_review?
+  end
+
+  test "debate_review? returns true for debate type" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one))
+    task.update!(review_type: "debate")
+    assert task.debate_review?
+    assert_not task.command_review?
+  end
+
+  # --- Agent Integration: followup ---
+
+  test "create_followup_task! creates linked task" do
+    task = Task.create!(name: "Original", board: boards(:one), user: users(:one))
+    followup = task.create_followup_task!(followup_name: "Fix: Original")
+    assert followup.persisted?
+    assert_equal "Fix: Original", followup.name
+    assert_equal task.board_id, followup.board_id
+    assert_equal task.user_id, followup.user_id
+  end
+
+  test "followup_task? returns true when task has a parent" do
+    parent = Task.create!(name: "Original", board: boards(:one), user: users(:one))
+    followup = parent.create_followup_task!(followup_name: "Followup")
+    assert followup.followup_task?
+    assert_not parent.followup_task?
+  end
+
+  # --- Agent Integration: runner lease queries ---
+
+  test "runner_lease_active? with active lease" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one))
+    RunnerLease.create_for_task!(task: task, agent_name: "Otacon", source: "test")
+    assert task.runner_lease_active?
+  end
+
+  test "runner_lease_active? without lease" do
+    task = Task.create!(name: "Test", board: boards(:one), user: users(:one))
+    assert_not task.runner_lease_active?
+  end
 end
