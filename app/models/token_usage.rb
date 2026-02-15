@@ -159,7 +159,7 @@ class TokenUsage < ApplicationRecord
     def resolve_persona_id(task)
       return nil unless task.respond_to?(:agent_persona_id)
       task.agent_persona_id
-    rescue
+    rescue StandardError
       nil
     end
   end
