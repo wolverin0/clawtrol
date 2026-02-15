@@ -5,26 +5,26 @@ class User < ApplicationRecord
 
   THEMES = %w[default vaporwave].freeze
 
-  has_many :sessions, dependent: :destroy
-  has_many :boards, dependent: :destroy
-  has_many :tasks, dependent: :destroy
-  has_many :task_templates, dependent: :destroy
-  has_many :api_tokens, dependent: :destroy
-  has_many :saved_links, dependent: :destroy
-  has_many :feed_entries, dependent: :destroy
-  has_many :model_limits, dependent: :destroy
-  has_many :notifications, dependent: :destroy
-  has_many :agent_personas, dependent: :destroy
-  has_many :swarm_ideas, dependent: :destroy
-  has_many :nightshift_missions, dependent: :nullify
+  has_many :sessions, dependent: :destroy, inverse_of: :user
+  has_many :boards, dependent: :destroy, inverse_of: :user
+  has_many :tasks, dependent: :destroy, inverse_of: :user
+  has_many :task_templates, dependent: :destroy, inverse_of: :user
+  has_many :api_tokens, dependent: :destroy, inverse_of: :user
+  has_many :saved_links, dependent: :destroy, inverse_of: :user
+  has_many :feed_entries, dependent: :destroy, inverse_of: :user
+  has_many :model_limits, dependent: :destroy, inverse_of: :user
+  has_many :notifications, dependent: :destroy, inverse_of: :user
+  has_many :agent_personas, dependent: :destroy, inverse_of: :user
+  has_many :swarm_ideas, dependent: :destroy, inverse_of: :user
+  has_many :nightshift_missions, dependent: :nullify, inverse_of: :user
   has_many :invite_codes, foreign_key: :created_by_id, dependent: :nullify
-  has_many :factory_loops, dependent: :nullify
-  has_many :workflows, dependent: :nullify
+  has_many :factory_loops, dependent: :nullify, inverse_of: :user
+  has_many :workflows, dependent: :nullify, inverse_of: :user
   has_many :webhook_logs, dependent: :delete_all
   has_many :cost_snapshots, dependent: :delete_all
-  has_many :agent_test_recordings, dependent: :destroy
-  has_many :audit_reports, dependent: :destroy
-  has_many :behavioral_interventions, dependent: :destroy
+  has_many :agent_test_recordings, dependent: :destroy, inverse_of: :user
+  has_many :audit_reports, dependent: :destroy, inverse_of: :user
+  has_many :behavioral_interventions, dependent: :destroy, inverse_of: :user
   has_one_attached :avatar
   has_one :openclaw_integration_status, dependent: :destroy
 
