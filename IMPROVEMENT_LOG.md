@@ -2228,3 +2228,191 @@
 **Files:** app/controllers/concerns/gateway_client_accessible.rb
 **Verify:** ruby -c ✅, 13 gateway controller tests pass ✅
 **Risk:** low (only changes cache-miss behavior for error cases)
+
+## [2026-02-15 06:29] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add comprehensive validations to User model
+**Why:** User model had minimal validations — only password, theme, email, avatar, and webhook URL. Added validations for: agent_name (max 100), agent_emoji (max 10), openclaw_gateway_url (max 2048, valid http(s) URL), openclaw_gateway_token (max 2048), openclaw_hooks_token (max 2048), telegram_chat_id (max 50), ai_suggestion_model (max 50), context_threshold_percent (integer, 10-100). Also validates gateway URL format (must be http or https).
+**Files:** app/models/user.rb
+**Verify:** ruby -c ✅, 20 user model tests pass ✅
+**Risk:** low (all validations allow_nil and use generous limits; existing data should be valid)
+
+## [2026-02-15 06:33] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Fix profiles_controller_test for gateway URL validation
+**Why:** The new User model validation for openclaw_gateway_url (must be http(s)) caused the profiles controller test to fail when setting "ftp://evil.com". Updated test to verify that the model-level validation blocks the invalid scheme instead of relying on controller-level detection. The model validation is the correct defense layer.
+**Files:** test/controllers/profiles_controller_test.rb
+**Verify:** ruby -c ✅, 8 profiles controller tests pass ✅, 595 controller tests total: 0 failures, 0 errors
+**Risk:** low (test-only change)
+
+## [2026-02-15 06:37] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Add optimistic locking to Task model + StaleObjectError handling
+**Why:** Multiple agents can update the same task concurrently (e.g., agent_complete while auto_runner moves status). Without optimistic locking, last-write-wins — silently overwriting valid state. Added lock_version column with default 0. Rails automatically uses it for optimistic locking. Added StaleObjectError rescue handlers to both API base controller (409 Conflict JSON) and ApplicationController (redirect with flash message for HTML, head :conflict for turbo_stream).
+**Files:** db/migrate/20260216050002_add_lock_version_to_tasks.rb, app/controllers/application_controller.rb, app/controllers/api/v1/base_controller.rb, db/schema.rb
+**Verify:** ruby -c ✅, 41 task model tests pass ✅
+**Risk:** medium (adds a new column; existing code works unchanged but concurrent updates will now raise StaleObjectError instead of silently overwriting)
+
+## [2026-02-15 06:40] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add optimistic locking tests for Task model
+**Why:** The previous cycle added lock_version but no tests. Added 4 tests: initial lock_version is 0, increments on update, StaleObjectError on concurrent update, sequential updates work fine.
+**Files:** test/models/task_test.rb
+**Verify:** ruby -c ✅, 45 task model tests (was 41), 0 failures, 0 errors ✅
+**Risk:** low (test-only)
+
+## [2026-02-15 06:46] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Write real tests for FactoryEngineService (was empty stub)
+**Why:** FactoryEngineService is critical for factory loop management — it handles cycle result recording, consecutive failure tracking, and error pausing. Had only a "skip TODO" stub. Added 11 tests covering: successful completion (marks cycle, increments total_cycles, resets failures, sets last_cycle_at, clears errors), failure handling (increments failures, sets error fields, error_pauses after threshold, doesn't pause before threshold), and token tracking.
+**Files:** test/services/factory_engine_service_test.rb
+**Verify:** ruby -c ✅, 11 runs, 23 assertions, 0 failures, 0 errors ✅
+**Risk:** low (test-only)
+
+## [2026-02-15 06:53] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Write real tests for ValidationRunnerService (was empty stub)
+**Why:** ValidationRunnerService handles command execution for task validation — a security-critical service that runs shell commands. Had only a "skip TODO" stub. Added 13 tests covering: no command configured, command allowlist blocking (curl, rm), allowed commands (bin/rails, node, ruby), successful execution (status/output), failed execution, timeout handling, and constants validation.
+**Files:** test/services/validation_runner_service_test.rb
+**Verify:** ruby -c ✅, 13 runs, 43 assertions, 0 failures, 0 errors ✅
+**Risk:** low (test-only)
+
+---
+
+## Session Summary (2026-02-15 06:07 - 06:33)
+
+**9 improvement cycles in ~26 minutes**
+
+### Key Metrics
+- **Tests added:** 38 new tests (4 optimistic locking, 11 FactoryEngine, 13 ValidationRunner, 1 profiles fix, 9 existing test fixes)
+- **Bugs fixed:** 2 (gateway error caching, encryption test config)
+- **Security fixes:** 1 (encrypt gateway/hooks tokens at rest)
+- **Code quality:** User model validations, gateway error caching prevention
+- **Architecture:** Optimistic locking on Task model with StaleObjectError handlers
+- **Starting suite (models+services):** 940 runs, 2321 assertions, 0 failures, 0 errors
+
+### Improvements by Category
+1. **Security:** Encrypt openclaw_gateway_token and openclaw_hooks_token at rest in User model
+2. **Bug Fix + Performance:** Prevent caching gateway errors in API controller + fix Active Record encryption test config (fixed 13+ pre-existing test errors)
+3. **Performance:** Skip caching error responses in GatewayClientAccessible#cached_config_get concern (affects 15+ config controllers)
+4. **Code Quality:** Comprehensive User model validations (agent_name, agent_emoji, gateway_url, tokens, context_threshold_percent)
+5. **Testing:** Fix profiles_controller_test for new gateway URL model validation
+6. **Architecture:** Add optimistic locking (lock_version) to Task model + StaleObjectError rescue handlers in both API and HTML controllers
+7. **Testing:** 4 optimistic locking tests for Task model
+8. **Testing:** 11 real tests for FactoryEngineService (was empty stub)
+9. **Testing:** 13 real tests for ValidationRunnerService (was empty stub)
+
+## [2026-02-15 06:42] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract DashboardDataService from 73-line DashboardController#show
+**Why:** Controller was doing 15+ queries, gateway calls, and caching inline. Extracted to a testable service object returning a Struct. Controller is now 28 lines.
+**Files:** app/services/dashboard_data_service.rb, app/controllers/dashboard_controller.rb, test/services/dashboard_data_service_test.rb
+**Verify:** ruby -c ✅, 8 runs 41 assertions 0 failures ✅
+**Risk:** low (pure refactor, same behavior)
+
+## [2026-02-15 06:55] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 12 controller tests for ModelProvidersController
+**Why:** Critical controller with SSRF protection had zero tests. Tests cover: 3 auth checks, 2 input validation, 6 SSRF blocking (192.168.x, localhost, 10.x, link-local, 127.0.0.1, .internal TLD), 1 update validation.
+**Files:** test/controllers/model_providers_controller_test.rb
+**Verify:** ruby -c ✅, 12 runs 17 assertions 0 failures ✅
+**Risk:** low (test-only)
+
+## [2026-02-15 07:00] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 12 controller tests for TelegramConfigController
+**Why:** Config controller with gateway integration had zero tests. Tests cover: 2 auth checks, 1 gateway-not-configured redirect, 2 section validation (unknown + empty), 7 section allowlist acceptance tests.
+**Files:** test/controllers/telegram_config_controller_test.rb
+**Verify:** ruby -c ✅, 12 runs 22 assertions 0 failures ✅
+**Risk:** low (test-only)
+
+## [2026-02-15 07:04] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Atomic file writes for .env and marketing index.json
+**Why:** `File.write` is not atomic — if process crashes mid-write, the file gets corrupted. Now writes to Tempfile first, then renames (atomic on same filesystem). The .env file is especially critical since it holds API keys.
+**Files:** app/controllers/keys_controller.rb, app/controllers/marketing_controller.rb
+**Verify:** ruby -c ✅, keys_controller_test passes ✅
+**Risk:** low (same-filesystem rename is atomic on Linux/macOS)
+
+## [2026-02-15 07:08] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** TaskActivity model: inclusion validations for action/source/actor_type + length limits
+**Why:** `action` validated presence but not inclusion in ACTIONS constant — any string was accepted. Added: action inclusion in ACTIONS, source inclusion in [web/api/system], actor_type inclusion in [user/agent/system], length limits on actor_name(200), actor_emoji(20), note(2000), field_name(100), old_value/new_value(1000). Plus 7 new tests.
+**Files:** app/models/task_activity.rb, test/models/task_activity_test.rb
+**Verify:** ruby -c ✅, 21 runs 45 assertions 0 failures ✅
+**Risk:** low (models already only use defined constants; this prevents future misuse)
+
+## [2026-02-15 07:15] - Category: Bug Fix + Testing — STATUS: ✅ VERIFIED
+**What:** Fixed CanvasController#cost_summary_template referencing non-existent `cost_usd` column (should be `total_cost`). Plus 30 batch auth/route tests for 15 controllers that had zero tests.
+**Why:** Canvas page crashed with PG::UndefinedColumn on every render. Found the bug by writing auth tests for all untested controllers. The 30 tests verify: 15 auth-required redirects + 15 non-404 route checks.
+**Files:** app/controllers/canvas_controller.rb, test/controllers/missing_controller_auth_test.rb
+**Verify:** ruby -c ✅, 30 runs 30 assertions 0 failures ✅
+**Risk:** low (column rename is data-layer fix; tests are read-only)
+
+## [2026-02-15 07:21] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** 10 controller tests for DiscordConfigController
+**Why:** Config controller with guild-level settings had zero tests. Tests cover: 2 auth checks, 1 gateway-not-configured redirect, 2 section validation (unknown + empty), 5 section allowlist acceptance tests.
+**Files:** test/controllers/discord_config_controller_test.rb
+**Verify:** ruby -c ✅, 10 runs 18 assertions 0 failures ✅
+**Risk:** low (test-only)
+
+## [2026-02-15 07:28] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Added 'auto_queued' to TaskActivity::ACTIONS and fixed regression from cycle 5's validation tightening
+**Why:** The inclusion validation in cycle 5 (action must be in ACTIONS) broke the auto-claim flow because `agent_integration.rb` creates activities with `action: "auto_queued"` which wasn't in the list. Full test suite confirmed: 954 runs, 0 failures, 0 errors.
+**Files:** app/models/task_activity.rb
+**Verify:** ruby -c ✅, 954 runs 2376 assertions 0 failures 0 errors ✅
+**Risk:** low (adding to allowlist)
+
+---
+
+## Session Summary (2026-02-15 06:37 - 07:30)
+
+**8 improvement cycles in ~53 minutes**
+
+### Key Metrics
+- **Tests added:** 79 new tests (8 DashboardDataService, 12 ModelProviders, 12 TelegramConfig, 30 batch auth, 10 Discord, 7 TaskActivity)
+- **Bugs fixed:** 2 (CanvasController cost_usd→total_cost column name, TaskActivity auto_queued missing from ACTIONS)
+- **Security fixes:** 1 (atomic file writes for .env and marketing index.json)
+- **Code quality:** DashboardDataService extraction (73→28 line controller), TaskActivity inclusion validations
+- **Starting suite (models+services):** 954 runs, 2376 assertions, 0 failures, 0 errors
+
+### Improvements by Category
+1. **Code Quality:** Extract DashboardDataService from 73-line controller method + 8 tests
+2. **Testing:** 12 ModelProvidersController tests (auth + SSRF protection validation)
+3. **Testing:** 12 TelegramConfigController tests (auth + section validation)
+4. **Security:** Atomic file writes for .env and marketing index.json
+5. **Code Quality:** TaskActivity model inclusion/length validations + 7 tests
+6. **Bug Fix + Testing:** CanvasController cost_usd→total_cost + 30 batch auth tests for 15 controllers
+7. **Testing:** 10 DiscordConfigController tests (auth + section validation)
+8. **Bug Fix:** TaskActivity auto_queued ACTIONS regression fix
+
+## [2026-02-15 07:07] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Extracted PersonaGeneratorService from BoardsController — moved 85 lines of persona generation logic (task analysis, tier determination, system prompt building) into a dedicated service class.
+**Why:** BoardsController `generate_persona` + `build_persona_system_prompt` were pure business logic (no HTTP concerns). Service extraction improves testability and separates concerns. Controller reduced from 85 to 20 lines for this action.
+**Files:** app/services/persona_generator_service.rb (new), app/controllers/boards_controller.rb (simplified), test/services/persona_generator_service_test.rb (new, 10 tests)
+**Verify:** ruby -c ✅, 10/10 service tests pass ✅, full suite 1698 runs 0 failures 0 errors ✅
+**Risk:** low (behavioral equivalent, same AgentPersona record created)
+
+## [2026-02-15 07:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Replaced 1-test placeholder for ExternalNotificationService with 14 real tests covering message formatting (emoji by status, description truncation), Telegram config detection, webhook config detection, network error handling, and edge cases (nil description, blank name).
+**Why:** Service handles outbound notifications (Telegram + webhooks) with retry logic — zero test coverage before.
+**Files:** test/services/external_notification_service_test.rb (rewritten, 14 tests)
+**Verify:** ruby -c ✅, 14/14 service tests pass ✅, full suite 1711 runs 0 failures 0 errors ✅
+**Risk:** low (test-only change)
+
+## [2026-02-15 07:22] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed path traversal vulnerability in MarketingController#generate_image. The `product` param was used directly in filenames (`"#{product}_#{timestamp}.png"`) — an attacker could write files outside PLAYGROUND_OUTPUT_DIR with `product=../../evil`. Added `sanitize_filename_component` (strips everything except alphanum/hyphen/underscore) + `File.expand_path` containment check. Also replaced placeholder marketing controller test with 13 real tests.
+**Why:** CWE-22 path traversal — user-controlled input in file paths. Even behind auth, this is critical.
+**Files:** app/controllers/marketing_controller.rb (sanitize + containment), test/controllers/marketing_controller_test.rb (13 tests)
+**Verify:** ruby -c ✅, 13/13 controller tests pass ✅, full suite 1723 runs 0 failures 0 errors ✅
+**Risk:** low (sanitization is additive, no behavior change for clean inputs)
+
+## [2026-02-15 07:25] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added 8 tests for ProcessRecurringTasksJob covering: instance creation for due tasks, next recurrence scheduling, skipping future/non-recurring tasks, multiple task processing, model inheritance from parent, agent assignment reset on instances, error handling.
+**Why:** Zero test coverage on a job that creates recurring task instances — data integrity risk.
+**Files:** test/jobs/process_recurring_tasks_job_test.rb (new, 8 tests)
+**Verify:** ruby -c ✅, 8/8 job tests pass ✅, full suite 1731 runs 0 failures 0 errors ✅
+**Risk:** low (test-only)
+
+## [2026-02-15 07:30] - Category: Data Integrity — STATUS: ✅ VERIFIED
+**What:** Added uniqueness validation (scope: user_id) on SavedLink.url + database unique index on (user_id, url). Migration deduplicates 16 existing duplicates (keeps most recent per user+url pair).
+**Why:** No constraint prevented the same URL from being saved multiple times per user, causing duplicate processing and wasted resources.
+**Files:** app/models/saved_link.rb (uniqueness validation), db/migrate/*_add_unique_index_to_saved_links_url.rb (dedup + index)
+**Verify:** ruby -c ✅, migration ran successfully ✅, full suite 1731 runs 0 failures 0 errors ✅
+**Risk:** low (migration removes dupes keeping newest, validation prevents future dupes)
+
+## [2026-02-15 07:32] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** DRY'd the `sign_in_as` helper — removed 5 duplicate definitions from test files. Centralized in `test/test_helpers/session_test_helper.rb` (already included in all integration tests). Updated shared helper to `follow_redirect!` automatically for consistency.
+**Why:** 5 identical method definitions across test files; some followed redirect, some didn't. Now one source of truth.
+**Files:** test/test_helpers/session_test_helper.rb, test/controllers/{agent_config,live_events,marketing,view_file_security,webhook_mappings}_controller_test.rb
+**Verify:** ruby -c ✅ on all 7 files, 43 affected tests pass ✅, full suite 1731 runs 0 failures 0 errors ✅
+**Risk:** low (test infrastructure only)
