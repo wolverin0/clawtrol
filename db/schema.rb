@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_16_050003) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_16_050004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -790,8 +790,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050003) do
     t.datetime "updated_at", null: false
     t.index ["agent_persona_id"], name: "index_token_usages_on_agent_persona_id"
     t.index ["created_at"], name: "index_token_usages_on_created_at"
+    t.index ["model", "created_at"], name: "index_token_usages_on_model_and_created_at"
     t.index ["model"], name: "index_token_usages_on_model"
     t.index ["session_key"], name: "index_token_usages_on_session_key"
+    t.index ["task_id", "created_at"], name: "index_token_usages_on_task_id_and_created_at"
     t.index ["task_id"], name: "index_token_usages_on_task_id"
   end
 
