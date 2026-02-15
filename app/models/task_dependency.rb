@@ -5,7 +5,7 @@ class TaskDependency < ApplicationRecord
   strict_loading :n_plus_one
 
   belongs_to :task, inverse_of: :task_dependencies
-  belongs_to :depends_on, class_name: "Task"
+  belongs_to :depends_on, class_name: "Task", inverse_of: :dependents
 
   validates :task_id, uniqueness: { scope: :depends_on_id, message: "already has this dependency" }
   validate :no_self_dependency
