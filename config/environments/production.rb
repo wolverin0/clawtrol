@@ -58,7 +58,12 @@ Rails.application.configure do
   config.action_mailer.delivery_method = :smtp
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "clawdeck.io" }
+  if ENV["APP_BASE_URL"].present?
+    uri = URI.parse(ENV["APP_BASE_URL"])
+    config.action_mailer.default_url_options = { host: uri.host, port: uri.port, protocol: uri.scheme }
+  else
+    config.action_mailer.default_url_options = { host: "localhost", port: 4001 }
+  end
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
@@ -93,6 +98,13 @@ Rails.application.configure do
     %r{\Ahttps://.*\.clawdeck\.io\z},
     %r{\Ahttps://clawdeck\.onrender\.com\z}
   ]
+
+  # Allow APP_BASE_URL
+  if ENV["APP_BASE_URL"].present?
+    uri = URI.parse(ENV["APP_BASE_URL"])
+    config.hosts << uri.host
+    config.action_cable.allowed_request_origins << %r{\A#{Regexp.escape(uri.scheme)}://#{Regexp.escape(uri.host)}(:\d+)?\z}
+  end
 
   # Skip DNS rebinding protection for the default health check endpoint.
   config.host_authorization = { exclude: ->(request) { request.path == "/up" } }

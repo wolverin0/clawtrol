@@ -14,7 +14,8 @@ export default class extends Controller {
   }
 
   toggle(event) {
-    event.currentTarget.classList.toggle("selected")
+    const card = event.currentTarget
+    card.classList.toggle("selected")
     this.updateStats()
   }
 
@@ -47,7 +48,7 @@ export default class extends Controller {
       if (data.success) {
         this.systemStatusTarget.textContent = `ARMED (${data.armed_count} missions)`
         this.systemStatusTarget.style.color = 'var(--terminal-green)'
-        this.launchButtonTarget.textContent = "✅ ARMED"
+        this.launchButtonTarget.textContent = "\u2705 ARMED"
       } else {
         this.launchButtonTarget.textContent = "ERROR"
       }
@@ -67,7 +68,7 @@ export default class extends Controller {
 
     if (n > 0) {
       this.launchButtonTarget.disabled = false
-      this.launchButtonTarget.textContent = `ARM ${n} MISSIONS 🚀`
+      this.launchButtonTarget.textContent = `ARM ${n} MISSIONS \uD83D\uDE80`
     } else {
       this.launchButtonTarget.disabled = true
       this.launchButtonTarget.textContent = "SELECT MISSIONS"
@@ -79,14 +80,17 @@ export default class extends Controller {
   }
 
   openModal() {
-    this.modalTarget.classList.add("open")
+    this.modalTarget.classList.remove("hidden")
+    this.modalTarget.classList.add("flex")
   }
 
   closeModal() {
-    this.modalTarget.classList.remove("open")
+    this.modalTarget.classList.remove("flex")
+    this.modalTarget.classList.add("hidden")
   }
 
   openEditModal(event) {
+    event.stopPropagation()
     const card = event.currentTarget.closest(".ns-card")
     if (!card) return
 
@@ -107,11 +111,13 @@ export default class extends Controller {
     })
 
     this.toggleEditDays()
-    this.editModalTarget.classList.add("open")
+    this.editModalTarget.classList.remove("hidden")
+    this.editModalTarget.classList.add("flex")
   }
 
   closeEditModal() {
-    this.editModalTarget.classList.remove("open")
+    this.editModalTarget.classList.remove("flex")
+    this.editModalTarget.classList.add("hidden")
   }
 
   toggleCreateDays() {
@@ -137,14 +143,14 @@ export default class extends Controller {
   }
 
   filterAll(event) {
-    document.querySelectorAll('.ns-filter-btn').forEach(b => b.classList.remove('active'))
+    document.querySelectorAll('[data-action*="filterCategory"], [data-action*="filterAll"]').forEach(b => b.classList.remove('active'))
     event.currentTarget.classList.add('active')
     this.cardTargets.forEach(card => card.style.display = '')
   }
 
   filterCategory(event) {
     const cat = event.currentTarget.dataset.category
-    document.querySelectorAll('.ns-filter-btn').forEach(b => b.classList.remove('active'))
+    document.querySelectorAll('[data-action*="filterCategory"], [data-action*="filterAll"]').forEach(b => b.classList.remove('active'))
     event.currentTarget.classList.add('active')
     this.cardTargets.forEach(card => {
       card.style.display = card.dataset.missionCategory === cat ? '' : 'none'
