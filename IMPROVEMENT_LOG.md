@@ -2971,3 +2971,11 @@
 **Risk:** low (test file fix)
 
 
+
+## [2026-02-15 19:07] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Add strict_loading to Task model to detect N+1 queries
+**Why:** strict_loading :n_plus_one warns in dev/test when N+1 queries occur, helping identify performance issues. Board and User already have it; adding to Task completes the coverage for core models.
+**Files:** app/models/task.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (additive, warning-only in dev/test)
+
