@@ -1,142 +1,254 @@
 import { Controller } from "@hotwired/stimulus"
 
+// Connects to data-controller="swarm"
 export default class extends Controller {
-  static targets = ["card", "count", "time", "launchButton", "grid", "modal"]
+  static targets = [
+    "card",
+    "checkbox",
+    "selectedCount",
+    "totalTime",
+    "launchBtn",
+    "selectAllBtn",
+    "modal",
+    "filterBtn"
+  ]
 
   connect() {
-    this.updateStats()
+    this.selectedIds = new Set()
+    this.updateBottomPanel()
   }
 
+  // ─── Selection ───────────────────────────────────────────────────
+
   toggle(event) {
-    const card = event.currentTarget
-    card.classList.toggle("selected")
+    const card = event.target.closest("[data-idea-id]")
+    if (!card) return
+
+    const id = card.dataset.ideaId
     const checkbox = card.querySelector(".sw-checkbox")
-    if (checkbox) {
-      const isSelected = card.classList.contains("selected")
-      checkbox.classList.toggle("border-emerald-400", isSelected)
-      checkbox.classList.toggle("bg-emerald-400", isSelected)
-      checkbox.querySelector("span").style.opacity = isSelected ? "1" : "0"
+
+    if (this.selectedIds.has(id)) {
+      this.selectedIds.delete(id)
+      card.classList.remove("sw-selected")
+      if (checkbox) checkbox.classList.remove("sw-checked")
+    } else {
+      this.selectedIds.add(id)
+      card.classList.add("sw-selected")
+      if (checkbox) checkbox.classList.add("sw-checked")
     }
-    this.updateStats()
+
+    this.updateBottomPanel()
   }
 
   toggleAll() {
-    const allSelected = this.selectedCards.length === this.visibleCards.length
-    this.visibleCards.forEach(card => {
-      card.classList.toggle("selected", !allSelected)
-      const checkbox = card.querySelector(".sw-checkbox")
-      if (checkbox) {
-        checkbox.classList.toggle("border-emerald-400", !allSelected)
-        checkbox.classList.toggle("bg-emerald-400", !allSelected)
-        checkbox.querySelector("span").style.opacity = !allSelected ? "1" : "0"
-      }
-    })
-    this.updateStats()
+    const visibleCards = this.cardTargets.filter(c => c.style.display !== "none")
+    const allSelected = visibleCards.every(c => this.selectedIds.has(c.dataset.ideaId))
+
+    if (allSelected) {
+      this.deselectAll()
+    } else {
+      visibleCards.forEach(card => {
+        const id = card.dataset.ideaId
+        this.selectedIds.add(id)
+        card.classList.add("sw-selected")
+        const cb = card.querySelector(".sw-checkbox")
+        if (cb) cb.classList.add("sw-checked")
+      })
+    }
+
+    this.updateBottomPanel()
   }
 
   deselectAll() {
+    this.selectedIds.clear()
     this.cardTargets.forEach(card => {
-      card.classList.remove("selected")
-      const checkbox = card.querySelector(".sw-checkbox")
-      if (checkbox) {
-        checkbox.classList.remove("border-emerald-400", "bg-emerald-400")
-        checkbox.querySelector("span").style.opacity = "0"
-      }
+      card.classList.remove("sw-selected")
+      const cb = card.querySelector(".sw-checkbox")
+      if (cb) cb.classList.remove("sw-checked")
     })
-    this.updateStats()
+    this.updateBottomPanel()
+  }
+
+  // ─── Filters ─────────────────────────────────────────────────────
+
+  filterAll(event) {
+    this._setActiveFilter(event.currentTarget)
+    this.cardTargets.forEach(card => card.style.display = "")
+    this.deselectAll()
   }
 
   filterCategory(event) {
-    const cat = event.currentTarget.dataset.category
-    // Toggle active state on buttons
-    this.element.querySelectorAll("[data-action*='filterCategory'], [data-action*='filterAll']").forEach(b => b.classList.remove("active", "border-sky-400", "text-sky-400"))
-    event.currentTarget.classList.add("active", "border-sky-400", "text-sky-400")
+    const category = event.currentTarget.dataset.category
+    this._setActiveFilter(event.currentTarget)
 
     this.cardTargets.forEach(card => {
-      card.style.display = (!cat || card.dataset.category === cat) ? "" : "none"
+      card.style.display = card.dataset.category === category ? "" : "none"
     })
-    this.updateStats()
+    this.deselectAll()
   }
 
-  filterAll(event) {
-    this.element.querySelectorAll("[data-action*='filterCategory'], [data-action*='filterAll']").forEach(b => b.classList.remove("active", "border-sky-400", "text-sky-400"))
-    event.currentTarget.classList.add("active", "border-sky-400", "text-sky-400")
-    this.cardTargets.forEach(card => card.style.display = "")
-    this.updateStats()
-  }
+  filterFavorites(event) {
+    this._setActiveFilter(event.currentTarget)
 
-  launch() {
-    const selected = this.selectedCards
-    if (selected.length === 0) return
-
-    this.launchButtonTarget.disabled = true
-    this.launchButtonTarget.textContent = "LAUNCHING..."
-
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content")
-    const promises = selected.map(card => {
-      const id = card.dataset.ideaId
-      const modelSelect = card.querySelector(".sw-model-select")
-      const model = modelSelect ? modelSelect.value : ""
-      return fetch(`/swarm/launch/${id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "X-CSRF-Token": csrfToken || "",
-          "Accept": "text/html"
-        },
-        body: model ? `model=${encodeURIComponent(model)}` : "",
-        redirect: "follow"
-      })
+    this.cardTargets.forEach(card => {
+      card.style.display = card.dataset.favorite === "true" ? "" : "none"
     })
+    this.deselectAll()
+  }
 
-    Promise.all(promises).then(() => {
-      window.location.reload()
-    }).catch(() => {
-      this.launchButtonTarget.disabled = false
-      this.launchButtonTarget.textContent = "RETRY"
+  _setActiveFilter(activeBtn) {
+    this.filterBtnTargets.forEach(btn => {
+      btn.classList.remove("sw-filter-active")
     })
+    activeBtn.classList.add("sw-filter-active")
   }
 
-  openModal() {
-    this.modalTarget.style.display = "flex"
-  }
+  // ─── Favorites ───────────────────────────────────────────────────
 
-  closeModal() {
-    this.modalTarget.style.display = "none"
-  }
-
-  overlayClose(event) {
-    if (event.target === this.modalTarget) this.closeModal()
-  }
-
-  stopPropagation(event) {
+  async toggleFavorite(event) {
     event.stopPropagation()
-  }
+    const card = event.target.closest("[data-idea-id]")
+    if (!card) return
 
-  updateStats() {
-    const selected = this.selectedCards
-    const n = selected.length
-    const t = selected.reduce((sum, card) => sum + parseInt(card.dataset.time || 0), 0)
+    const id = card.dataset.ideaId
+    const starEl = card.querySelector(".sw-star")
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
 
-    if (this.hasCountTarget) this.countTarget.textContent = n
-    if (this.hasTimeTarget) this.timeTarget.textContent = t < 60 ? `${t}m` : `${Math.floor(t / 60)}h ${t % 60}m`
+    try {
+      const response = await fetch(`/swarm/${id}/toggle_favorite`, {
+        method: "PATCH",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken
+        }
+      })
 
-    if (this.hasLaunchButtonTarget) {
-      if (n > 0) {
-        this.launchButtonTarget.disabled = false
-        this.launchButtonTarget.textContent = `🚀 LAUNCH ${n} IDEA${n > 1 ? "S" : ""}`
-      } else {
-        this.launchButtonTarget.disabled = true
-        this.launchButtonTarget.textContent = "SELECT IDEAS"
+      const data = await response.json()
+
+      if (data.success) {
+        card.dataset.favorite = data.favorite ? "true" : "false"
+        if (starEl) {
+          starEl.textContent = data.favorite ? "\u2605" : "\u2606"
+          starEl.classList.toggle("sw-star-active", data.favorite)
+        }
       }
+    } catch (err) {
+      console.error("Toggle favorite failed:", err)
     }
   }
 
-  get selectedCards() {
-    return this.cardTargets.filter(card => card.classList.contains("selected"))
+  // ─── Launch ──────────────────────────────────────────────────────
+
+  async launch() {
+    if (this.selectedIds.size === 0) return
+
+    const launchBtn = this.launchBtnTarget
+    const originalText = launchBtn.textContent
+    launchBtn.textContent = "LAUNCHING..."
+    launchBtn.disabled = true
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+    let successCount = 0
+    let errors = []
+
+    for (const id of this.selectedIds) {
+      const card = this.cardTargets.find(c => c.dataset.ideaId === id)
+      if (!card) continue
+
+      // Read per-card overrides
+      const modelSelect = card.querySelector(".sw-model-select")
+      const boardSelect = card.querySelector(".sw-board-select")
+      const model = modelSelect?.value || ""
+      const boardId = boardSelect?.value || ""
+
+      try {
+        const response = await fetch(`/swarm/${id}/launch`, {
+          method: "POST",
+          headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken
+          },
+          body: JSON.stringify({
+            model: model,
+            board_id: boardId
+          })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          successCount++
+          card.classList.add("sw-launch-success")
+        } else {
+          errors.push(`${id}: ${data.error}`)
+        }
+      } catch (err) {
+        errors.push(`${id}: ${err.message}`)
+      }
+    }
+
+    launchBtn.textContent = `LAUNCHED ${successCount}/${this.selectedIds.size}`
+
+    // Brief success display, then reload
+    setTimeout(() => {
+      window.location.reload()
+    }, 1200)
   }
 
-  get visibleCards() {
-    return this.cardTargets.filter(card => card.style.display !== "none")
+  // ─── Modal ───────────────────────────────────────────────────────
+
+  openModal() {
+    const modal = this.modalTarget
+    modal.style.display = "flex"
+  }
+
+  closeModal() {
+    const modal = this.modalTarget
+    modal.style.display = "none"
+  }
+
+  // Close modal on backdrop click
+  backdropClick(event) {
+    if (event.target === this.modalTarget) {
+      this.closeModal()
+    }
+  }
+
+  // ─── Bottom Panel ────────────────────────────────────────────────
+
+  updateBottomPanel() {
+    const count = this.selectedIds.size
+
+    // Selected count
+    if (this.hasSelectedCountTarget) {
+      this.selectedCountTarget.textContent = count
+    }
+
+    // Total estimated time
+    if (this.hasTotalTimeTarget) {
+      let totalMinutes = 0
+      this.selectedIds.forEach(id => {
+        const card = this.cardTargets.find(c => c.dataset.ideaId === id)
+        if (card) {
+          totalMinutes += parseInt(card.dataset.time || "0", 10)
+        }
+      })
+
+      const hours = Math.floor(totalMinutes / 60)
+      const mins = totalMinutes % 60
+      this.totalTimeTarget.textContent = hours > 0
+        ? `${hours}h ${mins}m`
+        : `${mins}m`
+    }
+
+    // Launch button state
+    if (this.hasLaunchBtnTarget) {
+      this.launchBtnTarget.disabled = count === 0
+      this.launchBtnTarget.textContent = count > 0
+        ? `LAUNCH ${count} IDEA${count !== 1 ? "S" : ""}`
+        : "LAUNCH"
+    }
   }
 }

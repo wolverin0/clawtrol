@@ -21,7 +21,7 @@ class TranscriptCaptureJob < ApplicationJob
     end
     return if task.agent_session_id.present? && transcript_exists?(task.agent_session_id)
 
-    Rails.logger.info("[TranscriptCapture] Scanning for output for task ##{task.id}: #{task.title}")
+    Rails.logger.info("[TranscriptCapture] Scanning for output for task ##{task.id}: #{task.name}")
 
     # Strategy 1: If we have a session_id, try to find the transcript
     if task.agent_session_id.present?
