@@ -2344,3 +2344,33 @@
 **Files:** test/controllers/discord_config_controller_test.rb
 **Verify:** ruby -c ✅, 10 runs 18 assertions 0 failures ✅
 **Risk:** low (test-only)
+
+## [2026-02-15 07:28] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Added 'auto_queued' to TaskActivity::ACTIONS and fixed regression from cycle 5's validation tightening
+**Why:** The inclusion validation in cycle 5 (action must be in ACTIONS) broke the auto-claim flow because `agent_integration.rb` creates activities with `action: "auto_queued"` which wasn't in the list. Full test suite confirmed: 954 runs, 0 failures, 0 errors.
+**Files:** app/models/task_activity.rb
+**Verify:** ruby -c ✅, 954 runs 2376 assertions 0 failures 0 errors ✅
+**Risk:** low (adding to allowlist)
+
+---
+
+## Session Summary (2026-02-15 06:37 - 07:30)
+
+**8 improvement cycles in ~53 minutes**
+
+### Key Metrics
+- **Tests added:** 79 new tests (8 DashboardDataService, 12 ModelProviders, 12 TelegramConfig, 30 batch auth, 10 Discord, 7 TaskActivity)
+- **Bugs fixed:** 2 (CanvasController cost_usd→total_cost column name, TaskActivity auto_queued missing from ACTIONS)
+- **Security fixes:** 1 (atomic file writes for .env and marketing index.json)
+- **Code quality:** DashboardDataService extraction (73→28 line controller), TaskActivity inclusion validations
+- **Starting suite (models+services):** 954 runs, 2376 assertions, 0 failures, 0 errors
+
+### Improvements by Category
+1. **Code Quality:** Extract DashboardDataService from 73-line controller method + 8 tests
+2. **Testing:** 12 ModelProvidersController tests (auth + SSRF protection validation)
+3. **Testing:** 12 TelegramConfigController tests (auth + section validation)
+4. **Security:** Atomic file writes for .env and marketing index.json
+5. **Code Quality:** TaskActivity model inclusion/length validations + 7 tests
+6. **Bug Fix + Testing:** CanvasController cost_usd→total_cost + 30 batch auth tests for 15 controllers
+7. **Testing:** 10 DiscordConfigController tests (auth + section validation)
+8. **Bug Fix:** TaskActivity auto_queued ACTIONS regression fix
