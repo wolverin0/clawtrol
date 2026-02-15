@@ -2388,3 +2388,10 @@
 **Files:** test/services/external_notification_service_test.rb (rewritten, 14 tests)
 **Verify:** ruby -c ✅, 14/14 service tests pass ✅, full suite 1711 runs 0 failures 0 errors ✅
 **Risk:** low (test-only change)
+
+## [2026-02-15 07:22] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Fixed path traversal vulnerability in MarketingController#generate_image. The `product` param was used directly in filenames (`"#{product}_#{timestamp}.png"`) — an attacker could write files outside PLAYGROUND_OUTPUT_DIR with `product=../../evil`. Added `sanitize_filename_component` (strips everything except alphanum/hyphen/underscore) + `File.expand_path` containment check. Also replaced placeholder marketing controller test with 13 real tests.
+**Why:** CWE-22 path traversal — user-controlled input in file paths. Even behind auth, this is critical.
+**Files:** app/controllers/marketing_controller.rb (sanitize + containment), test/controllers/marketing_controller_test.rb (13 tests)
+**Verify:** ruby -c ✅, 13/13 controller tests pass ✅, full suite 1723 runs 0 failures 0 errors ✅
+**Risk:** low (sanitization is additive, no behavior change for clean inputs)
