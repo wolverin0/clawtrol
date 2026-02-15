@@ -7,6 +7,19 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- **swarm:** favorites, board routing, launch history, pipeline stepper + bugfixes (`8459380`)
+- **saved-links:** replace audio with deep summary toggle (#640) (`2f04e65`)
+- webhook retry with exponential backoff (#635) (`3cc67b8`)
+- add APP_BASE_URL env variable — remove all hardcoded URLs (`7d5ace1`)
+- add APP_BASE_URL env variable — remove all hardcoded URLs (`e56aede`)
+- audio_summary toggle in inline edit + TTS generation (#630) (`10ca969`)
+- **saved_links:** add audio_summary toggle + audio_file_path column (`419df2e`)
+- inline edit note on saved links (`3741f45`)
+- rename saved_links.title to note + fix execution_plan crash (`3032872`)
+- **factory-wave2:** integrate 37 MiniMax factory commits — features, security, tests (`6716cd2`)
+- fix SolidQueue adapter + rewrite AI onboarding in README (`9b4dd1f`)
+- auto-review gate — evaluate agent output before in_review (#622) (`fb7209e`)
+- auto-review gate — evaluate agent output before in_review (#622) (`7eed184`)
 - default pipeline_enabled to true for all new tasks (#619) (`28dfba2`)
 - Swarm Launcher — curated task idea launcher with pipeline integration (#619) (`84ef6db`)
 - **pipeline:** activate ClawRouter — observation mode off (#618) (`fb6578b`)
@@ -75,6 +88,9 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
 ### 🐛 Bug Fixes
 
+- add dependency_graph to set_board before_action + aggregator support (#639) (`bf45590`)
+- **api:** remove missing TaskSerializer reference + add unstarted to pipeline stages (`8ca683e`)
+- enable SolidQueue plugin unconditionally in Puma (`71a5ed5`)
 - add pipeline_enabled to task strong params (`87083f4`)
 - **factory:** cherry-pick security, performance, and test improvements from MiniMax factory (`c04aa87`)
 - **security+perf:** cherry-pick OpenClaw bot findings — IDOR, injection, N+1, indexes (`c0553a6`)
@@ -170,6 +186,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`d4a2096`)
 - update CHANGELOG.md [skip ci] (`445ac3b`)
 - update CHANGELOG.md [skip ci] (`1e86992`)
 - update CHANGELOG.md [skip ci] (`f3359fe`)
