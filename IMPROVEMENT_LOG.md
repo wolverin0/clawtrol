@@ -2741,3 +2741,10 @@
 **Files:** test/services/session_cost_analytics_test.rb
 **Verify:** 14 runs, 38 assertions, 0 failures, 0 errors
 **Risk:** low — test-only change
+
+## [2026-02-15 10:01] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Fix NaN/division-by-zero in CostSnapshot.trend with small lookback values
+**Why:** When `lookback` was 1 or 0, `lookback / 2` (integer division) produced 0, causing `sum / 0.0` = NaN. NaN propagated through the comparison operators, making trend always return `:flat` at best, or potentially causing view rendering issues. Fixed by clamping lookback to minimum 2 and half to minimum 1. Added 2 edge case tests.
+**Files:** app/models/cost_snapshot.rb, test/models/cost_snapshot_test.rb
+**Verify:** ruby -c OK, 29 runs, 43 assertions, 0 failures, 0 errors
+**Risk:** low — defensive clamp, existing behavior preserved for normal lookback values

@@ -222,4 +222,18 @@ class CostSnapshotTest < ActiveSupport::TestCase
     result = CostSnapshot.summary(user: @user, period: "monthly", days: 30)
     assert_equal({}, result)
   end
+
+  test "trend with lookback=1 returns flat instead of NaN" do
+    CostSnapshot.create!(
+      user: @user, period: "daily", snapshot_date: Date.current,
+      total_cost: 1.0, total_input_tokens: 100, total_output_tokens: 50, api_calls: 1
+    )
+    result = CostSnapshot.trend(user: @user, period: "daily", lookback: 1)
+    assert_equal :flat, result
+  end
+
+  test "trend with lookback=0 returns flat instead of crashing" do
+    result = CostSnapshot.trend(user: @user, period: "daily", lookback: 0)
+    assert_equal :flat, result
+  end
 end
