@@ -3,7 +3,7 @@
 class BoardsController < ApplicationController
   PER_COLUMN_ITEMS = Task::KANBAN_PER_COLUMN_ITEMS
 
-  before_action :set_board, only: [:show, :update, :destroy, :update_task_status, :archived, :column]
+  before_action :set_board, only: [:show, :update, :destroy, :update_task_status, :archived, :column, :dependency_graph]
 
   def index
     # Redirect to the first board
@@ -155,14 +155,13 @@ class BoardsController < ApplicationController
 
   # GET /boards/:id/dependency_graph
   def dependency_graph
-    tasks = @board.tasks
+    tasks = scoped_tasks_for_board(@board)
       .where.not(status: "archived")
       .includes(:dependencies, :dependents)
       .select(:id, :name, :status, :blocked, :model, :board_id)
 
     deps = TaskDependency
-      .joins(:task)
-      .where(tasks: { board_id: @board.id })
+      .where(task_id: tasks.reselect(:id))
       .pluck(:task_id, :depends_on_id)
 
     respond_to do |format|
