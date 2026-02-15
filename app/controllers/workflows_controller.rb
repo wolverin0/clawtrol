@@ -26,6 +26,13 @@ class WorkflowsController < ApplicationController
   end
 
   def update
+    unless @workflow.user_id == current_user.id
+      return respond_to do |format|
+        format.html { redirect_to workflows_path, alert: "You can only edit your own workflows." }
+        format.json { render json: { ok: false, error: "forbidden" }, status: :forbidden }
+      end
+    end
+
     if @workflow.update(workflow_params)
       respond_to do |format|
         format.html { redirect_to editor_workflow_path(@workflow), notice: "Workflow saved." }
