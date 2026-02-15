@@ -2541,3 +2541,10 @@
 **Files:** app/controllers/canvas_controller.rb, test/controllers/canvas_controller_test.rb (new)
 **Verify:** 10 tests pass, 31 assertions, 0 failures ✅
 **Risk:** low (scoping fix is additive, tests confirm behavior)
+
+## [2026-02-15 08:53] - Category: Code Quality (DRY) — STATUS: ✅ VERIFIED
+**What:** Added `patch_and_redirect` helper to GatewayConfigPatchable concern and refactored 5 config controllers (Compaction, MessageQueue, SessionReset, Sandbox, Media) to use it. Each controller's `update` method shrank from 13-15 lines to 7 lines, eliminating duplicated gateway patch + redirect + error handling + cache invalidation + rescue blocks.
+**Why:** 5+ controllers duplicated the exact same pattern: build patch → call config_patch → check error → redirect with flash → rescue. The new `patch_and_redirect` method centralizes this, reducing ~50 lines of duplicated code and ensuring consistent error handling and cache invalidation across all config pages.
+**Files:** app/controllers/concerns/gateway_config_patchable.rb, app/controllers/compaction_config_controller.rb, app/controllers/message_queue_config_controller.rb, app/controllers/session_reset_config_controller.rb, app/controllers/sandbox_config_controller.rb, app/controllers/media_config_controller.rb
+**Verify:** 56 tests pass across 4 test files (compaction, sandbox, session_reset, config_pages) + concern test. 0 failures ✅
+**Risk:** low (extracted method preserves exact same behavior, existing tests confirm)

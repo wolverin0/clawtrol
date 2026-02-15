@@ -2,6 +2,7 @@
 
 class MessageQueueConfigController < ApplicationController
   include GatewayClientAccessible
+  include GatewayConfigPatchable
   before_action :require_authentication
   before_action :ensure_gateway_configured!
 
@@ -17,21 +18,13 @@ class MessageQueueConfigController < ApplicationController
 
   # PATCH /message-queue
   def update
-    patch = build_queue_patch
-
-    result = gateway_client.config_patch(
-      raw: patch.to_json,
-      reason: "Message queue config updated via ClawTrol"
+    patch_and_redirect(
+      build_queue_patch,
+      redirect_path: message_queue_config_path,
+      cache_key: "queue_config",
+      reason: "Message queue config updated via ClawTrol",
+      success_message: "Message queue configuration updated."
     )
-
-    if result["error"].present?
-      redirect_to message_queue_config_path, alert: "Failed: #{result['error']}"
-    else
-      invalidate_config_cache("queue_config")
-      redirect_to message_queue_config_path, notice: "Message queue configuration updated."
-    end
-  rescue StandardError => e
-    redirect_to message_queue_config_path, alert: "Error: #{e.message}"
   end
 
   private
