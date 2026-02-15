@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Runs auto-validation after agent_complete
 # - Generates rule-based validation command from output_files
 # - If no command can be generated → leave in_review for human review

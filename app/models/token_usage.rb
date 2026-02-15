@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class TokenUsage < ApplicationRecord
   belongs_to :task
   belongs_to :agent_persona, optional: true

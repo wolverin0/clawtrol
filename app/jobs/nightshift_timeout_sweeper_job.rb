@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class NightshiftTimeoutSweeperJob < ApplicationJob
   queue_as :default
 

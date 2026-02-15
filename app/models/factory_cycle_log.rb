@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class FactoryCycleLog < ApplicationRecord
   # The 'errors' column conflicts with ActiveRecord::Base#errors in Rails 8.1+
   self.ignored_columns += ["errors"]

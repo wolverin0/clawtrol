@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class FactoryEngineService
   TIMEOUT_MINUTES = 15
   MAX_CONSECUTIVE_FAILURES = 5

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class Workflow < ApplicationRecord
   belongs_to :user, optional: true
 

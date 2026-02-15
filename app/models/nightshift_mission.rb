@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class NightshiftMission < ApplicationRecord
   belongs_to :user, optional: true
   has_many :nightshift_selections, dependent: :destroy

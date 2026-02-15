@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class SavedLinksController < ApplicationController
   def index
     @saved_links = current_user.saved_links.newest_first

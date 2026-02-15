@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class RunnerLease < ApplicationRecord
   belongs_to :task
 
