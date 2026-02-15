@@ -67,11 +67,6 @@ class AgentConfigControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def sign_in_as(user)
-    post session_path, params: { email_address: user.email_address, password: "password123" }
-    follow_redirect! if response.redirect?
-  end
-
   def with_multi_stubbed_gateway(stubs, &block)
     fake_client = Object.new
     stubs.each do |method_name, result|
