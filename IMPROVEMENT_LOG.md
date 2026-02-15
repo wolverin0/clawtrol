@@ -2468,3 +2468,10 @@
 **Files:** test/services/emoji_shortcode_normalizer_test.rb, test/services/workflow_execution_engine_test.rb
 **Verify:** 26 tests pass (9 + 17), 0 failures 0 errors ✅
 **Risk:** low (test-only changes)
+
+## [2026-02-15 08:12] - Category: UX/Accessibility — STATUS: ✅ VERIFIED
+**What:** Added ARIA `role="article"` and `aria-label` to task cards in the kanban board. The label includes task name, status, and state indicators (blocked/error) for screen reader accessibility.
+**Why:** Task cards are the primary interactive element in ClawTrol but had no ARIA attributes. Screen readers couldn't distinguish between cards or announce their state. The kanban columns already had `role="region"` with labels but individual cards were opaque.
+**Files:** app/views/boards/_task_card.html.erb
+**Verify:** ERB syntax OK ✅, 24 boards/tasks controller tests pass ✅
+**Risk:** low (additive HTML attributes, no behavior change)
