@@ -1796,3 +1796,10 @@
 **Files:** test/models/agent_test_recording_test.rb (new), test/fixtures/agent_test_recordings.yml (new)
 **Verify:** ruby -c ✅, 15/15 tests pass (29 assertions, 0 failures) ✅
 **Risk:** low (test additions only)
+
+## [2026-02-15 04:42] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Created 17 model tests for SwarmIdea: title presence, estimated_minutes positive/nil, associations (user required, board optional), scopes (favorites, enabled, recently_launched, by_category with nil), instance methods (launched_today? current/past/never, launch_count_display with/without launches), fixture smoke tests. Created fixtures for code_idea, favorite_idea, disabled_idea.
+**Why:** SwarmIdea model had zero tests. Tests cover all validations, scopes, and instance methods.
+**Files:** test/models/swarm_idea_test.rb (new), test/fixtures/swarm_ideas.yml (new)
+**Verify:** ruby -c ✅, 17/17 tests pass (38 assertions, 0 failures) ✅
+**Risk:** low (test additions only)
