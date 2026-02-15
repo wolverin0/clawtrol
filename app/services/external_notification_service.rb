@@ -65,7 +65,34 @@ class ExternalNotificationService
       timestamp: Time.current.iso8601
     }.to_json
 
-    http.request(request)
+    max_attempts = 3
+    retryable_errors = [Timeout::Error, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::EHOSTUNREACH]
+    attempts = 0
+
+    loop do
+      attempts += 1
+
+      begin
+        response = http.request(request)
+      rescue *retryable_errors => e
+        if attempts < max_attempts
+          Rails.logger.warn("[ExternalNotification] Webhook retry #{attempts}/#{max_attempts} task_id=#{@task.id} err=#{e.class}: #{e.message}")
+          sleep(2**(attempts - 1))
+          next
+        end
+
+        raise
+      end
+
+      code = response.code.to_i
+      if code >= 500 && attempts < max_attempts
+        Rails.logger.warn("[ExternalNotification] Webhook retry #{attempts}/#{max_attempts} task_id=#{@task.id} code=#{response.code}")
+        sleep(2**(attempts - 1))
+        next
+      end
+
+      return response
+    end
   rescue StandardError => e
     Rails.logger.warn("[ExternalNotification] Webhook failed: #{e.message}")
   end

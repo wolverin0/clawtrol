@@ -105,16 +105,41 @@ class OpenclawWebhookService
       mode: "now"
     }.to_json
 
-    response = http.request(request)
+    max_attempts = 3
+    retryable_errors = [Timeout::Error, Errno::ECONNREFUSED, Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::EHOSTUNREACH]
+    attempts = 0
 
-    code = response.code.to_i
-    if code >= 200 && code < 300
-      Rails.logger.info("[OpenClawWebhook] wake ok task_id=#{task.id} code=#{response.code}")
-    else
-      Rails.logger.warn("[OpenClawWebhook] wake non-2xx task_id=#{task.id} code=#{response.code}")
+    loop do
+      attempts += 1
+
+      begin
+        response = http.request(request)
+      rescue *retryable_errors => e
+        if attempts < max_attempts
+          Rails.logger.warn("[OpenClawWebhook] wake retry #{attempts}/#{max_attempts} task_id=#{task.id} err=#{e.class}: #{e.message}")
+          sleep(2**(attempts - 1))
+          next
+        end
+
+        raise
+      end
+
+      code = response.code.to_i
+      if code >= 500 && attempts < max_attempts
+        Rails.logger.warn("[OpenClawWebhook] wake retry #{attempts}/#{max_attempts} task_id=#{task.id} code=#{response.code}")
+        sleep(2**(attempts - 1))
+        next
+      end
+
+      if code >= 200 && code < 300
+        Rails.logger.info("[OpenClawWebhook] wake ok task_id=#{task.id} code=#{response.code}")
+      else
+        Rails.logger.warn("[OpenClawWebhook] wake non-2xx task_id=#{task.id} code=#{response.code}")
+        Rails.logger.error("[OpenClawWebhook] wake failed task_id=#{task.id} code=#{response.code}") if code >= 500
+      end
+
+      return response
     end
-
-    response
   rescue StandardError => e
     Rails.logger.error("[OpenClawWebhook] wake failed task_id=#{task.id} err=#{e.class}: #{e.message}")
     nil
