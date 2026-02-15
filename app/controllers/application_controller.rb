@@ -12,6 +12,7 @@ class ApplicationController < ActionController::Base
   # Global error handling for HTML controllers.
   # Prevents 500 errors on missing records and invalid parameters.
   rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
+  rescue_from ActiveRecord::StaleObjectError, with: :render_conflict
   rescue_from ActionController::ParameterMissing, with: :render_bad_request
 
   # Defense-in-depth security headers (supplement nginx config).
@@ -33,6 +34,14 @@ class ApplicationController < ActionController::Base
       format.html { render file: Rails.public_path.join("404.html"), layout: false, status: :not_found }
       format.json { render json: { error: "Not found" }, status: :not_found }
       format.turbo_stream { head :not_found }
+    end
+  end
+
+  def render_conflict(_exception)
+    respond_to do |format|
+      format.html { redirect_back fallback_location: root_path, alert: "This record was modified by another request. Please try again." }
+      format.json { render json: { error: "Resource was modified by another request" }, status: :conflict }
+      format.turbo_stream { head :conflict }
     end
   end
 

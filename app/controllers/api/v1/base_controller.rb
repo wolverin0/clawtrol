@@ -15,6 +15,7 @@ module Api
 
       rescue_from ActiveRecord::RecordNotFound, with: :not_found
       rescue_from ActiveRecord::RecordInvalid, with: :unprocessable_entity
+      rescue_from ActiveRecord::StaleObjectError, with: :conflict
       rescue_from ActionController::ParameterMissing, with: :bad_request
       rescue_from ArgumentError, with: :bad_argument
 
@@ -35,6 +36,10 @@ module Api
       def bad_argument(exception)
         Rails.logger.warn("[API] ArgumentError: #{exception.message}")
         render json: { error: "Invalid argument" }, status: :bad_request
+      end
+
+      def conflict(_exception)
+        render json: { error: "Resource was modified by another request. Please retry." }, status: :conflict
       end
     end
   end
