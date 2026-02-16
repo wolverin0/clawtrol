@@ -54,7 +54,7 @@ class TaskTemplate < ApplicationRecord
   validates :name, presence: true
   validates :slug, presence: true, format: { with: /\A[a-z0-9_-]+\z/, message: "only allows lowercase letters, numbers, hyphens, and underscores" }
   validates :slug, uniqueness: { scope: :user_id }, if: -> { user_id.present? }
-  validates :slug, uniqueness: true, if: -> { global? }
+  validates :slug, uniqueness: { conditions: -> { where(global: true, user_id: nil) } }, if: -> { global? }
   validates :model, inclusion: { in: MODELS }, allow_nil: true, allow_blank: true
   validates :priority, inclusion: { in: 0..3 }, allow_nil: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
@@ -72,17 +72,16 @@ class TaskTemplate < ApplicationRecord
   # Create default templates for new users or as global templates
   def self.create_defaults!(user: nil, global: false)
     DEFAULTS.each do |slug, config|
-      create!(
-        slug: slug,
+      template = find_or_initialize_by(slug: slug, user: user, global: global)
+      template.assign_attributes(
         name: config[:name],
         icon: config[:icon],
         model: config[:model],
         priority: config[:priority] || 0,
         validation_command: config[:validation_command],
-        description_template: config[:description_template],
-        user: user,
-        global: global
+        description_template: config[:description_template]
       )
+      template.save!
     end
   end
 

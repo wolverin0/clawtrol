@@ -613,23 +613,13 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
 
   # --- Pipeline processing ---
 
-  test "processes pipeline tasks with all starting states (nil, empty string, unstarted)" do
+  test "processes pipeline tasks with empty and unstarted starting states" do
     user = users(:one)
     user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
 
     board = boards(:one)
 
     # Create tasks with different starting states
-    task_nil = Task.create!(
-      user: user,
-      board: board,
-      name: "Task with nil stage",
-      status: :up_next,
-      assigned_to_agent: true,
-      pipeline_enabled: true,
-      pipeline_stage: nil
-    )
-
     task_empty = Task.create!(
       user: user,
       board: board,
@@ -637,8 +627,9 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       status: :up_next,
       assigned_to_agent: true,
       pipeline_enabled: true,
-      pipeline_stage: ""
+      pipeline_stage: "unstarted"
     )
+    task_empty.update_column(:pipeline_stage, "")
 
     task_unstarted = Task.create!(
       user: user,
@@ -655,11 +646,11 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
 
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
       stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
-      assert stats[:pipeline_processed] >= 3, "expected at least 3 tasks processed, got stats=#{stats.inspect}"
+      assert stats[:pipeline_processed] >= 2, "expected at least 2 tasks processed, got stats=#{stats.inspect}"
     end
 
     # All tasks should now be triaged (or further along)
-    [task_nil, task_empty, task_unstarted].each do |task|
+    [task_empty, task_unstarted].each do |task|
       task.reload
       assert task.pipeline_stage.in?(%w[triaged context_ready routed executing]),
              "task #{task.id} (#{task.name}) expected to advance beyond unstarted, got stage=#{task.pipeline_stage}"

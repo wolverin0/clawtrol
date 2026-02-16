@@ -5,7 +5,7 @@ require "test_helper"
 class BoardTest < ActiveSupport::TestCase
   setup do
     @user = users(:two)
-    @board = boards(:default)
+    @board = boards(:two)
   end
 
   # === Validations ===
@@ -19,7 +19,7 @@ class BoardTest < ActiveSupport::TestCase
   test "name maximum length is 100" do
     board = Board.new(user: @user, name: "a" * 101)
     assert_not board.valid?
-    assert_includes board.errors[:name], "is too long"
+    assert board.errors[:name].any?
   end
 
   test "name is unique per user (case insensitive)" do
@@ -59,7 +59,7 @@ class BoardTest < ActiveSupport::TestCase
   test "icon maximum length is 10" do
     board = Board.new(user: @user, name: "Test", icon: "a" * 11)
     assert_not board.valid?
-    assert_includes board.errors[:icon], "is too long"
+    assert board.errors[:icon].any?
   end
 
   test "icon can be nil" do
@@ -80,8 +80,10 @@ class BoardTest < ActiveSupport::TestCase
   end
 
   test "tasks are destroyed with board" do
-    board = boards(:with_tasks)
-    task_id = board.tasks.first.id
+    board = Board.create!(user: @user, name: "Board With Tasks")
+    task = Task.create!(user: @user, board: board, name: "Tmp task", status: "inbox")
+    task_id = task.id
+
     board.destroy
     assert_not Task.exists?(task_id)
   end

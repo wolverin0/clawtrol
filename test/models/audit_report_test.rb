@@ -41,7 +41,7 @@ class AuditReportTest < ActiveSupport::TestCase
   # --- Associations ---
 
   test "has_many behavioral_interventions" do
-    report = audit_reports(:weekly_report)
+    report = AuditReport.create!(user: users(:one), report_type: "weekly", overall_score: 7.0)
     intervention = BehavioralIntervention.create!(
       user: users(:one),
       audit_report: report,

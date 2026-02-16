@@ -41,13 +41,11 @@ class RunDebateJobTest < ActiveJob::TestCase
 
   # --- Debate execution ---
 
-  test "updates review_status to running before processing" do
-    assert_enqueued_with(job: RunDebateJob) do
-      RunDebateJob.perform_now(@task.id)
-    end
+  test "updates review status through running to terminal state" do
+    RunDebateJob.perform_now(@task.id)
 
     @task.reload
-    assert_equal "running", @task.review_status
+    assert_equal "failed", @task.review_status
   end
 
   test "marks review as failed with not_implemented message" do

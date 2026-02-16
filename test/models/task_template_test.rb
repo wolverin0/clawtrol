@@ -28,7 +28,7 @@ class TaskTemplateTest < ActiveSupport::TestCase
       assert template.valid?, "Slug #{slug} should be valid"
     end
 
-    invalid_slugs = %w[TEST Test test_ABC UPPERCASE with spaces]
+    invalid_slugs = ["TEST", "Test", "test_ABC", "UPPERCASE", "with spaces"]
     invalid_slugs.each do |slug|
       template = TaskTemplate.new(name: "Test", slug: slug)
       assert_not template.valid?, "Slug #{slug} should be invalid"
@@ -95,10 +95,10 @@ class TaskTemplateTest < ActiveSupport::TestCase
     unsafe = TaskTemplate.new(
       name: "Test",
       slug: "test",
-      validation_command: "rm -rf /"
+      validation_command: "bin/rails test; rm -rf /"
     )
     assert_not unsafe.valid?
-    assert_includes unsafe.errors[:validation_command], "unsafe shell metacharacters"
+    assert unsafe.errors[:validation_command].any? { |e| e.include?("unsafe shell metacharacters") }
 
     unsafe2 = TaskTemplate.new(
       name: "Test",
@@ -120,7 +120,7 @@ class TaskTemplateTest < ActiveSupport::TestCase
     template = TaskTemplate.new(
       name: "Test",
       slug: "test",
-      validation_command: "npm test"
+      validation_command: "python manage.py test"
     )
     assert_not template.valid?
     assert_includes template.errors[:validation_command], "must start with an allowed prefix"
@@ -169,7 +169,7 @@ class TaskTemplateTest < ActiveSupport::TestCase
     user_t2 = TaskTemplate.create!(name: "User A", slug: "user-a", user: @user)
     global2 = TaskTemplate.create!(name: "Global Z", slug: "global-z", global: true)
 
-    ordered = TaskTemplate.ordered.to_a
+    ordered = TaskTemplate.ordered.where(id: [user_t.id, global.id, user_t2.id, global2.id]).to_a
 
     # Global templates first (desc), then alphabetical
     assert_equal global, ordered[0]

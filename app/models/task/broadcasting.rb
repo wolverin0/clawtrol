@@ -132,14 +132,16 @@ module Task::Broadcasting
 
     Turbo::StreamsChannel.broadcast_action_to(stream, action: :remove, target: "task_#{cached_id}")
 
-    # Update column count
-    count = Board.find(cached_board_id).tasks.where(status: cached_status).count
-    Turbo::StreamsChannel.broadcast_action_to(
-      stream,
-      action: :replace,
-      target: "column-#{cached_status}-count",
-      html: %(<span id="column-#{cached_status}-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded">#{count}</span>)
-    )
+    # Board can already be gone when tasks are destroyed as part of board destruction.
+    if (board = Board.find_by(id: cached_board_id))
+      count = board.tasks.where(status: cached_status).count
+      Turbo::StreamsChannel.broadcast_action_to(
+        stream,
+        action: :replace,
+        target: "column-#{cached_status}-count",
+        html: %(<span id="column-#{cached_status}-count" class="ml-auto text-xs text-content-secondary bg-bg-elevated px-1.5 py-0.5 rounded">#{count}</span>)
+      )
+    end
 
     # Also broadcast via ActionCable KanbanChannel for WebSocket clients
     KanbanChannel.broadcast_refresh(cached_board_id, task_id: cached_id, action: "destroy")
