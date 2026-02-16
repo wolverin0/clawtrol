@@ -1,0 +1,28 @@
+71:- [ ] **Job Tests: FactoryRunnerJob**: Full test coverage — mock gateway client, test backlog parsing, cycle counting, error handling, lease acquisition. Target: 15+ tests
+72:- [ ] **Job Tests: NightshiftRunnerJob**: Test mission selection, time window validation, model assignment, parallel launch limits, timeout handling. Target: 15+ tests
+73:- [ ] **Job Tests: ProcessSavedLinkJob**: Test URL fetch, summary generation, error states (timeout, 404, paywall), status transitions. Target: 10+ tests
+74:- [ ] **Job Tests: TranscriptCaptureJob**: Test session key lookup, transcript fetch via gateway client, storage, offset tracking. Target: 10+ tests
+75:- [ ] **System Tests: Board Kanban**: Turbo-powered drag-drop, status transitions, task card rendering, filter/sort, empty states. Target: 8+ system tests
+76:- [ ] **System Tests: Swarm Launcher**: Idea selection, model picker, board assignment, launch flow, history display. Target: 6+ system tests
+77:- [ ] **Model Tests: All 34 models**: Currently only 4 model test files. Add validation tests, scope tests, association tests for remaining 30 models. Target: 100+ tests across all models
+81:- [ ] **Split TasksController (891 lines)**: Extract API::V1::TasksController into concerns — agent lifecycle already extracted, now extract: bulk operations, filtering/search, export, recurring tasks. Each concern <100 lines
+82:- [ ] **Split MarketingController (643 lines)**: Extract into sub-controllers or service objects — content generation, campaign management, analytics, social posting
+84:- [ ] **Stimulus Controller Tests**: 106 Stimulus controllers with 0 JS tests. Add Jest/Vitest setup + test the 10 most critical controllers (task_card, board, drag_drop, form, search, chart, modal, toast, filter, websocket)
+86:- [ ] **Database Indexes Audit**: Analyze slow queries from Rails logs. Add missing indexes on foreign keys, status columns, date ranges. Run EXPLAIN on top 10 queries
+90:- [ ] **Task Templates Library**: Pre-built task templates for common operations (deploy, audit, research, bug fix). Template = title pattern + description skeleton + tags + model suggestion + board. Quick-create from template picker
+91:- [ ] **Bulk Task Import (CSV/JSON)**: Upload CSV/JSON → preview → create tasks in batch. Useful for migrating backlogs or seeding boards. Map columns to task fields with drag-drop
+92:- [ ] **Task Time Tracking**: Auto-track time from in_progress→done. Show per-task duration, per-board throughput, agent velocity (tasks/day). Historical charts
+93:- [ ] **Notification Center**: In-app notification bell. Aggregate: task completions, factory cycles, nightshift results, failed jobs, budget alerts. Mark read/unread. Link to source
+94:- [ ] **Board Templates**: Clone a board with its config (pipeline stages, agent persona, default model). Pre-built templates: "Dev Sprint", "Research Queue", "Content Pipeline"
+95:- [ ] **Keyboard Shortcuts**: Vim-style navigation (j/k through tasks, enter to open, x to complete, / to search). Help overlay with ?. Make power users faster
+96:- [ ] **Dark Mode Polish**: Fix remaining contrast issues in charts, code blocks, and third-party embeds. Add auto-detect (prefers-color-scheme). Per-user toggle persisted in settings
+97:- [ ] **Mobile PWA**: Add service worker + manifest.json. Offline task viewing, push notifications for completions, home screen installable. Test on iOS Safari + Android Chrome
+101:- [ ] **Ralph Loop Integration**: Study vercel-labs/ralph-loop-agent. Evaluate if we can use external verification + stop hooks for complex tasks instead of manual phase management
+102:- [ ] **Multi-tenant Support**: user_id scoping is started (nightshift, factory). Complete for all models. Add team/org concept for future scaling
+103:- [ ] **Canvas/A2UI Surface**: OpenClaw nodes support A2UI (JSONL-driven UI). Evaluate pushing ClawTrol task cards/dashboards directly to mobile nodes as Canvas surfaces instead of web browser
+146:- [ ] **Codex MCP Async Integration**: Add an async task queue page inspired by codex-mcp-async. Show running Codex tasks, filter thinking logs (95% token savings), parallel execution status. Integrate with existing session explorer
+147:- [ ] **PAI-Style Hook Bus**: Implement an event bus / hook system inspired by Personal_AI_Infrastructure. Goal-oriented task triggers, continuous learning signals from completed tasks, cross-board event routing. New model + controller + Stimulus
+148:- [ ] **Persona Schema Upgrade (YAML)**: Upgrade AgentPersona to support YAML-based definitions inspired by Nerve ADK. Add YAML import/export, typed tool declarations, workflow definitions, evaluation mode config. Extend existing persona model + views
+149:- [ ] **Android Capability Extension**: Add Android device control panel inspired by android-mcp-server. ADB command execution, screenshot capture, UI layout analysis, package management. New /devices page extending existing node dashboard concept
+150:- [ ] **Desktop Automation Sandbox**: Add desktop automation config page for Spongecake-style Docker containers. Container lifecycle management (start/stop/status), noVNC embed, action queue (click/type/screenshot), session recording. New controller + views
+151:- [ ] **Packaged Capability Model**: Add a "Capabilities" registry inspired by make-it-heavy's tool packaging. Each capability = name + tools + config + cost estimate. Capabilities attach to boards/tasks. New model CapabilityPack, CRUD UI, assignment to tasks

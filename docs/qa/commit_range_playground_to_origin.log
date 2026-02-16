@@ -1,0 +1,246 @@
+c946bb2 docs: update CHANGELOG.md [skip ci]
+485d19d fix: move cost snapshot strict_loading inside model class
+6506219 docs: update CHANGELOG.md [skip ci]
+4603feb fix: fail-safe encrypted user token reads to prevent board crash
+8aba2f9 docs: update CHANGELOG.md [skip ci]
+d6c4da7 fix: make missing user_id index migration idempotent
+7350157 docs: update CHANGELOG.md [skip ci]
+4b1ede5 chore: update schema after project_path migration
+9c96155 fix: restore stable core contracts after minimax merge
+e1f298a fix: harden marketing path traversal check
+231a9b5 fix: align associations and marketing validation contracts
+542de91 fix: restore stable session and task diff/activity contracts
+def7654 fix: remove duplicate AddTasksCountToAgentPersonas migration file
+47bf3c6 docs: update CHANGELOG.md [skip ci]
+e812ff2 fix: unblock merged suite and harden edge cases
+80ea68d fix: stabilize merged model/controller drift and diff workspace path
+84bdf48 fix: repair model strict_loading placement and task inverse associations
+bfc822b fix: align RunnerLease visibility tests and refresh schema
+e3b5557 fix(test): remove duplicated RunnerLease test block from merge
+b0a5fed fix: downgrade migration version 8.2 to 8.1
+86f9efd docs: sync FACTORY_BACKLOG checkmarks with implemented factory commits
+99f0da4 fix: remove duplicated marketing controller tests from merge
+557bbe7 fix: rename duplicate migration to unique name
+6e43551 fix: resolve duplicate migration class name for tasks_count
+107831d fix: make duplicate tasks_count migration idempotent
+5c4924d fix: make remaining imported column migrations idempotent
+5b97f1a fix: make imported index migrations re-runnable
+35edf83 fix: make auto runner partial index migration idempotent
+c2175f7 fix: make token usage indexes migration idempotent
+2e53997 fix: rack-attack throttled_responder compatibility
+2f58713 [factory] cat: add catastrophic guardrails feature (job, service, tests)
+3455276 [factory] cleanup: fix RunDebateJob TODO comments (remove misleading 'FAKE' claim)
+8c2c9c0 [factory] data-integrity: add unique constraint on saved_links(user_id, url) — prevent duplicate bookmarks + dedup migration
+dc0b084 [factory] code quality + testing: NightshiftMission + NightshiftSelection validations and 34 model tests
+fb0a18a [factory] architecture: add error handling to 8 background jobs (retry_on, discard_on, crash recovery)
+953c737 [factory] architecture: move DB query from view to controller in SavedLinksController
+aedc788 [factory] architecture: extract PersonaGeneratorService from BoardsController (85→20 lines) + 10 tests
+fba6bb3 [factory] architecture: add optimistic locking to Task model with StaleObjectError handlers
+2405868 [factory] architecture: extract BulkTaskService from tasks controller
+5a939cb [factory] architecture: extract TaskSerializer for API/MiniApp JSON representation
+34b5c10 [factory] fix: repair malformed factory_runner_job_test.rb
+df289d8 [factory] fix: correct inverse_of associations in TaskDependency and AgentMessage
+832f372 [factory] fix: correct inverse_of association between Task and TaskActivity
+b294f82 [factory] bug-fix: RunnerLease race condition handling with LeaseConflictError
+da8b504 [factory] bug-fix: fix NaN division-by-zero in CostSnapshot.trend with small lookback
+83939b1 [factory] bug-fix: fix broken test_notification passing User instead of Task to ExternalNotificationService
+4d7311d [factory] bug-fix+testing: clear stale archived_at on unarchived tasks + 5 lifecycle tests
+909af30 [factory] bug-fix+testing: fix unscoped WebhookLog query in HooksDashboard + 7 tests
+d6c7cae [factory] bug-fix: add 'auto_queued' to TaskActivity ACTIONS constant (broke auto-claim flow)
+df44444 [factory] bug-fix: CanvasController cost_usd→total_cost column + 30 auth/route tests for 15 missing controllers
+b42c258 [factory] bug-fix: prevent caching gateway errors + fix encryption test config
+89ed298 [factory] bug-fix: MediaConfigController ignoring gateway errors due to symbol-only key check
+0fcc2d5 [factory] bug-fix+testing: fix Orchestrator missing 'unstarted' stage handling + add 13 tests (was silently skipping new tasks)
+d5d0eba [factory] bug-fix: add missing 'one' workflow fixture + fix empty assertion warning (6 errors → 0)
+5bd9101 [factory] bug-fix: fix NoMethodError in ClawRouterService model_available? (recorded_at→last_error_at, add limited? check + resets_at check)
+d326c42 [factory] bug-fix+testing: fix PG::UndefinedColumn in ClawRouterService (model_name→name) + 11 pipeline router tests
+50125b5 [factory] bug-fix: create missing ModelPerformanceService + AgentActionRecorder (fixes 43 test errors, 860 runs 0 errors)
+f34e7a2 [factory] bug-fix: create missing TaskExportService (fixes runtime NameError on export)
+217376e [factory] bug-fix: create missing WebhookLog model (fixes 18 test errors)
+1f6c045 [factory] bug-fix: rewrite task_pipeline_stage_test for current enum values (20 tests pass)
+fc43ee3 [factory] bug fix: fix 4 broken TaskTest pipeline_stage tests (stale enum values classified/dispatched)
+379c799 [factory] bug fix: create missing AgentTestRecording model (fixes NameError in 4+ test files)
+69f1590 [factory] security: add Rack::Attack API rate limiting
+77c4d1c [factory] security: replace shell backticks with Open3 in ProcessSavedLinkJob
+ca60c52 [factory] security: scope Task counts to current_user in AgentPersonasController
+76b294a [factory] security: scope 4 cache keys to current_user to prevent cross-user data leaks
+ea91d69 [factory] security+testing: fix unscoped queries in Canvas templates + 10 tests
+88b7d26 [factory] security: fix SSRF-via-redirect in ProcessSavedLinkJob — validate redirect targets
+7ec05ed [factory] security: fix path traversal in MarketingController generate_image (product param in filename) + 13 tests
+764eebe [factory] security: atomic file writes for .env and marketing index.json (prevent corruption on crash)
+f8ad1fa [factory] security: encrypt gateway/hooks tokens at rest in User model
+39576bb [factory] security: SSRF protection for ProcessSavedLinkJob fetch_content
+123d814 [factory] security: SSRF protection for model provider testing + extract SsrfProtection concern
+56affd2 [factory] security: prevent editing global/other-users workflows + add ownership authorization tests
+b292370 [factory] code-quality+security: extract Api::HookAuthentication concern, DRY hook token auth from hooks_controller + nightshift_controller
+243f0d8 [factory] security+bug-fix+testing: fix broken Pipeline API auth (find_by token→authenticate), fix reprocess null pipeline_stage, add 9 controller tests
+c13e807 [factory] security: add CSP sandbox header to FileViewer raw HTML mode
+742c9ee [factory] security: fix IDOR on Workflow model — scope to current_user
+3ba18bf [factory] performance: add missing user_id indexes to agent_transcripts, task_activities, webhook_logs
+37a3957 [factory] performance: add strict_loading to ApplicationRecord
+9613bb6 [factory] performance: add strict_loading to Task model
+2d7d358 [factory] performance: add counter_cache for agent_persona.tasks
+ef764a3 [factory] performance: add counter_cache for nightshift_selections
+8075ad0 [factory] performance: add counter_cache for factory_cycle_logs
+ada03cf [factory] performance: add strict_loading to 7 models for N+1 detection
+9728c6b [factory] perf: add eager loading for boards in controllers
+3a1a4b2 [factory] perf: add strict_loading + fix inverse_of across all models
+ec909fd [factory] perf: add strict_loading + inverse_of to 8 models for N+1 prevention
+2bdeda7 [factory] performance: add inverse_of to all associations for N+1 prevention
+a70422c [factory] performance: fix migration column names and commit
+bf69e5f [factory] performance: add inverse_of to AgentPersona associations
+b1bb07a [factory] performance: add inverse_of to Board has_many :agent_personas
+f24e128 [factory] performance: add indexes for common queries
+b2867b5 [factory] performance: add inverse_of to User has_many associations
+3a1dd90 [factory] performance: add strict_loading + eager loading for N+1 prevention
+282604f [factory] performance: add partial index for auto-runner candidate task queries
+e3e1407 [factory] performance: add compound indexes on token_usages (task_id+created_at, model+created_at) for analytics queries
+74bc7f4 [factory] performance: skip caching error responses in cached_config_get
+e5d013d [factory] performance: add 4 missing FK indexes (tasks.board_id, tasks.agent_persona_id, tasks.followup_task_id, nightshift_selections.nightshift_mission_id)
+9fe831e [factory] performance: add missing FK indexes (swarm_ideas.board_id, task_runs.openclaw_session_id, users.telegram_chat_id, tasks.last_run_id)
+e059295 [factory] code quality: extract MarketingContentManagement concern from MarketingController
+c7df059 [factory] code quality: add model validations for Notification, ModelLimit, RunnerLease
+e52d4d3 [factory] code quality: add model validations for OpenclawIntegrationStatus, AgentTranscript, AuditReport
+528985b [factory] code quality: add model validations for Session, Workflow, InviteCode
+580f155 [factory] code quality: extract MarketingTreeBuilder from MarketingController
+295e803 [factory] code quality: add inverse_of to Task and RunnerLease belongs_to
+0488890 [factory] code quality: add inverse_of to belongs_to :user associations
+7d46177 [factory] code quality: extract SocialMediaPublisher from MarketingController
+84e1d8e [factory] code quality: extract MarketingImageService from MarketingController
+ccc8e47 [factory] code quality: extract TaskFiltering concern from TasksController
+b79b9b9 [factory] code quality: add useful scopes to TaskRun model
+b0b1f5e [factory] model: add scopes and validations to Session model
+ab09352 [factory] model: add user association + delegate to FactoryCycleLog
+c893438 [factory] code-quality: add frozen_string_literal to remaining 41 files (100% coverage)
+630e67a [factory] code-quality: extract TaskBroadcastable concern (DRY 3 jobs)
+81a98e9 [factory] code-quality: extract RunnerLease.create_for_task! factory method (DRY 3 sites)
+a4353f7 [factory] testing+code-quality: CliBackends tests + patch_and_redirect DRY
+4f4545b [factory] code-quality: add frozen_string_literal pragma to 29 missing files
+b131584 [factory] testing+code-quality: SessionMaintenance controller tests + patch_and_redirect DRY
+e99d977 [factory] code-quality: DRY config controllers with patch_and_redirect concern helper
+74fd072 [factory] code-quality+testing: TaskDiff validations (length limits) + 4 new tests
+1c0e904 [factory] accessibility: add ARIA role and label to kanban task cards
+64c1072 [factory] code-quality: DRY activity_source — extract before_action from 11 duplicate assignments
+b7a5e63 [factory] code-quality: DRY sign_in_as — centralize in SessionTestHelper, remove 5 duplicate definitions + add follow_redirect!
+8866154 [factory] code-quality: TaskActivity model — inclusion + length validations + 7 new tests
+79b776e [factory] code-quality: extract DashboardDataService from 73-line controller method
+9908c56 [factory] code-quality: add comprehensive User model validations
+e496f98 [factory] code-quality: DRY fetch_config across 11 controllers via cached_config_get in GatewayClientAccessible
+565b9a0 [factory] code-quality: fix bare rescue in TokenUsage.resolve_persona_id (rescue => rescue StandardError)
+f1351d5 [factory] code-quality: add comprehensive SwarmIdea model validations (category, model, difficulty, length limits, bounds) + 11 new tests
+09f62a6 [factory] code-quality: DRY gateway_config_controller — extract validate_config_payload! + render_gateway_result (remove 30 lines of duplication)
+908068f [factory] code-quality: add frozen_string_literal pragma to 53 files (models, services, jobs, controllers)
+9c76608 [factory] code-quality: extract OpenclawCliRunnable concern (DRY 3 controllers)
+c484434 [factory] accessibility: FocusTrap helper + modal/delete-confirm focus trapping and ARIA
+4293de4 [factory] testing: expand Session and TaskDiff model tests
+9bf4db0 [factory] testing: expand BehavioralIntervention model tests (6→24 tests)
+d33b224 [factory] testing: add model tests for Board, TaskActivity, TaskTemplate, RunnerLease
+1012801 [factory] testing: add unit tests for MarketingTreeBuilder concern
+e7090c3 [factory] testing: add unit tests for MarketingImageService
+6a3b913 [factory] testing: fix FactoryRunnerJob tests - correct error assertions
+bb7c386 [factory] testing: fix NightshiftRunnerJob tests - move orphaned tests inside class
+357785a [factory] testing: add 4 swarm launcher system tests
+e3b62f6 [factory] testing: add 5 board kanban system tests
+1bc307e [factory] test: expand Session model tests
+236ef29 [factory] test: expand AuditReport model tests
+4589ef2 [factory] test: add RunValidationJob test coverage
+7c53177 [factory] test: add RunDebateJob test coverage
+7384c7b [factory] test: add GenerateDiffsJob test coverage
+a1b029e [factory] test: add pipeline auto-run test case
+fe5330d [factory] test: expand job test coverage for NightshiftRunnerJob and FactoryRunnerJob
+77f736b [factory] test: add Bullet N+1 detection in CI
+b3d23b2 [factory] test: refactor TaskDiffTest for unit test focus
+a4bf0ea [factory] testing: expand FactoryRunnerJob tests (7→16)
+d4ad17d [factory] testing: expand NightshiftRunnerJob tests (3→12)
+681fb3a [factory] testing: expand TranscriptCaptureJob tests (4→10)
+05ef2a3 [factory] testing: expand ProcessSavedLinkJob tests (7→13)
+62c31e0 [factory] testing: 17 new Task model tests for agent integration (50→67)
+1471f2a [factory] testing: comprehensive WorkflowDefinitionValidator tests (2→27)
+261a094 [factory] testing: 11 tests for TranscriptWatcher (singleton, offsets, task lookup, session validation)
+3b90fa5 [factory] testing: 10 tests for AiSuggestionService (fallback, prompts, truncation, errors)
+010e027 [factory] testing: 11 tests for OpenclawWebhookService (config guards, message format, auth, error resilience)
+30aea85 [factory] testing: 14 tests for SessionCostAnalytics (token/cost parsing, periods, cache rates)
+92332e7 [factory] testing: 17 tests for ValidationSuggestionService (rule-based validation commands)
+7235646 [factory] testing: 9 tests for ChannelConfigController — 100% controller test coverage!
+2e5b00a [factory] testing: 20 tests for MediaConfig + MessageQueueConfig + ConfigHub + SendPolicy
+73f215b [factory] testing: 22 tests for TypingConfig + IdentityConfig + LoggingConfig controllers
+fec0115 [factory] testing: 13 tests for CompactionConfigController (compaction modes, pruning, clamping)
+3a3c029 [factory] testing: 17 tests for SkillManagerController (auth, CRUD, validation, gateway errors)
+bedaf24 [factory] testing: HotReload controller tests (auth, config, update validation)
+62df0f8 [factory] testing: MemoryDashboard controller tests (auth, show, search validation)
+1ac68ab [factory] testing: 26 real tests replacing placeholders — EmojiShortcodeNormalizer + WorkflowExecutionEngine
+1253468 [factory] testing: 21 new job tests — AutoValidation, FactoryCycleTimeout, NightshiftTimeoutSweeper, PipelineProcessor
+28a4043 [factory] testing: ProcessRecurringTasksJob — 8 tests (instance creation, next scheduling, model inheritance, agent reset)
+c3759ab [factory] testing: ExternalNotificationService — 14 tests replacing placeholder (format, telegram, webhook, edge cases)
+2236ff7 [factory] testing: 10 controller tests for DiscordConfigController (auth + section validation)
+4a1d17d [factory] testing: 12 controller tests for TelegramConfigController (auth + section validation)
+fe6abbc [factory] testing: 12 controller tests for ModelProvidersController (auth + SSRF protection)
+ffe64b4 [factory] testing: write 13 real tests for ValidationRunnerService (was stub)
+84e0455 [factory] testing: write 11 real tests for FactoryEngineService (was stub)
+bcf5d4c [factory] testing: add 4 optimistic locking tests for Task model
+5421861 [factory] testing: fix profiles_controller_test for gateway URL model validation
+e40469f [factory] testing: SessionResetConfigController test suite (12 tests, mode/clamping/type validation)
+005ddc8 [factory] testing: HeartbeatConfigController test suite (13 tests, config validation + clamping)
+5f85a19 [factory] testing: SsrfProtection concern test suite (21 tests, all SSRF vectors)
+5f72333 [factory] testing: ChannelAccountsController test suite (10 tests, channel validation + auth)
+b29dcfd [factory] testing: SandboxConfigController test suite (16 tests, sandbox modes/presets/security)
+0618e46 [factory] testing: DmPolicyController test suite (18 tests, auth + pairing + policy validation)
+a77a16c [factory] testing: EnvManagerController comprehensive test suite (17 tests, 243 assertions)
+0fd2853 [factory] testing: add Pipeline::AutoReviewService tests (17 tests, 34 assertions — all decision paths covered)
+2a73bec [factory] testing: add swarm controller tests (15 tests, 49 assertions — IDOR protection verified)
+d0f6c25 [factory] testing: add audits + behavioral_interventions controller tests (17 tests, IDOR protection verified)
+7c24395 [factory] testing: Pipeline::ContextCompilerService tests (9 tests, 19 assertions)
+ff8db22 [factory] testing: Pipeline::TriageService tests (14 tests, 36 assertions) — tag matching, name patterns, board defaults, vote weights
+26fcbdf [factory] testing: job tests for FactoryCycleTimeout, NightshiftTimeoutSweeper, OpenclawNotify, AutoClaimNotify (20 tests, 29 assertions)
+ffd9948 [factory] testing: TaskImportService tests (14 tests, 45 assertions)
+7eaeda4 [factory] testing: TaskExportService tests (9 tests, 35 assertions)
+4a9fb56 [factory] testing: OpenclawCliRunnable concern tests (9 tests, 14 assertions)
+373739e [factory] testing: BulkTaskService tests (10 tests, 41 assertions)
+15546f4 [factory] testing: TaskSerializer tests (10 tests, 45 assertions)
+ed59257 [factory] testing: AgentTranscript model tests (14 tests) + capture_from_jsonl! integration test
+e56cd3a [factory] testing: SwarmIdea model tests (17 tests, 38 assertions) + fixtures
+7ee4c6f [factory] testing: AgentTestRecording model tests (15 tests, 29 assertions) + fixtures
+22c92ea [factory] testing: Workflow model tests (11 tests, 25 assertions) + fixtures
+1d71518 [factory] testing: TaskTemplate + TaskActivity model tests (35 tests, 73 assertions)
+6833d60 [factory] docs: update IMPROVEMENT_LOG.md with validation improvements
+07fd7fd [factory] docs: update IMPROVEMENT_LOG.md
+5663c27 [factory] docs: update IMPROVEMENT_LOG.md
+3497506 [factory] docs: update IMPROVEMENT_LOG.md
+a08d33d [factory] docs: update IMPROVEMENT_LOG.md
+d12030a [factory] docs: mark completed items in FACTORY_BACKLOG
+f3eff9f [factory] docs: update IMPROVEMENT_LOG.md
+f35a8de [factory] docs: update improvement log
+feed68d [factory] docs: update improvement log
+7696b67 [factory] docs: update improvement log
+ae804ad [factory] docs: update improvement log with performance work
+6fcf261 [factory] docs: log FactoryCycleLog user association improvement
+dfabddc backlog: add Sprint 2 items — testing, refactoring, new features (27 new items)
+e7828f5 backlog: add 6 repo analysis items from 2026-02-15
+abaf2b6 [factory] docs: session summary — 9 cycles, 74 new tests, 1 bug fix, 100% service test coverage
+fcd8613 [factory] docs: session summary — 8 cycles, 81 new tests, 100% controller test coverage
+dd426a2 [factory] docs: session summary — 10 cycles, 55 tests, 3 security fixes, 7 DRY refactors
+5d78305 [factory] docs: session summary — 8 cycles, 51 tests, 1 security fix, 1 perf index
+1085534 [factory] docs: session summary — 7 cycles, 45 tests, 1 security fix, 1 data integrity fix
+c253c6a [factory] docs: session summary — 8 cycles, 79 new tests, 2 bugs fixed, 1 security fix
+5ad0c15 [factory] docs: session summary — 9 cycles, 38 new tests, 2 bugs fixed, 1 security fix
+db15550 [factory] docs: session summary — 11 cycles, 112 new tests, 2 bugs fixed, 3 security fixes, 1584/0/0 suite
+2f387bc [factory] docs: session summary — 11 cycles, 75 new tests, 3 bugs fixed, 2 security fixes, 1477/0/0 suite
+11e478e [factory] docs: session summary — 10 cycles, 86 new tests, 5 critical bugs fixed, 903/0/0 suite
+487a4b0 [factory] docs: final IMPROVEMENT_LOG update for cycles 8-10
+885a88b [factory] docs: update IMPROVEMENT_LOG with cycles 1-7
+42da592 [factory] docs: final IMPROVEMENT_LOG update for cycles 10-11
+16a4520 [factory] docs: update IMPROVEMENT_LOG with cycles 1-9
+c07cc35 [factory] docs: complete IMPROVEMENT_LOG for all cycles
+ae49af4 [factory] docs: update IMPROVEMENT_LOG with cycles 4-9
+fcb3cb2 feat(saved-links): add deep summary toggle (#632)
+6232815 fix(pipeline): advance unstarted tasks to routed via AutoRunner
+a7fe19e fix: pipeline unstarted tasks become runnable (#697)
+d1dd4d1 fix(tasks): allow destroy even with agent_test_recordings association (#695)
+8671900 fix(telegram): deliver task reports to origin topic (#693)
+7fcff1e fix(pipeline/mobile): in-modal pipeline viewer + touch scroll + contextmenu anchor (#691)
+a199a72 fix(pipeline/mobile): dashboard + modal scroll/context menu (#691)
+2e303c3 fix(pipeline/mobile): dashboard + modal scroll/context menu (#691)
+3f90efd fix(pipeline): route planning tasks to codex (override glm) (#690)
+173bb86 fix(mobile): prevent task panel overlap and horizontal bleed
+c43ebcc fix(ui): restore context menu on right-click and mobile long-press
+bcde410 docs: update CHANGELOG.md [skip ci]

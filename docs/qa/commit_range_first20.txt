@@ -1,0 +1,20 @@
+c946bb2 docs: update CHANGELOG.md [skip ci]
+485d19d fix: move cost snapshot strict_loading inside model class
+6506219 docs: update CHANGELOG.md [skip ci]
+4603feb fix: fail-safe encrypted user token reads to prevent board crash
+8aba2f9 docs: update CHANGELOG.md [skip ci]
+d6c4da7 fix: make missing user_id index migration idempotent
+7350157 docs: update CHANGELOG.md [skip ci]
+4b1ede5 chore: update schema after project_path migration
+9c96155 fix: restore stable core contracts after minimax merge
+e1f298a fix: harden marketing path traversal check
+231a9b5 fix: align associations and marketing validation contracts
+542de91 fix: restore stable session and task diff/activity contracts
+def7654 fix: remove duplicate AddTasksCountToAgentPersonas migration file
+47bf3c6 docs: update CHANGELOG.md [skip ci]
+e812ff2 fix: unblock merged suite and harden edge cases
+80ea68d fix: stabilize merged model/controller drift and diff workspace path
+84bdf48 fix: repair model strict_loading placement and task inverse associations
+bfc822b fix: align RunnerLease visibility tests and refresh schema
+e3b5557 fix(test): remove duplicated RunnerLease test block from merge
+b0a5fed fix: downgrade migration version 8.2 to 8.1

@@ -1,0 +1,133 @@
+                          api_v1_settings GET    /api/v1/settings(.:format)                                                                        api/v1/settings#show
+                                          PATCH  /api/v1/settings(.:format)                                                                        api/v1/settings#update
+                                          PUT    /api/v1/settings(.:format)                                                                        api/v1/settings#update
+                     ingest_api_v1_audits POST   /api/v1/audits/ingest(.:format)                                                                   api/v1/audits#ingest
+                     latest_api_v1_audits GET    /api/v1/audits/latest(.:format)                                                                   api/v1/audits#latest
+             import_api_v1_agent_personas POST   /api/v1/agent_personas/import(.:format)                                                           api/v1/agent_personas#import
+                    api_v1_agent_personas GET    /api/v1/agent_personas(.:format)                                                                  api/v1/agent_personas#index
+                                          POST   /api/v1/agent_personas(.:format)                                                                  api/v1/agent_personas#create
+                     api_v1_agent_persona GET    /api/v1/agent_personas/:id(.:format)                                                              api/v1/agent_personas#show
+                                          PATCH  /api/v1/agent_personas/:id(.:format)                                                              api/v1/agent_personas#update
+                                          PUT    /api/v1/agent_personas/:id(.:format)                                                              api/v1/agent_personas#update
+                                          DELETE /api/v1/agent_personas/:id(.:format)                                                              api/v1/agent_personas#destroy
+       mark_all_read_api_v1_notifications POST   /api/v1/notifications/mark_all_read(.:format)                                                     api/v1/notifications#mark_all_read
+           clear_all_api_v1_notifications POST   /api/v1/notifications/clear_all(.:format)                                                         api/v1/notifications#clear_all
+            mark_read_api_v1_notification POST   /api/v1/notifications/:id/mark_read(.:format)                                                     api/v1/notifications#mark_read
+                     api_v1_notifications GET    /api/v1/notifications(.:format)                                                                   api/v1/notifications#index
+                     api_v1_models_status GET    /api/v1/models/status(.:format)                                                                   api/v1/model_limits#status
+                       api_v1_models_best POST   /api/v1/models/best(.:format)                                                                     api/v1/model_limits#best
+                                   api_v1 POST   /api/v1/models/:model_name/limit(.:format)                                                        api/v1/model_limits#record_limit
+                                          DELETE /api/v1/models/:model_name/limit(.:format)                                                        api/v1/model_limits#clear_limit
+                  api_v1_analytics_tokens GET    /api/v1/analytics/tokens(.:format)                                                                api/v1/analytics#tokens
+                    api_v1_gateway_health GET    /api/v1/gateway/health(.:format)                                                                  api/v1/gateway#health
+                  api_v1_gateway_channels GET    /api/v1/gateway/channels(.:format)                                                                api/v1/gateway#channels
+                      api_v1_gateway_cost GET    /api/v1/gateway/cost(.:format)                                                                    api/v1/gateway#cost
+                    api_v1_gateway_models GET    /api/v1/gateway/models(.:format)                                                                  api/v1/gateway#models
+                   api_v1_gateway_plugins GET    /api/v1/gateway/plugins(.:format)                                                                 api/v1/gateway#plugins
+              api_v1_gateway_nodes_status GET    /api/v1/gateway/nodes_status(.:format)                                                            api/v1/gateway#nodes_status
+                 api_v1_model_performance GET    /api/v1/model_performance(.:format)                                                               api/v1/model_performance#show
+         api_v1_model_performance_summary GET    /api/v1/model_performance/summary(.:format)                                                       api/v1/model_performance#summary
+               pending_api_v1_saved_links GET    /api/v1/saved_links/pending(.:format)                                                             api/v1/saved_links#pending
+                       api_v1_saved_links GET    /api/v1/saved_links(.:format)                                                                     api/v1/saved_links#index
+                                          POST   /api/v1/saved_links(.:format)                                                                     api/v1/saved_links#create
+                        api_v1_saved_link PATCH  /api/v1/saved_links/:id(.:format)                                                                 api/v1/saved_links#update
+                                          PUT    /api/v1/saved_links/:id(.:format)                                                                 api/v1/saved_links#update
+                stats_api_v1_feed_entries GET    /api/v1/feed_entries/stats(.:format)                                                              api/v1/feed_entries#stats
+                      api_v1_feed_entries GET    /api/v1/feed_entries(.:format)                                                                    api/v1/feed_entries#index
+                                          POST   /api/v1/feed_entries(.:format)                                                                    api/v1/feed_entries#create
+                        api_v1_feed_entry PATCH  /api/v1/feed_entries/:id(.:format)                                                                api/v1/feed_entries#update
+                                          PUT    /api/v1/feed_entries/:id(.:format)                                                                api/v1/feed_entries#update
+                      status_api_v1_board GET    /api/v1/boards/:id/status(.:format)                                                               api/v1/boards#status
+                            api_v1_boards GET    /api/v1/boards(.:format)                                                                          api/v1/boards#index
+                                          POST   /api/v1/boards(.:format)                                                                          api/v1/boards#create
+                             api_v1_board GET    /api/v1/boards/:id(.:format)                                                                      api/v1/boards#show
+                                          PATCH  /api/v1/boards/:id(.:format)                                                                      api/v1/boards#update
+                                          PUT    /api/v1/boards/:id(.:format)                                                                      api/v1/boards#update
+                                          DELETE /api/v1/boards/:id(.:format)                                                                      api/v1/boards#destroy
+                      run_api_v1_workflow POST   /api/v1/workflows/:id/run(.:format)                                                               api/v1/workflows#run
+              apply_api_v1_task_templates POST   /api/v1/task_templates/apply(.:format)                                                            api/v1/task_templates#apply
+                    api_v1_task_templates GET    /api/v1/task_templates(.:format)                                                                  api/v1/task_templates#index
+                                          POST   /api/v1/task_templates(.:format)                                                                  api/v1/task_templates#create
+                     api_v1_task_template GET    /api/v1/task_templates/:id(.:format)                                                              api/v1/task_templates#show
+                                          PATCH  /api/v1/task_templates/:id(.:format)                                                              api/v1/task_templates#update
+                                          PUT    /api/v1/task_templates/:id(.:format)                                                              api/v1/task_templates#update
+                                          DELETE /api/v1/task_templates/:id(.:format)                                                              api/v1/task_templates#destroy
+                  api_v1_nightshift_tasks GET    /api/v1/nightshift/tasks(.:format)                                                                api/v1/nightshift#tasks
+                 api_v1_nightshift_launch POST   /api/v1/nightshift/launch(.:format)                                                               api/v1/nightshift#launch
+                    api_v1_nightshift_arm POST   /api/v1/nightshift/arm(.:format)                                                                  api/v1/nightshift#arm
+             api_v1_nightshift_selections GET    /api/v1/nightshift/selections(.:format)                                                           api/v1/nightshift#selections
+                                          PATCH  /api/v1/nightshift/selections/:id(.:format)                                                       api/v1/nightshift#update_selection
+               api_v1_nightshift_missions GET    /api/v1/nightshift/missions(.:format)                                                             api/v1/nightshift#missions
+                                          POST   /api/v1/nightshift/missions(.:format)                                                             api/v1/nightshift#create_mission
+                                          PATCH  /api/v1/nightshift/missions/:id(.:format)                                                         api/v1/nightshift#update_mission
+                                          DELETE /api/v1/nightshift/missions/:id(.:format)                                                         api/v1/nightshift#destroy_mission
+                api_v1_nightshift_tonight GET    /api/v1/nightshift/tonight(.:format)                                                              api/v1/nightshift#tonight
+        api_v1_nightshift_tonight_approve POST   /api/v1/nightshift/tonight/approve(.:format)                                                      api/v1/nightshift#approve_tonight
+             api_v1_nightshift_sync_crons POST   /api/v1/nightshift/sync_crons(.:format)                                                           api/v1/nightshift#sync_crons
+           api_v1_nightshift_sync_tonight POST   /api/v1/nightshift/sync_tonight(.:format)                                                         api/v1/nightshift#sync_tonight
+       api_v1_nightshift_report_execution POST   /api/v1/nightshift/report_execution(.:format)                                                     api/v1/nightshift#report_execution
+                 launch_api_v1_swarm_idea POST   /api/v1/swarm_ideas/:id/launch(.:format)                                                          api/v1/swarm_ideas#launch
+                       api_v1_swarm_ideas GET    /api/v1/swarm_ideas(.:format)                                                                     api/v1/swarm_ideas#index
+                                          POST   /api/v1/swarm_ideas(.:format)                                                                     api/v1/swarm_ideas#create
+                        api_v1_swarm_idea PATCH  /api/v1/swarm_ideas/:id(.:format)                                                                 api/v1/swarm_ideas#update
+                                          PUT    /api/v1/swarm_ideas/:id(.:format)                                                                 api/v1/swarm_ideas#update
+                                          DELETE /api/v1/swarm_ideas/:id(.:format)                                                                 api/v1/swarm_ideas#destroy
+                   api_v1_pipeline_status GET    /api/v1/pipeline/status(.:format)                                                                 api/v1/pipeline#status
+                                          POST   /api/v1/pipeline/enable_board/:board_id(.:format)                                                 api/v1/pipeline#enable_board
+                                          POST   /api/v1/pipeline/disable_board/:board_id(.:format)                                                api/v1/pipeline#disable_board
+                                          GET    /api/v1/pipeline/task/:id/log(.:format)                                                           api/v1/pipeline#task_log
+                                          POST   /api/v1/pipeline/reprocess/:id(.:format)                                                          api/v1/pipeline#reprocess
+                     api_v1_factory_loops GET    /api/v1/factory/loops(.:format)                                                                   api/v1/factory_loops#index
+                                          POST   /api/v1/factory/loops(.:format)                                                                   api/v1/factory_loops#create
+                                          GET    /api/v1/factory/loops/:id(.:format)                                                               api/v1/factory_loops#show
+                                          PATCH  /api/v1/factory/loops/:id(.:format)                                                               api/v1/factory_loops#update
+                                          DELETE /api/v1/factory/loops/:id(.:format)                                                               api/v1/factory_loops#destroy
+                                          POST   /api/v1/factory/loops/:id/play(.:format)                                                          api/v1/factory_loops#play
+                                          POST   /api/v1/factory/loops/:id/pause(.:format)                                                         api/v1/factory_loops#pause
+                                          POST   /api/v1/factory/loops/:id/stop(.:format)                                                          api/v1/factory_loops#stop
+                                          GET    /api/v1/factory/loops/:id/metrics(.:format)                                                       api/v1/factory_loops#metrics
+                                          POST   /api/v1/factory/cycles/:id/complete(.:format)                                                     api/v1/factory_cycles#complete
+              api_v1_hooks_agent_complete POST   /api/v1/hooks/agent_complete(.:format)                                                            api/v1/hooks#agent_complete
+                api_v1_hooks_task_outcome POST   /api/v1/hooks/task_outcome(.:format)                                                              api/v1/hooks#task_outcome
+                        next_api_v1_tasks GET    /api/v1/tasks/next(.:format)                                                                      api/v1/tasks#next
+           pending_attention_api_v1_tasks GET    /api/v1/tasks/pending_attention(.:format)                                                         api/v1/tasks#pending_attention
+                   recurring_api_v1_tasks GET    /api/v1/tasks/recurring(.:format)                                                                 api/v1/tasks#recurring
+               errored_count_api_v1_tasks GET    /api/v1/tasks/errored_count(.:format)                                                             api/v1/tasks#errored_count
+                 spawn_ready_api_v1_tasks POST   /api/v1/tasks/spawn_ready(.:format)                                                               api/v1/tasks#spawn_ready
+                      export_api_v1_tasks GET    /api/v1/tasks/export(.:format)                                                                    api/v1/tasks#export
+                      import_api_v1_tasks POST   /api/v1/tasks/import(.:format)                                                                    api/v1/tasks#import
+                     complete_api_v1_task PATCH  /api/v1/tasks/:id/complete(.:format)                                                              api/v1/tasks#complete
+               agent_complete_api_v1_task POST   /api/v1/tasks/:id/agent_complete(.:format)                                                        api/v1/tasks#agent_complete
+                        claim_api_v1_task PATCH  /api/v1/tasks/:id/claim(.:format)                                                                 api/v1/tasks#claim
+                      unclaim_api_v1_task PATCH  /api/v1/tasks/:id/unclaim(.:format)                                                               api/v1/tasks#unclaim
+                      requeue_api_v1_task POST   /api/v1/tasks/:id/requeue(.:format)                                                               api/v1/tasks#requeue
+                       assign_api_v1_task PATCH  /api/v1/tasks/:id/assign(.:format)                                                                api/v1/tasks#assign
+                     unassign_api_v1_task PATCH  /api/v1/tasks/:id/unassign(.:format)                                                              api/v1/tasks#unassign
+                         move_api_v1_task PATCH  /api/v1/tasks/:id/move(.:format)                                                                  api/v1/tasks#move
+                    agent_log_api_v1_task GET    /api/v1/tasks/:id/agent_log(.:format)                                                             api/v1/tasks#agent_log
+               session_health_api_v1_task GET    /api/v1/tasks/:id/session_health(.:format)                                                        api/v1/tasks#session_health
+            generate_followup_api_v1_task POST   /api/v1/tasks/:id/generate_followup(.:format)                                                     api/v1/tasks#generate_followup
+             enhance_followup_api_v1_task POST   /api/v1/tasks/:id/enhance_followup(.:format)                                                      api/v1/tasks#enhance_followup
+              create_followup_api_v1_task POST   /api/v1/tasks/:id/create_followup(.:format)                                                       api/v1/tasks#create_followup
+                      handoff_api_v1_task POST   /api/v1/tasks/:id/handoff(.:format)                                                               api/v1/tasks#handoff
+                 link_session_api_v1_task POST   /api/v1/tasks/:id/link_session(.:format)                                                          api/v1/tasks#link_session
+            report_rate_limit_api_v1_task POST   /api/v1/tasks/:id/report_rate_limit(.:format)                                                     api/v1/tasks#report_rate_limit
+                   revalidate_api_v1_task POST   /api/v1/tasks/:id/revalidate(.:format)                                                            api/v1/tasks#revalidate
+             start_validation_api_v1_task POST   /api/v1/tasks/:id/start_validation(.:format)                                                      api/v1/tasks#start_validation
+                   run_debate_api_v1_task POST   /api/v1/tasks/:id/run_debate(.:format)                                                            api/v1/tasks#run_debate
+              complete_review_api_v1_task POST   /api/v1/tasks/:id/complete_review(.:format)                                                       api/v1/tasks#complete_review
+               recover_output_api_v1_task POST   /api/v1/tasks/:id/recover_output(.:format)                                                        api/v1/tasks#recover_output
+                         file_api_v1_task GET    /api/v1/tasks/:id/file(.:format)                                                                  api/v1/tasks#file
+               route_pipeline_api_v1_task POST   /api/v1/tasks/:id/route_pipeline(.:format)                                                        api/v1/tasks#route_pipeline
+                pipeline_info_api_v1_task GET    /api/v1/tasks/:id/pipeline_info(.:format)                                                         api/v1/tasks#pipeline_info
+               add_dependency_api_v1_task POST   /api/v1/tasks/:id/add_dependency(.:format)                                                        api/v1/tasks#add_dependency
+            remove_dependency_api_v1_task DELETE /api/v1/tasks/:id/remove_dependency(.:format)                                                     api/v1/tasks#remove_dependency
+                 dependencies_api_v1_task GET    /api/v1/tasks/:id/dependencies(.:format)                                                          api/v1/tasks#dependencies
+        thread_api_v1_task_agent_messages GET    /api/v1/tasks/:task_id/agent_messages/thread(.:format)                                            api/v1/agent_messages#thread
+               api_v1_task_agent_messages GET    /api/v1/tasks/:task_id/agent_messages(.:format)                                                   api/v1/agent_messages#index
+                             api_v1_tasks GET    /api/v1/tasks(.:format)                                                                           api/v1/tasks#index
+                                          POST   /api/v1/tasks(.:format)                                                                           api/v1/tasks#create
+                              api_v1_task GET    /api/v1/tasks/:id(.:format)                                                                       api/v1/tasks#show
+                                          PATCH  /api/v1/tasks/:id(.:format)                                                                       api/v1/tasks#update
+                                          PUT    /api/v1/tasks/:id(.:format)                                                                       api/v1/tasks#update
+                                          DELETE /api/v1/tasks/:id(.:format)                                                                       api/v1/tasks#destroy

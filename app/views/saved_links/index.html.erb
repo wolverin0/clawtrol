@@ -43,7 +43,7 @@
   </div>
 
   <%# Process All Button %>
-  <% pending_count = status_counts["pending"] || 0 %>
+  <% pending_count = @status_counts["pending"] || 0 %>
   <% if pending_count > 0 %>
     <%= button_to "🤖 Process with Gemini", process_all_saved_links_path, method: :post,
         class: "bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition-colors" %>

@@ -1,0 +1,290 @@
+                                   Prefix Verb   URI Pattern                                                                                       Controller#Action
+                                                 /cable                                                                                            #<ActionCable::Server::Base:0x000070f247daa5c0 @config=#<ActionCable::Server::Configuration:0x000070f247daef30 @log_tags=[], @connection_class=#<Proc:0x000070f249ad3e08 /home/ggorbalan/clawdeck/vendor/bundle/ruby/3.2.0/gems/actioncable-8.1.0/lib/action_cable/engine.rb:55 (lambda)>, @worker_pool_size=4, @disable_request_forgery_protection=false, @allow_same_origin_as_host=true, @filter_parameters=[:passw, :email, :secret, :token, :_key, :crypt, :salt, :certificate, :otp, :ssn, :cvv, :cvc], @health_check_application=#<Proc:0x000070f249ad5488 /home/ggorbalan/clawdeck/vendor/bundle/ruby/3.2.0/gems/actioncable-8.1.0/lib/action_cable/engine.rb:31 (lambda)>, @logger=#<ActiveSupport::BroadcastLogger:0x000070f249aba3e0 @broadcasts=[#<ActiveSupport::Logger:0x000070f249a9f518 @level=0, @progname=nil, @default_formatter=#<Logger::Formatter:0x000070f249abcbb8 @datetime_format=nil>, @formatter=#<ActiveSupport::Logger::SimpleFormatter:0x000070f249aba7f0 @datetime_format=nil, @thread_key="activesupport_tagged_logging_tags:24500">, @logdev=#<Logger::LogDevice:0x000070f249aade88 @shift_period_suffix="%Y%m%d", @shift_size=104857600, @shift_age=1, @filename="/home/ggorbalan/clawdeck/log/development.log", @dev=#<File:/home/ggorbalan/clawdeck/log/development.log>, @binmode=false, @reraise_write_errors=[], @skip_header=false, @mon_data=#<Monitor:0x000070f249abca78>, @mon_data_owner_object_id=17040>, @level_override={}, @local_level_key=:logger_thread_safe_level_17060>], @progname="Broadcast">, @cable={"adapter"=>"async"}, @mount_path="/cable", @precompile_assets=true, @allowed_request_origins=[/\Ahttp:\/\/localhost:\d+\z/, /\Ahttp:\/\/127\.0\.0\.1:\d+\z/, /\Ahttp:\/\/192\.168\.100\.186:\d+\z/, /\Ahttps?:\/\/.*\.ngrok-free\.app\z/, /\Ahttps?:\/\/.*\.ngrok\.io\z/]>, @mutex=#<Monitor:0x000070f249a49be0>, @pubsub=nil, @worker_pool=nil, @event_loop=nil, @remote_connections=nil>
+                               admin_root GET    /admin(.:format)                                                                                  admin/dashboard#index
+                              admin_users GET    /admin/users(.:format)                                                                            admin/users#index
+                       admin_invite_codes GET    /admin/invite_codes(.:format)                                                                     admin/invite_codes#index
+                                          POST   /admin/invite_codes(.:format)                                                                     admin/invite_codes#create
+                        admin_invite_code DELETE /admin/invite_codes/:id(.:format)                                                                 admin/invite_codes#destroy
+                              new_session GET    /session/new(.:format)                                                                            sessions#new
+                                  session DELETE /session(.:format)                                                                                sessions#destroy
+                                          POST   /session(.:format)                                                                                sessions#create
+                         new_registration GET    /registration/new(.:format)                                                                       registrations#new
+                             registration POST   /registration(.:format)                                                                           registrations#create
+                        omniauth_callback GET    /auth/:provider/callback(.:format)                                                                omniauth_callbacks#github
+                             auth_failure GET    /auth/failure(.:format)                                                                           omniauth_callbacks#failure
+                                passwords GET    /passwords(.:format)                                                                              passwords#index
+                                          POST   /passwords(.:format)                                                                              passwords#create
+                             new_password GET    /passwords/new(.:format)                                                                          passwords#new
+                            edit_password GET    /passwords/:token/edit(.:format)                                                                  passwords#edit
+                                 password GET    /passwords/:token(.:format)                                                                       passwords#show
+                                          PATCH  /passwords/:token(.:format)                                                                       passwords#update
+                                          PUT    /passwords/:token(.:format)                                                                       passwords#update
+                                          DELETE /passwords/:token(.:format)                                                                       passwords#destroy
+            regenerate_api_token_settings POST   /settings/regenerate_api_token(.:format)                                                          profiles#regenerate_api_token
+                 test_connection_settings POST   /settings/test_connection(.:format)                                                               profiles#test_connection
+               test_notification_settings POST   /settings/test_notification(.:format)                                                             profiles#test_notification
+                                 settings GET    /settings(.:format)                                                                               profiles#show
+                                          PATCH  /settings(.:format)                                                                               profiles#update
+                                          PUT    /settings(.:format)                                                                               profiles#update
+                  process_all_saved_links POST   /saved_links/process_all(.:format)                                                                saved_links#process_all
+                              saved_links GET    /saved_links(.:format)                                                                            saved_links#index
+                                          POST   /saved_links(.:format)                                                                            saved_links#create
+                               saved_link PATCH  /saved_links/:id(.:format)                                                                        saved_links#update
+                                          PUT    /saved_links/:id(.:format)                                                                        saved_links#update
+                                          DELETE /saved_links/:id(.:format)                                                                        saved_links#destroy
+                          mark_read_feeds POST   /feeds/mark_read(.:format)                                                                        feeds#mark_read
+                             dismiss_feed POST   /feeds/:id/dismiss(.:format)                                                                      feeds#dismiss
+                                    feeds GET    /feeds(.:format)                                                                                  feeds#index
+                                     feed GET    /feeds/:id(.:format)                                                                              feeds#show
+                                          PATCH  /feeds/:id(.:format)                                                                              feeds#update
+                                          PUT    /feeds/:id(.:format)                                                                              feeds#update
+                                          DELETE /feeds/:id(.:format)                                                                              feeds#destroy
+                                dashboard GET    /dashboard(.:format)                                                                              dashboard#show
+                                 terminal GET    /terminal(.:format)                                                                               terminal#show
+                   mark_read_notification PATCH  /notifications/:id/mark_read(.:format)                                                            notifications#mark_read
+              mark_all_read_notifications POST   /notifications/mark_all_read(.:format)                                                            notifications#mark_all_read
+                            notifications GET    /notifications(.:format)                                                                          notifications#index
+                                  command GET    /command(.:format)                                                                                command#index
+                           toggle_cronjob POST   /cronjobs/:id/toggle(.:format)                                                                    cronjobs#toggle
+                              run_cronjob POST   /cronjobs/:id/run(.:format)                                                                       cronjobs#run
+                                 cronjobs GET    /cronjobs(.:format)                                                                               cronjobs#index
+                                          POST   /cronjobs(.:format)                                                                               cronjobs#create
+                                  cronjob DELETE /cronjobs/:id(.:format)                                                                           cronjobs#destroy
+                                   tokens GET    /tokens(.:format)                                                                                 tokens#index
+                       pipeline_dashboard GET    /pipeline(.:format)                                                                               pipeline_dashboard#show
+                         editor_workflows GET    /workflows/editor(.:format)                                                                       workflows#editor
+                          editor_workflow GET    /workflows/:id/editor(.:format)                                                                   workflows#editor
+                                workflows GET    /workflows(.:format)                                                                              workflows#index
+                                          POST   /workflows(.:format)                                                                              workflows#create
+                             new_workflow GET    /workflows/new(.:format)                                                                          workflows#new
+                            edit_workflow GET    /workflows/:id/edit(.:format)                                                                     workflows#edit
+                                 workflow PATCH  /workflows/:id(.:format)                                                                          workflows#update
+                                          PUT    /workflows/:id(.:format)                                                                          workflows#update
+                                   search GET    /search(.:format)                                                                                 search#index
+                                analytics GET    /analytics(.:format)                                                                              analytics#show
+                         analytics_budget GET    /analytics/budget(.:format)                                                                       analytics#budget
+                  update_analytics_budget POST   /analytics/budget(.:format)                                                                       analytics#update_budget
+               capture_analytics_snapshot POST   /analytics/capture(.:format)                                                                      analytics#capture_snapshot
+                      session_maintenance GET    /session-maintenance(.:format)                                                                    session_maintenance#show
+               session_maintenance_update PATCH  /session-maintenance(.:format)                                                                    session_maintenance#update
+                            typing_config GET    /typing-config(.:format)                                                                          typing_config#show
+                     typing_config_update PATCH  /typing-config(.:format)                                                                          typing_config#update
+                          identity_config GET    /identity-config(.:format)                                                                        identity_config#show
+                   identity_config_update PATCH  /identity-config(.:format)                                                                        identity_config#update
+                              send_policy GET    /send-policy(.:format)                                                                            send_policy#show
+                       send_policy_update PATCH  /send-policy(.:format)                                                                            send_policy#update
+                          hooks_dashboard GET    /hooks-dashboard(.:format)                                                                        hooks_dashboard#show
+                             cli_backends GET    /cli-backends(.:format)                                                                           cli_backends#index
+                      cli_backends_update PATCH  /cli-backends(.:format)                                                                           cli_backends#update
+                          model_providers GET    /model-providers(.:format)                                                                        model_providers#index
+                   model_providers_update PATCH  /model-providers(.:format)                                                                        model_providers#update
+                     model_providers_test POST   /model-providers/test(.:format)                                                                   model_providers#test_provider
+                           sandbox_config GET    /sandbox-config(.:format)                                                                         sandbox_config#show
+                    sandbox_config_update PATCH  /sandbox-config(.:format)                                                                         sandbox_config#update
+                        compaction_config GET    /compaction-config(.:format)                                                                      compaction_config#show
+                 compaction_config_update PATCH  /compaction-config(.:format)                                                                      compaction_config#update
+                         heartbeat_config GET    /heartbeat-config(.:format)                                                                       heartbeat_config#show
+                  heartbeat_config_update PATCH  /heartbeat-config(.:format)                                                                       heartbeat_config#update
+                     session_reset_config GET    /session-reset(.:format)                                                                          session_reset_config#show
+              session_reset_config_update PATCH  /session-reset(.:format)                                                                          session_reset_config#update
+                     message_queue_config GET    /message-queue(.:format)                                                                          message_queue_config#show
+              message_queue_config_update PATCH  /message-queue(.:format)                                                                          message_queue_config#update
+                                dm_policy GET    /dm-policy(.:format)                                                                              dm_policy#show
+                         dm_policy_update PATCH  /dm-policy(.:format)                                                                              dm_policy#update
+                dm_policy_approve_pairing POST   /dm-policy/approve-pairing(.:format)                                                              dm_policy#approve_pairing
+                 dm_policy_reject_pairing POST   /dm-policy/reject-pairing(.:format)                                                               dm_policy#reject_pairing
+                         channel_accounts GET    /channel-accounts(.:format)                                                                       channel_accounts#show
+                  channel_accounts_update PATCH  /channel-accounts(.:format)                                                                       channel_accounts#update
+                             media_config GET    /media-config(.:format)                                                                           media_config#show
+                      media_config_update PATCH  /media-config(.:format)                                                                           media_config#update
+                                  webchat GET    /webchat(.:format)                                                                                webchat#show
+                                   canvas GET    /canvas(.:format)                                                                                 canvas#show
+                              canvas_push POST   /canvas/push(.:format)                                                                            canvas#push
+                          canvas_snapshot POST   /canvas/snapshot(.:format)                                                                        canvas#snapshot
+                              canvas_hide POST   /canvas/hide(.:format)                                                                            canvas#hide
+                         canvas_templates GET    /canvas/templates(.:format)                                                                       canvas#templates
+                                    nodes GET    /nodes(.:format)                                                                                  nodes#index
+                        sessions_explorer GET    /sessions(.:format)                                                                               sessions_explorer#index
+                                   status GET    /status(.:format)                                                                                 status#show
+                          telegram_config GET    /telegram_config(.:format)                                                                        telegram_config#show
+                   telegram_config_update POST   /telegram_config/update(.:format)                                                                 telegram_config#update
+                           discord_config GET    /discord_config(.:format)                                                                         discord_config#show
+                    discord_config_update POST   /discord_config/update(.:format)                                                                  discord_config#update
+                           logging_config GET    /logging_config(.:format)                                                                         logging_config#show
+                    logging_config_update POST   /logging_config/update(.:format)                                                                  logging_config#update
+                      logging_config_tail GET    /logging_config/tail(.:format)                                                                    logging_config#tail
+                               config_hub GET    /config(.:format)                                                                                 config_hub#show
+                               hot_reload GET    /hot_reload(.:format)                                                                             hot_reload#show
+                        hot_reload_update POST   /hot_reload/update(.:format)                                                                      hot_reload#update
+                           channel_config GET    /channel_config/:channel(.:format)                                                                channel_config#show
+                    channel_config_update POST   /channel_config/:channel/update(.:format)                                                         channel_config#update
+                              env_manager GET    /env_manager(.:format)                                                                            env_manager#show
+                         env_manager_file GET    /env_manager/file(.:format)                                                                       env_manager#file_contents
+                         env_manager_test POST   /env_manager/test(.:format)                                                                       env_manager#test_substitution
+                             telegram_app GET    /telegram_app(.:format)                                                                           telegram_mini_app#show
+                       telegram_app_tasks POST   /telegram_app/tasks(.:format)                                                                     telegram_mini_app#tasks
+                      telegram_app_boards POST   /telegram_app/boards(.:format)                                                                    telegram_mini_app#boards
+                telegram_app_tasks_create POST   /telegram_app/tasks/create(.:format)                                                              telegram_mini_app#create_task
+                     telegram_app_approve POST   /telegram_app/tasks/:id/approve(.:format)                                                         telegram_mini_app#approve
+                      telegram_app_reject POST   /telegram_app/tasks/:id/reject(.:format)                                                          telegram_mini_app#reject
+                                     keys GET    /keys(.:format)                                                                                   keys#index
+                                          PATCH  /keys(.:format)                                                                                   keys#update
+                               nightshift GET    /nightshift(.:format)                                                                             nightshift#index
+                        nightshift_launch POST   /nightshift/launch(.:format)                                                                      nightshift#launch
+                      nightshift_missions POST   /nightshift/missions(.:format)                                                                    nightshift#create
+                       nightshift_mission PATCH  /nightshift/missions/:id(.:format)                                                                nightshift#update
+                                          DELETE /nightshift/missions/:id(.:format)                                                                nightshift#destroy
+                                nightbeat GET    /nightbeat(.:format)                                                                              nightbeat#index
+                                    swarm GET    /swarm(.:format)                                                                                  swarm#index
+                             swarm_launch POST   /swarm/launch/:id(.:format)                                                                       swarm#launch
+                        create_swarm_idea POST   /swarm(.:format)                                                                                  swarm#create
+                       destroy_swarm_idea DELETE /swarm/:id(.:format)                                                                              swarm#destroy
+                        update_swarm_idea PATCH  /swarm/:id(.:format)                                                                              swarm#update
+               toggle_favorite_swarm_idea PATCH  /swarm/:id/toggle_favorite(.:format)                                                              swarm#toggle_favorite
+                                  factory GET    /factory(.:format)                                                                                factory#index
+                       factory_playground GET    /factory/playground(.:format)                                                                     factory#playground
+                            factory_loops POST   /factory/loops(.:format)                                                                          factory#create
+                             factory_loop PATCH  /factory/loops/:id(.:format)                                                                      factory#update
+                      factory_loop_delete DELETE /factory/loops/:id(.:format)                                                                      factory#destroy
+                             factory_play POST   /factory/:id/play(.:format)                                                                       factory#play
+                            factory_pause POST   /factory/:id/pause(.:format)                                                                      factory#pause
+                             factory_stop POST   /factory/:id/stop(.:format)                                                                       factory#stop
+                        factory_bulk_play POST   /factory/bulk_play(.:format)                                                                      factory#bulk_play
+                       factory_bulk_pause POST   /factory/bulk_pause(.:format)                                                                     factory#bulk_pause
+                      factory_cherry_pick GET    /factory/cherry_pick(.:format)                                                                    factory#cherry_pick_index
+              factory_cherry_pick_preview POST   /factory/cherry_pick/preview(.:format)                                                            factory#cherry_pick_preview
+              factory_cherry_pick_execute POST   /factory/cherry_pick/execute(.:format)                                                            factory#cherry_pick_execute
+               factory_cherry_pick_verify POST   /factory/cherry_pick/verify(.:format)                                                             factory#cherry_pick_verify
+                           gateway_config GET    /gateway/config(.:format)                                                                         gateway_config#show
+                     gateway_config_apply POST   /gateway/config/apply(.:format)                                                                   gateway_config#apply
+                     gateway_config_patch POST   /gateway/config/patch(.:format)                                                                   gateway_config#patch_config
+                   gateway_config_restart POST   /gateway/config/restart(.:format)                                                                 gateway_config#restart
+                          block_streaming GET    /streaming(.:format)                                                                              block_streaming#show
+                   block_streaming_update PATCH  /streaming/update(.:format)                                                                       block_streaming#update
+                           dm_scope_audit GET    /security/dm_scope(.:format)                                                                      dm_scope_audit#show
+                              live_events GET    /live(.:format)                                                                                   live_events#show
+                         live_events_poll GET    /live/poll(.:format)                                                                              live_events#poll
+                           identity_links GET    /identity_links(.:format)                                                                         identity_links#index
+                      identity_links_save POST   /identity_links/save(.:format)                                                                    identity_links#save
+                     compaction_dashboard GET    /compaction(.:format)                                                                             compaction_dashboard#show
+                         memory_dashboard GET    /memory(.:format)                                                                                 memory_dashboard#show
+                            memory_search POST   /memory/search(.:format)                                                                          memory_dashboard#search
+                           exec_approvals GET    /exec_approvals(.:format)                                                                         exec_approvals#index
+                       exec_approvals_add POST   /exec_approvals/add(.:format)                                                                     exec_approvals#add
+                    exec_approvals_remove DELETE /exec_approvals/remove(.:format)                                                                  exec_approvals#remove
+               exec_approvals_bulk_import POST   /exec_approvals/bulk_import(.:format)                                                             exec_approvals#bulk_import
+                            skill_manager GET    /skills(.:format)                                                                                 skill_manager#index
+                            skill_install POST   /skills/install(.:format)                                                                         skill_manager#install
+                             skill_toggle POST   /skills/:name/toggle(.:format)                                                                    skill_manager#toggle
+                          skill_configure POST   /skills/:name/configure(.:format)                                                                 skill_manager#configure
+                          skill_uninstall DELETE /skills/:name(.:format)                                                                           skill_manager#uninstall
+                         webhook_mappings GET    /webhooks/mappings(.:format)                                                                      webhook_mappings#index
+                    webhook_mappings_save POST   /webhooks/mappings/save(.:format)                                                                 webhook_mappings#save
+                 webhook_mappings_preview POST   /webhooks/mappings/preview(.:format)                                                              webhook_mappings#preview
+                             agent_config GET    /agents/config(.:format)                                                                          agent_config#show
+                agent_config_update_agent PATCH  /agents/config/update_agent(.:format)                                                             agent_config#update_agent
+             agent_config_update_bindings PATCH  /agents/config/update_bindings(.:format)                                                          agent_config#update_bindings
+                    import_agent_personas POST   /agent_personas/import(.:format)                                                                  agent_personas#import
+                    roster_agent_personas GET    /agent_personas/roster(.:format)                                                                  agent_personas#roster
+                           agent_personas GET    /agent_personas(.:format)                                                                         agent_personas#index
+                                          POST   /agent_personas(.:format)                                                                         agent_personas#create
+                        new_agent_persona GET    /agent_personas/new(.:format)                                                                     agent_personas#new
+                       edit_agent_persona GET    /agent_personas/:id/edit(.:format)                                                                agent_personas#edit
+                            agent_persona GET    /agent_personas/:id(.:format)                                                                     agent_personas#show
+                                          PATCH  /agent_personas/:id(.:format)                                                                     agent_personas#update
+                                          PUT    /agent_personas/:id(.:format)                                                                     agent_personas#update
+                                          DELETE /agent_personas/:id(.:format)                                                                     agent_personas#destroy
+                 update_task_status_board PATCH  /boards/:id/update_task_status(.:format)                                                          boards#update_task_status
+                           archived_board GET    /boards/:id/archived(.:format)                                                                    boards#archived
+                             column_board GET    /boards/:id/column(.:format)                                                                      boards#column
+                   dependency_graph_board GET    /boards/:id/dependency_graph(.:format)                                                            boards#dependency_graph
+                   generate_persona_board POST   /boards/:id/generate_persona(.:format)                                                            boards#generate_persona
+                  bulk_update_board_tasks POST   /boards/:board_id/tasks/bulk_update(.:format)                                                     boards/tasks#bulk_update
+                        assign_board_task PATCH  /boards/:board_id/tasks/:id/assign(.:format)                                                      boards/tasks#assign
+                      unassign_board_task PATCH  /boards/:board_id/tasks/:id/unassign(.:format)                                                    boards/tasks#unassign
+                          move_board_task PATCH  /boards/:board_id/tasks/:id/move(.:format)                                                        boards/tasks#move
+                 move_to_board_board_task PATCH  /boards/:board_id/tasks/:id/move_to_board(.:format)                                               boards/tasks#move_to_board
+                followup_modal_board_task GET    /boards/:board_id/tasks/:id/followup_modal(.:format)                                              boards/tasks#followup_modal
+                 handoff_modal_board_task GET    /boards/:board_id/tasks/:id/handoff_modal(.:format)                                               boards/tasks#handoff_modal
+       validation_output_modal_board_task GET    /boards/:board_id/tasks/:id/validation_output_modal(.:format)                                     boards/tasks#validation_output_modal
+                validate_modal_board_task GET    /boards/:board_id/tasks/:id/validate_modal(.:format)                                              boards/tasks#validate_modal
+                  debate_modal_board_task GET    /boards/:board_id/tasks/:id/debate_modal(.:format)                                                boards/tasks#debate_modal
+           review_output_modal_board_task GET    /boards/:board_id/tasks/:id/review_output_modal(.:format)                                         boards/tasks#review_output_modal
+             generate_followup_board_task POST   /boards/:board_id/tasks/:id/generate_followup(.:format)                                           boards/tasks#generate_followup
+              enhance_followup_board_task POST   /boards/:board_id/tasks/:id/enhance_followup(.:format)                                            boards/tasks#enhance_followup
+               create_followup_board_task POST   /boards/:board_id/tasks/:id/create_followup(.:format)                                             boards/tasks#create_followup
+                       handoff_board_task POST   /boards/:board_id/tasks/:id/handoff(.:format)                                                     boards/tasks#handoff
+                    revalidate_board_task POST   /boards/:board_id/tasks/:id/revalidate(.:format)                                                  boards/tasks#revalidate
+                run_validation_board_task POST   /boards/:board_id/tasks/:id/run_validation(.:format)                                              boards/tasks#run_validation
+                    run_debate_board_task POST   /boards/:board_id/tasks/:id/run_debate(.:format)                                                  boards/tasks#run_debate
+generate_validation_suggestion_board_task POST   /boards/:board_id/tasks/:id/generate_validation_suggestion(.:format)                              boards/tasks#generate_validation_suggestion
+                     view_file_board_task GET    /boards/:board_id/tasks/:id/view_file(.:format)                                                   boards/tasks#view_file
+                     diff_file_board_task GET    /boards/:board_id/tasks/:id/diff_file(.:format)                                                   boards/tasks#diff_file
+                              board_tasks POST   /boards/:board_id/tasks(.:format)                                                                 boards/tasks#create
+                           new_board_task GET    /boards/:board_id/tasks/new(.:format)                                                             boards/tasks#new
+                          edit_board_task GET    /boards/:board_id/tasks/:id/edit(.:format)                                                        boards/tasks#edit
+                               board_task GET    /boards/:board_id/tasks/:id(.:format)                                                             boards/tasks#show
+                                          PATCH  /boards/:board_id/tasks/:id(.:format)                                                             boards/tasks#update
+                                          PUT    /boards/:board_id/tasks/:id(.:format)                                                             boards/tasks#update
+                                          DELETE /boards/:board_id/tasks/:id(.:format)                                                             boards/tasks#destroy
+                                   boards GET    /boards(.:format)                                                                                 boards#index
+                                          POST   /boards(.:format)                                                                                 boards#create
+                                    board GET    /boards/:id(.:format)                                                                             boards#show
+                                          PATCH  /boards/:id(.:format)                                                                             boards#update
+                                          PUT    /boards/:id(.:format)                                                                             boards#update
+                                          DELETE /boards/:id(.:format)                                                                             boards#destroy
+                                          GET    /board(.:format)                                                                                  redirect(301)
+                                quick_add GET    /quick_add(.:format)                                                                              quick_add#new
+                                          POST   /quick_add(.:format)                                                                              quick_add#create
+                               pages_home GET    /pages/home(.:format)                                                                             pages#home
+                       rails_health_check GET    /up(.:format)                                                                                     rails/health#show
+                             pwa_manifest GET    /manifest(.:format)                                                                               rails/pwa#manifest
+                       pwa_service_worker GET    /service-worker(.:format)                                                                         rails/pwa#service_worker
+                               raw_output GET    /outputs/:id/raw(.:format)                                                                        previews#raw
+                                  outputs GET    /outputs(.:format)                                                                                previews#index
+                                   output GET    /outputs/:id(.:format)                                                                            previews#show
+                             raw_showcase GET    /showcases/:id/raw(.:format)                                                                      showcases#raw
+                   toggle_winner_showcase PATCH  /showcases/:id/toggle_winner(.:format)                                                            showcases#toggle_winner
+                                showcases GET    /showcases(.:format)                                                                              showcases#index
+                                 showcase GET    /showcases/:id(.:format)                                                                          showcases#show
+                                marketing GET    /marketing(.:format)                                                                              marketing#index
+                     marketing_playground GET    /marketing/playground(.:format)                                                                   marketing#playground
+              marketing_generated_content GET    /marketing/generated_content(.:format)                                                            marketing#generated_content
+                 marketing_generate_image POST   /marketing/generate_image(.:format)                                                               marketing#generate_image
+                        marketing_publish POST   /marketing/publish(.:format)                                                                      marketing#publish_to_n8n
+                           marketing_show GET    /marketing/*path                                                                                  marketing#show
+                                     view GET    /view(.:format)                                                                                   file_viewer#show
+                             browse_files GET    /files(.:format)                                                                                  file_viewer#browse
+                     interventions_audits GET    /audits/interventions(.:format)                                                                   audits#interventions
+                                   audits GET    /audits(.:format)                                                                                 audits#index
+                 behavioral_interventions POST   /behavioral_interventions(.:format)                                                               behavioral_interventions#create
+                  behavioral_intervention PATCH  /behavioral_interventions/:id(.:format)                                                           behavioral_interventions#update
+                                          PUT    /behavioral_interventions/:id(.:format)                                                           behavioral_interventions#update
+                                          DELETE /behavioral_interventions/:id(.:format)                                                           behavioral_interventions#destroy
+                                     root GET    /                                                                                                 pages#home
+         turbo_recede_historical_location GET    /recede_historical_location(.:format)                                                             turbo/native/navigation#recede
+         turbo_resume_historical_location GET    /resume_historical_location(.:format)                                                             turbo/native/navigation#resume
+        turbo_refresh_historical_location GET    /refresh_historical_location(.:format)                                                            turbo/native/navigation#refresh
+            rails_postmark_inbound_emails POST   /rails/action_mailbox/postmark/inbound_emails(.:format)                                           action_mailbox/ingresses/postmark/inbound_emails#create
+               rails_relay_inbound_emails POST   /rails/action_mailbox/relay/inbound_emails(.:format)                                              action_mailbox/ingresses/relay/inbound_emails#create
+            rails_sendgrid_inbound_emails POST   /rails/action_mailbox/sendgrid/inbound_emails(.:format)                                           action_mailbox/ingresses/sendgrid/inbound_emails#create
+      rails_mandrill_inbound_health_check GET    /rails/action_mailbox/mandrill/inbound_emails(.:format)                                           action_mailbox/ingresses/mandrill/inbound_emails#health_check
+            rails_mandrill_inbound_emails POST   /rails/action_mailbox/mandrill/inbound_emails(.:format)                                           action_mailbox/ingresses/mandrill/inbound_emails#create
+             rails_mailgun_inbound_emails POST   /rails/action_mailbox/mailgun/inbound_emails/mime(.:format)                                       action_mailbox/ingresses/mailgun/inbound_emails#create
+           rails_conductor_inbound_emails GET    /rails/conductor/action_mailbox/inbound_emails(.:format)                                          rails/conductor/action_mailbox/inbound_emails#index
+                                          POST   /rails/conductor/action_mailbox/inbound_emails(.:format)                                          rails/conductor/action_mailbox/inbound_emails#create
+        new_rails_conductor_inbound_email GET    /rails/conductor/action_mailbox/inbound_emails/new(.:format)                                      rails/conductor/action_mailbox/inbound_emails#new
+            rails_conductor_inbound_email GET    /rails/conductor/action_mailbox/inbound_emails/:id(.:format)                                      rails/conductor/action_mailbox/inbound_emails#show
+ new_rails_conductor_inbound_email_source GET    /rails/conductor/action_mailbox/inbound_emails/sources/new(.:format)                              rails/conductor/action_mailbox/inbound_emails/sources#new
+    rails_conductor_inbound_email_sources POST   /rails/conductor/action_mailbox/inbound_emails/sources(.:format)                                  rails/conductor/action_mailbox/inbound_emails/sources#create
+    rails_conductor_inbound_email_reroute POST   /rails/conductor/action_mailbox/:inbound_email_id/reroute(.:format)                               rails/conductor/action_mailbox/reroutes#create
+ rails_conductor_inbound_email_incinerate POST   /rails/conductor/action_mailbox/:inbound_email_id/incinerate(.:format)                            rails/conductor/action_mailbox/incinerates#create
+                       rails_service_blob GET    /rails/active_storage/blobs/redirect/:signed_id/*filename(.:format)                               active_storage/blobs/redirect#show
+                 rails_service_blob_proxy GET    /rails/active_storage/blobs/proxy/:signed_id/*filename(.:format)                                  active_storage/blobs/proxy#show
+                                          GET    /rails/active_storage/blobs/:signed_id/*filename(.:format)                                        active_storage/blobs/redirect#show
+                rails_blob_representation GET    /rails/active_storage/representations/redirect/:signed_blob_id/:variation_key/*filename(.:format) active_storage/representations/redirect#show
+          rails_blob_representation_proxy GET    /rails/active_storage/representations/proxy/:signed_blob_id/:variation_key/*filename(.:format)    active_storage/representations/proxy#show
+                                          GET    /rails/active_storage/representations/:signed_blob_id/:variation_key/*filename(.:format)          active_storage/representations/redirect#show
+                       rails_disk_service GET    /rails/active_storage/disk/:encoded_key/*filename(.:format)                                       active_storage/disk#show
+                update_rails_disk_service PUT    /rails/active_storage/disk/:encoded_token(.:format)                                               active_storage/disk#update
+                     rails_direct_uploads POST   /rails/active_storage/direct_uploads(.:format)                                                    active_storage/direct_uploads#create
