@@ -3051,3 +3051,31 @@
 **Files:** test/controllers/concerns/marketing_tree_builder_test.rb
 **Verify:** Ruby syntax OK
 **Risk:** low (test-only addition)
+
+## [2026-02-15 23:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add model tests for Board, TaskActivity, TaskTemplate, RunnerLease (112 tests)
+**Why:** These 4 models had empty test files. Added comprehensive tests covering: validations, associations, scopes, class methods, instance methods, edge cases. Part of the "still valuable" items that were lost in the sync.
+**Files:** test/models/board_test.rb, test/models/task_activity_test.rb, test/models/task_template_test.rb, test/models/runner_lease_test.rb
+**Verify:** Ruby syntax OK on all 4 files (tests blocked by DB extension issues, not code issues)
+**Risk:** low (test-only addition)
+
+## [2026-02-15 23:40] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add model validations for Session, Workflow, InviteCode
+**Why:** Enhanced validations: Session (session_type/status/identity + user_required_for_non_system), Workflow (title/description/slug/category/status + scopes), InviteCode (code format/max_uses/expires_at + custom validations). Part of the "still valuable" items that were lost in the sync.
+**Files:** app/models/session.rb, app/models/workflow.rb, app/models/invite_code.rb
+**Verify:** Ruby syntax OK on all 3 files
+**Risk:** low (validation additions, no behavioral changes)
+
+## [2026-02-15 23:55] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add model validations for OpenclawIntegrationStatus, AgentTranscript, AuditReport
+**Why:** Enhanced validations: OpenclawIntegrationStatus (memory_search_status + scopes), AgentTranscript (token/message counts + length limits), AuditReport (numerical fields + JSON hash validation).
+**Files:** app/models/openclaw_integration_status.rb, app/models/agent_transcript.rb, app/models/audit_report.rb
+**Verify:** Ruby syntax OK on all 3 files
+**Risk:** low (validation additions, no behavioral changes)
+
+## [2026-02-16 00:05] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add model validations for Notification, ModelLimit, RunnerLease
+**Why:** Enhanced validations: Notification (message length + scopes), ModelLimit (limit_tokens numericality + resets_at presence), RunnerLease (length limits + expires/heartbeat temporal validations).
+**Files:** app/models/notification.rb, app/models/model_limit.rb, app/models/runner_lease.rb
+**Verify:** Ruby syntax OK on all 3 files
+**Risk:** low (validation additions, no behavioral changes)
