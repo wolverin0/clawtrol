@@ -5,4 +5,7 @@ class Session < ApplicationRecord
   strict_loading :n_plus_one
 
   belongs_to :user, inverse_of: :sessions
+
+  scope :for_user, ->(user) { where(user: user) }
+  scope :recent, -> { order(created_at: :desc) }
 end

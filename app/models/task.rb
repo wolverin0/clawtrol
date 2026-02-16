@@ -76,6 +76,8 @@ class Task < ApplicationRecord
   MODELS = %w[opus codex gemini glm sonnet].freeze
   DEFAULT_MODEL = "opus".freeze
 
+  alias_attribute :title, :name
+
   # Map ClawTrol task.model -> OpenClaw sessions_spawn model alias.
   OPENCLAW_MODEL_ALIASES = {
     "gemini" => "gemini3"

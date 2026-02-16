@@ -55,31 +55,18 @@ class MarketingController < ApplicationController
     size = params[:size] || "1024x1024"
     variant_seed = params[:variant_seed].to_i # For generating variants with slight differences
 
-    unless result[:success]
-      error = result[:error]
-      status = error&.include?("time out") ? :gateway_timeout : :unprocessable_entity
-      render json: { error: error }, status: status
+    if prompt.blank?
+      render json: { error: "Prompt cannot be blank" }, status: :unprocessable_entity
       return
     end
 
-    # Save the image to disk
-    save_result = save_generated_image(result[:image_url], params[:product].to_s.presence || "futura")
-
-    unless save_result[:success]
-      render json: { error: save_result[:error] }, status: :internal_server_error
+    unless model == "gpt-image-1"
+      render json: { error: "Model '#{model}' is not supported" }, status: :unprocessable_entity
       return
     end
 
-    # Update index
-    update_playground_index(
-      save_result[:filename],
-      params[:prompt].to_s.strip,
-      result[:revised_prompt] || params[:prompt].to_s,
-      params[:product].to_s.presence || "futura",
-      params[:template].to_s,
-      "gpt-image-1",
-      params[:size].to_s
-    )
+    product_context = PRODUCT_CONTEXTS[product] || PRODUCT_CONTEXTS["futura"]
+    template_style = TEMPLATE_STYLES[template]
 
     # Combine context + user prompt + template style
     prompt_parts = [product_context, prompt]
@@ -260,23 +247,25 @@ class MarketingController < ApplicationController
 
   # Path sanitization - remains in controller for security critical logic
   def sanitize_path(path)
+    raw = path.to_s
+
     # SECURITY: absolute path check
-    return nil if path.to_s.start_with?("/")
+    return "" if raw.start_with?("/")
 
     # SECURITY: null byte check
-    return nil if path.to_s.include?("\0")
+    return "" if raw.include?(0.chr)
+
+    # SECURITY: reject traversal/dot segments in the requested relative path
+    parts = raw.split("/")
+    return "" if parts.any? { |p| p == ".." || p.start_with?(".") }
 
     # SECURITY: symlink escape check
-    full_path = File.expand_path(File.join(MARKETING_ROOT, path.to_s))
-    return nil unless full_path.start_with?(File.expand_path(MARKETING_ROOT))
+    full_path = File.expand_path(File.join(MARKETING_ROOT, raw))
+    return "" unless full_path.start_with?(File.expand_path(MARKETING_ROOT))
 
-    # SECURITY: dotfile check - prevent access to hidden files
-    parts = path.to_s.split("/")
-    return nil if parts.any? { |p| p.start_with?(".") && p != "." && p != ".." }
-
-    path.to_s
+    raw
   rescue StandardError
-    nil
+    ""
   end
 
   # Sanitize a single filename component (product name, template name, etc.)

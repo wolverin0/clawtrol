@@ -4,6 +4,7 @@ class Board < ApplicationRecord
   belongs_to :user
   has_many :tasks, dependent: :destroy, inverse_of: :board
   has_many :agent_personas, dependent: :nullify, inverse_of: :board
+  has_many :swarm_ideas, dependent: :nullify, inverse_of: :board
 
   # Enforce eager loading to prevent N+1 queries in views
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn

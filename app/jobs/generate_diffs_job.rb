@@ -35,13 +35,13 @@ class GenerateDiffsJob < ApplicationJob
     if Dir.exist?(File.join(project_dir, ".git"))
       # Get the git diff for this file (staged + unstaged changes)
       stdout, status = Open3.capture2(
-        "git", "diff", "HEAD~1", "--", file_path,
+        "git", "diff", "HEAD", "--", file_path,
         chdir: project_dir
       )
 
       if status.success? && stdout.present?
         diff_content = stdout
-        diff_type = "modified"
+        diff_type = stdout.include?("deleted file mode") ? "deleted" : "modified"
       else
         # Check if it's a new file (untracked or recently added)
         stdout_status, = Open3.capture2(
@@ -59,7 +59,7 @@ class GenerateDiffsJob < ApplicationJob
               diff_content = "@@ -0,0 +1,#{content.lines.count} @@\n#{lines}"
             end
           end
-        elsif stdout_status.start_with?("D")
+        elsif stdout_status.start_with?("D") or stdout_status.start_with?(" D")
           diff_type = "deleted"
           # Get the deleted content from git
           stdout_show, = Open3.capture2(
