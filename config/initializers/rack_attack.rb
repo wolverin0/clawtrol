@@ -59,9 +59,10 @@ class Rack::Attack
   # Track rate-limited requests for monitoring
   self.throttled_response_retry_after_header = true
 
-  # Custom response when rate limited
-  throttled_respond do |env|
-    retry_after = (env["rack.attack.match_data"] || {})["period"] || 60
+  # Rack::Attack >= 6 uses throttled_responder proc instead of throttled_respond.
+  self.throttled_responder = lambda do |request|
+    match_data = request.env["rack.attack.match_data"] || {}
+    retry_after = match_data[:period] || match_data["period"] || 60
 
     [
       429,
