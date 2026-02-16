@@ -97,6 +97,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
 ### 🐛 Bug Fixes
 
+- make missing user_id index migration idempotent (`d6c4da7`)
 - restore stable core contracts after minimax merge (`9c96155`)
 - harden marketing path traversal check (`e1f298a`)
 - align associations and marketing validation contracts (`231a9b5`)
@@ -226,6 +227,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`7350157`)
 - update CHANGELOG.md [skip ci] (`47bf3c6`)
 - sync FACTORY_BACKLOG checkmarks with implemented factory commits (`86f9efd`)
 - update CHANGELOG.md [skip ci] (`bcde410`)
