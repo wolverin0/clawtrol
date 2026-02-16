@@ -1,44 +1,122 @@
 require "test_helper"
 
 class BehavioralInterventionTest < ActiveSupport::TestCase
+  setup do
+    @user = users(:one)
+  end
+
+  # Validation tests
   test "valid with required attributes" do
-    intervention = BehavioralIntervention.new(user: users(:one), rule: "Take pauses", category: "focus", status: "active")
+    intervention = BehavioralIntervention.new(user: @user, rule: "Take pauses", category: "focus", status: "active")
     assert intervention.valid?
   end
 
   test "requires rule" do
-    intervention = BehavioralIntervention.new(user: users(:one), rule: nil, category: "focus", status: "active")
+    intervention = BehavioralIntervention.new(user: @user, rule: nil, category: "focus", status: "active")
     assert_not intervention.valid?
     assert intervention.errors[:rule].any?
   end
 
+  test "requires category" do
+    intervention = BehavioralIntervention.new(user: @user, rule: "Take pauses", category: nil, status: "active")
+    assert_not intervention.valid?
+    assert intervention.errors[:category].any?
+  end
+
   test "validates status inclusion" do
-    intervention = BehavioralIntervention.new(user: users(:one), rule: "Take pauses", category: "focus", status: "pending")
+    intervention = BehavioralIntervention.new(user: @user, rule: "Take pauses", category: "focus", status: "pending")
     assert_not intervention.valid?
     assert intervention.errors[:status].any?
   end
 
-  test "validates score range" do
-    intervention = BehavioralIntervention.new(user: users(:one), rule: "Take pauses", category: "focus", status: "active", baseline_score: 11)
+  test "validates score range - baseline too high" do
+    intervention = BehavioralIntervention.new(user: @user, rule: "Take pauses", category: "focus", status: "active", baseline_score: 11)
     assert_not intervention.valid?
     assert intervention.errors[:baseline_score].any?
   end
 
+  test "validates score range - current too high" do
+    intervention = BehavioralIntervention.new(user: @user, rule: "Take pauses", category: "focus", status: "active", current_score: 11)
+    assert_not intervention.valid?
+    assert intervention.errors[:current_score].any?
+  end
+
+  test "validates score range - negative baseline" do
+    intervention = BehavioralIntervention.new(user: @user, rule: "Take pauses", category: "focus", status: "active", baseline_score: -1)
+    assert_not intervention.valid?
+    assert intervention.errors[:baseline_score].any?
+  end
+
+  test "allows nil scores" do
+    intervention = BehavioralIntervention.new(user: @user, rule: "Take pauses", category: "focus", status: "active")
+    assert intervention.valid?
+  end
+
+  # Scope tests
   test "active scope returns only active interventions" do
-    active = BehavioralIntervention.create!(user: users(:one), rule: "Do A", category: "focus", status: "active")
-    resolved = BehavioralIntervention.create!(user: users(:one), rule: "Do B", category: "focus", status: "resolved")
+    active = BehavioralIntervention.create!(user: @user, rule: "Do A", category: "focus", status: "active")
+    resolved = BehavioralIntervention.create!(user: @user, rule: "Do B", category: "focus", status: "resolved")
+    regressed = BehavioralIntervention.create!(user: @user, rule: "Do C", category: "focus", status: "regressed")
 
     assert_includes BehavioralIntervention.active, active
     assert_not_includes BehavioralIntervention.active, resolved
+    assert_not_includes BehavioralIntervention.active, regressed
   end
 
+  test "resolved scope returns only resolved interventions" do
+    active = BehavioralIntervention.create!(user: @user, rule: "Do A", category: "focus", status: "active")
+    resolved = BehavioralIntervention.create!(user: @user, rule: "Do B", category: "focus", status: "resolved")
+
+    assert_includes BehavioralIntervention.resolved, resolved
+    assert_not_includes BehavioralIntervention.resolved, active
+  end
+
+  test "regressed scope returns only regressed interventions" do
+    active = BehavioralIntervention.create!(user: @user, rule: "Do A", category: "focus", status: "active")
+    regressed = BehavioralIntervention.create!(user: @user, rule: "Do B", category: "focus", status: "regressed")
+
+    assert_includes BehavioralIntervention.regressed, regressed
+    assert_not_includes BehavioralIntervention.regressed, active
+  end
+
+  # Method tests
   test "resolve! updates status and resolved_at" do
-    intervention = BehavioralIntervention.create!(user: users(:one), rule: "Do A", category: "focus", status: "active")
+    intervention = BehavioralIntervention.create!(user: @user, rule: "Do A", category: "focus", status: "active")
 
     intervention.resolve!
     intervention.reload
 
     assert_equal "resolved", intervention.status
     assert_not_nil intervention.resolved_at
+  end
+
+  test "regress! updates status and regressed_at" do
+    intervention = BehavioralIntervention.create!(user: @user, rule: "Do A", category: "focus", status: "active")
+
+    intervention.regress!
+    intervention.reload
+
+    assert_equal "regressed", intervention.status
+    assert_not_nil intervention.regressed_at
+  end
+
+  # Association tests
+  test "belongs_to user" do
+    intervention = BehavioralIntervention.create!(user: @user, rule: "Test", category: "focus", status: "active")
+    assert_equal @user, intervention.user
+  end
+
+  test "belongs_to audit_report (optional)" do
+    intervention = BehavioralIntervention.create!(user: @user, rule: "Test", category: "focus", status: "active")
+    assert_nil intervention.audit_report
+
+    report = AuditReport.create!(user: @user, report_type: "security", status: "completed")
+    intervention.update!(audit_report: report)
+    assert_equal report, intervention.audit_report
+  end
+
+  # Status constants
+  test "STATUSES contains expected values" do
+    assert_equal %w[active resolved regressed], BehavioralIntervention::STATUSES
   end
 end
