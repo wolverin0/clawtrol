@@ -194,6 +194,7 @@ class MarketingController < ApplicationController
 
     # SECURITY: dotfile check - prevent access to hidden files
     parts = path.to_s.split("/")
+    return "" if parts.include?("..")
     return "" if parts.any? { |p| p.start_with?(".") && p != "." && p != ".." }
 
     path.to_s
