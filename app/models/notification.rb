@@ -29,6 +29,7 @@ class Notification < ApplicationRecord
     zombie_detected
     runner_lease_expired
     runner_lease_missing
+    catastrophic_guardrail
   ].freeze
 
   validates :event_type, presence: true, inclusion: { in: EVENT_TYPES }
@@ -74,6 +75,8 @@ class Notification < ApplicationRecord
       "🧟"
     when "runner_lease_expired", "runner_lease_missing"
       "🏷️"
+    when "catastrophic_guardrail"
+      "🚨"
     else
       "🔔"
     end
@@ -94,6 +97,8 @@ class Notification < ApplicationRecord
       "text-status-error"
     when "runner_lease_expired", "runner_lease_missing"
       "text-status-warning"
+    when "catastrophic_guardrail"
+      "text-status-error"
     else
       "text-content-secondary"
     end
