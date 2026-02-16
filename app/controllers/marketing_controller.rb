@@ -48,6 +48,12 @@ class MarketingController < ApplicationController
   end
 
   def generate_image
+    model = params[:model].presence || "gpt-image-1"
+    unless model == "gpt-image-1"
+      render json: { error: "Model '#{model}' is not supported" }, status: :unprocessable_entity
+      return
+    end
+
     result = MarketingImageService.call(
       prompt: params[:prompt].to_s.strip,
       product: params[:product].to_s,
@@ -177,26 +183,26 @@ class MarketingController < ApplicationController
   # Path sanitization - remains in controller for security critical logic
   def sanitize_path(path)
     # SECURITY: absolute path check
-    return nil if path.to_s.start_with?("/")
+    return "" if path.to_s.start_with?("/")
 
     # SECURITY: null byte check
-    return nil if path.to_s.include?("\0")
+    return "" if path.to_s.include?("\0")
 
     # SECURITY: symlink escape check
     full_path = File.expand_path(File.join(MARKETING_ROOT, path.to_s))
-    return nil unless full_path.start_with?(File.expand_path(MARKETING_ROOT))
+    return "" unless full_path.start_with?(File.expand_path(MARKETING_ROOT))
 
     # SECURITY: dotfile check - prevent access to hidden files
     parts = path.to_s.split("/")
-    return nil if parts.any? { |p| p.start_with?(".") && p != "." && p != ".." }
+    return "" if parts.any? { |p| p.start_with?(".") && p != "." && p != ".." }
 
     path.to_s
   rescue StandardError
-    nil
+    ""
   end
 
   def sanitize_filename_component(input)
-    input.to_s.gsub(/[^a-zA-Z0-9_-]/, "").presence || "unnamed"
+    input.to_s.gsub(/[^a-zA-Z0-9_-]/, "").presence || "unknown"
   end
 
   def image?(ext)

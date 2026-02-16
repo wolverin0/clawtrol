@@ -5,7 +5,7 @@ class Notification < ApplicationRecord
   strict_loading :n_plus_one
 
   belongs_to :user, inverse_of: :notifications
-  belongs_to :task, optional: true, inverse_of: :task
+  belongs_to :task, optional: true, inverse_of: :notifications
 
   DEDUP_WINDOW = 5.minutes
   CAP_PER_USER = 200
