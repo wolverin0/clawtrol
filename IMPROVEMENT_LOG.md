@@ -3044,3 +3044,10 @@
 **Files:** app/controllers/concerns/marketing_tree_builder.rb, app/controllers/marketing_controller.rb
 **Verify:** Ruby syntax OK on both files
 **Risk:** low (extraction/refactor, no behavioral changes)
+
+## [2026-02-15 23:08] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add unit tests for MarketingTreeBuilder concern
+**Why:** Tests for tree building, search filtering, sorting (directories before files), extension detection, and hidden file filtering. 6 test cases ensuring the concern works correctly.
+**Files:** test/controllers/concerns/marketing_tree_builder_test.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (test-only addition)
