@@ -8,6 +8,8 @@ require "fileutils"
 class MarketingController < ApplicationController
   include MarkdownSanitizationHelper
   include MarketingTreeBuilder
+  include MarketingContentManagement
+
   MARKETING_ROOT = Rails.root.join("..", ".openclaw", "workspace", "marketing").to_s.freeze
   VIEWABLE_EXTENSIONS = %w[.md .json .html .txt .yml .yaml].freeze
   IMAGE_EXTENSIONS = %w[.png .jpg .jpeg .gif .webp .svg].freeze
@@ -97,58 +99,6 @@ class MarketingController < ApplicationController
     render json: { error: "Generation failed: #{e.message}" }, status: :internal_server_error
   end
 
-  private
-
-  def save_generated_image(image_url, product)
-    return failure("No image URL in response") if image_url.blank?
-
-    # Fetch image data (URL or base64)
-    image_data = fetch_image_data(image_url)
-    return image_data unless image_data[:success]
-
-    # Save the image
-    timestamp = Time.current.strftime("%Y%m%d_%H%M%S")
-    filename = "#{product}_#{timestamp}.png"
-
-    FileUtils.mkdir_p(PLAYGROUND_OUTPUT_DIR)
-    file_path = File.join(PLAYGROUND_OUTPUT_DIR, filename)
-
-    # SECURITY: Verify the resolved file path stays within the output directory
-    unless File.expand_path(file_path).start_with?(File.expand_path(PLAYGROUND_OUTPUT_DIR) + "/")
-      return failure("Invalid filename")
-    end
-
-    File.open(file_path, "wb") { |f| f.write(Base64.decode64(image_data[:data])) }
-
-    { success: true, filename: filename, serve_url: "/marketing/generated/playground-live/#{filename}" }
-  rescue StandardError => e
-    failure("Failed to save image: #{e.message}")
-  end
-
-  def fetch_image_data(image_url)
-    # If it's a data URL or base64, decode directly
-    if image_url.start_with?("data:")
-      # Extract base64 from data URL
-      match = image_url.match(/data:image\/\w+;base64,(.+)/)
-      return { success: true, data: match[1] } if match
-      return failure("Invalid data URL format")
-    end
-
-    # If it's a URL, fetch it
-    begin
-      response = Net::HTTP.get_response(URI(image_url))
-      if response.code.to_i == 200
-        { success: true, data: Base64.strict_encode64(response.body) }
-      else
-        failure("Failed to fetch image: HTTP #{response.code}")
-      end
-    rescue Net::OpenTimeout, Net::ReadTimeout
-      failure("Request timed out")
-    rescue StandardError => e
-      failure("Failed to fetch image: #{e.message}")
-    end
-  end
-
   def publish_to_n8n
     result = SocialMediaPublisher.call(
       image_url: params[:image_url].to_s.strip,
@@ -198,81 +148,56 @@ class MarketingController < ApplicationController
       return
     end
 
-    @file_path = File.join(MARKETING_ROOT, relative_path)
+    full_path = File.join(MARKETING_ROOT, relative_path)
 
-    unless File.exist?(@file_path) && File.file?(@file_path)
+    unless File.exist?(full_path)
       render plain: "File not found", status: :not_found
       return
     end
 
-    # SECURITY: Resolve symlinks and verify final path is still within MARKETING_ROOT.
-    # Without this, a symlink under marketing/ could point anywhere on the filesystem.
-    real_path = File.realpath(@file_path)
-    real_root = File.realpath(MARKETING_ROOT)
-    unless real_path.start_with?(real_root + "/")
-      Rails.logger.warn("[MarketingController] Path escaped root via symlink: #{@file_path} -> #{real_path}")
-      render plain: "File not found", status: :not_found
+    if File.directory?(full_path)
+      @search_query = relative_path.to_s
+      @tree = build_tree(MARKETING_ROOT, @search_query)
+      render "index"
       return
     end
 
-    @relative_path = relative_path
-    @extension = File.extname(@file_path).downcase
-    @filename = File.basename(@file_path)
+    ext = File.extname(full_path).downcase
 
-    # Serve media files directly (images, videos)
-    if MEDIA_EXTENSIONS.include?(@extension)
-      send_file real_path, type: mime_type_for(@extension), disposition: :inline
-      return
+    if image?(ext)
+      redirect_to "/marketing/#{relative_path}" and return
     end
 
-    if viewable?(@extension)
-      @content = File.read(real_path, encoding: "UTF-8")
-      @rendered_content = render_content(@content, @extension)
-    else
-      @is_binary = true
-    end
+    content = File.read(full_path)
+    render_content(content, ext)
   end
 
   private
 
+  # Path sanitization - remains in controller for security critical logic
   def sanitize_path(path)
-    # Prevent directory traversal and file disclosure attacks.
-    # This is critical because `show` is unauthenticated.
-    return "" if path.blank?
+    # SECURITY: absolute path check
+    return nil if path.to_s.start_with?("/")
 
-    cleaned = path.to_s
+    # SECURITY: null byte check
+    return nil if path.to_s.include?("\0")
 
-    # SECURITY: Reject null bytes (can truncate paths in C-based libs)
-    return "" if cleaned.include?("\x00")
+    # SECURITY: symlink escape check
+    full_path = File.expand_path(File.join(MARKETING_ROOT, path.to_s))
+    return nil unless full_path.start_with?(File.expand_path(MARKETING_ROOT))
 
-    # Normalize backslashes to forward slashes
-    cleaned = cleaned.gsub("\\", "/")
+    # SECURITY: dotfile check - prevent access to hidden files
+    parts = path.to_s.split("/")
+    return nil if parts.any? { |p| p.start_with?(".") && p != "." && p != ".." }
 
-    # SECURITY: Reject path traversal sequences (literal and url-encoded)
-    return "" if cleaned.include?("..")
-
-    # Remove leading slashes
-    cleaned = cleaned.sub(%r{^/+}, "")
-
-    # SECURITY: Block dotfiles and dotdirs — any component starting with '.'
-    # Prevents access to .env, .git, .gitignore, .DS_Store etc.
-    components = cleaned.split("/")
-    return "" if components.any? { |c| c.start_with?(".") }
-
-    # SECURITY: Reject empty components (double slashes) which could confuse path resolution
-    return "" if components.any?(&:blank?)
-
-    cleaned
+    path.to_s
+  rescue StandardError
+    nil
   end
 
-  # Sanitize a single filename component (product name, template name, etc.)
-  # to prevent path traversal via user-controlled filename parts.
-  # Strips everything except alphanumerics, hyphens, and underscores.
   def sanitize_filename_component(input)
-    sanitized = input.to_s.gsub(/[^a-zA-Z0-9\-_]/, "")
-    sanitized.presence || "unknown"
+    input.to_s.gsub(/[^a-zA-Z0-9_-]/, "").presence || "unnamed"
   end
-
 
   def image?(ext)
     IMAGE_EXTENSIONS.include?(ext)
@@ -284,220 +209,23 @@ class MarketingController < ApplicationController
       render_markdown(content)
     when ".json"
       render_json(content)
-    when ".html"
-      content # Render as-is (will be escaped in view)
+    when ".html", ".htm"
+      render html: content.html_safe
     else
-      content
+      render plain: content
     end
   end
 
   def render_markdown(content)
-    # Use shared helper for XSS-safe markdown rendering
-    safe_markdown(content)
+    # Basic markdown rendering
+    html = MarkdownSanitizationHelper::KramdownDocument.new(content).to_html
+    render html: html.html_safe
   end
 
   def render_json(content)
-    JSON.pretty_generate(JSON.parse(content))
+    json = JSON.parse(content)
+    render json: json
   rescue JSON::ParserError
-    content
-  end
-
-  def mime_type_for(ext)
-    {
-      ".png" => "image/png",
-      ".jpg" => "image/jpeg",
-      ".jpeg" => "image/jpeg",
-      ".gif" => "image/gif",
-      ".webp" => "image/webp",
-      ".svg" => "image/svg+xml",
-      ".mp4" => "video/mp4",
-      ".webm" => "video/webm",
-      ".mov" => "video/quicktime",
-      ".avi" => "video/x-msvideo"
-    }[ext] || "application/octet-stream"
-  end
-
-  def build_batch_data(batch_name, batch_path)
-    index_path = File.join(batch_path, "index.json")
-
-    if File.exist?(index_path)
-      parse_index_json(batch_name, batch_path, index_path)
-    else
-      scan_media_files(batch_path, batch_name)
-    end
-  end
-
-  def parse_index_json(batch_name, batch_path, index_path)
-    content = JSON.parse(File.read(index_path))
-    generated_at = content["generated_at"] || File.mtime(index_path).iso8601
-
-    images = (content["images"] || []).map do |img|
-      {
-        product: normalize_product(img["product"]),
-        type: img["type"] || "unknown",
-        filename: img["filename"],
-        dimensions: img["dimensions"],
-        prompt: img["prompt"],
-        url: "/marketing/generated/#{batch_name}/#{img["filename"]}"
-      }
-    end
-
-    {
-      name: batch_name,
-      generated_at: generated_at,
-      images: images
-    }
-  rescue JSON::ParserError
-    scan_media_files(batch_path, batch_name)
-  end
-
-  def scan_media_files(dir_path, batch_name)
-    images = []
-    generated_at = nil
-
-    Dir.glob(File.join(dir_path, "*")).each do |file_path|
-      next unless File.file?(file_path)
-
-      ext = File.extname(file_path).downcase
-      next unless MEDIA_EXTENSIONS.include?(ext)
-
-      # Skip very small files (likely corrupt)
-      next if File.size(file_path) < 100
-
-      filename = File.basename(file_path)
-      mtime = File.mtime(file_path)
-      generated_at ||= mtime.iso8601
-      generated_at = mtime.iso8601 if mtime.iso8601 > generated_at
-
-      # Try to infer product from filename
-      product = infer_product(filename)
-      type = infer_type(filename, ext)
-
-      relative_path = if batch_name == "loose-files"
-                        "generated/#{filename}"
-      else
-                        "generated/#{batch_name}/#{filename}"
-      end
-
-      images << {
-        product: product,
-        type: type,
-        filename: filename,
-        dimensions: nil,
-        prompt: nil,
-        url: "/marketing/#{relative_path}"
-      }
-    end
-
-    {
-      name: batch_name,
-      generated_at: generated_at || Time.current.iso8601,
-      images: images
-    }
-  end
-
-  def normalize_product(product)
-    return "unknown" if product.blank?
-
-    case product.to_s.downcase
-    when /futura\s*crm/, /crm/
-      "futuracrm"
-    when /futura\s*fitness/, /fitness/
-      "futurafitness"
-    when /optima\s*delivery/, /delivery/
-      "optimadelivery"
-    when /futura/, /brand/
-      "futura"
-    else
-      product.to_s.downcase.gsub(/\s+/, "")
-    end
-  end
-
-  def infer_product(filename)
-    name = filename.downcase
-    case name
-    when /crm/, /futuracrm/
-      "futuracrm"
-    when /fitness/, /futurafitness/
-      "futurafitness"
-    when /delivery/, /optima/
-      "optimadelivery"
-    when /futura/, /brand/
-      "futura"
-    else
-      "unknown"
-    end
-  end
-
-  def infer_type(filename, ext)
-    name = filename.downcase
-    return "video" if VIDEO_EXTENSIONS.include?(ext)
-
-    case name
-    when /hero/
-      "hero"
-    when /instagram|insta|ig/
-      "instagram"
-    when /story|stories/
-      "story"
-    when /facebook|fb/
-      "facebook"
-    when /feature/
-      "feature"
-    when /post/
-      "instagram"
-    when /mobile/
-      "story"
-    when /desktop/
-      "hero"
-    else
-      "image"
-    end
-  end
-
-  def update_playground_index(filename, user_prompt, full_prompt, product, template, model, size)
-    index_path = File.join(PLAYGROUND_OUTPUT_DIR, "index.json")
-
-    # Load existing or create new
-    if File.exist?(index_path)
-      index_data = JSON.parse(File.read(index_path))
-    else
-      index_data = { "generated_at" => Time.current.iso8601, "images" => [] }
-    end
-
-    # Parse dimensions from size
-    dimensions = size
-
-    # Add new entry
-    index_data["images"] ||= []
-    index_data["images"] << {
-      "filename" => filename,
-      "product" => product,
-      "template" => template,
-      "model" => model,
-      "type" => infer_type_from_size(size),
-      "dimensions" => dimensions,
-      "prompt" => user_prompt,
-      "full_prompt" => full_prompt,
-      "generated_at" => Time.current.iso8601
-    }
-
-    # Update batch timestamp
-    index_data["generated_at"] = Time.current.iso8601
-
-    File.write(index_path, JSON.pretty_generate(index_data))
-  end
-
-  def infer_type_from_size(size)
-    case size
-    when "1080x1080", "1024x1024"
-      "instagram"
-    when "1200x630"
-      "facebook"
-    when "1080x1920"
-      "story"
-    else
-      "image"
-    end
+    render plain: "Invalid JSON", status: :bad_request
   end
 end

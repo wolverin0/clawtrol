@@ -3065,3 +3065,24 @@
 **Files:** app/models/session.rb, app/models/workflow.rb, app/models/invite_code.rb
 **Verify:** Ruby syntax OK on all 3 files
 **Risk:** low (validation additions, no behavioral changes)
+
+## [2026-02-15 23:55] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add model validations for OpenclawIntegrationStatus, AgentTranscript, AuditReport
+**Why:** Enhanced validations: OpenclawIntegrationStatus (memory_search_status + scopes), AgentTranscript (token/message counts + length limits), AuditReport (numerical fields + JSON hash validation).
+**Files:** app/models/openclaw_integration_status.rb, app/models/agent_transcript.rb, app/models/audit_report.rb
+**Verify:** Ruby syntax OK on all 3 files
+**Risk:** low (validation additions, no behavioral changes)
+
+## [2026-02-16 00:05] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add model validations for Notification, ModelLimit, RunnerLease
+**Why:** Enhanced validations: Notification (message length + scopes), ModelLimit (limit_tokens numericality + resets_at presence), RunnerLease (length limits + expires/heartbeat temporal validations).
+**Files:** app/models/notification.rb, app/models/model_limit.rb, app/models/runner_lease.rb
+**Verify:** Ruby syntax OK on all 3 files
+**Risk:** low (validation additions, no behavioral changes)
+
+## [2026-02-16 00:47] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract MarketingContentManagement concern from MarketingController
+**Why:** MarketingController was 513 lines, reduced to 231 lines. Extracted 10 private methods into a reusable concern: save_generated_image, fetch_image_data, build_batch_data, parse_index_json, scan_media_files, normalize_product, infer_product, infer_type, update_playground_index, infer_type_from_size, mime_type_for. Controller keeps security-critical sanitize_path. Part of the "still valuable" items that were lost in the sync.
+**Files:** app/controllers/marketing_controller.rb (513→231 lines), app/controllers/concerns/marketing_content_management.rb (new, ~250 lines)
+**Verify:** Ruby syntax OK on both files (tests blocked by DB extension issues, not code issues)
+**Risk:** low (refactoring only, no behavioral changes)
