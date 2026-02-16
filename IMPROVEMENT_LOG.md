@@ -3002,3 +3002,38 @@
 **Verify:** Ruby syntax OK
 **Risk:** low (additive, no behavioral changes)
 
+
+## [2026-02-15 20:37] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract TaskFiltering concern from TasksController
+**Why:** Reduces TasksController complexity by extracting filtering (board_id, status, blocked, tag, priority), ordering (assigned_at, status+position, custom order_by), and pagination logic into a reusable concern. Includes search query support and pagination headers helper.
+**Files:** app/controllers/concerns/api/task_filtering.rb, test/controllers/concerns/api/task_filtering_test.rb
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (extraction/refactor, no behavioral changes)
+
+## [2026-02-15 20:45] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract MarketingImageService from MarketingController
+**Why:** Reduces MarketingController complexity by extracting OpenAI image generation logic (prompt building, API calls, error handling) into a dedicated service object. Controller now delegates to service (~150→50 lines in generate_image action). Makes image generation logic reusable and testable.
+**Files:** app/services/marketing_image_service.rb, app/controllers/marketing_controller.rb
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (extraction/refactor, no behavioral changes)
+
+## [2026-02-15 20:52] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract SocialMediaPublisher from MarketingController
+**Why:** Extracts n8n webhook publishing logic into dedicated service object. Handles payload building with hashtag formatting and URL resolution. Combined with MarketingImageService extraction, reduces MarketingController from 643 to 564 lines (~12% reduction). Makes social publishing logic reusable and testable.
+**Files:** app/services/social_media_publisher.rb, app/controllers/marketing_controller.rb
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (extraction/refactor, no behavioral changes)
+
+## [2026-02-15 22:50] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add inverse_of to belongs_to :user associations in 9 models
+**Why:** Missing inverse_of prevents Rails from properly tracking associations and can cause N+1 issues with strict_loading. Added inverse_of: :boards, :audit_reports, :feed_entries, :factory_cycle_logs, :factory_loops, :nightshift_missions, :task_activities, :task_templates, :workflows to their respective belongs_to :user declarations.
+**Files:** app/models/audit_report.rb, app/models/board.rb, app/models/feed_entry.rb, app/models/factory_cycle_log.rb, app/models/factory_loop.rb, app/models/nightshift_mission.rb, app/models/task_activity.rb, app/models/task_template.rb, app/models/workflow.rb
+**Verify:** Ruby syntax OK on all 9 files
+**Risk:** low (association metadata only, no behavioral changes)
+
+## [2026-02-15 22:55] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add inverse_of to Task and RunnerLease belongs_to associations
+**Why:** Complete inverse_of coverage for Task belongs_to :user and RunnerLease belongs_to :task associations. This enables proper association tracking with Rails strict_loading mode.
+**Files:** app/models/task.rb, app/models/runner_lease.rb
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (association metadata only, no behavioral changes)
