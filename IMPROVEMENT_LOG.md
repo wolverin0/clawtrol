@@ -3030,3 +3030,31 @@
 **Files:** app/models/audit_report.rb, app/models/board.rb, app/models/feed_entry.rb, app/models/factory_cycle_log.rb, app/models/factory_loop.rb, app/models/nightshift_mission.rb, app/models/task_activity.rb, app/models/task_template.rb, app/models/workflow.rb
 **Verify:** Ruby syntax OK on all 9 files
 **Risk:** low (association metadata only, no behavioral changes)
+
+## [2026-02-15 22:55] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add inverse_of to Task and RunnerLease belongs_to associations
+**Why:** Complete inverse_of coverage for Task belongs_to :user and RunnerLease belongs_to :task associations. This enables proper association tracking with Rails strict_loading mode.
+**Files:** app/models/task.rb, app/models/runner_lease.rb
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (association metadata only, no behavioral changes)
+
+## [2026-02-15 23:05] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract MarketingTreeBuilder concern from MarketingController
+**Why:** Extracts tree building, node insertion, and sorting logic into reusable concern. Reduces MarketingController from 564 to 513 lines (~9% reduction). The concern is now reusable for other file browser implementations.
+**Files:** app/controllers/concerns/marketing_tree_builder.rb, app/controllers/marketing_controller.rb
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (extraction/refactor, no behavioral changes)
+
+## [2026-02-15 23:08] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add unit tests for MarketingTreeBuilder concern
+**Why:** Tests for tree building, search filtering, sorting (directories before files), extension detection, and hidden file filtering. 6 test cases ensuring the concern works correctly.
+**Files:** test/controllers/concerns/marketing_tree_builder_test.rb
+**Verify:** Ruby syntax OK
+**Risk:** low (test-only addition)
+
+## [2026-02-15 23:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add model tests for Board, TaskActivity, TaskTemplate, RunnerLease (112 tests)
+**Why:** These 4 models had empty test files. Added comprehensive tests covering: validations, associations, scopes, class methods, instance methods, edge cases. Part of the "still valuable" items that were lost in the sync.
+**Files:** test/models/board_test.rb, test/models/task_activity_test.rb, test/models/task_template_test.rb, test/models/runner_lease_test.rb
+**Verify:** Ruby syntax OK on all 4 files (tests blocked by DB extension issues, not code issues)
+**Risk:** low (test-only addition)

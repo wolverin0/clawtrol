@@ -7,7 +7,15 @@ class Workflow < ApplicationRecord
 
   belongs_to :user, optional: true, inverse_of: :workflows
 
-  validates :title, presence: true
+  validates :title, presence: true, length: { maximum: 255 }
+  validates :description, length: { maximum: 5000 }, allow_nil: true
+  validates :slug, length: { maximum: 100 }, format: { with: /\A[a-z0-9_-]+\z/ }, allow_nil: true
+  validates :category, length: { maximum: 50 }, allow_nil: true
+  validates :status, length: { maximum: 50 }, inclusion: { in: %w[draft active paused completed archived], allow_nil: true }
+
+  scope :for_user, ->(user) { where(user_id: [user.id, nil]) }
+  scope :active, -> { where(status: "active") }
+  scope :by_category, ->(cat) { where(category: cat) if cat.present? }
 
   validate :definition_must_be_hash
 
