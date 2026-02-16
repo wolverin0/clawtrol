@@ -3016,3 +3016,10 @@
 **Files:** app/services/marketing_image_service.rb, app/controllers/marketing_controller.rb
 **Verify:** Ruby syntax OK on both files
 **Risk:** low (extraction/refactor, no behavioral changes)
+
+## [2026-02-15 20:52] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract SocialMediaPublisher from MarketingController
+**Why:** Extracts n8n webhook publishing logic into dedicated service object. Handles payload building with hashtag formatting and URL resolution. Combined with MarketingImageService extraction, reduces MarketingController from 643 to 564 lines (~12% reduction). Makes social publishing logic reusable and testable.
+**Files:** app/services/social_media_publisher.rb, app/controllers/marketing_controller.rb
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (extraction/refactor, no behavioral changes)
