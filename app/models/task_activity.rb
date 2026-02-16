@@ -5,7 +5,7 @@ class TaskActivity < ApplicationRecord
   strict_loading :n_plus_one
 
   belongs_to :task, inverse_of: :activities
-  belongs_to :user, optional: true, inverse_of: :task_activities
+  belongs_to :user, optional: true
 
   ACTIONS = %w[created updated moved auto_claimed auto_queued].freeze
   TRACKED_FIELDS = %w[name priority due_date].freeze
@@ -53,9 +53,9 @@ class TaskActivity < ApplicationRecord
 
   def self.record_changes(task, changes, source: "web", actor_name: nil, actor_emoji: nil, note: nil)
     TRACKED_FIELDS.each do |field|
-      next unless changes.key?(field)
+      next unless changes.key?(field) || changes.key?(field.to_sym)
 
-      old_val, new_val = changes[field]
+      old_val, new_val = changes[field] || changes[field.to_sym]
       create!(
         task: task,
         user: Current.user,

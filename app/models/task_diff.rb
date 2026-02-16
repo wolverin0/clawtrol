@@ -5,7 +5,7 @@ class TaskDiff < ApplicationRecord
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
   strict_loading :n_plus_one
 
-  belongs_to :task, inverse_of: :task
+  belongs_to :task, inverse_of: :task_diffs
 
   DIFF_TYPES = %w[modified added deleted].freeze
 
