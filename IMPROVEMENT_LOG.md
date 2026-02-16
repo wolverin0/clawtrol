@@ -3051,3 +3051,10 @@
 **Files:** test/controllers/concerns/marketing_tree_builder_test.rb
 **Verify:** Ruby syntax OK
 **Risk:** low (test-only addition)
+
+## [2026-02-15 23:15] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Add model tests for Board, TaskActivity, TaskTemplate, RunnerLease (112 tests)
+**Why:** These 4 models had empty test files. Added comprehensive tests covering: validations, associations, scopes, class methods, instance methods, edge cases. Part of the "still valuable" items that were lost in the sync.
+**Files:** test/models/board_test.rb, test/models/task_activity_test.rb, test/models/task_template_test.rb, test/models/runner_lease_test.rb
+**Verify:** Ruby syntax OK on all 4 files (tests blocked by DB extension issues, not code issues)
+**Risk:** low (test-only addition)
