@@ -14,4 +14,9 @@ class OpenclawIntegrationStatus < ApplicationRecord
   }, prefix: :memory_search
 
   validates :user_id, uniqueness: true
+  validates :memory_search_status, presence: true, inclusion: { in: %w[unknown ok degraded down] }
+
+  scope :active, -> { where.not(memory_search_status: "down") }
+  scope :degraded, -> { where(memory_search_status: "degraded") }
+  scope :ok_status, -> { where(memory_search_status: "ok") }
 end
