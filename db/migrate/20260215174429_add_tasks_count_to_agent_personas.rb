@@ -2,7 +2,11 @@
 
 class AddTasksCountToAgentPersonas < ActiveRecord::Migration[8.2]
   def change
-    add_column :agent_personas, :tasks_count, :integer, default: 0, null: false
+    unless column_exists?(:agent_personas, :tasks_count)
+      add_column :agent_personas, :tasks_count, :integer, default: 0, null: false
+    end
+
+    return unless column_exists?(:agent_personas, :tasks_count)
 
     # Backfill existing counts
     AgentPersona.reset_column_information
