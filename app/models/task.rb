@@ -10,7 +10,7 @@ class Task < ApplicationRecord
   # strict_loading helps detect N+1 queries in development/test
   strict_loading :n_plus_one
 
-  belongs_to :user
+  belongs_to :user, inverse_of: :tasks
   belongs_to :board, counter_cache: true, inverse_of: :tasks
   belongs_to :agent_persona, optional: true, inverse_of: :tasks
   belongs_to :parent_task, class_name: "Task", optional: true
