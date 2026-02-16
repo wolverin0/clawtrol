@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- **saved-links:** add deep summary toggle (#632) (`fcb3cb2`)
 - audit ingest API + auto-update interventions (#649) (`a343eb9`)
 - self-audit dashboard with trend charts + intervention tracker (#648) (`c6b1578`)
 - add audit_reports + behavioral_interventions tables (`6735905`)
@@ -95,6 +96,31 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
 ### 🐛 Bug Fixes
 
+- unblock merged suite and harden edge cases (`e812ff2`)
+- stabilize merged model/controller drift and diff workspace path (`80ea68d`)
+- repair model strict_loading placement and task inverse associations (`84bdf48`)
+- align RunnerLease visibility tests and refresh schema (`bfc822b`)
+- **test:** remove duplicated RunnerLease test block from merge (`e3b5557`)
+- downgrade migration version 8.2 to 8.1 (`b0a5fed`)
+- remove duplicated marketing controller tests from merge (`99f0da4`)
+- rename duplicate migration to unique name (`557bbe7`)
+- resolve duplicate migration class name for tasks_count (`6e43551`)
+- make duplicate tasks_count migration idempotent (`107831d`)
+- make remaining imported column migrations idempotent (`5c4924d`)
+- make imported index migrations re-runnable (`5b97f1a`)
+- make auto runner partial index migration idempotent (`35edf83`)
+- make token usage indexes migration idempotent (`c2175f7`)
+- rack-attack throttled_responder compatibility (`2e53997`)
+- **pipeline:** advance unstarted tasks to routed via AutoRunner (`6232815`)
+- pipeline unstarted tasks become runnable (#697) (`a7fe19e`)
+- **tasks:** allow destroy even with agent_test_recordings association (#695) (`d1dd4d1`)
+- **telegram:** deliver task reports to origin topic (#693) (`8671900`)
+- **pipeline/mobile:** in-modal pipeline viewer + touch scroll + contextmenu anchor (#691) (`7fcff1e`)
+- **pipeline/mobile:** dashboard + modal scroll/context menu (#691) (`a199a72`)
+- **pipeline/mobile:** dashboard + modal scroll/context menu (#691) (`2e303c3`)
+- **pipeline:** route planning tasks to codex (override glm) (#690) (`3f90efd`)
+- **mobile:** prevent task panel overlap and horizontal bleed (`173bb86`)
+- **ui:** restore context menu on right-click and mobile long-press (`c43ebcc`)
 - **api:** remove TaskSerializer references broken by wave3 merge (`48ee404`)
 - add dependency_graph to set_board before_action + aggregator support (#639) (`bf45590`)
 - **api:** remove missing TaskSerializer reference + add unstarted to pipeline stages (`8ca683e`)
@@ -194,6 +220,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- sync FACTORY_BACKLOG checkmarks with implemented factory commits (`86f9efd`)
+- update CHANGELOG.md [skip ci] (`bcde410`)
 - update CHANGELOG.md [skip ci] (`fc59ba7`)
 - add wave 3 features to README — pipeline, swarm, config hub, factory, API endpoints (`7e5cf33`)
 - update CHANGELOG.md [skip ci] (`2167a6d`)
