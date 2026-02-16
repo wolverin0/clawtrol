@@ -12,10 +12,10 @@ class AddUniqueIndexToSavedLinksUrl < ActiveRecord::Migration[8.0]
       )
     SQL
 
-    add_index :saved_links, [:user_id, :url], unique: true, name: "index_saved_links_on_user_id_and_url"
+    add_index :saved_links, [:user_id, :url], unique: true, name: "index_saved_links_on_user_id_and_url", if_not_exists: true
   end
 
   def down
-    remove_index :saved_links, name: "index_saved_links_on_user_id_and_url"
+    remove_index :saved_links, name: "index_saved_links_on_user_id_and_url", if_exists: true
   end
 end
