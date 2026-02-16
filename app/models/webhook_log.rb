@@ -1,7 +1,11 @@
 # frozen_string_literal: true
 
 class WebhookLog < ApplicationRecord
-  belongs_to :user
+  # Enforce eager loading to prevent N+1 queries in views
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
+
+  belongs_to :user, inverse_of: :webhook_logs
   belongs_to :task, optional: true
 
   DIRECTIONS = %w[incoming outgoing].freeze

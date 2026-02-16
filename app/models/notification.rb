@@ -5,7 +5,7 @@ class Notification < ApplicationRecord
   strict_loading :n_plus_one
 
   belongs_to :user, inverse_of: :notifications
-  belongs_to :task, optional: true, inverse_of: :notifications
+  belongs_to :task, optional: true, inverse_of: :task
 
   DEDUP_WINDOW = 5.minutes
   CAP_PER_USER = 200
@@ -35,8 +35,6 @@ class Notification < ApplicationRecord
   validates :event_type, presence: true, inclusion: { in: EVENT_TYPES }
   validates :message, presence: true, length: { maximum: 10_000 }
   validates :read_at, presence: true, if: -> { persisted? && read_at.present? }
-
-  after_commit :enforce_cap_for_user, on: :create
 
   # Scopes
   scope :unread, -> { where(read_at: nil) }

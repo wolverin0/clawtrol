@@ -102,10 +102,4 @@ class MarketingControllerTest < ActionDispatch::IntegrationTest
     assert_includes json["error"], "not supported"
   end
 
-  private
-
-  def sign_in_as(user)
-    post session_path, params: { email_address: user.email_address, password: "password123" }
-    follow_redirect! if response.redirect?
-  end
 end

@@ -4,7 +4,7 @@ class AuditReport < ApplicationRecord
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
   strict_loading :n_plus_one
 
-  belongs_to :user
+  belongs_to :user, inverse_of: :audit_reports
   has_many :behavioral_interventions, dependent: :destroy, inverse_of: :audit_report
 
   validates :report_type, inclusion: { in: %w[daily weekly] }

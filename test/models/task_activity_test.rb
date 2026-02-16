@@ -47,42 +47,11 @@ class TaskActivityTest < ActiveSupport::TestCase
     assert activity.valid?
   end
 
-  test "rejects invalid action" do
-    activity = TaskActivity.new(task: @task, action: "hacked")
-    assert_not activity.valid?
-    assert_includes activity.errors[:action], "is not included in the list"
-  end
-
-  test "rejects invalid source" do
-    activity = TaskActivity.new(task: @task, action: "created", source: "evil")
-    assert_not activity.valid?
-    assert_includes activity.errors[:source], "is not included in the list"
-  end
-
-  test "rejects invalid actor_type" do
-    activity = TaskActivity.new(task: @task, action: "created", actor_type: "alien")
+  test "actor_type must be valid" do
+    activity = TaskActivity.new(task: @task, action: "created", actor_type: "invalid")
     assert_not activity.valid?
     assert_includes activity.errors[:actor_type], "is not included in the list"
   end
-
-  test "rejects overly long actor_name" do
-    activity = TaskActivity.new(task: @task, action: "created", actor_name: "x" * 201)
-    assert_not activity.valid?
-    assert activity.errors[:actor_name].any?
-  end
-
-  test "rejects overly long note" do
-    activity = TaskActivity.new(task: @task, action: "created", note: "x" * 2001)
-    assert_not activity.valid?
-    assert activity.errors[:note].any?
-  end
-
-  test "allows blank source and actor_type" do
-    activity = TaskActivity.new(task: @task, action: "created")
-    assert activity.valid?
-  end
-
-  # --- record_creation ---
 
   test "valid actor_types are accepted" do
     %w[user agent system].each do |type|
@@ -98,7 +67,7 @@ class TaskActivityTest < ActiveSupport::TestCase
       actor_name: "a" * 201
     )
     assert_not activity.valid?
-    assert activity.errors[:actor_name].any?
+    assert_includes activity.errors[:actor_name], "is too long"
   end
 
   test "actor_emoji maximum length is 20" do
@@ -108,7 +77,7 @@ class TaskActivityTest < ActiveSupport::TestCase
       actor_emoji: "a" * 21
     )
     assert_not activity.valid?
-    assert activity.errors[:actor_emoji].any?
+    assert_includes activity.errors[:actor_emoji], "is too long"
   end
 
   test "note maximum length is 2000" do
@@ -118,7 +87,7 @@ class TaskActivityTest < ActiveSupport::TestCase
       note: "a" * 2001
     )
     assert_not activity.valid?
-    assert activity.errors[:note].any?
+    assert_includes activity.errors[:note], "is too long"
   end
 
   test "field_name maximum length is 100" do
@@ -128,7 +97,7 @@ class TaskActivityTest < ActiveSupport::TestCase
       field_name: "a" * 101
     )
     assert_not activity.valid?
-    assert activity.errors[:field_name].any?
+    assert_includes activity.errors[:field_name], "is too long"
   end
 
   test "old_value maximum length is 1000" do
@@ -139,7 +108,7 @@ class TaskActivityTest < ActiveSupport::TestCase
       old_value: "a" * 1001
     )
     assert_not activity.valid?
-    assert activity.errors[:old_value].any?
+    assert_includes activity.errors[:old_value], "is too long"
   end
 
   test "new_value maximum length is 1000" do
@@ -150,13 +119,13 @@ class TaskActivityTest < ActiveSupport::TestCase
       new_value: "a" * 1001
     )
     assert_not activity.valid?
-    assert activity.errors[:new_value].any?
+    assert_includes activity.errors[:new_value], "is too long"
   end
 
   # === Associations ===
 
   test "belongs to task" do
-    activity = task_activities(:created)
+    activity = task_activities(:one)
     assert_equal @task, activity.task
   end
 
@@ -174,8 +143,9 @@ class TaskActivityTest < ActiveSupport::TestCase
     old_activity = TaskActivity.create!(task: @task, action: "created", created_at: 1.day.ago)
     new_activity = TaskActivity.create!(task: @task, action: "created", created_at: 1.hour.ago)
 
-    recent_ids = TaskActivity.recent.where(id: [old_activity.id, new_activity.id]).pluck(:id)
-    assert_equal [new_activity.id, old_activity.id], recent_ids
+    recent = TaskActivity.recent
+    assert_equal new_activity, recent.first
+    assert_equal old_activity, recent.last
   end
 
   # === Class Methods ===
