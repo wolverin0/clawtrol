@@ -3023,3 +3023,10 @@
 **Files:** app/services/social_media_publisher.rb, app/controllers/marketing_controller.rb
 **Verify:** Ruby syntax OK on both files
 **Risk:** low (extraction/refactor, no behavioral changes)
+
+## [2026-02-15 22:50] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add inverse_of to belongs_to :user associations in 9 models
+**Why:** Missing inverse_of prevents Rails from properly tracking associations and can cause N+1 issues with strict_loading. Added inverse_of: :boards, :audit_reports, :feed_entries, :factory_cycle_logs, :factory_loops, :nightshift_missions, :task_activities, :task_templates, :workflows to their respective belongs_to :user declarations.
+**Files:** app/models/audit_report.rb, app/models/board.rb, app/models/feed_entry.rb, app/models/factory_cycle_log.rb, app/models/factory_loop.rb, app/models/nightshift_mission.rb, app/models/task_activity.rb, app/models/task_template.rb, app/models/workflow.rb
+**Verify:** Ruby syntax OK on all 9 files
+**Risk:** low (association metadata only, no behavioral changes)
