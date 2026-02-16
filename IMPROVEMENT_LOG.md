@@ -3065,3 +3065,17 @@
 **Files:** app/models/session.rb, app/models/workflow.rb, app/models/invite_code.rb
 **Verify:** Ruby syntax OK on all 3 files
 **Risk:** low (validation additions, no behavioral changes)
+
+## [2026-02-15 23:55] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add model validations for OpenclawIntegrationStatus, AgentTranscript, AuditReport
+**Why:** Enhanced validations: OpenclawIntegrationStatus (memory_search_status + scopes), AgentTranscript (token/message counts + length limits), AuditReport (numerical fields + JSON hash validation).
+**Files:** app/models/openclaw_integration_status.rb, app/models/agent_transcript.rb, app/models/audit_report.rb
+**Verify:** Ruby syntax OK on all 3 files
+**Risk:** low (validation additions, no behavioral changes)
+
+## [2026-02-16 00:05] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add model validations for Notification, ModelLimit, RunnerLease
+**Why:** Enhanced validations: Notification (message length + scopes), ModelLimit (limit_tokens numericality + resets_at presence), RunnerLease (length limits + expires/heartbeat temporal validations).
+**Files:** app/models/notification.rb, app/models/model_limit.rb, app/models/runner_lease.rb
+**Verify:** Ruby syntax OK on all 3 files
+**Risk:** low (validation additions, no behavioral changes)
