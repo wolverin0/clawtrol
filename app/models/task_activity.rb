@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
 class TaskActivity < ApplicationRecord
-  belongs_to :task
-  belongs_to :user, optional: true
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
+
+  belongs_to :task, inverse_of: :activities
+  belongs_to :user, optional: true, inverse_of: :task_activities
 
   ACTIONS = %w[created updated moved auto_claimed].freeze
   TRACKED_FIELDS = %w[name priority due_date].freeze

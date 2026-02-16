@@ -4,8 +4,8 @@ class FactoryCycleLog < ApplicationRecord
   # The 'errors' column conflicts with ActiveRecord::Base#errors in Rails 8.1+
   self.ignored_columns += ["errors"]
 
-  belongs_to :factory_loop
-  belongs_to :user, optional: true  # Via factory_loop.user
+  belongs_to :factory_loop, inverse_of: :factory_cycle_logs
+  belongs_to :user, optional: true, inverse_of: :factory_cycle_logs
 
   STATUSES = %w[pending running completed failed skipped timed_out].freeze
 
