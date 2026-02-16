@@ -3037,3 +3037,10 @@
 **Files:** app/models/task.rb, app/models/runner_lease.rb
 **Verify:** Ruby syntax OK on both files
 **Risk:** low (association metadata only, no behavioral changes)
+
+## [2026-02-15 23:05] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extract MarketingTreeBuilder concern from MarketingController
+**Why:** Extracts tree building, node insertion, and sorting logic into reusable concern. Reduces MarketingController from 564 to 513 lines (~9% reduction). The concern is now reusable for other file browser implementations.
+**Files:** app/controllers/concerns/marketing_tree_builder.rb, app/controllers/marketing_controller.rb
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (extraction/refactor, no behavioral changes)
