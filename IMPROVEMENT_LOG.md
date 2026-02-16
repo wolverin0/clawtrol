@@ -3030,3 +3030,10 @@
 **Files:** app/models/audit_report.rb, app/models/board.rb, app/models/feed_entry.rb, app/models/factory_cycle_log.rb, app/models/factory_loop.rb, app/models/nightshift_mission.rb, app/models/task_activity.rb, app/models/task_template.rb, app/models/workflow.rb
 **Verify:** Ruby syntax OK on all 9 files
 **Risk:** low (association metadata only, no behavioral changes)
+
+## [2026-02-15 22:55] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add inverse_of to Task and RunnerLease belongs_to associations
+**Why:** Complete inverse_of coverage for Task belongs_to :user and RunnerLease belongs_to :task associations. This enables proper association tracking with Rails strict_loading mode.
+**Files:** app/models/task.rb, app/models/runner_lease.rb
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (association metadata only, no behavioral changes)
