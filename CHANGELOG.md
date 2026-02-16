@@ -97,6 +97,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
 ### 🐛 Bug Fixes
 
+- move cost snapshot strict_loading inside model class (`485d19d`)
 - fail-safe encrypted user token reads to prevent board crash (`4603feb`)
 - make missing user_id index migration idempotent (`d6c4da7`)
 - restore stable core contracts after minimax merge (`9c96155`)
@@ -228,6 +229,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`6506219`)
 - update CHANGELOG.md [skip ci] (`8aba2f9`)
 - update CHANGELOG.md [skip ci] (`7350157`)
 - update CHANGELOG.md [skip ci] (`47bf3c6`)
