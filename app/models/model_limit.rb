@@ -8,6 +8,9 @@ class ModelLimit < ApplicationRecord
   validates :name, presence: true
   validates :name, inclusion: { in: Task::MODELS }
   validates :name, uniqueness: { scope: :user_id }
+  validates :limit_tokens, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
+  validates :resets_at, presence: true, if: -> { limited? }
+  validates :error_message, length: { maximum: 1000 }, allow_nil: true
 
   scope :limited, -> { where(limited: true) }
   scope :available, -> { where(limited: false).or(where("resets_at <= ?", Time.current)) }
