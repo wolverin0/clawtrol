@@ -102,31 +102,42 @@ export default class extends Controller {
   // Step 1: Auto-detect gateway
   async autoDetect() {
     const url = this.hasGatewayUrlTarget ? this.gatewayUrlTarget.value.trim() : ""
-    
+
     if (!url) {
       this.showDetectStatus("error", "Please enter a Gateway URL")
       return
     }
 
+    let healthUrl
+    try {
+      healthUrl = new URL("/health", url).toString()
+    } catch {
+      this.showDetectStatus("error", "Invalid Gateway URL")
+      return
+    }
+
     this.showDetectStatus("loading", "Checking gateway...")
-    
+
     if (this.hasDetectButtonTarget) {
       this.detectButtonTarget.disabled = true
     }
 
+    let timeout
+
     try {
-      // Try to reach the gateway health endpoint
+      // Use no-cors so cross-origin gateways without CORS headers still resolve as reachable.
       const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 5000)
-      
-      const response = await fetch(`${url}/health`, {
+      timeout = setTimeout(() => controller.abort(), 5000)
+
+      const response = await fetch(healthUrl, {
         method: "GET",
+        mode: "no-cors",
+        cache: "no-store",
         signal: controller.signal
       })
-      
-      clearTimeout(timeout)
-      
-      if (response.ok) {
+
+      // In no-cors mode, a successful cross-origin request returns an opaque response.
+      if (response.type === "opaque" || response.ok) {
         this.showDetectStatus("success", "Gateway reachable! ✅")
       } else {
         this.showDetectStatus("error", `Gateway returned status ${response.status}`)
@@ -138,6 +149,8 @@ export default class extends Controller {
         this.showDetectStatus("error", "Could not reach gateway")
       }
     } finally {
+      clearTimeout(timeout)
+
       if (this.hasDetectButtonTarget) {
         this.detectButtonTarget.disabled = false
       }
