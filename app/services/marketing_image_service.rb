@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "ostruct"
+
 # Service for generating marketing images via OpenAI API.
 #
 # Usage:
