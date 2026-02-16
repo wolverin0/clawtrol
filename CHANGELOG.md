@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- integrate minimax playground main (`2957a61`)
 - **saved-links:** add deep summary toggle (#632) (`fcb3cb2`)
 - audit ingest API + auto-update interventions (#649) (`a343eb9`)
 - self-audit dashboard with trend charts + intervention tracker (#648) (`c6b1578`)
@@ -96,6 +97,11 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
 ### 🐛 Bug Fixes
 
+- restore stable core contracts after minimax merge (`9c96155`)
+- harden marketing path traversal check (`e1f298a`)
+- align associations and marketing validation contracts (`231a9b5`)
+- restore stable session and task diff/activity contracts (`542de91`)
+- remove duplicate AddTasksCountToAgentPersonas migration file (`def7654`)
 - unblock merged suite and harden edge cases (`e812ff2`)
 - stabilize merged model/controller drift and diff workspace path (`80ea68d`)
 - repair model strict_loading placement and task inverse associations (`84bdf48`)
@@ -220,6 +226,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Disable GLM thinking mode for proper content response (`2a93b83`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`47bf3c6`)
 - sync FACTORY_BACKLOG checkmarks with implemented factory commits (`86f9efd`)
 - update CHANGELOG.md [skip ci] (`bcde410`)
 - update CHANGELOG.md [skip ci] (`fc59ba7`)
@@ -264,6 +271,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🔧 Chores
 
+- update schema after project_path migration (`4b1ede5`)
 - **nightshift:** schedule timeout sweeper job hourly (`43b426f`)
 - **deps:** add dependabot config for bundler and npm_and_yarn (`a895cf3`)
 - add dependabot config for bundler npm and actions (`89852dd`)
