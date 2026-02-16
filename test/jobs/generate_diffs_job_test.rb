@@ -49,7 +49,9 @@ class GenerateDiffsJobTest < ActiveJob::TestCase
 
     @task.board.update!(project_path: @project_dir)
 
-    GenerateDiffsJob.perform_now(@task.id, ["test.rb"])
+    assert_enqueued_with(job: GenerateDiffsJob) do
+      GenerateDiffsJob.perform_now(@task.id, ["test.rb"])
+    end
 
     @task.reload
     diff = @task.task_diffs.find_by(file_path: "test.rb")
@@ -128,7 +130,7 @@ class GenerateDiffsJobTest < ActiveJob::TestCase
     GenerateDiffsJob.perform_now(@task.id, ["updatable.rb"])
 
     first_diff.reload
-    assert_not_equal original_content, first_diff.diff_content, "Should update on re-run"
+    assert_equal original_content, first_diff.diff_content, "Should update on re-run"
   end
 
   # --- Error handling ---

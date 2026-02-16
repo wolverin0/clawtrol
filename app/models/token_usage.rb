@@ -5,7 +5,7 @@ class TokenUsage < ApplicationRecord
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
   strict_loading :n_plus_one
 
-  belongs_to :task, inverse_of: :token_usages
+  belongs_to :task, inverse_of: :task
   belongs_to :agent_persona, optional: true
 
   # Cost per 1M tokens (USD)

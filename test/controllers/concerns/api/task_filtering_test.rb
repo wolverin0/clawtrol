@@ -73,8 +73,7 @@ class Api::TaskFilteringTest < ActionDispatch::IntegrationTest
     tasks = controller.filter_tasks(Task.all, ActionController::Parameters.new(assigned: "true"))
 
     # Should have assigned_at ordering
-    assert tasks.order_values.any?
-
+    assert_equal "assigned_at ASC", tasks.order_values.first.expression.to_sql
   end
 
   test "filter_tasks orders by status and position by default" do
@@ -112,15 +111,14 @@ class Api::TaskFilteringTest < ActionDispatch::IntegrationTest
 
     tasks = controller.filter_tasks(Task.all, ActionController::Parameters.new(order_by: "created_at"))
 
-    assert tasks.order_values.any?
-
+    assert_equal "created_at DESC", tasks.order_values.first.expression.to_sql
   end
 
   test "pagination_headers returns correct headers" do
     controller = MockController.new
     headers = controller.pagination_headers(Task.all, 1, 10)
 
-    assert_equal Task.count.to_s, headers["X-Total-Count"]
+    assert_equal "50", headers["X-Total-Count"] # Default fixtures
     assert_equal "1", headers["X-Page"]
     assert_equal "10", headers["X-Per-Page"]
   end

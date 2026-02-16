@@ -8,6 +8,10 @@ class InviteCode < ApplicationRecord
 
   validates :code, presence: true, uniqueness: true, length: { is: 8 }, format: { with: /\A[A-Z0-9]+\z/ }
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  validates :role, length: { maximum: 50 }, inclusion: { in: %w[admin user readonly], allow_nil: true }
+  validates :max_uses, numericality: { only_integer: true, greater_than: 0, less_than_or_equal_to: 1000 }, allow_nil: true
+  validate :expires_at_in_future, if: -> { expires_at.present? }
+  validate :uses_within_limit, if: -> { max_uses.present? }
 
   scope :available, -> { where(used_at: nil) }
   scope :used, -> { where.not(used_at: nil) }

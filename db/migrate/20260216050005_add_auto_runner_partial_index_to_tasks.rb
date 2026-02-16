@@ -14,7 +14,7 @@ class AddAutoRunnerPartialIndexToTasks < ActiveRecord::Migration[8.0]
     add_index :tasks,
               [:user_id, :priority, :position],
               name: "idx_tasks_auto_runner_candidates",
-              where: <<~SQL.squish,
+              where: <<~SQL.squish
                 status = 1
                 AND blocked = false
                 AND agent_claimed_at IS NULL
@@ -23,6 +23,5 @@ class AddAutoRunnerPartialIndexToTasks < ActiveRecord::Migration[8.0]
                 AND assigned_to_agent = true
                 AND auto_pull_blocked = false
               SQL
-              if_not_exists: true
   end
 end

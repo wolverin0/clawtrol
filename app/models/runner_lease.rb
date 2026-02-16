@@ -4,7 +4,7 @@ class RunnerLease < ApplicationRecord
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
   strict_loading :n_plus_one
 
-  belongs_to :task
+  belongs_to :task, inverse_of: :runner_leases
 
   LEASE_DURATION = 15.minutes
 
@@ -20,6 +20,21 @@ class RunnerLease < ApplicationRecord
   validate :expires_after_started
   validate :last_heartbeat_after_started
 
+  private
+
+  def expires_after_started
+    return unless started_at.present? && expires_at.present?
+    if expires_at <= started_at
+      errors.add(:expires_at, "must be after started_at")
+    end
+  end
+
+  def last_heartbeat_after_started
+    return unless started_at.present? && last_heartbeat_at.present?
+    if last_heartbeat_at < started_at
+      errors.add(:last_heartbeat_at, "must be after started_at")
+    end
+  end
 
   # Factory: create a new lease for a task with consistent defaults.
   # Releases any expired leases for the same task first.
@@ -64,21 +79,5 @@ class RunnerLease < ApplicationRecord
 
   def release!
     update!(released_at: Time.current)
-  end
-
-  private
-
-  def expires_after_started
-    return unless started_at.present? && expires_at.present?
-    if expires_at <= started_at
-      errors.add(:expires_at, "must be after started_at")
-    end
-  end
-
-  def last_heartbeat_after_started
-    return unless started_at.present? && last_heartbeat_at.present?
-    if last_heartbeat_at < started_at
-      errors.add(:last_heartbeat_at, "must be after started_at")
-    end
   end
 end

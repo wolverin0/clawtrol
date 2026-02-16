@@ -34,7 +34,7 @@ class NightshiftTimeoutSweeperJobTest < ActiveJob::TestCase
     fresh_selection = NightshiftSelection.create!(
       nightshift_mission: @mission,
       title: "Fresh Run",
-      scheduled_date: Date.current + 1.day,
+      scheduled_date: Date.current,
       status: "running",
       launched_at: 5.minutes.ago
     )

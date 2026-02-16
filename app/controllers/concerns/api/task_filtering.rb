@@ -67,7 +67,7 @@ module Api
       # Filter by search query (title/description)
       if params[:q].present?
         search_term = "%#{params[:q]}%"
-        tasks = tasks.where("name ILIKE :q OR description ILIKE :q", q: search_term)
+        tasks = tasks.where("title ILIKE :q OR description ILIKE :q", q: search_term)
       end
 
       # Order results

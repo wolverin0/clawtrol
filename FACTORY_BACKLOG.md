@@ -68,22 +68,22 @@ Priority order. MiniMax: pick the top unchecked item, implement it, mark [x] whe
 
 ## 🔴 HIGH PRIORITY — Testing & Quality (Sprint 2)
 
-- [x] **Job Tests: FactoryRunnerJob**: Full test coverage — mock gateway client, test backlog parsing, cycle counting, error handling, lease acquisition. Target: 15+ tests
-- [x] **Job Tests: NightshiftRunnerJob**: Test mission selection, time window validation, model assignment, parallel launch limits, timeout handling. Target: 15+ tests
-- [x] **Job Tests: ProcessSavedLinkJob**: Test URL fetch, summary generation, error states (timeout, 404, paywall), status transitions. Target: 10+ tests
-- [x] **Job Tests: TranscriptCaptureJob**: Test session key lookup, transcript fetch via gateway client, storage, offset tracking. Target: 10+ tests
-- [x] **System Tests: Board Kanban**: Turbo-powered drag-drop, status transitions, task card rendering, filter/sort, empty states. Target: 8+ system tests
-- [x] **System Tests: Swarm Launcher**: Idea selection, model picker, board assignment, launch flow, history display. Target: 6+ system tests
+- [ ] **Job Tests: FactoryRunnerJob**: Full test coverage — mock gateway client, test backlog parsing, cycle counting, error handling, lease acquisition. Target: 15+ tests
+- [ ] **Job Tests: NightshiftRunnerJob**: Test mission selection, time window validation, model assignment, parallel launch limits, timeout handling. Target: 15+ tests
+- [ ] **Job Tests: ProcessSavedLinkJob**: Test URL fetch, summary generation, error states (timeout, 404, paywall), status transitions. Target: 10+ tests
+- [ ] **Job Tests: TranscriptCaptureJob**: Test session key lookup, transcript fetch via gateway client, storage, offset tracking. Target: 10+ tests
+- [ ] **System Tests: Board Kanban**: Turbo-powered drag-drop, status transitions, task card rendering, filter/sort, empty states. Target: 8+ system tests
+- [ ] **System Tests: Swarm Launcher**: Idea selection, model picker, board assignment, launch flow, history display. Target: 6+ system tests
 - [ ] **Model Tests: All 34 models**: Currently only 4 model test files. Add validation tests, scope tests, association tests for remaining 30 models. Target: 100+ tests across all models
 
 ## 🟡 MEDIUM PRIORITY — Refactoring & Performance
 
-- [x] **Split TasksController (891 lines) (partial)**: Extract API::V1::TasksController into concerns — agent lifecycle already extracted, now extract: bulk operations, filtering/search, export, recurring tasks. Each concern <100 lines
-- [x] **Split MarketingController (643 lines) (partial)**: Extract into sub-controllers or service objects — content generation, campaign management, analytics, social posting
+- [ ] **Split TasksController (891 lines)**: Extract API::V1::TasksController into concerns — agent lifecycle already extracted, now extract: bulk operations, filtering/search, export, recurring tasks. Each concern <100 lines
+- [ ] **Split MarketingController (643 lines)**: Extract into sub-controllers or service objects — content generation, campaign management, analytics, social posting
 - [x] **N+1 Query Audit**: Add `strict_loading` to key associations. Run `bullet` gem in test suite. Fix all N+1s in board views, task lists, analytics pages. Document eager loading patterns
 - [ ] **Stimulus Controller Tests**: 106 Stimulus controllers with 0 JS tests. Add Jest/Vitest setup + test the 10 most critical controllers (task_card, board, drag_drop, form, search, chart, modal, toast, filter, websocket)
 - [x] **API Rate Limiting**: Add Rack::Attack or similar for API endpoints. Rate limit per-token, with higher limits for internal (gateway) calls. Log rate-limited requests
-- [x] **Database Indexes Audit**: Analyze slow queries from Rails logs. Add missing indexes on foreign keys, status columns, date ranges. Run EXPLAIN on top 10 queries
+- [ ] **Database Indexes Audit**: Analyze slow queries from Rails logs. Add missing indexes on foreign keys, status columns, date ranges. Run EXPLAIN on top 10 queries
 
 ## 🟢 NICE TO HAVE — New Features
 
