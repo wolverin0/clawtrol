@@ -9,6 +9,15 @@ class AgentTranscript < ApplicationRecord
 
   validates :session_id, presence: true, uniqueness: true
   validates :status, inclusion: { in: %w[captured parsed failed] }
+  validates :total_tokens, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :input_tokens, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :output_tokens, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :message_count, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :tool_call_count, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :runtime_seconds, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :session_id, length: { maximum: 255 }
+  validates :session_key, length: { maximum: 255 }, allow_nil: true
+  validates :model, length: { maximum: 100 }, allow_nil: true
 
   scope :recent, -> { order(created_at: :desc) }
   scope :for_task, ->(task_id) { where(task_id: task_id) }

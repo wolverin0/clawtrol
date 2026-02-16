@@ -3058,3 +3058,10 @@
 **Files:** test/models/board_test.rb, test/models/task_activity_test.rb, test/models/task_template_test.rb, test/models/runner_lease_test.rb
 **Verify:** Ruby syntax OK on all 4 files (tests blocked by DB extension issues, not code issues)
 **Risk:** low (test-only addition)
+
+## [2026-02-15 23:40] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Add model validations for Session, Workflow, InviteCode
+**Why:** Enhanced validations: Session (session_type/status/identity + user_required_for_non_system), Workflow (title/description/slug/category/status + scopes), InviteCode (code format/max_uses/expires_at + custom validations). Part of the "still valuable" items that were lost in the sync.
+**Files:** app/models/session.rb, app/models/workflow.rb, app/models/invite_code.rb
+**Verify:** Ruby syntax OK on all 3 files
+**Risk:** low (validation additions, no behavioral changes)
