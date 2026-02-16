@@ -33,15 +33,16 @@ class Notification < ApplicationRecord
   ].freeze
 
   validates :event_type, presence: true, inclusion: { in: EVENT_TYPES }
-  validates :message, presence: true
-
-  after_create :enforce_cap_for_user
+  validates :message, presence: true, length: { maximum: 10_000 }
+  validates :read_at, presence: true, if: -> { persisted? && read_at.present? }
 
   # Scopes
   scope :unread, -> { where(read_at: nil) }
   scope :read, -> { where.not(read_at: nil) }
   scope :recent, -> { order(created_at: :desc) }
   scope :today, -> { where("created_at >= ?", Time.zone.now.beginning_of_day) }
+  scope :by_event_type, ->(type) { where(event_type: type) }
+  scope :unread_count, -> { unread.count }
 
   # Mark as read
   def mark_as_read!
