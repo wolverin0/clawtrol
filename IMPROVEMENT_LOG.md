@@ -3093,3 +3093,10 @@
 **Files:** test/models/behavioral_intervention_test.rb (46→146 lines)
 **Verify:** Ruby syntax OK
 **Risk:** low (test-only addition)
+
+## [2026-02-16 01:05] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Expand Session and TaskDiff model tests
+**Why:** Session: expanded from 13 to 34 tests covering session_type/status/identity validations, user_required_for_non_system custom validator, constants. TaskDiff: expanded from 12 to 40 tests covering additional validation edge cases, parsed_lines edge cases, unified_diff_string method tests, grouped_lines method tests.
+**Files:** test/models/session_test.rb (72→154 lines, 13→34 tests), test/models/task_diff_test.rb (82→182 lines, 12→40 tests)
+**Verify:** Ruby syntax OK on both files
+**Risk:** low (test-only additions)
