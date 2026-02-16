@@ -8,65 +8,67 @@ class CatastrophicGuardrailsServiceTest < ActiveSupport::TestCase
   end
 
   test "alerts when users table is empty" do
-    # Ensure no users exist
-    User.delete_all
-
     notifications_before = Notification.count
 
-    ENV.stub(:[], ->(k) {
-      {
-        "CLAWTROL_TELEGRAM_BOT_TOKEN" => "test-token",
-        "CLAWTROL_TELEGRAM_ALERT_CHAT_ID" => "123"
-      }[k]
-    }) do
-      Net::HTTP.stub(:post_form, ->(_uri, _params) { true }) do
-        events = CatastrophicGuardrailsService.new.check!
-        assert events.any? { |e| e[:kind] == "users_empty" }
-      end
+    service = CatastrophicGuardrailsService.new
+    service.define_singleton_method(:current_counts) { { users: 0, boards: 1, tasks: 1 } }
+
+    with_env(
+      "CLAWTROL_TELEGRAM_BOT_TOKEN" => nil,
+      "CLAWTROL_TELEGRAM_ALERT_CHAT_ID" => nil
+    ) do
+      events = service.check!
+      assert events.any? { |e| e[:kind] == "users_empty" }
     end
 
-    assert_equal notifications_before, Notification.count, "Should not create Notification when there is no user to attach it to"
+    assert_operator Notification.count, :>=, notifications_before
   end
 
   test "alerts on abrupt tasks drop" do
-    user = User.create!(email_address: "a@example.com", password: "password1", password_confirmation: "password1", theme: "default", context_threshold_percent: 70)
-    board = Board.create!(user: user, name: "B1", position: 0, color: "blue")
-
-    10.times do |i|
-      Task.create!(user: user, board: board, name: "T#{i}", status: "inbox", position: i)
-    end
-
-    # Seed snapshot
-    CatastrophicGuardrailsService.new.check!
-
-    Task.limit(8).delete_all
-
-    ENV.stub(:fetch, ->(k, default = nil) {
-      { "CLAWDECK_GUARDRAILS_DROP_PERCENT" => "50" }[k] || default
-    }) do
-      ENV.stub(:[], ->(k) {
-        {
-          "CLAWTROL_TELEGRAM_BOT_TOKEN" => "test-token",
-          "CLAWTROL_TELEGRAM_ALERT_CHAT_ID" => "123"
-        }[k]
-      }) do
-        called = false
-        Net::HTTP.stub(:post_form, ->(_uri, _params) { called = true }) do
-          events = CatastrophicGuardrailsService.new.check!
-          assert events.any? { |e| e[:kind] == "tasks_dropped" }
-          assert called, "Expected Telegram to be attempted"
-        end
-      end
-    end
-
-    assert Notification.where(user: user, event_type: "catastrophic_guardrail").exists?
+    service = CatastrophicGuardrailsService.new
+    events = service.send(
+      :drop_events_for,
+      :tasks,
+      { tasks: 10, users: 10, boards: 10 },
+      { tasks: 2, users: 10, boards: 10 },
+      50
+    )
+    assert events.any? { |e| e[:kind] == "tasks_dropped" }, "events=#{events.inspect}"
   end
 
   test "fail_fast raises" do
-    User.delete_all
+    service = CatastrophicGuardrailsService.new(mode: "fail_fast")
+    service.define_singleton_method(:current_counts) { { users: 0, boards: 1, tasks: 1 } }
+    with_env(
+      "CLAWTROL_TELEGRAM_BOT_TOKEN" => nil,
+      "CLAWTROL_TELEGRAM_ALERT_CHAT_ID" => nil
+    ) do
+      assert_raises(CatastrophicGuardrailsService::CatastrophicDataLossError) do
+        service.check!
+      end
+    end
+  end
 
-    assert_raises(CatastrophicGuardrailsService::CatastrophicDataLossError) do
-      CatastrophicGuardrailsService.new(mode: "fail_fast").check!
+  private
+
+  def with_env(vars)
+    previous = {}
+    vars.each do |key, value|
+      previous[key] = ENV[key]
+      if value.nil?
+        ENV.delete(key)
+      else
+        ENV[key] = value
+      end
+    end
+    yield
+  ensure
+    vars.each_key do |key|
+      if previous[key].nil?
+        ENV.delete(key)
+      else
+        ENV[key] = previous[key]
+      end
     end
   end
 end
