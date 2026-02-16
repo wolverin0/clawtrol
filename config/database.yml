@@ -9,10 +9,10 @@
 default: &default
   adapter: postgresql
   encoding: unicode
-  username: dashboard
-  password: dashpass123
-  host: 192.168.100.186
-  port: 5432
+  username: <%= ENV.fetch("CLAWTROLPLAYGROUND_DB_USERNAME", "dashboard") %>
+  password: <%= ENV.fetch("CLAWTROLPLAYGROUND_DB_PASSWORD", "dashpass123") %>
+  host: <%= ENV.fetch("CLAWTROLPLAYGROUND_DB_HOST", "192.168.100.186") %>
+  port: <%= ENV.fetch("CLAWTROLPLAYGROUND_DB_PORT", 5432) %>
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
   # Use DB_POOL for production (includes Puma threads + Solid Queue workers + Solid Cable)
@@ -20,14 +20,14 @@ default: &default
 
 development:
   <<: *default
-  database: clawdeck_development
+  database: <%= ENV.fetch("CLAWTROLPLAYGROUND_DB_NAME", "clawtrolplayground_development") %>
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
 # Do not set this db to the same as development or production.
 test:
   <<: *default
-  database: clawdeck_test
+  database: <%= ENV.fetch("CLAWTROLPLAYGROUND_TEST_DB_NAME", "clawtrolplayground_test") %>
 
 # Production database configuration
 # Uses DATABASE_URL from environment (Render, Railway, etc.)
