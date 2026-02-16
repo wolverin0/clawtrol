@@ -30,7 +30,7 @@ class User < ApplicationRecord
   has_many :audit_reports, dependent: :destroy, inverse_of: :user
   has_many :behavioral_interventions, dependent: :destroy, inverse_of: :user
   has_one_attached :avatar
-  has_one :openclaw_integration_status, dependent: :destroy
+  has_one :openclaw_integration_status, dependent: :destroy, inverse_of: :user
 
   # Security: encrypt sensitive fields at rest using Rails 7+ built-in encryption
   encrypts :ai_api_key
