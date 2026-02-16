@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_16_050009) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_16_062000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -192,6 +192,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_050009) do
     t.string "name", null: false
     t.boolean "pipeline_enabled", default: false
     t.integer "position", default: 0, null: false
+    t.string "project_path"
     t.integer "tasks_count", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
