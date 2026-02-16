@@ -1,4 +1,4 @@
-class AddTasksCountToAgentPersonas < ActiveRecord::Migration[8.1]
+class AddTasksCountToAgentPersonasV2 < ActiveRecord::Migration[8.1]
   def change
     return if column_exists?(:agent_personas, :tasks_count)
 
