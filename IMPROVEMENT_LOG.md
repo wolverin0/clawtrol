@@ -3086,3 +3086,10 @@
 **Files:** app/controllers/marketing_controller.rb (513→231 lines), app/controllers/concerns/marketing_content_management.rb (new, ~250 lines)
 **Verify:** Ruby syntax OK on both files (tests blocked by DB extension issues, not code issues)
 **Risk:** low (refactoring only, no behavioral changes)
+
+## [2026-02-16 00:55] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Expand BehavioralIntervention model tests (6→24 tests)
+**Why:** Expanded from 6 to 24 tests covering: validation edge cases (negative scores, nil scores), all scopes (active/resolved/regressed), both methods (resolve!/regress!), associations (user, audit_report), constants. All tests use setup block for consistency.
+**Files:** test/models/behavioral_intervention_test.rb (46→146 lines)
+**Verify:** Ruby syntax OK
+**Risk:** low (test-only addition)
