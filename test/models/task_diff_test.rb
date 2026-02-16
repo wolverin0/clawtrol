@@ -20,7 +20,7 @@ class TaskDiffTest < ActiveSupport::TestCase
   end
 
   test "requires diff_type" do
-    diff = TaskDiff.new(task: @task, file_path: "test.rb")
+    diff = TaskDiff.new(task: @task, file_path: "test.rb", diff_type: nil)
     assert_not diff.valid?
     assert diff.errors[:diff_type].any?
   end

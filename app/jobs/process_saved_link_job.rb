@@ -34,7 +34,13 @@ class ProcessSavedLinkJob < ApplicationJob
 
     link.update!(summary: summary, status: :done, processed_at: Time.current)
   rescue StandardError => e
-    link&.update(status: :failed, error_message: "#{e.class}: #{e.message}"[0..500])
+    if link
+      link.update_columns(
+        status: SavedLink.statuses[:failed],
+        error_message: "#{e.class}: #{e.message}"[0..500],
+        updated_at: Time.current
+      )
+    end
     Rails.logger.error("[ProcessSavedLinkJob] Failed for link #{saved_link_id}: #{e.message}")
   end
 
