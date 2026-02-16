@@ -38,6 +38,16 @@ class User < ApplicationRecord
   encrypts :openclaw_gateway_token
   encrypts :openclaw_hooks_token
 
+  # Encrypted attributes can contain legacy/corrupt ciphertext after key rotations.
+  # Fail safe so dashboard and runners stay available instead of crashing requests/jobs.
+  %i[ai_api_key telegram_bot_token openclaw_gateway_token openclaw_hooks_token].each do |encrypted_attr|
+    define_method(encrypted_attr) do
+      super()
+    rescue ActiveRecord::Encryption::Errors::Decryption, ActiveRecord::Encryption::Errors::EncryptedContentIntegrity
+      nil
+    end
+  end
+
   # Primary API token for agent integration
   # Note: raw_token is only available on the returned object if the token was just created
   def api_token
