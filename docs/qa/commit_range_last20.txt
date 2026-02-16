@@ -1,0 +1,20 @@
+2f387bc [factory] docs: session summary — 11 cycles, 75 new tests, 3 bugs fixed, 2 security fixes, 1477/0/0 suite
+11e478e [factory] docs: session summary — 10 cycles, 86 new tests, 5 critical bugs fixed, 903/0/0 suite
+487a4b0 [factory] docs: final IMPROVEMENT_LOG update for cycles 8-10
+885a88b [factory] docs: update IMPROVEMENT_LOG with cycles 1-7
+42da592 [factory] docs: final IMPROVEMENT_LOG update for cycles 10-11
+16a4520 [factory] docs: update IMPROVEMENT_LOG with cycles 1-9
+c07cc35 [factory] docs: complete IMPROVEMENT_LOG for all cycles
+ae49af4 [factory] docs: update IMPROVEMENT_LOG with cycles 4-9
+fcb3cb2 feat(saved-links): add deep summary toggle (#632)
+6232815 fix(pipeline): advance unstarted tasks to routed via AutoRunner
+a7fe19e fix: pipeline unstarted tasks become runnable (#697)
+d1dd4d1 fix(tasks): allow destroy even with agent_test_recordings association (#695)
+8671900 fix(telegram): deliver task reports to origin topic (#693)
+7fcff1e fix(pipeline/mobile): in-modal pipeline viewer + touch scroll + contextmenu anchor (#691)
+a199a72 fix(pipeline/mobile): dashboard + modal scroll/context menu (#691)
+2e303c3 fix(pipeline/mobile): dashboard + modal scroll/context menu (#691)
+3f90efd fix(pipeline): route planning tasks to codex (override glm) (#690)
+173bb86 fix(mobile): prevent task panel overlap and horizontal bleed
+c43ebcc fix(ui): restore context menu on right-click and mobile long-press
+bcde410 docs: update CHANGELOG.md [skip ci]

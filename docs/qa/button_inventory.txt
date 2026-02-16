@@ -1,0 +1,720 @@
+app/javascript/controllers/undo_toast_controller.js:138:      <button type="button" class="undo-btn text-accent hover:underline font-medium flex-shrink-0">Undo</button>
+app/javascript/controllers/agent_preview_controller.js:156:      <button 
+app/javascript/controllers/agent_preview_controller.js:157:        data-action="click->agent-preview#pinToTerminal"
+app/javascript/controllers/factory_controller.js:92:      ? `<button data-action="click->factory#quickPause" data-loop-id="${loop.id}" title="Pause" class="w-7 h-7 flex items-center justify-center rounded-md text-amber-400 hover:bg-amber-500/10 transition-colors opacity-0 group-hover:opacity-100">⏸</button>`
+app/javascript/controllers/factory_controller.js:93:      : `<button data-action="click->factory#quickPlay" data-loop-id="${loop.id}" title="Play" class="w-7 h-7 flex items-center justify-center rounded-md text-green-400 hover:bg-green-500/10 transition-colors opacity-0 group-hover:opacity-100">▶</button>`
+app/javascript/controllers/factory_controller.js:96:      <div data-action="click->factory#selectRow" data-loop-id="${loop.id}"
+app/javascript/controllers/factory_controller.js:123:        <button data-action="click->factory#openKebab" data-loop-id="${loop.id}" title="More"
+app/javascript/controllers/auto_claim_tags_controller.js:35:    tagEl.innerHTML = `${this.escapeHtml(tag)}<button type="button" data-action="click->auto-claim-tags#remove" class="hover:text-accent-hover cursor-pointer"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3 h-3"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" /></svg></button>`
+app/javascript/controllers/command_palette_controller.js:211:           data-action="click->command-palette#_onItemClick">
+app/javascript/controllers/model_status_controller.js:75:      <div class="flex items-center gap-1.5 cursor-pointer" data-action="click->model-status#toggleDropdown">
+app/javascript/controllers/webhook_mapping_builder_controller.js:198:            <button type="button" data-action="click->webhook-mapping-builder#editMapping" data-index="${i}"
+app/javascript/controllers/webhook_mapping_builder_controller.js:200:            <button type="button" data-action="click->webhook-mapping-builder#removeMapping" data-index="${i}"
+app/javascript/controllers/task_dependencies_controller.js:99:      <button type="button"
+app/javascript/controllers/task_dependencies_controller.js:101:              data-action="click->task-dependencies#addDependency"
+app/javascript/controllers/task_dependencies_controller.js:184:        <button type="button"
+app/javascript/controllers/task_dependencies_controller.js:185:                data-action="click->task-dependencies#remove"
+app/javascript/controllers/diff_viewer_controller.js:249:              <button type="button" 
+app/javascript/controllers/diff_viewer_controller.js:253:                      data-action="click->diff-viewer#toggleView">
+app/javascript/controllers/diff_viewer_controller.js:256:              <button type="button"
+app/javascript/controllers/diff_viewer_controller.js:260:                      data-action="click->diff-viewer#toggleView">
+app/javascript/controllers/command_controller.js:151:      <button type="button"
+app/javascript/controllers/command_controller.js:152:              data-action="click->command#copySession"
+app/javascript/controllers/datepicker_controller.js:159:      html += `<button type="button" data-action="click->datepicker#selectDate" data-day="${day}" data-month="${month - 1}" data-year="${year}" class="h-8 w-8 rounded-md text-content-muted hover:bg-bg-elevated transition-colors text-xs">${day}</button>`
+app/javascript/controllers/datepicker_controller.js:180:      html += `<button type="button" data-action="click->datepicker#selectDate" data-day="${day}" data-month="${month}" data-year="${year}" class="${classes}">${day}</button>`
+app/javascript/controllers/datepicker_controller.js:187:      html += `<button type="button" data-action="click->datepicker#selectDate" data-day="${day}" data-month="${month + 1}" data-year="${year}" class="h-8 w-8 rounded-md text-content-muted hover:bg-bg-elevated transition-colors text-xs">${day}</button>`
+app/javascript/controllers/cronjobs_controller.js:217:      <div class="bg-card border border-border rounded-lg p-4 flex flex-col gap-3 shadow-sm hover:border-accent/50 transition-colors" data-action="click->cronjobs#copyId" data-id="${this.escapeAttr(job.id)}">
+app/javascript/controllers/cronjobs_controller.js:247:          <button type="button"
+app/javascript/controllers/cronjobs_controller.js:249:                  data-action="click->cronjobs#runNow"
+app/javascript/controllers/cronjobs_controller.js:254:          <button type="button"
+app/javascript/controllers/cronjobs_controller.js:256:                  data-action="click->cronjobs#toggle"
+app/javascript/controllers/playground_controller.js:147:        <button 
+app/javascript/controllers/playground_controller.js:149:          data-action="click->playground#openLightbox"
+app/javascript/controllers/playground_controller.js:475:          <button 
+app/javascript/controllers/playground_controller.js:477:            data-action="click->playground#selectVariant"
+app/javascript/controllers/playground_controller.js:596:      <button 
+app/javascript/controllers/playground_controller.js:598:        data-action="click->playground#selectGalleryImage"
+app/javascript/controllers/playground_controller.js:826:        <button 
+app/javascript/controllers/playground_controller.js:827:          data-action="click->playground#removeHashtag" 
+app/javascript/controllers/tokens_controller.js:130:        <button type="button"
+app/javascript/controllers/tokens_controller.js:132:                data-action="click->tokens#toggle"
+app/javascript/controllers/tokens_controller.js:143:              <button type="button"
+app/javascript/controllers/tokens_controller.js:146:                      data-action="click->tokens#copy"
+app/javascript/controllers/wizard_controller.js:242:        ? `<button type="button" data-action="click->wizard#goToStep" data-step="${item.step}" class="text-accent hover:underline ml-2 text-xs cursor-pointer">Fix →</button>`
+app/javascript/controllers/filter_controller.js:170:        <button type="button" 
+app/javascript/controllers/filter_controller.js:171:                data-action="click->filter#removeFilter"
+app/javascript/controllers/sound_controller.js:11: *     <button data-action="click->sound#play" data-sound-sound-param="codec_call">Open</button>
+app/javascript/controllers/sound_controller.js:50:   * Usage: data-action="click->sound#play" data-sound-sound-param="codec_call"
+app/javascript/controllers/identity_links_controller.js:138:          <button type="button" data-action="click->identity-links#removeGroup" data-index="${i}"
+app/javascript/controllers/agent_activity_controller.js:635:            contentHtml += `<div class="text-xs text-purple-400 italic mt-1 cursor-pointer hover:text-purple-300" data-action="click->agent-activity#expandToolCall">${thinkingIcon} Thinking... (click to expand)</div>`
+app/javascript/controllers/agent_activity_controller.js:654:                <div class="flex items-center gap-2 text-xs font-mono text-content-muted mt-1 cursor-pointer hover:text-content-secondary" data-action="click->agent-activity#expandToolCall">
+app/javascript/controllers/agent_terminal_controller.js:528:        <button 
+app/javascript/controllers/agent_terminal_controller.js:530:          data-action="click->agent-terminal#switchTab"
+app/javascript/controllers/agent_terminal_controller.js:539:          <button 
+app/javascript/controllers/agent_terminal_controller.js:540:            type="button"
+app/javascript/controllers/agent_terminal_controller.js:542:            data-action="click->agent-terminal#unpinTask"
+app/javascript/controllers/agent_terminal_controller.js:552:      <button 
+app/javascript/controllers/agent_terminal_controller.js:553:        data-action="click->agent-terminal#toggleColorScheme"
+app/javascript/controllers/notifications_controller.js:139:           data-action="click->notifications#clickNotification"
+app/javascript/controllers/drag_assign_controller.js:255:        <button type="button"
+app/javascript/controllers/drag_assign_controller.js:256:                data-action="click->drag-assign#unassign"
+app/views/cronjobs/index.html.erb:45:            <select data-cron-builder-target="scheduleType" data-action="change->cron-builder#updateScheduleUI"
+app/views/cronjobs/index.html.erb:58:                     data-action="input->cron-builder#updateCronPreview"
+app/views/cronjobs/index.html.erb:61:                     data-action="input->cron-builder#updateCronPreview"
+app/views/cronjobs/index.html.erb:64:                     data-action="input->cron-builder#updateCronPreview"
+app/views/cronjobs/index.html.erb:67:                     data-action="input->cron-builder#updateCronPreview"
+app/views/cronjobs/index.html.erb:70:                     data-action="input->cron-builder#updateCronPreview"
+app/views/cronjobs/index.html.erb:105:                    data-action="change->cron-builder#updatePayloadUI"
+app/views/cronjobs/index.html.erb:148:          <button type="button" data-action="click->cron-builder#preview"
+app/views/cronjobs/index.html.erb:152:          <button type="button" data-action="click->cron-builder#create"
+app/views/keys/index.html.erb:45:      <button type="submit"
+app/views/workflows/editor.html.erb:33:          <button type="button" data-action="workflow-editor#addAgent" class="px-2 py-1 text-[10px] font-medium bg-purple-500/10 text-purple-300 border border-purple-500/30 rounded-lg hover:bg-purple-500/20 transition-colors">&#x1F916; Agent</button>
+app/views/workflows/editor.html.erb:34:          <button type="button" data-action="workflow-editor#addTool" class="px-2 py-1 text-[10px] font-medium bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 rounded-lg hover:bg-cyan-500/20 transition-colors">&#x1F527; Tool</button>
+app/views/workflows/editor.html.erb:35:          <button type="button" data-action="workflow-editor#addRouter" class="px-2 py-1 text-[10px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/30 rounded-lg hover:bg-amber-500/20 transition-colors">&#x1F500; Router</button>
+app/views/workflows/editor.html.erb:36:          <button type="button" data-action="workflow-editor#addTrigger" class="px-2 py-1 text-[10px] font-medium bg-green-500/10 text-green-300 border border-green-500/30 rounded-lg hover:bg-green-500/20 transition-colors">&#x26A1; Trigger</button>
+app/views/workflows/editor.html.erb:40:          <button type="button" data-action="workflow-editor#addNightshift" class="px-2 py-1 text-[10px] font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/20 transition-colors">&#x1F319; Mission</button>
+app/views/workflows/editor.html.erb:41:          <button type="button" data-action="workflow-editor#addConditional" class="px-2 py-1 text-[10px] font-medium bg-orange-500/10 text-orange-300 border border-orange-500/30 rounded-lg hover:bg-orange-500/20 transition-colors">&#x1F536; If/Else</button>
+app/views/workflows/editor.html.erb:42:          <button type="button" data-action="workflow-editor#addNotification" class="px-2 py-1 text-[10px] font-medium bg-pink-500/10 text-pink-300 border border-pink-500/30 rounded-lg hover:bg-pink-500/20 transition-colors">&#x1F4E2; Notify</button>
+app/views/workflows/editor.html.erb:43:          <button type="button" data-action="workflow-editor#addDelay" class="px-2 py-1 text-[10px] font-medium bg-slate-500/10 text-slate-300 border border-slate-400/30 rounded-lg hover:bg-slate-500/20 transition-colors">&#x23F1;&#xFE0F; Delay</button>
+app/views/workflows/editor.html.erb:48:          <button type="button" data-action="workflow-editor#importNightshift" class="px-2 py-1 text-[10px] font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/25 transition-colors">&#x1F319; Import Missions</button>
+app/views/workflows/editor.html.erb:49:          <button type="button" data-action="workflow-editor#autoLayout" class="px-2 py-1 text-[10px] font-medium bg-bg-elevated text-content-secondary border border-border rounded-lg hover:bg-bg-hover transition-colors">&#x2728; Auto-Layout</button>
+app/views/workflows/editor.html.erb:57:            <button type="button" data-action="workflow-editor#runWorkflow" data-workflow-editor-target="runBtn"
+app/views/workflows/editor.html.erb:62:          <button type="button" data-action="workflow-editor#clear" class="px-2 py-1 text-[10px] font-medium bg-red-500/10 text-red-300 border border-red-500/30 rounded-lg hover:bg-red-500/15 transition-colors">Clear</button>
+app/views/workflows/editor.html.erb:103:          <input type="text" data-action="input->workflow-editor#updateSelectedLabel" data-workflow-editor-target="labelInput"
+app/views/workflows/editor.html.erb:123:        <button type="button" data-action="workflow-editor#deleteSelected"
+app/views/channel_config/show.html.erb:77:          <button type="button"
+app/views/channel_config/show.html.erb:78:                  data-action="click->channel-config#saveMattermost"
+app/views/channel_config/show.html.erb:135:          <button type="button"
+app/views/channel_config/show.html.erb:136:                  data-action="click->channel-config#saveSlack"
+app/views/channel_config/show.html.erb:188:          <button type="button"
+app/views/channel_config/show.html.erb:189:                  data-action="click->channel-config#saveSignal"
+app/views/application/_navbar.html.erb:56:          <button type="button"
+app/views/application/_navbar.html.erb:58:                  data-action="click->dropdown#toggle"
+app/views/application/_delete_modal_completed_tasks.html.erb:8:    <button type="button" data-action="click->delete-confirm#open">Delete</button>
+app/views/application/_delete_modal_completed_tasks.html.erb:15:     data-action="click->delete-confirm#closeOnBackdrop"
+app/views/application/_delete_modal_completed_tasks.html.erb:43:      <button type="button"
+app/views/application/_delete_modal_completed_tasks.html.erb:44:              data-action="click->delete-confirm#close"
+app/views/application/_delete_modal_completed_tasks.html.erb:48:      <button type="button"
+app/views/application/_delete_modal_completed_tasks.html.erb:49:              data-action="click->delete-confirm#confirm"
+app/views/application/_delete_modal_all_tasks.html.erb:8:    <button type="button" data-action="click->delete-confirm#open">Delete</button>
+app/views/application/_delete_modal_all_tasks.html.erb:15:     data-action="click->delete-confirm#closeOnBackdrop"
+app/views/application/_delete_modal_all_tasks.html.erb:43:      <button type="button"
+app/views/application/_delete_modal_all_tasks.html.erb:44:              data-action="click->delete-confirm#close"
+app/views/application/_delete_modal_all_tasks.html.erb:48:      <button type="button"
+app/views/application/_delete_modal_all_tasks.html.erb:49:              data-action="click->delete-confirm#confirm"
+app/views/application/_delete_modal.html.erb:6:    <button type="button" data-action="click->delete-confirm#open">Delete</button>
+app/views/application/_delete_modal.html.erb:13:     data-action="click->delete-confirm#closeOnBackdrop"
+app/views/application/_delete_modal.html.erb:41:      <button type="button"
+app/views/application/_delete_modal.html.erb:42:              data-action="click->delete-confirm#close"
+app/views/application/_delete_modal.html.erb:46:      <button type="button"
+app/views/application/_delete_modal.html.erb:47:              data-action="click->delete-confirm#confirm"
+app/views/message_queue_config/show.html.erb:54:                 data-action="input->range-display#update"
+app/views/message_queue_config/show.html.erb:131:      <button type="submit"
+app/views/pipeline_dashboard/show.html.erb:68:          <button type="submit" class="px-3 py-2 text-sm rounded-md bg-accent text-white hover:bg-accent/90">Filter</button>
+app/views/canvas/show.html.erb:26:            <button class="text-left px-3 py-2 rounded-lg border border-border hover:border-accent/50 hover:bg-accent/5 transition-colors text-sm"
+app/views/canvas/show.html.erb:27:                    data-action="canvas-push#selectTemplate"
+app/views/canvas/show.html.erb:41:            <button class="px-2 py-1 text-xs bg-accent/10 text-accent rounded hover:bg-accent/20 transition-colors"
+app/views/canvas/show.html.erb:42:                    data-action="canvas-push#togglePreview"
+app/views/canvas/show.html.erb:46:            <button class="px-2 py-1 text-xs bg-red-500/10 text-red-400 rounded hover:bg-red-500/20 transition-colors"
+app/views/canvas/show.html.erb:47:                    data-action="canvas-push#clearEditor">
+app/views/canvas/show.html.erb:107:                     data-action="click->canvas-push#selectNode">
+app/views/canvas/show.html.erb:136:        <button class="w-full px-4 py-2.5 bg-accent text-white rounded-lg font-medium text-sm hover:bg-accent/80 transition-colors disabled:opacity-50"
+app/views/canvas/show.html.erb:137:                data-action="canvas-push#pushToNode"
+app/views/canvas/show.html.erb:142:        <button class="w-full px-4 py-2 bg-bg-base border border-border text-content rounded-lg text-sm hover:bg-accent/5 transition-colors disabled:opacity-50"
+app/views/canvas/show.html.erb:143:                data-action="canvas-push#takeSnapshot"
+app/views/canvas/show.html.erb:148:        <button class="w-full px-4 py-2 bg-bg-base border border-border text-content rounded-lg text-sm hover:bg-accent/5 transition-colors disabled:opacity-50"
+app/views/canvas/show.html.erb:149:                data-action="canvas-push#hideCanvas"
+app/views/feeds/index.html.erb:61:        <%= button_to "Mark All Read", mark_read_feeds_path, method: :post,
+app/views/feeds/index.html.erb:138:                <%= button_to feed_path(entry), method: :patch, params: { feed_entry: { status: "saved" } },
+app/views/feeds/index.html.erb:144:                <%= button_to dismiss_feed_path(entry), method: :post,
+app/views/nightshift/index.html.erb:90:    <button class="border border-border text-content-muted px-3 py-1 rounded font-mono text-xs cursor-pointer hover:border-sky-400 hover:text-sky-400 transition-all active" data-action="click->nightshift#filterAll">All</button>
+app/views/nightshift/index.html.erb:92:      <button class="border border-border text-content-muted px-3 py-1 rounded font-mono text-xs cursor-pointer hover:border-sky-400 hover:text-sky-400 transition-all" data-action="click->nightshift#filterCategory" data-category="<%= cat %>"><%= cat %></button>
+app/views/nightshift/index.html.erb:94:    <button class="bg-emerald-400/10 border border-emerald-400/30 text-emerald-400 px-3 py-1 rounded font-mono text-xs cursor-pointer hover:bg-emerald-400/20 ml-auto" data-action="click->nightshift#openModal">+ Add Mission</button>
+app/views/nightshift/index.html.erb:104:           data-action="click->nightshift#toggle"
+app/views/nightshift/index.html.erb:130:        <div class="flex gap-1 justify-end" data-action="click->nightshift#stopPropagation">
+app/views/nightshift/index.html.erb:131:          <button type="button" class="border border-border bg-transparent text-content-muted rounded px-2 py-1 text-sm cursor-pointer hover:border-sky-400 hover:text-sky-400" title="Edit mission" data-action="click->nightshift#openEditModal">&#9999;&#65039;</button>
+app/views/nightshift/index.html.erb:132:          <%= button_to raw("&#128465;&#65039;"), nightshift_mission_path(mission), method: :delete,
+app/views/nightshift/index.html.erb:152:      <button type="button" class="border border-content-muted text-content-muted px-4 py-2 rounded font-mono text-sm cursor-pointer hover:border-content hover:text-content" data-action="click->nightshift#toggleAll">Select All</button>
+app/views/nightshift/index.html.erb:162:    <button type="button" class="ns-launch bg-emerald-400 text-bg-base border-none px-6 py-3 font-bold text-sm uppercase tracking-wide rounded cursor-pointer transition-all font-mono w-full md:w-auto disabled:bg-border disabled:text-content-muted disabled:cursor-not-allowed disabled:shadow-none" data-action="click->nightshift#launch" data-nightshift-target="launchButton" disabled>
+app/views/nightshift/index.html.erb:168:  <div class="fixed inset-0 bg-black/70 z-[300] hidden items-center justify-center" data-nightshift-target="modal" data-action="click->nightshift#overlayClose">
+app/views/nightshift/index.html.erb:169:    <div class="bg-bg-surface border border-border rounded-lg p-8 w-full max-w-[500px] font-mono max-h-[90vh] overflow-y-auto" data-action="click->nightshift#stopPropagation">
+app/views/nightshift/index.html.erb:211:            <select name="nightshift_mission[frequency]" data-nightshift-target="createFrequency" data-action="change->nightshift#toggleCreateDays" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+app/views/nightshift/index.html.erb:245:          <button type="button" class="px-4 py-2 rounded font-mono text-sm cursor-pointer border border-border bg-transparent text-content-muted" data-action="click->nightshift#closeModal">Cancel</button>
+app/views/nightshift/index.html.erb:246:          <button type="submit" class="px-4 py-2 rounded font-mono text-sm cursor-pointer bg-emerald-400 text-bg-base border-none font-semibold">Create Mission</button>
+app/views/nightshift/index.html.erb:253:  <div class="fixed inset-0 bg-black/70 z-[300] hidden items-center justify-center" data-nightshift-target="editModal" data-action="click->nightshift#overlayCloseEdit">
+app/views/nightshift/index.html.erb:254:    <div class="bg-bg-surface border border-border rounded-lg p-8 w-full max-w-[500px] font-mono max-h-[90vh] overflow-y-auto" data-action="click->nightshift#stopPropagation">
+app/views/nightshift/index.html.erb:294:        <select name="nightshift_mission[frequency]" data-nightshift-target="editFrequency" data-action="change->nightshift#toggleEditDays" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+app/views/nightshift/index.html.erb:317:          <button type="button" class="px-4 py-2 rounded font-mono text-sm cursor-pointer border border-border bg-transparent text-content-muted" data-action="click->nightshift#closeEditModal">Cancel</button>
+app/views/nightshift/index.html.erb:318:          <button type="submit" class="px-4 py-2 rounded font-mono text-sm cursor-pointer bg-emerald-400 text-bg-base border-none font-semibold">Save Mission</button>
+app/views/agent_config/show.html.erb:65:                 data-action="click->agent-config-editor#toggle">
+app/views/agent_config/show.html.erb:149:                <button type="button"
+app/views/agent_config/show.html.erb:150:                        data-action="click->agent-config-editor#save"
+app/views/registrations/new.html.erb:9:    <%= button_to "/auth/github", method: :post, class: "w-full cursor-pointer inline-flex items-center justify-center gap-2 p-3 bg-bg-elevated text-content rounded-md hover:bg-bg-hover transition-colors duration-200 text-xs font-semibold mb-6 border border-border", data: { turbo: false } do %>
+app/views/gateway_config/show.html.erb:39:          <button class="w-full px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+app/views/gateway_config/show.html.erb:40:                  data-action="gateway-config#toggleSection"
+app/views/gateway_config/show.html.erb:55:              <button data-action="gateway-config#copyToEditor"
+app/views/gateway_config/show.html.erb:82:                    data-action="input->gateway-config#markModified"
+app/views/gateway_config/show.html.erb:99:        <button data-action="gateway-config#patchConfig"
+app/views/gateway_config/show.html.erb:104:        <button data-action="gateway-config#applyConfig"
+app/views/gateway_config/show.html.erb:109:        <button data-action="gateway-config#restart"
+app/views/discord_config/show.html.erb:63:        <button type="button"
+app/views/discord_config/show.html.erb:64:                data-action="click->discord-config#saveGeneral"
+app/views/discord_config/show.html.erb:93:        <button type="button"
+app/views/discord_config/show.html.erb:94:                data-action="click->discord-config#saveActions"
+app/views/discord_config/show.html.erb:121:        <button type="button"
+app/views/discord_config/show.html.erb:122:                data-action="click->discord-config#saveReactions"
+app/views/discord_config/show.html.erb:155:            <button type="button"
+app/views/discord_config/show.html.erb:156:                    data-action="click->discord-config#saveUsers"
+app/views/sessions/new.html.erb:9:    <%= button_to "/auth/github", method: :post, class: "w-full cursor-pointer inline-flex items-center justify-center gap-2 p-3 bg-bg-elevated text-content rounded-md hover:bg-bg-hover transition-colors duration-200 text-xs font-semibold mb-6 border border-border", data: { turbo: false } do %>
+app/views/showcases/_card.html.erb:8:  <%= button_to toggle_winner_showcase_path(task), 
+app/views/showcases/index.html.erb:33:      <button type="button"
+app/views/showcases/index.html.erb:34:              data-action="click->showcase-filter#filter"
+app/views/showcases/index.html.erb:41:      <button type="button"
+app/views/showcases/index.html.erb:42:              data-action="click->showcase-filter#filterWinners"
+app/views/showcases/index.html.erb:50:        <button type="button"
+app/views/showcases/index.html.erb:51:                data-action="click->showcase-filter#filter"
+app/views/showcases/index.html.erb:107:                  <%= button_to toggle_winner_showcase_path(task), 
+app/views/showcases/show.html.erb:70:                <button 
+app/views/showcases/show.html.erb:71:                  type="button"
+app/views/showcases/show.html.erb:75:                  data-action="click->showcase-tabs#switchTab"
+app/views/session_maintenance/show.html.erb:103:      <button type="submit"
+app/views/media_config/show.html.erb:183:      <button type="submit"
+app/views/nodes/index.html.erb:16:    <button data-action="nodes-dashboard#refresh"
+app/views/nodes/index.html.erb:111:              <button class="flex-1 px-2 py-1 text-xs bg-bg-hover text-content rounded hover:bg-accent/10 hover:text-accent transition-colors"
+app/views/nodes/index.html.erb:112:                      data-action="nodes-dashboard#notify"
+app/views/nodes/index.html.erb:117:              <button class="flex-1 px-2 py-1 text-xs bg-bg-hover text-content rounded hover:bg-accent/10 hover:text-accent transition-colors"
+app/views/nodes/index.html.erb:118:                      data-action="nodes-dashboard#cameraSnap"
+app/views/nodes/index.html.erb:123:              <button class="flex-1 px-2 py-1 text-xs bg-bg-hover text-content rounded hover:bg-accent/10 hover:text-accent transition-colors"
+app/views/nodes/index.html.erb:124:                      data-action="nodes-dashboard#locate"
+app/views/compaction_config/show.html.erb:113:                 data-action="input->range-display#updatePct"
+app/views/compaction_config/show.html.erb:132:                 data-action="input->range-display#updatePct"
+app/views/compaction_config/show.html.erb:163:      <button type="submit"
+app/views/typing_config/show.html.erb:51:               data-action="input->range-display#update"
+app/views/typing_config/show.html.erb:85:      <button type="submit"
+app/views/heartbeat_config/show.html.erb:163:      <button type="submit"
+app/views/channel_accounts/show.html.erb:45:               data-action="click->channel-accounts#toggleCard"
+app/views/channel_accounts/show.html.erb:116:                <button type="submit"
+app/views/memory_dashboard/show.html.erb:58:        <button type="submit"
+app/views/block_streaming/show.html.erb:13:    <button type="button" data-action="click->block-streaming#save"
+app/views/model_providers/index.html.erb:31:               data-action="click->model-providers#toggleCard"
+app/views/model_providers/index.html.erb:72:                <button type="button"
+app/views/model_providers/index.html.erb:74:                        data-action="model-providers#testProvider"
+app/views/model_providers/index.html.erb:79:                <button type="submit"
+app/views/saved_links/_saved_link.html.erb:58:          <button type="button"
+app/views/saved_links/_saved_link.html.erb:59:                  data-action="click->inline-edit#save"
+app/views/saved_links/_saved_link.html.erb:63:          <button type="button"
+app/views/saved_links/_saved_link.html.erb:64:                  data-action="click->inline-edit#cancel"
+app/views/saved_links/_saved_link.html.erb:88:      <button type="button"
+app/views/saved_links/_saved_link.html.erb:89:              data-action="click->inline-edit#edit"
+app/views/saved_links/_saved_link.html.erb:94:      <%= button_to saved_link_path(link), method: :patch, class: "text-xs px-2 py-1 rounded-lg border transition-colors #{link.deep_summary? ? 'bg-purple-600/20 border-purple-500 text-purple-300' : 'bg-bg-base border-border text-content-muted hover:border-purple-500/50'}", params: { saved_link: { deep_summary: !link.deep_summary } } do %>
+app/views/saved_links/_saved_link.html.erb:106:      <%= button_to saved_link_path(link), method: :delete, class: "text-content-muted hover:text-red-400 transition-colors p-1", data: { turbo_confirm: "Remove this link?" } do %>
+app/views/saved_links/index.html.erb:48:    <%= button_to "🤖 Process with Gemini", process_all_saved_links_path, method: :post,
+app/views/dm_policy/show.html.erb:99:          <button type="submit"
+app/views/dm_policy/show.html.erb:163:                  <button class="flex-1 px-3 py-1.5 bg-green-500/20 text-green-400 rounded text-xs font-medium hover:bg-green-500/30 transition-colors"
+app/views/dm_policy/show.html.erb:164:                          data-action="dm-policy#approvePairing"
+app/views/dm_policy/show.html.erb:168:                  <button class="flex-1 px-3 py-1.5 bg-red-500/20 text-red-400 rounded text-xs font-medium hover:bg-red-500/30 transition-colors"
+app/views/dm_policy/show.html.erb:169:                          data-action="dm-policy#rejectPairing"
+app/views/skills/index.html.erb:28:      <button class="px-3 py-1 rounded-lg bg-accent/10 text-accent" data-filter="all" onclick="filterSkills('all', this)">
+app/views/skills/index.html.erb:31:      <button class="px-3 py-1 rounded-lg bg-bg-hover text-content-muted" data-filter="bundled" onclick="filterSkills('bundled', this)">
+app/views/skills/index.html.erb:34:      <button class="px-3 py-1 rounded-lg bg-bg-hover text-content-muted" data-filter="workspace" onclick="filterSkills('workspace', this)">
+app/views/notifications/_notification.html.erb:17:      <%= button_to mark_read_notification_path(notification), method: :patch, class: "text-accent text-xs hover:underline" do %>
+app/views/notifications/index.html.erb:10:      <%= button_to "Mark all read", mark_all_read_notifications_path, method: :post, class: "text-sm text-accent hover:underline" %>
+app/views/terminal/show.html.erb:25:      <button
+app/views/terminal/show.html.erb:26:        data-action="click->web-terminal#clearTerminal"
+app/views/agent_personas/index.html.erb:15:      <%= button_to import_agent_personas_path, method: :post, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-surface border border-border rounded-md hover:bg-bg-elevated transition-colors cursor-pointer" do %>
+app/views/agent_personas/index.html.erb:107:        <%= button_to import_agent_personas_path, method: :post, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-content-secondary bg-bg-elevated border border-border rounded-md hover:bg-bg-hover transition-colors cursor-pointer" do %>
+app/views/agent_personas/show.html.erb:26:      <%= button_to agent_persona_path(@agent_persona), method: :delete, data: { turbo_confirm: "Delete this persona?" }, class: "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-md hover:bg-red-500/20 transition-colors cursor-pointer" do %>
+app/views/agent_personas/show.html.erb:97:        <button type="button" 
+app/views/agent_personas/show.html.erb:99:                data-action="click->clipboard#copy"
+app/views/swarm/index.html.erb:21:      <button data-action="click->swarm#openModal"
+app/views/swarm/index.html.erb:30:    <button data-action="click->swarm#filterAll"
+app/views/swarm/index.html.erb:35:    <button data-action="click->swarm#filterFavorites"
+app/views/swarm/index.html.erb:44:      <button data-action="click->swarm#filterCategory"
+app/views/swarm/index.html.erb:68:               data-action="click->swarm#toggle">
+app/views/swarm/index.html.erb:72:          <button class="sw-star mt-0.5 shrink-0 text-lg leading-none transition <%= idea.favorite? ? 'sw-star-active text-amber-400' : 'text-emerald-900 hover:text-amber-600' %>"
+app/views/swarm/index.html.erb:73:                  data-action="click->swarm#toggleFavorite"
+app/views/swarm/index.html.erb:170:          <%= button_to destroy_swarm_idea_path(idea), method: :delete,
+app/views/swarm/index.html.erb:184:      <button data-action="click->swarm#toggleAll"
+app/views/swarm/index.html.erb:189:      <button data-action="click->swarm#deselectAll"
+app/views/swarm/index.html.erb:202:      <button data-action="click->swarm#launch"
+app/views/swarm/index.html.erb:213:       data-action="click->swarm#backdropClick"
+app/views/swarm/index.html.erb:221:        <button data-action="click->swarm#closeModal"
+app/views/swarm/index.html.erb:324:          <button type="button"
+app/views/swarm/index.html.erb:325:                  data-action="click->swarm#closeModal"
+app/views/admin/invite_codes/index.html.erb:35:              <%= button_to "Delete", admin_invite_code_path(code), method: :delete, class: "text-red-400 text-xs hover:underline", data: { turbo_confirm: "Delete this code?" } %>
+app/views/boards/dependency_graph.html.erb:18:      <button data-action="click->dependency-graph#resetZoom"
+app/views/boards/dependency_graph.html.erb:22:      <button data-action="click->dependency-graph#toggleLabels"
+app/views/boards/_archived_row.html.erb:38:    <%= button_to move_board_task_path(board, task), 
+app/views/boards/_board_tabs.html.erb:16:      <button type="button"
+app/views/boards/_board_tabs.html.erb:17:              data-action="click->board-modal#open"
+app/views/boards/_board_tabs.html.erb:60:      <button type="button"
+app/views/boards/_board_tabs.html.erb:61:              data-action="click->board-modal#open"
+app/views/boards/_controls.html.erb:77:        <button type="button"
+app/views/boards/_controls.html.erb:79:                data-action="click->error-badge#filterErrors"
+app/views/boards/_controls.html.erb:87:      <button type="button"
+app/views/boards/_controls.html.erb:88:              data-action="click->board-modal#open"
+app/views/boards/_controls.html.erb:104:        <button type="button"
+app/views/boards/_controls.html.erb:105:                data-action="click->notifications#toggle"
+app/views/boards/_controls.html.erb:121:              <button type="button" 
+app/views/boards/_controls.html.erb:122:                      data-action="click->notifications#markAllRead"
+app/views/boards/_controls.html.erb:126:              <button type="button" 
+app/views/boards/_controls.html.erb:127:                      data-action="click->notifications#clearAll"
+app/views/boards/_controls.html.erb:144:        <button type="button"
+app/views/boards/_controls.html.erb:146:                data-action="click->dropdown#toggle"
+app/views/boards/_board_modals.html.erb:7:     data-action="click->board-modal#closeOnBackdrop keydown.escape->board-modal#close"
+app/views/boards/_board_modals.html.erb:12:  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-action="click->board-modal#close"></div>
+app/views/boards/_board_modals.html.erb:19:      <button data-action="click->board-modal#close"
+app/views/boards/_board_modals.html.erb:68:        <button type="button"
+app/views/boards/_board_modals.html.erb:69:                data-action="click->board-modal#close"
+app/views/boards/tasks/_agent_chat_history.html.erb:42:                  <button class="text-indigo-400 hover:text-indigo-300 text-[10px] ml-1"
+app/views/boards/tasks/_agent_chat_history.html.erb:43:                          data-action="click->agent-chat-history#expand"
+app/views/boards/tasks/_agent_chat_history.html.erb:50:                  <button class="text-indigo-400 hover:text-indigo-300 text-[10px] ml-1"
+app/views/boards/tasks/_agent_chat_history.html.erb:51:                          data-action="click->agent-chat-history#collapse"
+app/views/boards/tasks/_card_header.html.erb:73:        <button type="button"
+app/views/boards/tasks/_card_header.html.erb:74:                data-action="click->drag-assign#unassign:stop"
+app/views/boards/tasks/_dependencies.html.erb:48:          <button type="button"
+app/views/boards/tasks/_dependencies.html.erb:49:                  data-action="click->task-dependencies#remove"
+app/views/boards/tasks/_dependencies.html.erb:68:           data-action="input->task-dependencies#search focus->task-dependencies#showSuggestions"
+app/views/boards/tasks/followup_modal.html.erb:2:  <div class="fixed inset-0 z-[80] flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
+app/views/boards/tasks/followup_modal.html.erb:3:    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+app/views/boards/tasks/followup_modal.html.erb:87:                  <button
+app/views/boards/tasks/followup_modal.html.erb:88:                    type="button"
+app/views/boards/tasks/followup_modal.html.erb:90:                    data-action="click->followup-suggestion#generate"
+app/views/boards/tasks/followup_modal.html.erb:100:                  <button
+app/views/boards/tasks/followup_modal.html.erb:101:                    type="button"
+app/views/boards/tasks/followup_modal.html.erb:103:                    data-action="click->enhance-followup#enhance"
+app/views/boards/tasks/validate_modal.html.erb:2:  <div class="fixed inset-0 z-[80] flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
+app/views/boards/tasks/validate_modal.html.erb:3:    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+app/views/boards/tasks/validate_modal.html.erb:32:              <button type="button" 
+app/views/boards/tasks/validate_modal.html.erb:34:                      data-action="click->review#generateSuggestion"
+app/views/boards/tasks/validate_modal.html.erb:45:              <button type="button" 
+app/views/boards/tasks/validate_modal.html.erb:47:                      data-action="click->review#selectTemplate"
+app/views/boards/tasks/validate_modal.html.erb:51:              <button type="button" 
+app/views/boards/tasks/validate_modal.html.erb:53:                      data-action="click->review#selectTemplate"
+app/views/boards/tasks/validate_modal.html.erb:57:              <button type="button" 
+app/views/boards/tasks/validate_modal.html.erb:59:                      data-action="click->review#selectTemplate"
+app/views/boards/tasks/validate_modal.html.erb:63:              <button type="button" 
+app/views/boards/tasks/validate_modal.html.erb:65:                      data-action="click->review#selectTemplate"
+app/views/boards/tasks/validate_modal.html.erb:69:              <button type="button" 
+app/views/boards/tasks/validate_modal.html.erb:71:                      data-action="click->review#selectTemplate"
+app/views/boards/tasks/validate_modal.html.erb:75:              <button type="button" 
+app/views/boards/tasks/validate_modal.html.erb:77:                      data-action="click->review#selectTemplate"
+app/views/boards/tasks/validate_modal.html.erb:81:              <button type="button" 
+app/views/boards/tasks/validate_modal.html.erb:83:                      data-action="click->review#selectTemplate"
+app/views/boards/tasks/_handoff_modal.html.erb:2:  <div class="fixed inset-0 z-[80] flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
+app/views/boards/tasks/_handoff_modal.html.erb:3:    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+app/views/boards/tasks/_agent_modal.html.erb:21:  <div data-action="click->agent-modal#close" 
+app/views/boards/tasks/_agent_modal.html.erb:40:      <button type="button"
+app/views/boards/tasks/_agent_modal.html.erb:41:              data-action="click->agent-modal#close"
+app/views/boards/tasks/_agent_modal.html.erb:107:        <button type="button" 
+app/views/boards/tasks/_agent_modal.html.erb:108:                data-action="click->agent-modal#pinToTerminal"
+app/views/boards/tasks/_agent_chat.html.erb:53:      <form data-action="submit->agent-chat#send" class="flex items-end gap-2">
+app/views/boards/tasks/_agent_chat.html.erb:57:                 data-action="keydown->agent-chat#keydown"
+app/views/boards/tasks/_agent_chat.html.erb:62:        <button type="submit"
+app/views/boards/tasks/_card_actions.html.erb:36:  <button type="button"
+app/views/boards/tasks/_card_actions.html.erb:37:          data-action="click->agent-modal#open"
+app/views/boards/tasks/validation_output_modal.html.erb:2:  <div class="fixed inset-0 z-[80] flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
+app/views/boards/tasks/validation_output_modal.html.erb:3:    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+app/views/boards/tasks/validation_output_modal.html.erb:68:        <%= button_to revalidate_board_task_path(@board, @task),
+app/views/boards/tasks/debate_modal.html.erb:2:  <div class="fixed inset-0 z-[80] flex items-center justify-center" data-controller="modal" data-action="keydown.esc->modal#close">
+app/views/boards/tasks/debate_modal.html.erb:3:    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+app/views/boards/tasks/handoff.turbo_stream.erb:16:    <button type="button" data-action="click->toast#dismiss" class="ml-auto text-content-muted hover:text-content">
+app/views/boards/tasks/_panel.html.erb:18:       data-action="click->task-modal#close"
+app/views/boards/tasks/_panel.html.erb:34:           data-action="contextmenu->dropdown#openAtCursor"
+app/views/boards/tasks/_panel.html.erb:52:            <button type="button"
+app/views/boards/tasks/_panel.html.erb:55:                    data-action="click->copy-url#copy"
+app/views/boards/tasks/_panel.html.erb:64:            <button type="button"
+app/views/boards/tasks/_panel.html.erb:66:                    data-action="click->dropdown#toggle"
+app/views/boards/tasks/_panel.html.erb:76:            <button type="button"
+app/views/boards/tasks/_panel.html.erb:77:                    data-action="click->task-modal#close"
+app/views/boards/tasks/_panel.html.erb:100:            <%= button_to move_board_task_path(task.board, task),
+app/views/boards/tasks/_panel.html.erb:114:          <button type="button"
+app/views/boards/tasks/_panel.html.erb:115:                  data-action="click->delete-confirm#open click->dropdown#close"
+app/views/boards/tasks/_panel.html.erb:134:                <button type="button"
+app/views/boards/tasks/_panel.html.erb:135:                        data-action="click->task-modal#recoverOutput"
+app/views/boards/tasks/_panel.html.erb:140:                <button type="button"
+app/views/boards/tasks/_panel.html.erb:141:                        data-action="click->task-modal#focusDescription"
+app/views/boards/tasks/_panel.html.erb:194:                    <button type="button" aria-pressed="false" data-action="click->task-modal#selectPriority" data-priority-value="none" data-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+app/views/boards/tasks/_panel.html.erb:200:                    <button type="button" aria-pressed="false" data-action="click->task-modal#selectPriority" data-priority-value="low" data-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+app/views/boards/tasks/_panel.html.erb:205:                    <button type="button" aria-pressed="false" data-action="click->task-modal#selectPriority" data-priority-value="medium" data-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+app/views/boards/tasks/_panel.html.erb:211:                    <button type="button" aria-pressed="false" data-action="click->task-modal#selectPriority" data-priority-value="high" data-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+app/views/boards/tasks/_panel.html.erb:234:                    <button type="button"
+app/views/boards/tasks/_panel.html.erb:236:                            data-action="click->task-modal#clearPersona:stop"
+app/views/boards/tasks/_panel.html.erb:352:                      <%= button_to revalidate_board_task_path(@board, task),
+app/views/boards/tasks/_panel.html.erb:403:              <button type="button" data-evidence-tabs-target="tab" data-key="transcript" data-action="click->evidence-tabs#select"
+app/views/boards/tasks/_panel.html.erb:407:              <button type="button" data-evidence-tabs-target="tab" data-key="artifacts" data-action="click->evidence-tabs#select"
+app/views/boards/tasks/_panel.html.erb:411:              <button type="button" data-evidence-tabs-target="tab" data-key="events" data-action="click->evidence-tabs#select"
+app/views/boards/tasks/_panel.html.erb:446:                      <button type="button"
+app/views/boards/tasks/_panel.html.erb:448:                              data-action="click->agent-activity#toggleCompactMode"
+app/views/boards/tasks/_panel.html.erb:453:                      <button type="button"
+app/views/boards/tasks/_panel.html.erb:454:                              data-action="click->agent-activity#toggleSearch"
+app/views/boards/tasks/_panel.html.erb:461:                      <button type="button"
+app/views/boards/tasks/_panel.html.erb:462:                              data-action="click->agent-activity#refresh"
+app/views/boards/tasks/_panel.html.erb:504:                             data-action="input->agent-activity#performSearch"
+app/views/boards/tasks/_panel.html.erb:509:                        <button type="button" data-action="click->agent-activity#prevMatch" class="p-1 hover:bg-bg-surface rounded" title="Previous (Shift+Enter)">
+app/views/boards/tasks/_panel.html.erb:514:                        <button type="button" data-action="click->agent-activity#nextMatch" class="p-1 hover:bg-bg-surface rounded" title="Next (Enter)">
+app/views/boards/tasks/_panel.html.erb:519:                        <button type="button" data-action="click->agent-activity#closeSearch" class="p-1 hover:bg-bg-surface rounded" title="Close (Esc)">
+app/views/boards/tasks/_panel.html.erb:577:                      <button type="button" data-artifacts-tabs-target="tab" data-key="files" data-action="click->artifacts-tabs#select"
+app/views/boards/tasks/_panel.html.erb:581:                      <button type="button" data-artifacts-tabs-target="tab" data-key="changes" data-action="click->artifacts-tabs#select"
+app/views/boards/tasks/_panel.html.erb:615:                            <button type="button"
+app/views/boards/tasks/_panel.html.erb:616:                                    data-action="click->diff-viewer#loadDiff"
+app/views/boards/tasks/_panel.html.erb:665:                              <button type="button"
+app/views/boards/tasks/_panel.html.erb:666:                                      data-action="click->diff-viewer#loadDiff"
+app/views/boards/tasks/_panel.html.erb:689:                   data-action="keydown.esc->file-viewer#collapse">
+app/views/boards/tasks/_panel.html.erb:690:                <div class="absolute inset-0 bg-black/70" data-action="click->file-viewer#collapse"></div>
+app/views/boards/tasks/_panel.html.erb:697:                    <button type="button" data-action="click->file-viewer#collapse" class="cursor-pointer p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors flex-shrink-0" title="Close expanded view">
+app/views/boards/tasks/_panel.html.erb:718:                      <button type="button" data-action="click->diff-viewer#expand" class="cursor-pointer p-1.5 rounded text-content-muted hover:text-content hover:bg-bg-elevated transition-colors" title="Expand">
+app/views/boards/tasks/_panel.html.erb:723:                      <button type="button" data-action="click->diff-viewer#close" class="cursor-pointer p-1.5 rounded text-content-muted hover:text-content hover:bg-bg-elevated transition-colors" title="Close">
+app/views/boards/tasks/_panel.html.erb:737:                   data-action="keydown.esc->diff-viewer#collapse">
+app/views/boards/tasks/_panel.html.erb:738:                <div class="absolute inset-0 bg-black/70" data-action="click->diff-viewer#collapse"></div>
+app/views/boards/tasks/_panel.html.erb:745:                    <button type="button" data-action="click->diff-viewer#collapse" class="cursor-pointer p-2 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors flex-shrink-0" title="Close expanded view">
+app/views/boards/tasks/_panel.html.erb:830:                  <button type="button"
+app/views/boards/tasks/_panel.html.erb:832:                          data-action="click->agent-activity#toggleCompactMode"
+app/views/boards/tasks/_panel.html.erb:837:                  <button type="button"
+app/views/boards/tasks/_panel.html.erb:838:                          data-action="click->agent-activity#toggleSearch"
+app/views/boards/tasks/_panel.html.erb:845:                  <button type="button"
+app/views/boards/tasks/_panel.html.erb:846:                          data-action="click->agent-activity#refresh"
+app/views/boards/tasks/_panel.html.erb:886:                         data-action="input->agent-activity#performSearch"
+app/views/boards/tasks/_panel.html.erb:890:                  <button type="button" data-action="click->agent-activity#closeSearch" class="p-1 hover:bg-bg-surface rounded">
+app/views/boards/tasks/_agent_assignment.html.erb:10:    <%= button_to unassign_board_task_path(board, task),
+app/views/boards/tasks/_agent_assignment.html.erb:18:    <%= button_to assign_board_task_path(board, task),
+app/views/boards/tasks/new.html.erb:2:  <div class="fixed inset-0 z-50 flex items-center justify-center" data-controller="modal new-task-modal" data-action="keydown.esc->modal#close">
+app/views/boards/tasks/new.html.erb:3:    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+app/views/boards/tasks/new.html.erb:114:                <button type="button" aria-pressed="<%= (@task.priority || 'none') == 'none' %>" data-action="click->new-task-modal#selectPriority" data-priority-value="none" data-new-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+app/views/boards/tasks/new.html.erb:120:                <button type="button" aria-pressed="<%= @task.priority == 'low' %>" data-action="click->new-task-modal#selectPriority" data-priority-value="low" data-new-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+app/views/boards/tasks/new.html.erb:125:                <button type="button" aria-pressed="<%= @task.priority == 'medium' %>" data-action="click->new-task-modal#selectPriority" data-priority-value="medium" data-new-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+app/views/boards/tasks/new.html.erb:131:                <button type="button" aria-pressed="<%= @task.priority == 'high' %>" data-action="click->new-task-modal#selectPriority" data-priority-value="high" data-new-task-modal-target="priorityButton" class="cursor-pointer inline-flex items-center justify-center px-2 py-1.5 rounded-md bg-bg-elevated hover:bg-bg-hover transition-colors duration-200 aria-pressed:bg-bg-hover">
+app/views/boards/tasks/diff_file.html.erb:16:        <button type="button"
+app/views/boards/tasks/diff_file.html.erb:17:                data-action="click->file-viewer#expand"
+app/views/boards/tasks/diff_file.html.erb:24:        <button type="button"
+app/views/boards/tasks/diff_file.html.erb:25:                data-action="click->file-viewer#close"
+app/views/boards/tasks/review_output_modal.html.erb:2:  <div class="fixed inset-0 z-[80] flex items-center justify-center" data-controller="modal tabs" data-action="keydown.esc->modal#close">
+app/views/boards/tasks/review_output_modal.html.erb:3:    <div class="absolute inset-0 bg-black/60" data-action="click->modal#close"></div>
+app/views/boards/tasks/review_output_modal.html.erb:43:          <button type="button" 
+app/views/boards/tasks/review_output_modal.html.erb:45:                  data-action="click->tabs#select"
+app/views/boards/tasks/review_output_modal.html.erb:51:            <button type="button" 
+app/views/boards/tasks/review_output_modal.html.erb:53:                    data-action="click->tabs#select"
+app/views/boards/tasks/review_output_modal.html.erb:59:          <button type="button" 
+app/views/boards/tasks/review_output_modal.html.erb:61:                  data-action="click->tabs#select"
+app/views/boards/tasks/review_output_modal.html.erb:205:            <%= button_to revalidate_board_task_path(@board, @task),
+app/views/boards/tasks/view_file.html.erb:15:        <button type="button"
+app/views/boards/tasks/view_file.html.erb:16:                data-action="click->file-viewer#expand"
+app/views/boards/tasks/view_file.html.erb:23:        <button type="button"
+app/views/boards/tasks/view_file.html.erb:24:                data-action="click->file-viewer#close"
+app/views/boards/show.html.erb:64:      <button data-action="click->mobile-columns#switch"
+app/views/boards/_personas_sidebar.html.erb:46:      <button type="button"
+app/views/boards/_personas_sidebar.html.erb:48:              data-action="click->agent-categories#toggleMobileMenu"
+app/views/boards/_personas_sidebar.html.erb:78:                     data-action="dragstart->drag-assign#dragStart dragend->drag-assign#dragEnd"
+app/views/boards/_personas_sidebar.html.erb:100:          <button type="button"
+app/views/boards/_personas_sidebar.html.erb:103:                  data-action="click->agent-categories#toggleCategory"
+app/views/boards/_personas_sidebar.html.erb:125:                     data-action="dragstart->drag-assign#dragStart dragend->drag-assign#dragEnd"
+app/views/boards/_column.html.erb:34:      <button type="button"
+app/views/boards/_column.html.erb:36:              data-action="click->bulk-operations#archiveAllDone"
+app/views/boards/_column.html.erb:56:                data-action="keydown->inline-add#handleKeydown input->inline-add#handleInput"
+app/views/boards/_column.html.erb:65:                data-action="change->inline-add#applyTemplate"
+app/views/boards/_column.html.erb:74:        <button type="button"
+app/views/boards/_column.html.erb:75:                data-action="click->inline-add#submit"
+app/views/boards/_column.html.erb:79:        <button type="button"
+app/views/boards/_column.html.erb:80:                data-action="click->inline-add#cancel"
+app/views/boards/_column.html.erb:92:    <button type="button"
+app/views/boards/_column.html.erb:93:            data-action="click->inline-add#show"
+app/views/boards/_task_card.html.erb:22:      data-action="contextmenu->dropdown#openAtCursor<%= ' mouseenter->agent-preview#show mouseleave->agent-preview#hide' if show_agent_preview %> click->bulk-operations#selectCard"
+app/views/boards/_task_card.html.erb:51:    <button data-dropdown-target="button" class="hidden" aria-expanded="false"></button>
+app/views/boards/_task_card.html.erb:59:          <%= button_to unassign_board_task_path(task.board, task),
+app/views/boards/_task_card.html.erb:67:          <%= button_to assign_board_task_path(task.board, task),
+app/views/boards/_task_card.html.erb:80:        <button type="button" class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors">
+app/views/boards/_task_card.html.erb:101:            <%= button_to move_board_task_path(task.board, task),
+app/views/boards/_task_card.html.erb:121:          <button type="button" class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors">
+app/views/boards/_task_card.html.erb:144:                <%= button_to move_to_board_board_task_path(task.board, task),
+app/views/boards/_task_card.html.erb:159:        <button type="button" class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors">
+app/views/boards/_task_card.html.erb:178:            <%= button_to board_task_path(task.board, task),
+app/views/boards/_task_card.html.erb:247:        <%= button_to revalidate_board_task_path(task.board, task),
+app/views/boards/_task_card.html.erb:273:      <button type="button"
+app/views/boards/_task_card.html.erb:274:              data-action="click->delete-confirm#open click->dropdown#close"
+app/views/boards/_task_card.html.erb:290:           onclick="event.stopPropagation()">
+app/views/boards/_task_card.html.erb:293:             data-action="change->bulk-operations#checkboxChanged"
+app/views/boards/_task_card.html.erb:351:         data-action="mouseenter->agent-preview#show mouseleave->agent-preview#hide"
+app/views/boards/_persona_badge.html.erb:10:  <%= button_to "🤖 Generate Persona", generate_persona_board_path(board),
+app/views/boards/_filter_bar.html.erb:14:            data-action="change->filter#filterByStatus"
+app/views/boards/_filter_bar.html.erb:26:            data-action="change->filter#filterByModel"
+app/views/boards/_filter_bar.html.erb:36:            data-action="change->filter#filterByPriority"
+app/views/boards/_filter_bar.html.erb:47:            data-action="change->filter#filterByAgent"
+app/views/boards/_filter_bar.html.erb:55:    <button type="button"
+app/views/boards/_filter_bar.html.erb:57:            data-action="click->filter#toggleNightly"
+app/views/boards/_filter_bar.html.erb:69:    <button type="button"
+app/views/boards/_filter_bar.html.erb:70:            data-action="click->filter#clearAll"
+app/views/boards/_filter_bar.html.erb:110:      <button type="button"
+app/views/boards/_filter_bar.html.erb:111:              data-action="click->mobile-filter#toggle"
+app/views/boards/_filter_bar.html.erb:128:                data-action="change->filter#filterByStatus"
+app/views/boards/_filter_bar.html.erb:139:                data-action="change->filter#filterByPriority"
+app/views/boards/_filter_bar.html.erb:148:                data-action="change->filter#filterByAgent"
+app/views/boards/_filter_bar.html.erb:155:        <button type="button"
+app/views/boards/_filter_bar.html.erb:157:                data-action="click->filter#toggleNightly"
+app/views/boards/_filter_bar.html.erb:162:        <button type="button"
+app/views/boards/_filter_bar.html.erb:163:                data-action="click->filter#clearAll"
+app/views/session_reset_config/show.html.erb:145:      <button type="submit"
+app/views/exec_approvals/index.html.erb:46:            <button type="button"
+app/views/exec_approvals/index.html.erb:47:                    data-action="click->exec-approvals#addCommand"
+app/views/exec_approvals/index.html.erb:86:          <button type="button"
+app/views/exec_approvals/index.html.erb:87:                  data-action="click->exec-approvals#bulkImport"
+app/views/exec_approvals/index.html.erb:118:                    <button type="button"
+app/views/exec_approvals/index.html.erb:119:                            data-action="click->exec-approvals#removeCommand"
+app/views/webchat/show.html.erb:30:      <button class="px-3 py-1.5 text-sm bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition-colors"
+app/views/webchat/show.html.erb:31:              data-action="webchat-embed#reload">
+app/views/webchat/show.html.erb:34:      <button class="px-3 py-1.5 text-sm bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition-colors"
+app/views/webchat/show.html.erb:35:              data-action="webchat-embed#toggleFullscreen"
+app/views/webchat/show.html.erb:97:      <button class="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:bg-accent/80 transition-colors"
+app/views/webchat/show.html.erb:98:              data-action="webchat-embed#reload">
+app/views/webchat/show.html.erb:107:    <button class="px-3 py-1 text-xs bg-bg-elevated border border-border rounded-full hover:border-accent/50 transition-colors text-content"
+app/views/webchat/show.html.erb:108:            data-action="webchat-embed#injectContext"
+app/views/webchat/show.html.erb:112:    <button class="px-3 py-1 text-xs bg-bg-elevated border border-border rounded-full hover:border-accent/50 transition-colors text-content"
+app/views/webchat/show.html.erb:113:            data-action="webchat-embed#injectContext"
+app/views/webchat/show.html.erb:117:    <button class="px-3 py-1 text-xs bg-bg-elevated border border-border rounded-full hover:border-accent/50 transition-colors text-content"
+app/views/webchat/show.html.erb:118:            data-action="webchat-embed#injectContext"
+app/views/webchat/show.html.erb:122:    <button class="px-3 py-1 text-xs bg-bg-elevated border border-border rounded-full hover:border-accent/50 transition-colors text-content"
+app/views/webchat/show.html.erb:123:            data-action="webchat-embed#injectContext"
+app/views/identity_links/index.html.erb:14:      <button type="button" data-action="click->identity-links#addGroup"
+app/views/identity_links/index.html.erb:18:      <button type="button" data-action="click->identity-links#saveAll"
+app/views/identity_links/index.html.erb:49:              <button type="button" data-action="click->identity-links#removeGroup" data-index="<%= i %>"
+app/views/identity_links/index.html.erb:80:        <button type="button" data-action="click->identity-links#closeModal"
+app/views/identity_links/index.html.erb:107:        <button type="button" data-action="click->identity-links#addIdentityRow"
+app/views/identity_links/index.html.erb:113:          <button type="button" data-action="click->identity-links#closeModal"
+app/views/identity_links/index.html.erb:117:          <button type="button" data-action="click->identity-links#applyGroup"
+app/views/audits/index.html.erb:87:      <button type="button" class="bg-accent hover:bg-accent/80 text-white rounded-lg px-3 py-1.5 text-xs font-medium" onclick="document.getElementById('add-intervention-modal').showModal()">Add Intervention</button>
+app/views/audits/index.html.erb:118:                <button type="button" class="text-xs text-content-secondary hover:text-content" data-action="intervention-row#toggle">Notes</button>
+app/views/audits/index.html.erb:119:                <button type="button" class="text-xs text-accent hover:text-accent/80" onclick="document.getElementById('edit-intervention-<%= intervention.id %>').showModal()">Edit</button>
+app/views/audits/index.html.erb:120:                <%= button_to "Delete", behavioral_intervention_path(intervention), method: :delete, class: "text-xs text-red-400 hover:text-red-300", form: { data: { turbo_confirm: 'Delete this intervention?' }, class: 'inline' } %>
+app/views/audits/index.html.erb:133:                  <button type="button" class="text-content-muted" onclick="this.closest('dialog').close()">✕</button>
+app/views/audits/index.html.erb:144:                  <button type="button" onclick="this.closest('dialog').close()" class="px-3 py-1.5 text-xs rounded-lg border border-border text-content-secondary">Cancel</button>
+app/views/audits/index.html.erb:164:          <button type="button" class="text-content-muted" onclick="this.closest('dialog').close()">✕</button>
+app/views/audits/index.html.erb:175:          <button type="button" onclick="this.closest('dialog').close()" class="px-3 py-1.5 text-xs rounded-lg border border-border text-content-secondary">Cancel</button>
+app/views/layouts/application.html.erb:75:        <button type="button"
+app/views/layouts/application.html.erb:76:                data-action="click->mobile-columns#showTerminal"
+app/views/layouts/_agent_terminal.html.erb:13:  <button
+app/views/layouts/_agent_terminal.html.erb:15:    data-action="click->agent-terminal#toggle"
+app/views/layouts/_agent_terminal.html.erb:34:      data-action="mousedown->agent-terminal#startResize"
+app/views/layouts/_agent_terminal.html.erb:45:        <button 
+app/views/layouts/_agent_terminal.html.erb:46:          data-action="click->agent-terminal#toggle"
+app/views/layouts/_agent_terminal.html.erb:73:        <button 
+app/views/layouts/_agent_terminal.html.erb:75:          data-action="click->agent-terminal#toggle"
+app/views/profiles/_integration_wizard.html.erb:21:          <button type="button"
+app/views/profiles/_integration_wizard.html.erb:23:                  data-action="click->wizard#goToStep"
+app/views/profiles/_integration_wizard.html.erb:58:          <button type="button"
+app/views/profiles/_integration_wizard.html.erb:60:                  data-action="click->wizard#autoDetect"
+app/views/profiles/_integration_wizard.html.erb:73:        <button type="button" data-wizard-target="prevButton" data-action="click->wizard#prev" class="hidden px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+app/views/profiles/_integration_wizard.html.erb:125:        <button type="button" data-wizard-target="prevButton" data-action="click->wizard#prev" class="px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+app/views/profiles/_integration_wizard.html.erb:181:        <button type="button" data-wizard-target="prevButton" data-action="click->wizard#prev" class="px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+app/views/profiles/_integration_wizard.html.erb:201:      <button type="button"
+app/views/profiles/_integration_wizard.html.erb:203:              data-action="click->wizard#testConnection"
+app/views/profiles/_integration_wizard.html.erb:214:      <button type="button" data-wizard-target="prevButton" data-action="click->wizard#prev" class="px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+app/views/profiles/_integration_wizard.html.erb:217:      <button type="button" data-wizard-target="nextButton" data-action="click->wizard#next" class="px-4 py-2 bg-accent hover:bg-accent-hover text-content text-xs font-medium rounded-md transition-colors cursor-pointer">
+app/views/profiles/_integration_wizard.html.erb:255:        <button type="button"
+app/views/profiles/_integration_wizard.html.erb:256:                data-action="click->clipboard#copy"
+app/views/profiles/_integration_wizard.html.erb:264:      <button type="button" data-wizard-target="prevButton" data-action="click->wizard#prev" class="px-4 py-2 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
+app/views/profiles/_agent_install_prompt.html.erb:89:      <button type="button"
+app/views/profiles/_agent_install_prompt.html.erb:90:              data-action="click->clipboard#copy"
+app/views/profiles/show.html.erb:7:    <button data-action="click->tabs#switch" data-tabs-target="tab" data-tab="profile"
+app/views/profiles/show.html.erb:9:    <button data-action="click->tabs#switch" data-tabs-target="tab" data-tab="agent"
+app/views/profiles/show.html.erb:11:    <button data-action="click->tabs#switch" data-tabs-target="tab" data-tab="ai"
+app/views/profiles/show.html.erb:13:    <button data-action="click->tabs#switch" data-tabs-target="tab" data-tab="integration"
+app/views/profiles/show.html.erb:15:    <button data-action="click->tabs#switch" data-tabs-target="tab" data-tab="notifications"
+app/views/profiles/show.html.erb:128:        <button type="button"
+app/views/profiles/show.html.erb:129:                data-action="click->sound#toggle"
+app/views/profiles/show.html.erb:142:        <button type="button" data-action="click->sound#play" data-sound-sound-param="codec_call"
+app/views/profiles/show.html.erb:146:        <button type="button" data-action="click->sound#play" data-sound-sound-param="agent_spawn"
+app/views/profiles/show.html.erb:150:        <button type="button" data-action="click->sound#play" data-sound-sound-param="agent_complete"
+app/views/profiles/show.html.erb:154:        <button type="button" data-action="click->sound#play" data-sound-sound-param="agent_error"
+app/views/profiles/show.html.erb:381:          <button type="button"
+app/views/factory/index.html.erb:35:      <button type="button" data-action="factory#openCreateModal"
+app/views/factory/index.html.erb:46:      <input type="text" placeholder="Search loops…" data-factory-target="searchInput" data-action="input->factory#onSearch"
+app/views/factory/index.html.erb:55:      <button type="button" data-action="factory#setFilter" data-filter="all"
+app/views/factory/index.html.erb:57:      <button type="button" data-action="factory#setFilter" data-filter="playing"
+app/views/factory/index.html.erb:60:      <button type="button" data-action="factory#setFilter" data-filter="paused"
+app/views/factory/index.html.erb:63:      <button type="button" data-action="factory#setFilter" data-filter="stopped"
+app/views/factory/index.html.erb:66:      <button type="button" data-action="factory#setFilter" data-filter="error"
+app/views/factory/index.html.erb:72:    <select data-factory-target="sortSelect" data-action="change->factory#onSort"
+app/views/factory/index.html.erb:89:    <div data-factory-target="panelBackdrop" data-action="click->factory#closePanel"
+app/views/factory/index.html.erb:108:          <button type="button" data-action="factory#playSelected" title="Play"
+app/views/factory/index.html.erb:110:          <button type="button" data-action="factory#pauseSelected" title="Pause"
+app/views/factory/index.html.erb:112:          <button type="button" data-action="factory#stopSelected" title="Stop"
+app/views/factory/index.html.erb:115:          <button type="button" data-action="factory#closePanel" title="Close"
+app/views/factory/index.html.erb:122:        <button type="button" data-action="factory#switchTab" data-tab="settings"
+app/views/factory/index.html.erb:124:        <button type="button" data-action="factory#switchTab" data-tab="logs"
+app/views/factory/index.html.erb:126:        <button type="button" data-action="factory#switchTab" data-tab="metrics"
+app/views/factory/index.html.erb:138:            <input type="text" data-factory-target="propName" data-action="input->factory#markDirty"
+app/views/factory/index.html.erb:151:            <textarea data-factory-target="propDesc" data-action="input->factory#markDirty" rows="2"
+app/views/factory/index.html.erb:160:                <button type="button" data-action="factory#pickIcon" data-icon="<%= ic %>"
+app/views/factory/index.html.erb:164:            <input type="text" data-factory-target="propIconCustom" data-action="input->factory#markDirty" placeholder="Or type custom emoji…"
+app/views/factory/index.html.erb:171:            <select data-factory-target="propModel" data-action="change->factory#markDirty"
+app/views/factory/index.html.erb:180:            <select data-factory-target="propFallback" data-action="change->factory#markDirty"
+app/views/factory/index.html.erb:192:                <button type="button" data-action="factory#pickInterval" data-ms="<%= ms %>"
+app/views/factory/index.html.erb:202:            <textarea data-factory-target="propPrompt" data-action="input->factory#markDirty" rows="6"
+app/views/factory/index.html.erb:209:            <textarea data-factory-target="propConfig" data-action="input->factory#markDirty" rows="3"
+app/views/factory/index.html.erb:215:            <button type="button" data-action="factory#saveLoop" data-factory-target="saveBtn"
+app/views/factory/index.html.erb:219:            <button type="button" data-action="factory#revertLoop" data-factory-target="revertBtn"
+app/views/factory/index.html.erb:227:            <button type="button" data-action="factory#deleteSelected"
+app/views/factory/index.html.erb:265:    <div class="absolute inset-0 bg-black/60" data-action="click->factory#closeCreateModal"></div>
+app/views/factory/index.html.erb:269:        <button type="button" data-action="factory#closeCreateModal"
+app/views/factory/index.html.erb:287:              <button type="button" data-action="factory#pickCreateIcon" data-icon="<%= ic %>"
+app/views/factory/index.html.erb:310:        <button type="button" data-action="factory#closeCreateModal"
+app/views/factory/index.html.erb:312:        <button type="button" data-action="factory#createLoop"
+app/views/factory/index.html.erb:320:    <div class="absolute inset-0 bg-black/60" data-action="click->factory#closeDeleteModal"></div>
+app/views/factory/index.html.erb:328:        <button type="button" data-action="factory#closeDeleteModal"
+app/views/factory/index.html.erb:330:        <button type="button" data-action="factory#confirmDelete"
+app/views/factory/cherry_pick_index.html.erb:39:                   data-action="cherry-pick#toggleAll"
+app/views/factory/cherry_pick_index.html.erb:49:                     data-action="cherry-pick#toggleCommit"
+app/views/factory/cherry_pick_index.html.erb:52:                <button data-hash="<%= commit[:full_hash] %>"
+app/views/factory/cherry_pick_index.html.erb:53:                        data-action="cherry-pick#previewCommit"
+app/views/factory/cherry_pick_index.html.erb:83:          <button data-action="cherry-pick#closePreview" class="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">Close</button>
+app/views/factory/cherry_pick_index.html.erb:105:        <button data-cherry-pick-target="dryRunBtn"
+app/views/factory/cherry_pick_index.html.erb:106:                data-action="cherry-pick#dryRun"
+app/views/factory/cherry_pick_index.html.erb:112:        <button data-cherry-pick-target="executeBtn"
+app/views/factory/cherry_pick_index.html.erb:113:                data-action="cherry-pick#execute"
+app/views/factory/cherry_pick_index.html.erb:119:        <button data-cherry-pick-target="verifyBtn"
+app/views/factory/cherry_pick_index.html.erb:120:                data-action="cherry-pick#verify"
+app/views/cli_backends/index.html.erb:110:              <button type="submit"
+app/views/identity_config/show.html.erb:118:      <button type="submit"
+app/views/shared/_theme_toggle.html.erb:2:  <button data-action="click->theme-toggle#toggle"
+app/views/shared/_nav_icons.html.erb:115:  <button type="button"
+app/views/shared/_nav_icons.html.erb:117:          data-action="click->dropdown#toggle"
+app/views/shared/_error_alert.html.erb:13:      <button class="ml-auto text-red-400 hover:text-red-300" data-action="dismissible#dismiss">✕</button>
+app/views/shared/_mobile_nav.html.erb:4:  <button type="button"
+app/views/shared/_mobile_nav.html.erb:5:          data-action="click->mobile-nav#open"
+app/views/shared/_mobile_nav.html.erb:13:       data-action="click->mobile-nav#closeOnOverlay"
+app/views/shared/_mobile_nav.html.erb:19:        <button type="button"
+app/views/shared/_mobile_nav.html.erb:20:                data-action="click->mobile-nav#close"
+app/views/shared/_keyboard_help.html.erb:12:       data-action="click->modal#close"></div>
+app/views/shared/_keyboard_help.html.erb:21:      <button type="button"
+app/views/shared/_keyboard_help.html.erb:22:              data-action="click->modal#close"
+app/views/shared/_openclaw_memory_indicator.html.erb:35:  <button type="button"
+app/views/shared/_openclaw_memory_indicator.html.erb:36:          data-action="click->openclaw-memory-indicator#toggle"
+app/views/shared/_openclaw_memory_indicator.html.erb:48:      <button type="button"
+app/views/shared/_openclaw_memory_indicator.html.erb:49:              data-action="click->openclaw-memory-indicator#close"
+app/views/shared/_command_palette.html.erb:5:    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-action="click->command-palette#close"></div>
+app/views/shared/_command_palette.html.erb:11:               data-action="input->command-palette#search"
+app/views/logging_config/show.html.erb:89:        <button type="button"
+app/views/logging_config/show.html.erb:90:                data-action="click->logging-config#saveLogging"
+app/views/logging_config/show.html.erb:143:        <button type="button"
+app/views/logging_config/show.html.erb:144:                data-action="click->logging-config#saveDebug"
+app/views/logging_config/show.html.erb:170:        <button type="button"
+app/views/logging_config/show.html.erb:171:                data-action="click->logging-config#loadLogs"
+app/views/analytics/_budget_tab.html.erb:70:              <button type="submit" class="px-2 py-1 rounded bg-accent/20 text-accent hover:bg-accent/30 text-xs">Save</button>
+app/views/analytics/_budget_tab.html.erb:81:      <button type="submit" class="px-3 py-1.5 rounded-lg bg-accent/20 text-accent hover:bg-accent/30 text-sm transition-colors">
+app/views/analytics/show.html.erb:134:              <button type="button" data-action="click->clipboard#copy" class="text-xs px-2 py-1 rounded border border-border bg-white/5 hover:bg-white/10">Copy</button>
+app/views/env_manager/show.html.erb:82:        <button type="button"
+app/views/env_manager/show.html.erb:83:                data-action="click->env-manager#testSubstitution"
+app/views/env_manager/show.html.erb:102:          <button type="button"
+app/views/env_manager/show.html.erb:103:                  data-action="click->env-manager#loadRaw"
+app/views/hot_reload/show.html.erb:81:        <button type="button"
+app/views/hot_reload/show.html.erb:82:                data-action="click->hot-reload#save"
+app/views/dashboard/_plugins_widget.html.erb:6:    <button data-action="plugins-status#refresh"
+app/views/quick_add/new.html.erb:42:          <button type="button"
+app/views/quick_add/new.html.erb:44:                  data-action="click->quick-add-voice#toggleRecording"
+app/views/quick_add/new.html.erb:82:      <button type="submit"
+app/views/telegram_mini_app/show.html.erb:327:    <button data-status="in_review" class="active">Review</button>
+app/views/telegram_mini_app/show.html.erb:328:    <button data-status="in_progress">Working</button>
+app/views/telegram_mini_app/show.html.erb:329:    <button data-status="up_next">Up Next</button>
+app/views/telegram_mini_app/show.html.erb:330:    <button data-status="inbox">Inbox</button>
+app/views/telegram_mini_app/show.html.erb:331:    <button data-status="done">Done</button>
+app/views/telegram_mini_app/show.html.erb:357:      <button class="btn-cancel" onclick="hideCreateForm()">Cancel</button>
+app/views/telegram_mini_app/show.html.erb:358:      <button class="btn-create" onclick="submitTask()">Create Task</button>
+app/views/telegram_mini_app/show.html.erb:362:  <button class="fab" id="fab-btn" onclick="showCreateForm()">+</button>
+app/views/telegram_mini_app/show.html.erb:482:              <button class="btn-approve" onclick="approveTask(${t.id})">✅ Approve</button>
+app/views/telegram_mini_app/show.html.erb:483:              <button class="btn-reject" onclick="rejectTask(${t.id})">↩️ Return</button>
+app/views/telegram_mini_app/show.html.erb:488:              <button class="btn-approve" onclick="approveTask(${t.id})">✅ Done</button>
+app/views/skill_manager/index.html.erb:57:          <button type="button"
+app/views/skill_manager/index.html.erb:58:                  data-action="click->skill-manager#installSkill"
+app/views/skill_manager/index.html.erb:168:                <button type="button"
+app/views/skill_manager/index.html.erb:169:                        data-action="click->skill-manager#toggleSkill"
+app/views/skill_manager/index.html.erb:178:                <button type="button"
+app/views/skill_manager/index.html.erb:179:                        data-action="click->skill-manager#showConfig"
+app/views/skill_manager/index.html.erb:188:                  <button type="button"
+app/views/skill_manager/index.html.erb:189:                          data-action="click->skill-manager#uninstallSkill"
+app/views/skill_manager/index.html.erb:209:                <button type="button"
+app/views/skill_manager/index.html.erb:210:                        data-action="click->skill-manager#hideConfig"
+app/views/skill_manager/index.html.erb:215:                <button type="button"
+app/views/skill_manager/index.html.erb:216:                        data-action="click->skill-manager#saveConfig"
+app/views/sandbox_config/show.html.erb:27:          <button type="submit"
+app/views/sandbox_config/show.html.erb:139:      <button type="submit"
+app/views/webhook_mappings/index.html.erb:14:      <button type="button"
+app/views/webhook_mappings/index.html.erb:15:              data-action="click->webhook-mapping-builder#addMapping"
+app/views/webhook_mappings/index.html.erb:19:      <button type="button"
+app/views/webhook_mappings/index.html.erb:20:              data-action="click->webhook-mapping-builder#saveAll"
+app/views/webhook_mappings/index.html.erb:38:        <button type="button"
+app/views/webhook_mappings/index.html.erb:39:                data-action="click->webhook-mapping-builder#loadPreset"
+app/views/webhook_mappings/index.html.erb:77:                <button type="button"
+app/views/webhook_mappings/index.html.erb:78:                        data-action="click->webhook-mapping-builder#editMapping"
+app/views/webhook_mappings/index.html.erb:83:                <button type="button"
+app/views/webhook_mappings/index.html.erb:84:                        data-action="click->webhook-mapping-builder#removeMapping"
+app/views/webhook_mappings/index.html.erb:130:      <button type="button"
+app/views/webhook_mappings/index.html.erb:131:              data-action="click->webhook-mapping-builder#copyJson"
+app/views/webhook_mappings/index.html.erb:150:        <button type="button" data-action="click->webhook-mapping-builder#closeModal"
+app/views/webhook_mappings/index.html.erb:186:          <button type="button" data-action="click->webhook-mapping-builder#closeModal"
+app/views/webhook_mappings/index.html.erb:190:          <button type="button" data-action="click->webhook-mapping-builder#applyEdit"
+app/views/send_policy/show.html.erb:80:            <button type="submit"
+app/views/send_policy/show.html.erb:160:            <button type="submit"
+app/views/telegram_config/show.html.erb:60:        <button type="button"
+app/views/telegram_config/show.html.erb:61:                data-action="click->telegram-config#saveStreaming"
+app/views/telegram_config/show.html.erb:93:        <button type="button"
+app/views/telegram_config/show.html.erb:94:                data-action="click->telegram-config#saveLinkPreview"
+app/views/telegram_config/show.html.erb:130:            <button type="button"
+app/views/telegram_config/show.html.erb:131:                    data-action="click->telegram-config#saveCommands"
+app/views/telegram_config/show.html.erb:169:        <button type="button"
+app/views/telegram_config/show.html.erb:170:                data-action="click->telegram-config#saveGeneral"
+app/views/telegram_config/show.html.erb:202:        <button type="button"
+app/views/telegram_config/show.html.erb:203:                data-action="click->telegram-config#saveRetry"
+app/views/telegram_config/show.html.erb:229:          <button type="button"
+app/views/telegram_config/show.html.erb:230:                  data-action="click->telegram-config#saveProxy"
+app/views/marketing/playground.html.erb:27:          <button data-action="click->playground#filterProduct" data-product="all" 
+app/views/marketing/playground.html.erb:32:          <button data-action="click->playground#filterProduct" data-product="futuracrm"
+app/views/marketing/playground.html.erb:37:          <button data-action="click->playground#filterProduct" data-product="futurafitness"
+app/views/marketing/playground.html.erb:42:          <button data-action="click->playground#filterProduct" data-product="optimadelivery"
+app/views/marketing/playground.html.erb:47:          <button data-action="click->playground#filterProduct" data-product="futura"
+app/views/marketing/playground.html.erb:55:        <select data-playground-target="typeFilter" data-action="change->playground#filterType"
+app/views/marketing/playground.html.erb:87:    data-action="click->playground#closeLightbox keydown.escape@window->playground#closeLightbox">
+app/views/marketing/playground.html.erb:89:      data-action="click->playground#stopPropagation">
+app/views/marketing/playground.html.erb:91:      <button data-action="click->playground#closeLightbox"
+app/views/marketing/playground.html.erb:117:            <button data-action="click->playground#useInPost"
+app/views/marketing/playground.html.erb:121:            <button data-action="click->playground#approveContent"
+app/views/marketing/playground.html.erb:212:        <button 
+app/views/marketing/playground.html.erb:214:          data-action="click->playground#generateImage"
+app/views/marketing/playground.html.erb:235:        <button 
+app/views/marketing/playground.html.erb:237:          data-action="click->playground#useGeneratedImage"
+app/views/marketing/playground.html.erb:244:        <button 
+app/views/marketing/playground.html.erb:246:          data-action="click->playground#generateVariants"
+app/views/marketing/playground.html.erb:270:            <button 
+app/views/marketing/playground.html.erb:271:              data-action="click->playground#clearGallery"
+app/views/marketing/playground.html.erb:299:          data-action="dragover->playground#dragOver dragenter->playground#dragEnter dragleave->playground#dragLeave drop->playground#drop click->playground#clickUpload"
+app/views/marketing/playground.html.erb:313:        <input type="file" data-playground-target="fileInput" class="hidden" accept="image/*" data-action="change->playground#fileSelected">
+app/views/marketing/playground.html.erb:319:            <button 
+app/views/marketing/playground.html.erb:321:              data-action="click->playground#togglePlatform"
+app/views/marketing/playground.html.erb:327:            <button 
+app/views/marketing/playground.html.erb:329:              data-action="click->playground#togglePlatform"
+app/views/marketing/playground.html.erb:346:            data-action="input->playground#updateCaption"
+app/views/marketing/playground.html.erb:366:              data-action="keydown->playground#addHashtag"
+app/views/marketing/playground.html.erb:373:              <button 
+app/views/marketing/playground.html.erb:374:                data-action="click->playground#addSuggestedHashtag"
+app/views/marketing/playground.html.erb:390:            data-action="input->playground#updatePreview"
+app/views/marketing/playground.html.erb:422:              <button class="text-gray-400 hover:text-white text-xl">⋯</button>
+app/views/marketing/playground.html.erb:449:                <button class="flex-1 flex items-center justify-center gap-2 py-2 text-gray-400 hover:bg-[#3e4042] rounded text-sm">
+app/views/marketing/playground.html.erb:452:                <button class="flex-1 flex items-center justify-center gap-2 py-2 text-gray-400 hover:bg-[#3e4042] rounded text-sm">
+app/views/marketing/playground.html.erb:455:                <button class="flex-1 flex items-center justify-center gap-2 py-2 text-gray-400 hover:bg-[#3e4042] rounded text-sm">
+app/views/marketing/playground.html.erb:485:              <button class="text-white text-xl">⋯</button>
+app/views/marketing/playground.html.erb:502:                  <button class="text-white text-2xl hover:opacity-70">🤍</button>
+app/views/marketing/playground.html.erb:503:                  <button class="text-white text-2xl hover:opacity-70">💬</button>
+app/views/marketing/playground.html.erb:504:                  <button class="text-white text-2xl hover:opacity-70">📤</button>
+app/views/marketing/playground.html.erb:506:                <button class="text-white text-2xl hover:opacity-70">🔖</button>
+app/views/marketing/playground.html.erb:529:        <button 
+app/views/marketing/playground.html.erb:530:          data-action="click->playground#saveDraft"
+app/views/marketing/playground.html.erb:535:        <button 
+app/views/marketing/playground.html.erb:536:          data-action="click->playground#loadDraft"
+app/views/marketing/playground.html.erb:544:        <button 
+app/views/marketing/playground.html.erb:545:          data-action="click->playground#copyCaption"
+app/views/marketing/playground.html.erb:550:        <button 
+app/views/marketing/playground.html.erb:551:          data-action="click->playground#downloadImage"
+app/views/marketing/playground.html.erb:558:        <button 
+app/views/marketing/playground.html.erb:559:          data-action="click->playground#approveAndQueue"
+app/views/marketing/show.html.erb:84:          <button onclick="navigator.clipboard.writeText(document.getElementById('json-content').textContent)"
+app/views/marketing/show.html.erb:95:          <button onclick="navigator.clipboard.writeText(document.getElementById('html-content').textContent)"
+app/views/live_events/show.html.erb:18:      <button type="button" data-action="click->live-events#togglePolling"
+app/controllers/file_viewer_controller.rb:161:        <button onclick="toggleHtmlView()" id="toggle-btn"
