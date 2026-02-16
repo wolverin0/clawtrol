@@ -1,99 +1,107 @@
-<%# Always-available "agent self-awareness" prompt. %>
+<%# Always-available "agent self-awareness" prompts for OpenClaw orchestration. %>
 <% api_url = "#{request.base_url}/api/v1" %>
 <% api_token_value = api_token&.raw_token.presence || api_token&.masked_token %>
 <% hooks_token_value = (current_user&.admin? ? Rails.application.config.hooks_token.to_s : "") %>
+<% nightly_window = "23:00-08:00 America/Argentina/Buenos_Aires (UTC-3)" %>
 
 <div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
   <div class="flex items-center gap-2">
     <span class="text-lg">📋</span>
-    <h3 class="text-sm font-semibold text-content font-display">Agent Install Prompt</h3>
+    <h3 class="text-sm font-semibold text-content font-display">OpenClaw Install Prompt</h3>
     <span class="text-[10px] text-content-muted bg-bg-elevated px-1.5 py-0.5 rounded-full uppercase tracking-wider">Copy</span>
   </div>
 
   <p class="text-xs text-content-secondary">
-    Paste this into your OpenClaw/Telegram orchestrator system prompt so it stays aligned with ClawTrol's API, task lifecycle, and reporting contract.
+    Use these prompt blocks to keep OpenClaw aligned with ClawTrol's API, lifecycle rules, follow-up policy, and nightly window.
   </p>
 
   <div data-controller="clipboard" class="space-y-2">
-    <div class="bg-bg-elevated rounded-md max-h-64 overflow-y-auto">
-      <pre data-clipboard-target="source" class="px-3 py-3 text-[10px] font-mono text-content-secondary whitespace-pre-wrap break-words leading-relaxed"># ClawTrol (ClawDeck fork) - Agent Tooling + Reporting Contract
+    <div class="bg-bg-elevated rounded-md max-h-72 overflow-y-auto">
+      <pre data-clipboard-target="source" class="px-3 py-3 text-[10px] font-mono text-content-secondary whitespace-pre-wrap break-words leading-relaxed"># ClawTrol OpenClaw Workflow Contract (paste into OpenClaw system prompt)
 BASE_URL: <%= request.base_url %>
 API_URL: <%= api_url %>
 AUTH: "Authorization: Bearer <YOUR_API_TOKEN>"
 YOUR_API_TOKEN: <%= api_token_value.to_s %>
+NIGHTLY_WINDOW: "<%= nightly_window %>"
 
-# Hooks (server-side completion callbacks)
-# NOTE: Hooks use X-Hook-Token (not the API token). If you are the admin, it is shown below.
+# Hooks auth (server-side callbacks)
 <% if hooks_token_value.present? %>HOOKS_TOKEN: <%= hooks_token_value %>
 HOOKS_AUTH: "X-Hook-Token: <HOOKS_TOKEN>"<% else %>HOOKS_TOKEN: (ask your ClawTrol admin or set HOOKS_TOKEN on the server)
 HOOKS_AUTH: "X-Hook-Token: <HOOKS_TOKEN>"<% end %>
 
-# Task Lifecycle (what "done" means here)
-# 1) Work happens in ClawTrol tasks. The UI is the source of truth.
-# 2) When a run finishes you MUST report outcome deterministically.
-#
-# Always do BOTH (in this order):
-# A) POST /api/v1/hooks/task_outcome  (OutcomeContract v1: structured YES/NO follow-up)
-# B) POST /api/v1/hooks/agent_complete (persist raw findings + output file paths; moves to in_review)
+# Authority model:
+# - OpenClaw is the orchestrator (claim/pick/execute/report).
+# - ClawTrol is the source of task state and reporting UI.
+# - Do not silently finish runs.
 
-# Follow-up policy (no kanban bloat, no auto-requeue):
-# - Always finish the run by moving the task to in_review (via hooks).
-# - If follow-up is needed: needs_follow_up=true AND recommended_action="requeue_same_task"
-#   - Include next_prompt (required).
-#   - You MUST ask the human in Telegram to approve requeue.
-#   - Only after explicit approval: POST /api/v1/tasks/:id/requeue to move THE SAME CARD back to up_next.
-# - If no follow-up: needs_follow_up=false AND recommended_action="in_review"
-#   - Task stays in review; human decides next.
+# Mandatory completion contract for EVERY run (always in this order):
+# 1) POST /api/v1/hooks/task_outcome
+#    - must include needs_follow_up true|false
+#    - must include recommended_action
+#    - if recommended_action=requeue_same_task, include next_prompt
+# 2) POST /api/v1/hooks/agent_complete
+#    - includes findings/session/output_files
+#    - persists output and transitions task to in_review
 
-# Model + Persona controls:
-# - Task.model is authoritative for what model to use (ClawTrol maps to OpenClaw aliases).
-# - Task.agent_persona_id selects the persona; the spawned prompt may include persona instructions.
+# Follow-up policy:
+# - No kanban bloat: reuse same task card when follow-up is needed.
+# - Never auto-requeue without explicit human approval in Telegram.
+# - Human-approved follow-up action: POST /api/v1/tasks/:id/requeue
 
-# Useful endpoints (Bearer token auth):
-# - GET  /api/v1/boards
+# Nightly policy:
+# - Nightly tasks are eligible only during NIGHTLY_WINDOW.
+# - Respect nightly_delay_hours before execution.
+
+# Useful endpoints:
 # - GET  /api/v1/tasks?status=up_next&assigned=true&blocked=false
-# - POST /api/v1/tasks/:id/requeue      (explicit follow-up approval: same card -> up_next)
-# - POST /api/v1/tasks/spawn_ready   (create + reserve a task for spawning)
+# - PATCH /api/v1/tasks/:id
+# - POST /api/v1/tasks/:id/requeue
 # - POST /api/v1/tasks/:id/link_session
-# - PATCH /api/v1/tasks/:id          (status/model/priority/nightly/recurring/agent_persona_id)
-# - GET  /api/v1/tasks/:id/agent_log (live progress)
-
-# Completion: OutcomeContract v1 (idempotent by run_id UUID)
-# POST <BASE_URL>/api/v1/hooks/task_outcome
-# Headers: <HOOKS_AUTH>, Content-Type: application/json
-# Body:
-# {
-#   "version":"1",
-#   "task_id":123,
-#   "run_id":"<uuid>",
-#   "ended_at":"<iso8601>",
-#   "needs_follow_up": false,
-#   "recommended_action":"in_review|requeue_same_task",
-#   "next_prompt":"<required if requeue_same_task>",
-#   "summary":"<one paragraph>",
-#   "achieved":["..."],
-#   "evidence":["..."],
-#   "remaining":["..."],
-#   "model_used":"opus|codex|gemini|glm|sonnet",
-#   "openclaw_session_id":"...",
-#   "openclaw_session_key":"..."
-# }
-
-# Completion: raw output persistence
-# POST <BASE_URL>/api/v1/hooks/agent_complete
-# Headers: <HOOKS_AUTH>, Content-Type: application/json
-# Body: { "task_id":123, "findings":"...", "session_id":"...", "session_key":"...", "output_files":["path1","path2"] }</pre>
+# - GET  /api/v1/tasks/:id/agent_log</pre>
     </div>
 
     <div class="flex items-center gap-2">
       <button type="button"
               data-action="click->clipboard#copy"
               class="px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer">
-        <span data-clipboard-target="label">Copy to clipboard</span>
+        <span data-clipboard-target="label">Copy workflow contract</span>
       </button>
       <span class="text-[10px] text-content-muted">
-        Tip: after updating ClawTrol, re-copy this to keep your Telegram orchestrator aligned.
+        Re-copy this after upgrades so your orchestrator stays in sync.
       </span>
     </div>
   </div>
+
+  <details class="bg-bg-elevated rounded-md p-3">
+    <summary class="text-xs text-content-secondary cursor-pointer select-none">Auto-heal injection prompt</summary>
+    <div data-controller="clipboard" class="space-y-2 mt-3">
+      <div class="bg-bg-base rounded-md max-h-64 overflow-y-auto border border-border">
+        <pre data-clipboard-target="source" class="px-3 py-3 text-[10px] font-mono text-content-secondary whitespace-pre-wrap break-words leading-relaxed">You are OpenClaw orchestrator. Apply this policy immediately and persist to your memory/workflow files:
+
+1) OpenClaw executes all claimed work; ClawTrol only tracks/report state.
+2) For every completed run, always call:
+   a) POST /api/v1/hooks/task_outcome (needs_follow_up must be YES/NO)
+   b) POST /api/v1/hooks/agent_complete
+3) If follow-up is needed:
+   - recommend requeue_same_task with next_prompt
+   - ask human for approval first
+   - only then POST /api/v1/tasks/:id/requeue
+4) If no follow-up is needed:
+   - still report outcome and keep task in in_review
+5) Nightly window is fixed to <%= nightly_window %>.
+6) Never create multiple cards for the same process when a same-card requeue is enough.
+
+After injecting this policy, confirm with:
+- files updated
+- timestamp of update
+- one dry-run task outcome payload example (needs_follow_up=false)
+- one dry-run task outcome payload example (needs_follow_up=true + requeue_same_task)</pre>
+      </div>
+      <button type="button"
+              data-action="click->clipboard#copy"
+              class="px-3 py-1.5 bg-bg-base hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors cursor-pointer border border-border">
+        <span data-clipboard-target="label">Copy auto-heal prompt</span>
+      </button>
+    </div>
+  </details>
 </div>

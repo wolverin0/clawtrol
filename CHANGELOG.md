@@ -5,6 +5,13 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ## February 2026
 
+### Documentation and Operations
+
+- docs: add `docs/OPENCLAW_ONBOARDING.md` with self-install, self-heal, and reporting contract
+- docs: clarify OpenClaw-first orchestration flow and follow-up approval policy in `README.md`
+- settings: expand Integration tab prompt with copy-ready workflow contract and self-heal injection blocks
+- ops: document nightly execution window for Argentina (`23:00-08:00`, `America/Argentina/Buenos_Aires`)
+
 ### 🚀 Features
 
 - integrate minimax playground main (`2957a61`)
