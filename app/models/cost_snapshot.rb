@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
 # Periodic cost snapshots for budget tracking and trend analysis.
-  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
-  strict_loading :n_plus_one
-
 # Captured daily/weekly/monthly by CostSnapshotService.
 class CostSnapshot < ApplicationRecord
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
   belongs_to :user, inverse_of: :cost_snapshots
 
   PERIODS = %w[daily weekly monthly].freeze
