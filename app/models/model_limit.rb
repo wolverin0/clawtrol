@@ -1,17 +1,15 @@
 # frozen_string_literal: true
 
 # Tracks rate limits for AI models per user
-  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
-  strict_loading :n_plus_one
-
 # Used for auto-fallback when a model hits its limit
 class ModelLimit < ApplicationRecord
+  # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
+  strict_loading :n_plus_one
   belongs_to :user, inverse_of: :model_limits
 
   validates :name, presence: true
   validates :name, inclusion: { in: Task::MODELS }
   validates :name, uniqueness: { scope: :user_id }
-  validates :limit_tokens, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validates :resets_at, presence: true, if: -> { limited? }
   validates :error_message, length: { maximum: 1000 }, allow_nil: true
 

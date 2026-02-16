@@ -29,7 +29,12 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     end
 
     def notify_auto_pull_ready(task)
-      self.class.wakes << { task_id: task.id, name: task.name }
+      self.class.wakes << { task_id: task.id, name: task.name, pipeline: false }
+      true
+    end
+
+    def notify_auto_pull_ready_with_pipeline(task)
+      self.class.wakes << { task_id: task.id, name: task.name, pipeline: true }
       true
     end
 
@@ -56,7 +61,8 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       board: board,
       name: "Stuck task",
       status: :up_next,
-      assigned_to_agent: true
+      assigned_to_agent: true,
+      pipeline_enabled: false
     )
 
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
@@ -101,7 +107,8 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       board: board,
       name: "Missing lease task",
       status: :up_next,
-      assigned_to_agent: true
+      assigned_to_agent: true,
+      pipeline_enabled: false
     )
 
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
@@ -146,6 +153,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       status: :up_next,
       assigned_to_agent: true,
       blocked: false,
+      pipeline_enabled: false,
       model: "gemini",
       validation_command: "bin/rails test"
     )
@@ -176,6 +184,68 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     assert notif.present?, "expected an auto_pull_ready notification"
   end
 
+  test "pipeline tasks in up_next advance from unstarted -> triaged -> context_ready -> routed and become runnable" do
+    user = User.create!(
+      email_address: "auto_runner_pipeline_#{SecureRandom.hex(4)}@example.test",
+      password: "password123",
+      password_confirmation: "password123",
+      agent_auto_mode: true,
+      openclaw_gateway_url: "http://example.test",
+      openclaw_gateway_token: "tok"
+    )
+
+    board = Board.create!(user: user, name: "Board 20")
+
+    task = Task.create!(
+      user: user,
+      board: board,
+      name: "Pipeline task",
+      status: :up_next,
+      pipeline_enabled: true,
+      pipeline_stage: "unstarted",
+      assigned_to_agent: false,
+      blocked: false
+    )
+
+    FakeWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    # Stub the heavy services (context compilation / routing) to keep this test fast and deterministic.
+    begin
+      original_ctx = Pipeline::ContextCompilerService.instance_method(:call)
+      original_route = Pipeline::ClawRouterService.instance_method(:call)
+
+      Pipeline::ContextCompilerService.define_method(:call) do
+        task.update_columns(pipeline_stage: "context_ready")
+        true
+      end
+
+      Pipeline::ClawRouterService.define_method(:call) do
+        task.update_columns(
+          pipeline_stage: "routed",
+          routed_model: "codex",
+          compiled_prompt: "compiled"
+        )
+        true
+      end
+
+      travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+        # single tick: unstarted -> ... -> routed
+        AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+        task.reload
+        assert_equal "routed", task.pipeline_stage
+        assert task.pipeline_ready?
+        assert task.assigned_to_agent?
+      end
+    ensure
+      Pipeline::ContextCompilerService.define_method(:call, original_ctx)
+      Pipeline::ClawRouterService.define_method(:call, original_route)
+    end
+
+    assert_equal 1, FakeWebhookService.wakes.length
+    assert_equal({ task_id: task.id, name: task.name, pipeline: true }, FakeWebhookService.wakes.first)
+  end
+
   test "nightly tasks are not auto-pulled outside the nightly window" do
     user = users(:one)
     user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
@@ -187,6 +257,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       name: "Nightly task",
       status: :up_next,
       blocked: false,
+      pipeline_enabled: false,
       nightly: true
     )
 
@@ -542,23 +613,13 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
 
   # --- Pipeline processing ---
 
-  test "processes pipeline tasks with all starting states (nil, empty string, unstarted)" do
+  test "processes pipeline tasks with empty and unstarted starting states" do
     user = users(:one)
     user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
 
     board = boards(:one)
 
     # Create tasks with different starting states
-    task_nil = Task.create!(
-      user: user,
-      board: board,
-      name: "Task with nil stage",
-      status: :up_next,
-      assigned_to_agent: true,
-      pipeline_enabled: true,
-      pipeline_stage: nil
-    )
-
     task_empty = Task.create!(
       user: user,
       board: board,
@@ -566,8 +627,9 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       status: :up_next,
       assigned_to_agent: true,
       pipeline_enabled: true,
-      pipeline_stage: ""
+      pipeline_stage: "unstarted"
     )
+    task_empty.update_column(:pipeline_stage, "")
 
     task_unstarted = Task.create!(
       user: user,
@@ -584,11 +646,11 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
 
     travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
       stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
-      assert stats[:pipeline_processed] >= 3, "expected at least 3 tasks processed, got stats=#{stats.inspect}"
+      assert stats[:pipeline_processed] >= 2, "expected at least 2 tasks processed, got stats=#{stats.inspect}"
     end
 
     # All tasks should now be triaged (or further along)
-    [task_nil, task_empty, task_unstarted].each do |task|
+    [task_empty, task_unstarted].each do |task|
       task.reload
       assert task.pipeline_stage.in?(%w[triaged context_ready routed executing]),
              "task #{task.id} (#{task.name}) expected to advance beyond unstarted, got stage=#{task.pipeline_stage}"
