@@ -2,7 +2,7 @@
   <div class="px-4 md:px-6 py-2 border-t border-border/50 bg-bg-base w-full">
     <%# Mobile: Select dropdown %>
     <div class="md:hidden flex items-center gap-2">
-      <select onchange="if(this.value) Turbo.visit(this.value)"
+      <select onchange="if(this.value) { const f = document.getElementById('board-content'); if(f) { f.src = this.value; history.pushState({}, '', this.value); } else { Turbo.visit(this.value); } }"
               class="flex-1 px-3 py-2 text-sm bg-bg-elevated border border-border rounded-lg text-content focus:outline-none focus:ring-2 focus:ring-accent appearance-none cursor-pointer">
         <% @boards.each do |board| %>
           <% task_count = @board_active_counts[board.id] || 0 %>
@@ -37,7 +37,7 @@
         end %>
         <%= link_to board_path(board),
             class: "inline-flex flex-shrink-0 items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap #{tab_class}",
-            data: { turbo_frame: "_top" } do %>
+            data: { turbo_frame: "board-content", turbo_action: "advance" } do %>
           <span><%= board.icon %></span>
           <span class="max-w-[140px] truncate"><%= board.name %></span>
           <% if task_count > 0 %>
@@ -49,7 +49,8 @@
       <%# Archived link %>
       <% archived_count = @board_archived_count || 0 %>
       <%= link_to archived_board_path(@board),
-          class: "inline-flex flex-shrink-0 items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-content-muted hover:text-content hover:bg-bg-elevated transition-colors whitespace-nowrap" do %>
+          class: "inline-flex flex-shrink-0 items-center gap-1.5 px-2 py-1.5 rounded-md text-xs text-content-muted hover:text-content hover:bg-bg-elevated transition-colors whitespace-nowrap",
+          data: { turbo_frame: "board-content", turbo_action: "advance" } do %>
         📦
         <% if archived_count > 0 %>
           <span class="text-[10px]">(<%= archived_count %>)</span>

@@ -2,6 +2,7 @@
 <% show_agent_preview = %w[in_progress in_review].include?(task.status) && task.agent_session_id.present? %>
 <% show_agent_modal_btn = task.agent_session_id.present? %>
 <% show_error_state = task.errored? %>
+<% blocking_task_ids = local_assigns[:blocking_task_ids] || local_assigns.fetch(:blocking_task_ids_by_task_id, {})[task.id] || Array(task.blocking_tasks).map(&:id) %>
 <%# Model-based left border color %>
 <% model_border_class = case task.model.to_s.downcase
   when /opus/ then "border-l-[3px] border-l-purple-500"
@@ -13,6 +14,7 @@
 end %>
 <%# Nightly card styling %>
 <% nightly_card_class = task.nightly? ? 'task-card-nightly' : '' %>
+<% cache ["task-card", task.cache_key_with_version, task.updated_at.to_i, task.status, blocking_task_ids, current_user&.id, current_user&.agent_last_active_at&.to_i] do %>
 <li id="task_<%= task.id %>"
     role="article"
     aria-label="Task: <%= h(task.name.truncate(80)) %> — <%= task.status.humanize %><%= ', blocked' if task.blocked? %><%= ', error' if show_error_state %>"
@@ -40,7 +42,7 @@ end %>
     data-task-status="<%= task.status %>"
     data-task-position="<%= task.position %>"
     data-task-blocked="<%= task.blocked? %>"
-    data-task-blocking-ids="<%= task.blocking_tasks.pluck(:id).join(',') %>"
+    data-task-blocking-ids="<%= blocking_task_ids.join(',') %>"
     data-task-model="<%= task.model %>"
     data-task-priority="<%= task.priority %>"
     data-task-has-agent="<%= task.assigned_to_agent? %>"
@@ -359,3 +361,4 @@ end %>
     <%= render "boards/tasks/agent_modal", task: task, board: task.board %>
   <% end %>
 </li>
+<% end %>
