@@ -7,6 +7,7 @@ module Zerobitch
   class ConfigGenerator
     BASE_CONFIG_PATH = File.expand_path("~/zeroclaw-fleet/base-config.toml")
     STORAGE_DIR = Rails.root.join("storage", "zerobitch")
+    BASE_DIR = STORAGE_DIR
 
     DEFAULT_AGENTS_MD = <<~MARKDOWN
       # AGENTS.md
