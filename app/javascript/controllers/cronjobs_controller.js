@@ -200,7 +200,7 @@ export default class extends Controller {
     }
 
     const builder = document.querySelector('[data-controller="cron-builder"]')
-    const details = builder?.closest("details")
+    const details = builder?.querySelector("details") || builder?.closest("details")
     if (details) details.open = true
 
     if (builder) {
