@@ -13,15 +13,15 @@ class Task < ApplicationRecord
   belongs_to :user, inverse_of: :tasks
   belongs_to :board, counter_cache: true, inverse_of: :tasks
   belongs_to :agent_persona, optional: true, inverse_of: :tasks
-  belongs_to :parent_task, class_name: "Task", optional: true
-  belongs_to :followup_task, class_name: "Task", optional: true
+  belongs_to :parent_task, class_name: "Task", optional: true, inverse_of: :child_tasks
+  belongs_to :followup_task, class_name: "Task", optional: true, inverse_of: :source_task
   has_many :activities, class_name: "TaskActivity", dependent: :destroy, inverse_of: :task
-  has_many :child_tasks, class_name: "Task", foreign_key: :parent_task_id, dependent: :nullify
-  has_one :source_task, class_name: "Task", foreign_key: :followup_task_id
+  has_many :child_tasks, class_name: "Task", foreign_key: :parent_task_id, dependent: :nullify, inverse_of: :parent_task
+  has_one :source_task, class_name: "Task", foreign_key: :followup_task_id, inverse_of: :followup_task
   has_many :notifications, dependent: :destroy, inverse_of: :task
   has_many :token_usages, dependent: :destroy, inverse_of: :task
   has_many :task_diffs, dependent: :destroy, inverse_of: :task
-  has_many :agent_test_recordings, dependent: :nullify
+  has_many :agent_test_recordings, dependent: :nullify, inverse_of: :task
 
   has_many :task_runs, dependent: :destroy, inverse_of: :task
   has_many :agent_transcripts, dependent: :nullify, inverse_of: :task
