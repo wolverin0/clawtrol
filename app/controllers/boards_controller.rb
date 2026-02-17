@@ -250,7 +250,8 @@ class BoardsController < ApplicationController
 
       if @task.update(status: params[:status])
         # Return rendered HTML so JS can replace the card (updates NEXT button, etc.)
-        html = render_to_string(partial: "boards/task_card", locals: { task: @task })
+        blocking_ids = build_blocking_task_ids([@task])
+        html = render_to_string(partial: "boards/task_card", locals: { task: @task, blocking_task_ids_by_task_id: blocking_ids })
         render json: { success: true, html: html, task_id: @task.id }
       else
         render json: {
@@ -293,12 +294,12 @@ class BoardsController < ApplicationController
         .joins(:board)
         .where(boards: { is_aggregator: false })
         .not_archived
-        .includes(:user, :board, :parent_task, :followup_task, :agent_persona, :runner_leases, :dependencies, :dependents)
+        .includes(:user, :board, :parent_task, :followup_task, :agent_persona, :runner_leases, :dependencies, :dependents, :task_dependencies)
     else
       @is_aggregator = false
       board.tasks
         .not_archived
-        .includes(:user, :board, :parent_task, :followup_task, :agent_persona, :runner_leases, :dependencies, :dependents)
+        .includes(:user, :board, :parent_task, :followup_task, :agent_persona, :runner_leases, :dependencies, :dependents, :task_dependencies)
     end
   end
 
