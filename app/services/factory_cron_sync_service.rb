@@ -1,13 +1,9 @@
 # frozen_string_literal: true
 
 require "json"
-require "net/http"
-require "uri"
+require "open3"
 
 class FactoryCronSyncService
-  OPEN_TIMEOUT = 5
-  READ_TIMEOUT = 30
-
   class << self
     def create_cron(factory_loop)
       factory_agent = first_enabled_agent_for(factory_loop)
@@ -18,62 +14,56 @@ class FactoryCronSyncService
         stack_info: stack_info
       )
 
-      response = request_json(
-        :post,
-        "/api/cron/jobs",
-        body: {
-          name: "🏭 Factory: #{factory_loop.name}",
-          enabled: true,
-          schedule: {
-            kind: "every",
-            everyMs: factory_loop.interval_ms
-          },
-          sessionTarget: "isolated",
-          payload: {
-            kind: "agentTurn",
-            model: model_identifier(factory_loop.model),
-            message: build_prompt_message(factory_loop, stack_info, compiled_context),
-            timeoutSeconds: timeout_seconds(factory_loop)
-          },
-          delivery: {
-            mode: "none"
-          }
-        }
-      )
+      prompt = build_prompt_message(factory_loop, stack_info, compiled_context)
+      interval_min = [(factory_loop.interval_ms / 60_000).round, 1].max
 
-      cron_id = response["id"] || response.dig("job", "id") || response.dig("data", "id")
+      cmd = [
+        "openclaw", "cron", "add",
+        "--name", "🏭 Factory: #{factory_loop.name}",
+        "--every", "#{interval_min}m",
+        "--session", "isolated",
+        "--model", model_identifier(factory_loop.model),
+        "--message", prompt,
+        "--timeout-seconds", timeout_seconds(factory_loop).to_s,
+        "--no-deliver",
+        "--json"
+      ]
+
+      output, status = Open3.capture2(*cmd)
+      raise "openclaw cron add failed (exit #{status.exitstatus}): #{output}" unless status.success?
+
+      parsed = JSON.parse(output)
+      cron_id = parsed["id"] || parsed.dig("job", "id")
       factory_loop.update!(openclaw_cron_id: cron_id) if cron_id.present?
 
-      response
+      parsed
     end
 
     def pause_cron(factory_loop)
       return unless factory_loop.openclaw_cron_id.present?
 
-      request_json(:patch, "/api/cron/jobs/#{factory_loop.openclaw_cron_id}", body: { enabled: false })
+      run_cli("openclaw", "cron", "disable", factory_loop.openclaw_cron_id)
     end
 
     def resume_cron(factory_loop)
       return unless factory_loop.openclaw_cron_id.present?
 
-      request_json(:patch, "/api/cron/jobs/#{factory_loop.openclaw_cron_id}", body: { enabled: true })
+      run_cli("openclaw", "cron", "enable", factory_loop.openclaw_cron_id)
     end
 
     def delete_cron(factory_loop)
       return unless factory_loop.openclaw_cron_id.present?
 
-      request_json(:delete, "/api/cron/jobs/#{factory_loop.openclaw_cron_id}")
+      run_cli("openclaw", "cron", "rm", factory_loop.openclaw_cron_id, "--yes")
       factory_loop.update!(openclaw_cron_id: nil)
     end
 
     private
 
-    def gateway_url
-      ENV.fetch("OPENCLAW_GATEWAY_URL", "http://localhost:18789")
-    end
-
-    def gateway_token
-      ENV.fetch("OPENCLAW_GATEWAY_TOKEN", "")
+    def run_cli(*cmd)
+      output, status = Open3.capture2(*cmd)
+      Rails.logger.warn("FactoryCronSync CLI failed: #{cmd.join(' ')} → #{output}") unless status.success?
+      output
     end
 
     def model_identifier(model_alias)
@@ -87,12 +77,12 @@ class FactoryCronSyncService
         "deepseek" => "openrouter/deepseek/deepseek-r1-0528:free",
         "groq" => "groq/llama-3.3-70b-versatile",
         "cerebras" => "cerebras/llama-3.3-70b"
-      }.fetch(model_alias, model_alias)
+      }.fetch(model_alias.to_s, model_alias.to_s)
     end
 
     def timeout_seconds(factory_loop)
       max_minutes = factory_loop.max_session_minutes.presence || 240
-      [ (max_minutes * 60) - 60, 60 ].max
+      [(max_minutes * 60) - 60, 60].max
     end
 
     def first_enabled_agent_for(factory_loop)
@@ -128,40 +118,6 @@ class FactoryCronSyncService
 
         #{compiled_context}
       PROMPT
-    end
-
-    def request_json(method, path, body: nil)
-      base = URI.parse(gateway_url)
-      uri = base.dup
-      uri.path = path
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = uri.scheme == "https"
-      http.open_timeout = OPEN_TIMEOUT
-      http.read_timeout = READ_TIMEOUT
-
-      request = request_for(method, uri)
-      request["Authorization"] = "Bearer #{gateway_token}"
-      request["Content-Type"] = "application/json"
-      request.body = body.to_json if body
-
-      response = http.request(request)
-      code = response.code.to_i
-      parsed = JSON.parse(response.body.to_s.presence || "{}")
-
-      raise "OpenClaw cron API HTTP #{code}: #{parsed}" unless code.between?(200, 299)
-
-      parsed
-    end
-
-    def request_for(method, uri)
-      case method.to_sym
-      when :post then Net::HTTP::Post.new(uri)
-      when :patch then Net::HTTP::Patch.new(uri)
-      when :delete then Net::HTTP::Delete.new(uri)
-      else
-        raise ArgumentError, "Unsupported HTTP method: #{method}"
-      end
     end
   end
 end
