@@ -1,0 +1,74 @@
+<% content_for :title, "Soul Editor - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🫀 Soul Editor" %>
+
+<div class="py-6"
+     data-controller="soul-editor"
+     data-soul-editor-active-file-value="<%= @active_file %>">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-xl font-bold text-content">Soul Editor</h1>
+      <p class="text-sm text-content-muted mt-1">Edit SOUL.md, IDENTITY.md, USER.md, and AGENTS.md with history + templates.</p>
+    </div>
+  </div>
+
+  <div class="bg-bg-elevated border border-border rounded-xl overflow-hidden">
+    <div class="border-b border-border px-4 py-2 flex gap-2">
+      <% @allowed_files.each do |file_name| %>
+        <button type="button"
+                data-soul-editor-target="fileTab"
+                data-file="<%= file_name %>"
+                data-action="click->soul-editor#switchFile"
+                class="px-3 py-1.5 text-xs rounded-md border border-transparent text-content-muted hover:text-content hover:bg-bg-base transition-colors">
+          <%= file_name.sub(".md", "").capitalize %>
+          <span data-soul-editor-target="dirtyDot" data-file="<%= file_name %>" class="hidden ml-1 text-yellow-400">●</span>
+        </button>
+      <% end %>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-[1fr_18rem] min-h-[70vh]">
+      <div class="p-4 flex flex-col gap-3">
+        <div class="flex items-center gap-2">
+          <span data-soul-editor-target="previewBadge" class="hidden text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">Preview</span>
+          <span data-soul-editor-target="statusText" class="text-xs text-content-muted"></span>
+        </div>
+
+        <textarea data-soul-editor-target="textarea"
+                  data-action="input->soul-editor#onInput keydown->soul-editor#onKeyDown"
+                  class="w-full flex-1 min-h-[58vh] px-4 py-3 rounded-xl bg-[#1a1a2e] border border-border text-content text-sm font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent/50 resize-none"><%= @content %></textarea>
+      </div>
+
+      <aside class="border-t xl:border-t-0 xl:border-l border-border bg-bg-surface">
+        <div class="px-3 pt-3">
+          <div class="grid grid-cols-2 gap-1 bg-bg-base rounded-lg p-1 border border-border">
+            <button type="button" data-soul-editor-target="sidebarTab" data-tab="templates" data-action="click->soul-editor#switchSidebar" class="text-xs px-2 py-1.5 rounded text-content-muted hover:text-content">Templates</button>
+            <button type="button" data-soul-editor-target="sidebarTab" data-tab="history" data-action="click->soul-editor#switchSidebar" class="text-xs px-2 py-1.5 rounded text-content-muted hover:text-content">History</button>
+          </div>
+        </div>
+
+        <div class="p-3 space-y-2 max-h-[60vh] overflow-y-auto" data-soul-editor-target="templatesPanel"></div>
+        <div class="p-3 space-y-2 max-h-[60vh] overflow-y-auto hidden" data-soul-editor-target="historyPanel"></div>
+      </aside>
+    </div>
+
+    <div class="border-t border-border px-4 py-3 flex items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-4 text-content-muted">
+        <span><strong data-soul-editor-target="charCount">0</strong> chars</span>
+        <span>Last modified: <span data-soul-editor-target="lastModified">-</span></span>
+        <span data-soul-editor-target="unsavedLabel" class="hidden text-yellow-400">Unsaved changes</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button"
+                data-action="click->soul-editor#reset"
+                class="px-3 py-1.5 rounded-md text-xs border border-border text-content-muted hover:text-content hover:bg-bg-base">
+          Reset
+        </button>
+        <button type="button"
+                data-soul-editor-target="saveBtn"
+                data-action="click->soul-editor#save"
+                class="px-3 py-1.5 rounded-md text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition-colors">
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

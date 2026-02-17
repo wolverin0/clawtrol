@@ -110,8 +110,22 @@
           </div>
           <div>
             <label class="block text-xs font-medium text-content-muted mb-1">Model (isolated only)</label>
-            <input type="text" data-cron-builder-target="model" placeholder="default"
-                   class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+            <select data-cron-builder-target="model"
+                    class="w-full text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <option value="">Default</option>
+              <option value="opus">Opus</option>
+              <option value="codex">Codex</option>
+              <option value="gemini">Gemini</option>
+              <option value="glm">GLM</option>
+              <option value="sonnet">Sonnet</option>
+              <option value="flash">Flash</option>
+              <option value="minimax">MiniMax</option>
+              <option value="groq-llama">Groq Llama</option>
+              <option value="cerebras-llama">Cerebras Llama</option>
+              <option value="or-deepseek">DeepSeek R1</option>
+              <option value="or-kimi">Kimi K2</option>
+              <option value="mistral-med">Mistral Medium</option>
+            </select>
           </div>
         </div>
 

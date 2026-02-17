@@ -126,8 +126,10 @@ class Task < ApplicationRecord
   attr_accessor :activity_source, :actor_name, :actor_emoji, :activity_note
 
   after_create :record_creation_activity
+  after_create :auto_assign_to_agent
   after_update :record_update_activities
   after_update :create_status_notification, if: :saved_change_to_status?
+  after_save :auto_assign_on_up_next
 
   # Position management
   before_create :set_position
@@ -194,6 +196,20 @@ end
 
 
   private
+
+  # Auto-assign tasks to agent when created with up_next status
+  def auto_assign_to_agent
+    return unless status == "up_next" && !assigned_to_agent?
+
+    update_columns(assigned_to_agent: true, assigned_at: Time.current)
+  end
+
+  # Auto-assign tasks when status changes to up_next
+  def auto_assign_on_up_next
+    return unless saved_change_to_status? && status == "up_next" && !assigned_to_agent?
+
+    update_columns(assigned_to_agent: true, assigned_at: Time.current)
+  end
 
   # Pipeline: executing stage should have compiled_prompt
   def dispatched_requires_plan

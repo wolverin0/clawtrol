@@ -33,6 +33,7 @@ class ConfigHubController < ApplicationController
         description: "Configure bot personality and behavior",
         pages: [
           { name: "Identity & Branding", icon: "🎨", path: identity_config_path, desc: "Name, emoji, avatar, message prefixes" },
+          { name: "Soul Editor",         icon: "🫀", path: soul_editor_path,      desc: "Edit SOUL/IDENTITY/USER/AGENTS with history" },
           { name: "Agent Config",        icon: "🤖", path: agent_config_path,    desc: "Multi-agent setup, workspaces, tools" },
           { name: "Agent Personas",      icon: "🎭", path: agent_personas_path,  desc: "Persona templates for sub-agents" },
           { name: "DM Policy",           icon: "🔐", path: dm_policy_path,       desc: "Pairing, allowlist, open, disabled" },

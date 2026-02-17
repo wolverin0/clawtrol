@@ -66,7 +66,8 @@ export default class extends Controller {
   async create() {
     const job = this.buildJob()
 
-    if (!job.payload?.text && !job.payload?.message) {
+    const inner = job.job || job
+    if (!inner.payload?.text && !inner.payload?.message) {
       this.showStatus("Message/prompt is required", "error")
       return
     }
