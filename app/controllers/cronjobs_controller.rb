@@ -36,6 +36,24 @@ class CronjobsController < ApplicationController
     end
   end
 
+  def update
+    id = params[:id].to_s
+    return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
+
+    client = OpenclawGatewayClient.new(current_user)
+    result = client.cron_update(id, update_params)
+
+    respond_to do |format|
+      format.json { render json: { ok: true, cron: result } }
+      format.html { redirect_to cronjobs_path, notice: "Cron job updated." }
+    end
+  rescue StandardError => e
+    respond_to do |format|
+      format.json { render json: { ok: false, error: e.message }, status: :unprocessable_entity }
+      format.html { redirect_to cronjobs_path, alert: e.message }
+    end
+  end
+
   def destroy
     id = params[:id].to_s
     return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
@@ -107,6 +125,12 @@ class CronjobsController < ApplicationController
     params.permit(:name, :agent_id, :schedule, :enabled, :session_target, :wake_mode, :prompt)
   end
 
+  def update_params
+    params.permit(:name, :enabled, :session_target, :wake_mode,
+                  job: {}, schedule: {}, payload: {}, delivery: {})
+          .to_h.deep_symbolize_keys
+  end
+
   def fetch_cronjobs
     result = Rails.cache.fetch("cronjobs/index/v1/user=#{current_user.id}", expires_in: cache_ttl) do
       run_openclaw_cron_list
@@ -166,7 +190,8 @@ class CronjobsController < ApplicationController
       consecutiveErrors: state["consecutiveErrors"],
       sessionTarget: job["sessionTarget"],
       wakeMode: job["wakeMode"],
-      delivery: job["delivery"]
+      delivery: job["delivery"],
+      payload: job["payload"]
     }
   rescue StandardError
     {

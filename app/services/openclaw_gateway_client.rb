@@ -104,6 +104,10 @@ class OpenclawGatewayClient
     post_json!("/api/cron/delete", body: { id: id })
   end
 
+  def cron_update(id, params)
+    post_json!("/api/cron/update", body: { id: id }.merge(params))
+  end
+
   def cron_run(id)
     post_json!("/api/cron/run", body: { id: id })
   end
