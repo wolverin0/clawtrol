@@ -42,15 +42,19 @@ class FactoryLoop < ApplicationRecord
   after_commit :sync_engine, if: :saved_change_to_status?
 
   def play!
-    update!(status: "playing", last_cycle_at: nil, consecutive_failures: 0)
+    FactoryCronSyncService.create_cron(self) if openclaw_cron_id.blank?
+    FactoryCronSyncService.resume_cron(self) if openclaw_cron_id.present?
+    update!(status: "playing", consecutive_failures: 0)
   end
 
   def pause!
+    FactoryCronSyncService.pause_cron(self)
     update!(status: "paused")
   end
 
   def stop!
-    update!(status: "stopped", state: {})
+    FactoryCronSyncService.delete_cron(self)
+    update!(status: "stopped", state: {}, openclaw_cron_id: nil, openclaw_session_key: nil)
   end
 
   def as_json(options = {})
