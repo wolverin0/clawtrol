@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_17_001117) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_17_022000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -240,7 +240,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_17_001117) do
     t.datetime "updated_at", null: false
     t.index ["factory_agent_id"], name: "index_factory_agent_runs_on_factory_agent_id"
     t.index ["factory_cycle_log_id"], name: "index_factory_agent_runs_on_factory_cycle_log_id"
-    t.index ["factory_loop_id", "factory_agent_id", "created_at"], name: "idx_agent_runs_loop_agent_created"
+    t.index ["factory_loop_id", "factory_agent_id"], name: "idx_on_factory_loop_id_factory_agent_id_bc607850dc"
     t.index ["factory_loop_id"], name: "index_factory_agent_runs_on_factory_loop_id"
     t.index ["status"], name: "index_factory_agent_runs_on_status"
   end
@@ -297,6 +297,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_17_001117) do
     t.index ["status"], name: "index_factory_cycle_logs_on_status"
   end
 
+  create_table "factory_finding_patterns", force: :cascade do |t|
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.text "description", null: false
+    t.integer "dismiss_count", default: 0
+    t.bigint "factory_loop_id"
+    t.string "pattern_hash", null: false
+    t.boolean "suppressed", default: false
+    t.datetime "updated_at", null: false
+    t.index ["factory_loop_id", "pattern_hash"], name: "idx_finding_patterns_loop_hash", unique: true
+    t.index ["factory_loop_id"], name: "index_factory_finding_patterns_on_factory_loop_id"
+    t.index ["suppressed"], name: "index_factory_finding_patterns_on_suppressed"
+  end
+
   create_table "factory_loop_agents", force: :cascade do |t|
     t.integer "confidence_threshold_override"
     t.integer "cooldown_hours_override"
@@ -306,7 +320,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_17_001117) do
     t.bigint "factory_loop_id", null: false
     t.datetime "updated_at", null: false
     t.index ["factory_agent_id"], name: "index_factory_loop_agents_on_factory_agent_id"
-    t.index ["factory_loop_id", "factory_agent_id"], name: "idx_loop_agents_unique", unique: true
+    t.index ["factory_loop_id", "factory_agent_id"], name: "idx_factory_loop_agents_unique", unique: true
     t.index ["factory_loop_id"], name: "index_factory_loop_agents_on_factory_loop_id"
   end
 
@@ -966,6 +980,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_17_001117) do
   add_foreign_key "factory_agent_runs", "factory_cycle_logs"
   add_foreign_key "factory_agent_runs", "factory_loops"
   add_foreign_key "factory_cycle_logs", "factory_loops"
+  add_foreign_key "factory_finding_patterns", "factory_loops"
   add_foreign_key "factory_loop_agents", "factory_agents"
   add_foreign_key "factory_loop_agents", "factory_loops"
   add_foreign_key "factory_loops", "users"

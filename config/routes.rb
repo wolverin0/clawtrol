@@ -134,6 +134,7 @@ Rails.application.routes.draw do
       get "factory/loops/:id/metrics", to: "factory_loops#metrics"
       get "factory/loops/:id/findings", to: "factory_loops#findings"
       post "factory/cycles/:id/complete", to: "factory_cycles#complete"
+      post "factory/finding_patterns/:id/dismiss", to: "factory_finding_patterns#dismiss"
 
       # Agent catalog
       get "factory/agents", to: "factory_agents#index"
@@ -296,6 +297,13 @@ Rails.application.routes.draw do
   # Identity & branding configuration
   get   "identity-config", to: "identity_config#show",   as: :identity_config
   patch "identity-config", to: "identity_config#update",  as: :identity_config_update
+
+  # Soul editor
+  get   "soul-editor", to: "soul_editor#show",      as: :soul_editor
+  patch "soul-editor", to: "soul_editor#update"
+  get   "soul-editor/history", to: "soul_editor#history", as: :soul_editor_history
+  post  "soul-editor/revert", to: "soul_editor#revert", as: :soul_editor_revert
+  get   "soul-editor/templates", to: "soul_editor#templates", as: :soul_editor_templates
 
   # Send policy & access groups
   get   "send-policy", to: "send_policy#show",   as: :send_policy
