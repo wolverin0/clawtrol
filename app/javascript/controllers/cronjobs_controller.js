@@ -322,7 +322,7 @@ export default class extends Controller {
   }
 
   escapeAttr(str) {
-    // minimal attribute escaping
-    return this.escapeHtml(str).replace(/`/g, "&#096;")
+    // minimal attribute escaping — must handle single AND double quotes
+    return this.escapeHtml(str).replace(/`/g, "&#096;").replace(/'/g, "&#39;")
   }
 }

@@ -240,7 +240,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_17_022000) do
     t.datetime "updated_at", null: false
     t.index ["factory_agent_id"], name: "index_factory_agent_runs_on_factory_agent_id"
     t.index ["factory_cycle_log_id"], name: "index_factory_agent_runs_on_factory_cycle_log_id"
-    t.index ["factory_loop_id", "factory_agent_id"], name: "idx_on_factory_loop_id_factory_agent_id_bc607850dc"
+    t.index ["factory_loop_id", "factory_agent_id", "created_at"], name: "idx_agent_runs_loop_agent_created"
     t.index ["factory_loop_id"], name: "index_factory_agent_runs_on_factory_loop_id"
     t.index ["status"], name: "index_factory_agent_runs_on_status"
   end
@@ -320,7 +320,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_17_022000) do
     t.bigint "factory_loop_id", null: false
     t.datetime "updated_at", null: false
     t.index ["factory_agent_id"], name: "index_factory_loop_agents_on_factory_agent_id"
-    t.index ["factory_loop_id", "factory_agent_id"], name: "idx_factory_loop_agents_unique", unique: true
+    t.index ["factory_loop_id", "factory_agent_id"], name: "idx_loop_agents_unique", unique: true
     t.index ["factory_loop_id"], name: "index_factory_loop_agents_on_factory_loop_id"
   end
 

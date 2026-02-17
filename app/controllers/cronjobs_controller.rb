@@ -22,11 +22,19 @@ class CronjobsController < ApplicationController
   end
 
   def create
-    client = OpenclawGatewayClient.new(current_user)
-    result = client.cron_create(cron_params)
+    args = build_cron_add_args
+    result = run_openclaw_cli("cron", "add", *args)
+
+    if result[:exitstatus] != 0
+      error_msg = result[:stderr].to_s.strip.presence || result[:stdout].to_s.strip.presence || "Failed to create cron job"
+      return respond_to do |format|
+        format.json { render json: { ok: false, error: error_msg }, status: :unprocessable_entity }
+        format.html { redirect_to cronjobs_path, alert: error_msg }
+      end
+    end
 
     respond_to do |format|
-      format.json { render json: { ok: true, cron: result } }
+      format.json { render json: { ok: true } }
       format.html { redirect_to cronjobs_path, notice: "Cron job created." }
     end
   rescue StandardError => e
@@ -40,11 +48,20 @@ class CronjobsController < ApplicationController
     id = params[:id].to_s
     return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
 
-    client = OpenclawGatewayClient.new(current_user)
-    result = client.cron_update(id, update_params)
+    patch_data = build_patch_from_params
+    json_arg = JSON.generate(patch_data)
+    result = run_openclaw_cli("cron", "update", id, "--json-input", json_arg)
+
+    if result[:exitstatus] != 0
+      error_msg = result[:stderr].to_s.strip.presence || "Failed to update cron job"
+      return respond_to do |format|
+        format.json { render json: { ok: false, error: error_msg }, status: :unprocessable_entity }
+        format.html { redirect_to cronjobs_path, alert: error_msg }
+      end
+    end
 
     respond_to do |format|
-      format.json { render json: { ok: true, cron: result } }
+      format.json { render json: { ok: true } }
       format.html { redirect_to cronjobs_path, notice: "Cron job updated." }
     end
   rescue StandardError => e
@@ -58,8 +75,15 @@ class CronjobsController < ApplicationController
     id = params[:id].to_s
     return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
 
-    client = OpenclawGatewayClient.new(current_user)
-    client.cron_delete(id)
+    result = run_openclaw_cli("cron", "remove", id)
+
+    if result[:exitstatus] != 0
+      error_msg = result[:stderr].to_s.strip.presence || "Failed to delete cron job"
+      return respond_to do |format|
+        format.json { render json: { ok: false, error: error_msg }, status: :unprocessable_entity }
+        format.html { redirect_to cronjobs_path, alert: error_msg }
+      end
+    end
 
     respond_to do |format|
       format.json { render json: { ok: true } }
@@ -121,14 +145,75 @@ class CronjobsController < ApplicationController
 
   private
 
-  def cron_params
-    params.permit(:name, :agent_id, :schedule, :enabled, :session_target, :wake_mode, :prompt)
+  def build_cron_add_args
+    job = (params[:job] || params).to_unsafe_h.deep_symbolize_keys
+    schedule = job[:schedule] || {}
+    payload = job[:payload] || {}
+    session_target = job[:sessionTarget] || job[:session_target] || "isolated"
+    delivery = job[:delivery] || {}
+
+    args = []
+    args.push("--name", job[:name]) if job[:name].present?
+
+    # Schedule
+    case schedule[:kind]
+    when "cron"
+      args.push("--cron", schedule[:expr].to_s)
+      args.push("--tz", schedule[:tz].to_s) if schedule[:tz].present?
+    when "every"
+      ms = schedule[:everyMs].to_i
+      if ms >= 3_600_000
+        args.push("--every", "#{ms / 3_600_000}h")
+      else
+        args.push("--every", "#{ms / 60_000}m")
+      end
+    when "at"
+      args.push("--at", schedule[:at].to_s)
+    end
+
+    # Session target
+    args.push("--session", session_target)
+
+    # Payload
+    if session_target == "isolated"
+      args.push("--message", payload[:message].to_s) if payload[:message].present?
+      args.push("--model", payload[:model].to_s) if payload[:model].present?
+    else
+      args.push("--system-event", payload[:text].to_s) if payload[:text].present?
+    end
+
+    # Delivery
+    if delivery[:mode] == "announce"
+      args.push("--announce")
+      args.push("--channel", delivery[:channel].to_s) if delivery[:channel].present?
+      args.push("--to", delivery[:to].to_s) if delivery[:to].present?
+    end
+
+    args
   end
 
-  def update_params
-    params.permit(:name, :enabled, :session_target, :wake_mode,
-                  job: {}, schedule: {}, payload: {}, delivery: {})
-          .to_h.deep_symbolize_keys
+  def build_job_from_params
+    job = params[:job] || params
+    {
+      name: job[:name].presence,
+      schedule: job[:schedule]&.to_unsafe_h || {},
+      payload: job[:payload]&.to_unsafe_h || {},
+      sessionTarget: job[:sessionTarget] || job[:session_target] || "isolated",
+      delivery: job[:delivery]&.to_unsafe_h,
+      enabled: true
+    }.compact
+  end
+
+  def build_patch_from_params
+    job = params[:job] || params
+    patch = {}
+    patch[:name] = job[:name] if job.key?(:name)
+    patch[:schedule] = job[:schedule]&.to_unsafe_h if job.key?(:schedule)
+    patch[:payload] = job[:payload]&.to_unsafe_h if job.key?(:payload)
+    patch[:sessionTarget] = job[:sessionTarget] || job[:session_target] if job.key?(:sessionTarget) || job.key?(:session_target)
+    patch[:delivery] = job[:delivery]&.to_unsafe_h if job.key?(:delivery)
+    patch[:enabled] = job[:enabled] if job.key?(:enabled)
+    patch.compact
   end
 
   def fetch_cronjobs
