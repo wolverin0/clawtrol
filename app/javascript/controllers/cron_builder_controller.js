@@ -9,7 +9,7 @@ export default class extends Controller {
                      "cronMinute", "cronHour", "cronDom", "cronMonth", "cronDow", "cronPreview",
                      "intervalValue", "intervalUnit", "atTime",
                      "sessionTarget", "model", "message",
-                     "deliverySection", "deliveryMode", "deliveryChannel",
+                     "deliverySection", "deliveryMode", "deliveryTarget",
                      "jsonPreview", "status"]
 
   connect() {
@@ -128,8 +128,12 @@ export default class extends Controller {
     let delivery = undefined
     if (sessionTarget === "isolated" && this.hasDeliveryModeTarget) {
       delivery = { mode: this.deliveryModeTarget.value }
-      const channel = this.hasDeliveryChannelTarget ? this.deliveryChannelTarget.value.trim() : ""
-      if (channel) delivery.channel = channel
+      const targetVal = this.hasDeliveryTargetTarget ? this.deliveryTargetTarget.value : ""
+      if (targetVal) {
+        const [channel, to] = targetVal.split("|")
+        if (channel) delivery.channel = channel
+        if (to) delivery.to = to
+      }
     }
 
     const job = { schedule, payload, sessionTarget }
