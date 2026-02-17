@@ -6,7 +6,7 @@ class WebhookLog < ApplicationRecord
   strict_loading :n_plus_one
 
   belongs_to :user, inverse_of: :webhook_logs
-  belongs_to :task, optional: true
+  belongs_to :task, optional: true, inverse_of: :webhook_logs
 
   DIRECTIONS = %w[incoming outgoing].freeze
   SENSITIVE_HEADERS = %w[Authorization X-Hook-Token X-Api-Key].freeze

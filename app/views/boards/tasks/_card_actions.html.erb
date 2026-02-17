@@ -31,6 +31,8 @@
   <% end %>
 <% end %>
 
+<%= render "zerobitch/assign_task_button", task: task %>
+
 <%# Agent Activity Button (📟) - always visible when task has agent session %>
 <% if show_agent_modal_btn && has_current_user %>
   <button type="button"

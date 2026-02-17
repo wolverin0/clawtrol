@@ -19,6 +19,7 @@
       <%= button_to "Start", start_zerobitch_agent_path(@agent[:id]), method: :post, class: "rounded-md bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-500" %>
       <%= button_to "Stop", stop_zerobitch_agent_path(@agent[:id]), method: :post, class: "rounded-md bg-yellow-600 px-3 py-2 text-xs font-medium text-white hover:bg-yellow-500" %>
       <%= button_to "Restart", restart_zerobitch_agent_path(@agent[:id]), method: :post, class: "rounded-md bg-orange-600 px-3 py-2 text-xs font-medium text-white hover:bg-orange-500" %>
+      <%= link_to "Memory", zerobitch_agent_memory_path(@agent[:id]), class: "rounded-md bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-500" %>
       <%= button_to "Delete", zerobitch_agent_path(@agent[:id]), method: :delete, class: "rounded-md bg-red-700 px-3 py-2 text-xs font-medium text-white hover:bg-red-600", data: { turbo_confirm: "Delete agent #{@agent[:name]}?" } %>
     </div>
   </div>

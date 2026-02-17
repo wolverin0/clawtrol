@@ -82,4 +82,95 @@ class WorkflowTest < ActiveSupport::TestCase
     assert_not workflows(:inactive_workflow).active?
     assert_nil workflows(:global_workflow).user_id
   end
+
+  # --- More validation edge cases ---
+
+  test "title length maximum is 255" do
+    @workflow.title = "a" * 256
+    assert_not @workflow.valid?
+    assert_includes @workflow.errors[:title], "is too long"
+  end
+
+  test "title can be exactly 255 characters" do
+    @workflow.title = "a" * 255
+    assert @workflow.valid?
+  end
+
+  test "definition accepts nested hash" do
+    @workflow.definition = { "nodes" => [{ "id" => "1", "type" => "task" }], "edges" => [] }
+    assert @workflow.valid?
+  end
+
+  test "definition accepts complex nested structure" do
+    @workflow.definition = {
+      "nodes" => [{ "id" => "1", "config" => { "timeout" => 300 } }],
+      "edges" => [{ "from" => "1", "to" => "2" }],
+      "metadata" => { "version" => "1.0", "author" => "test" }
+    }
+    assert @workflow.valid?
+  end
+
+  test "definition rejects string numbers" do
+    @workflow.definition = "123"
+    assert_not @workflow.valid?
+  end
+
+  test "definition rejects numeric types" do
+    @workflow.definition = 123
+    assert_not @workflow.valid?
+  end
+
+  test "definition rejects boolean" do
+    @workflow.definition = true
+    assert_not @workflow.valid?
+  end
+
+  # --- More scope tests ---
+
+  test "for_user with nil user includes global workflows" do
+    global_wf = workflows(:global_workflow)
+    scoped = Workflow.for_user(nil)
+    assert_includes scoped, global_wf
+  end
+
+  test "for_user returns only user workflows when globals removed" do
+    Workflow.where(user_id: nil).delete_all
+    scoped = Workflow.for_user(@user)
+    assert_equal Workflow.where(user_id: @user.id).order(:id).pluck(:id), scoped.order(:id).pluck(:id)
+  end
+
+  # --- More association tests ---
+
+  test "workflow without user is valid" do
+    workflow = Workflow.new(title: "Global Workflow", definition: {})
+    assert workflow.valid?
+  end
+
+  test "user can have multiple workflows" do
+    Workflow.create!(title: "Another", definition: {}, user: @user)
+    assert_operator @user.workflows.count, :>=, 1
+  end
+
+  test "inverse_of is set for user association" do
+    @workflow.save!
+    assert_equal @workflow, @user.workflows.find(@workflow.id)
+  end
+
+  # --- Active scope tests ---
+
+  test "active scope returns only active workflows" do
+    active = workflows(:user_workflow)
+    inactive = workflows(:inactive_workflow)
+
+    assert_includes Workflow.active, active
+    assert_not_includes Workflow.active, inactive
+  end
+
+  test "inactive scope returns only inactive workflows" do
+    active = workflows(:user_workflow)
+    inactive = workflows(:inactive_workflow)
+
+    assert_includes Workflow.inactive, inactive
+    assert_not_includes Workflow.inactive, active
+  end
 end

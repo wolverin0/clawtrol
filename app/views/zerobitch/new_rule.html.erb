@@ -1,0 +1,62 @@
+<% content_for :title, "New ZeroBitch Rule" %>
+<% templates = Zerobitch::FleetTemplates.all %>
+
+<div class="py-6 max-w-2xl">
+  <h1 class="text-2xl font-bold text-content mb-4">➕ New Auto-scaling Rule</h1>
+
+  <%= form_with url: create_zerobitch_rule_path, method: :post, class: "space-y-4" do |f| %>
+    <div>
+      <label class="block text-xs text-content-muted mb-1">Rule Name</label>
+      <%= text_field_tag :name, nil, required: true, placeholder: "e.g. Scale up on queue backlog", class: "w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-content" %>
+    </div>
+
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 space-y-3">
+      <h2 class="text-sm font-semibold text-content">Condition (IF)</h2>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-content-muted mb-1">Type</label>
+          <%= select_tag :condition_type, options_for_select([
+            ["Running agents below threshold", "idle_agents_below"],
+            ["Agent idle longer than (min)", "idle_timeout"],
+            ["Queue depth exceeds", "queue_depth"],
+            ["Error rate exceeds (%)", "error_rate"]
+          ]), class: "w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-content" %>
+        </div>
+        <div>
+          <label class="block text-xs text-content-muted mb-1">Threshold</label>
+          <%= number_field_tag :condition_threshold, 1, min: 1, class: "w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-content" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-bg-elevated border border-border rounded-xl p-4 space-y-3">
+      <h2 class="text-sm font-semibold text-content">Action (THEN)</h2>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs text-content-muted mb-1">Action</label>
+          <%= select_tag :action_type, options_for_select([
+            ["Spawn from template", "spawn_from_template"],
+            ["Stop idle agents", "stop_idle"],
+            ["Restart unhealthy", "restart_unhealthy"]
+          ]), class: "w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-content" %>
+        </div>
+        <div>
+          <label class="block text-xs text-content-muted mb-1">Template (for spawn)</label>
+          <%= select_tag :template_id, options_for_select(
+            [["— None —", ""]] + templates.map { |t| ["#{t[:emoji]} #{t[:name]}", t[:id]] }
+          ), class: "w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-content" %>
+        </div>
+      </div>
+    </div>
+
+    <label class="inline-flex items-center gap-2 text-sm text-content">
+      <%= check_box_tag :enabled, "1", true %>
+      Enabled
+    </label>
+
+    <div class="flex items-center gap-2">
+      <%= submit_tag "Create Rule", class: "px-4 py-2 rounded-md bg-accent text-white text-sm cursor-pointer" %>
+      <%= link_to "Cancel", zerobitch_rules_path, class: "px-4 py-2 rounded-md border border-border text-sm text-content" %>
+    </div>
+  <% end %>
+</div>

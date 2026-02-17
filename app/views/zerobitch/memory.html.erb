@@ -1,0 +1,80 @@
+<% content_for :title, "#{@agent[:name]} Memory · ZeroBitch" %>
+<% all_agents = Zerobitch::AgentRegistry.all.reject { |a| a[:id] == @agent[:id] } %>
+
+<div class="py-6 max-w-5xl mx-auto px-4 space-y-4">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-content">🧠 <%= @agent[:emoji] %> <%= @agent[:name] %> — Memory</h1>
+      <p class="text-xs text-content-muted mt-1">
+        <% db = Zerobitch::MemoryBrowser.db_path_for(@agent[:id]) %>
+        <% if db %>
+          SQLite: <span class="font-mono"><%= db.sub(Rails.root.to_s + "/", "") %></span>
+        <% else %>
+          No SQLite DB found — showing workspace files
+        <% end %>
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= link_to "← Agent", zerobitch_agent_path(@agent[:id]), class: "px-3 py-2 rounded-md text-xs bg-bg-elevated border border-border text-content hover:border-accent/40" %>
+    </div>
+  </div>
+
+  <%# Search %>
+  <div class="bg-bg-elevated border border-border rounded-xl p-4 space-y-3">
+    <%= form_with url: zerobitch_agent_memory_path(@agent[:id]), method: :get, class: "flex items-center gap-2" do %>
+      <%= text_field_tag :q, @query, placeholder: "Search this agent's memories...", class: "flex-1 rounded-lg border border-border bg-bg-base px-3 py-2 text-sm text-content" %>
+      <%= submit_tag "Search", class: "px-3 py-2 rounded-md bg-accent text-white text-xs cursor-pointer" %>
+      <% if @query.present? %>
+        <%= link_to "Clear", zerobitch_agent_memory_path(@agent[:id]), class: "px-3 py-2 rounded-md border border-border text-xs text-content-muted" %>
+      <% end %>
+    <% end %>
+  </div>
+
+  <%# Transfer %>
+  <% if all_agents.any? && @entries.present? %>
+    <details class="bg-bg-elevated border border-border rounded-xl overflow-hidden">
+      <summary class="px-4 py-3 text-sm font-medium text-content cursor-pointer hover:bg-bg-base/50">
+        📤 Transfer memories to another agent
+      </summary>
+      <div class="border-t border-border px-4 py-3">
+        <%= form_with url: transfer_zerobitch_agent_memory_path(@agent[:id]), method: :post, class: "flex items-center gap-2" do %>
+          <%= select_tag :target_agent_id,
+                options_for_select(all_agents.map { |a| ["#{a[:emoji]} #{a[:name]}", a[:id]] }),
+                class: "rounded-lg border border-border bg-bg-base px-3 py-2 text-sm text-content" %>
+          <%= submit_tag "Transfer All Entries", class: "px-3 py-2 rounded-md bg-indigo-600 text-white text-xs cursor-pointer" %>
+        <% end %>
+        <p class="text-[11px] text-content-muted mt-2">Creates a markdown file in the target agent's memory directory with all entries from this agent.</p>
+      </div>
+    </details>
+  <% end %>
+
+  <%# Results %>
+  <div class="text-xs text-content-muted"><%= @entries.size %> entries<%= " matching \"#{@query}\"" if @query.present? %></div>
+
+  <% if @entries.blank? %>
+    <div class="rounded-xl border border-border bg-bg-elevated p-8 text-center">
+      <p class="text-content-muted">No memory entries found.</p>
+    </div>
+  <% else %>
+    <div class="space-y-2">
+      <% @entries.each do |entry| %>
+        <div class="rounded-xl border border-border bg-bg-elevated p-4">
+          <div class="flex items-center gap-2 text-[11px] text-content-muted mb-2">
+            <span class="px-1.5 py-0.5 rounded bg-bg-base border border-border font-mono"><%= entry[:source] %></span>
+            <span><%= entry[:timestamp] %></span>
+            <% if entry[:agent_name] %>
+              <span class="text-accent"><%= entry[:agent_emoji] %> <%= entry[:agent_name] %></span>
+            <% end %>
+          </div>
+          <pre class="text-sm text-content whitespace-pre-wrap leading-relaxed"><%= entry[:content] %></pre>
+          <% if entry[:metadata]&.any? %>
+            <details class="mt-2">
+              <summary class="text-[11px] text-content-muted cursor-pointer">metadata</summary>
+              <pre class="mt-1 text-[11px] text-content-muted font-mono"><%= JSON.pretty_generate(entry[:metadata]) rescue entry[:metadata].to_s %></pre>
+            </details>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

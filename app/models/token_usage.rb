@@ -6,7 +6,7 @@ class TokenUsage < ApplicationRecord
   strict_loading :n_plus_one
 
   belongs_to :task, inverse_of: :token_usages
-  belongs_to :agent_persona, optional: true
+  belongs_to :agent_persona, optional: true, inverse_of: :token_usages
 
   # Cost per 1M tokens (USD)
   COSTS = {

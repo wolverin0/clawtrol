@@ -8,12 +8,19 @@
      data-agent-id="<%= agent[:id] %>"
      data-action="click->zerobitch-fleet#openAgent">
   <div class="flex items-start justify-between gap-3">
-    <div class="min-w-0">
-      <div class="flex items-center gap-2">
-        <span class="text-xl"><%= agent[:emoji] %></span>
-        <h3 class="text-sm font-semibold text-content truncate"><%= agent[:name] %></h3>
+    <div class="flex items-start gap-2 min-w-0">
+      <input type="checkbox"
+             class="mt-1 rounded border-border bg-bg-base"
+             data-action="click->zerobitch-fleet#consumeClick change->zerobitch-fleet#toggleSelection"
+             data-agent-id="<%= agent[:id] %>"
+             data-zerobitch-fleet-target="agentCheckbox">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="text-xl"><%= agent[:emoji] %></span>
+          <h3 class="text-sm font-semibold text-content truncate"><%= agent[:name] %></h3>
+        </div>
+        <p class="text-xs text-content-muted mt-1 truncate"><%= agent[:role] %></p>
       </div>
-      <p class="text-xs text-content-muted mt-1 truncate"><%= agent[:role] %></p>
     </div>
     <span class="px-2 py-0.5 rounded-full text-xs font-medium border <%= status_classes %>"><%= agent[:status_label] %></span>
   </div>
@@ -22,7 +29,14 @@
     <p><span class="text-content-secondary">Provider:</span> <%= agent[:provider] %></p>
     <p class="truncate"><span class="text-content-secondary">Model:</span> <%= agent[:model] %></p>
     <p><span class="text-content-secondary">RAM:</span> <%= agent[:ram_usage] %></p>
+    <div>
+      <div class="w-full h-1.5 bg-bg-base rounded-full overflow-hidden border border-border/50">
+        <div class="h-full bg-accent" style="width: <%= agent[:ram_percent] || 0 %>%"></div>
+      </div>
+      <p class="mt-1 text-[11px]">Usage: <%= agent[:ram_percent] || 0 %>% of <%= agent[:ram_limit] || "—" %></p>
+    </div>
     <p><span class="text-content-secondary">Uptime:</span> <%= agent[:uptime] %></p>
+    <p><span class="text-content-secondary">Last Activity:</span> <%= agent[:last_activity] %></p>
   </div>
 
   <div class="mt-4 grid grid-cols-2 gap-2" data-action="click->zerobitch-fleet#consumeClick">
@@ -31,6 +45,17 @@
     <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-orange-600/80 hover:bg-orange-500 text-white" data-command="restart" data-agent-id="<%= agent[:id] %>" data-action="click->zerobitch-fleet#invokeAction">🔄 Restart</button>
     <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-red-700/80 hover:bg-red-600 text-white" data-command="delete" data-agent-id="<%= agent[:id] %>" data-action="click->zerobitch-fleet#invokeAction">🗑 Delete</button>
   </div>
+
+  <% if agent[:sparkline_mem]&.any? %>
+    <div class="mt-3 space-y-1" data-action="click->zerobitch-fleet#consumeClick">
+      <div class="text-[10px] text-content-muted">Memory (1h)</div>
+      <svg viewBox="0 0 120 24" class="w-full h-6 text-accent" preserveAspectRatio="none">
+        <% points = agent[:sparkline_mem]; max_v = [points.max || 1, 1].max %>
+        <polyline fill="none" stroke="currentColor" stroke-width="1.5"
+                  points="<%= points.each_with_index.map { |v, i| "#{(i.to_f / [points.size - 1, 1].max * 120).round(1)},#{(24 - v.to_f / max_v * 22).round(1)}" }.join(' ') %>" />
+      </svg>
+    </div>
+  <% end %>
 
   <a href="<%= agent[:detail_path] %>" class="mt-3 inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium bg-accent hover:opacity-90 text-white" data-action="click->zerobitch-fleet#consumeClick">
     Send Task

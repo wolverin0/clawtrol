@@ -33,6 +33,13 @@ class User < ApplicationRecord
   has_one_attached :avatar
   has_one :openclaw_integration_status, dependent: :destroy, inverse_of: :user
 
+  # Scopes for common queries
+  scope :admins, -> { where(admin: true) }
+  scope :active_users, -> { where(active: true) }
+  scope :by_email, ->(email) { where("LOWER(email_address) = ?", email.downcase) }
+  scope :created_after, ->(time) { where("created_at > ?", time) }
+  scope :created_before, ->(time) { where("created_at < ?", time) }
+
   # Security: encrypt sensitive fields at rest using Rails 7+ built-in encryption
   encrypts :ai_api_key
   encrypts :telegram_bot_token

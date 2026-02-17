@@ -40,6 +40,31 @@ class AgentTranscriptTest < ActiveSupport::TestCase
     assert_includes dup.errors[:session_id].join, "already been taken"
   end
 
+  test "session_id cannot exceed 255 characters" do
+    @transcript.session_id = "a" * 256
+    assert_not @transcript.valid?
+  end
+
+  test "session_key can be nil" do
+    @transcript.session_key = nil
+    assert @transcript.valid?
+  end
+
+  test "session_key cannot exceed 255 characters" do
+    @transcript.session_key = "a" * 256
+    assert_not @transcript.valid?
+  end
+
+  test "model can be nil" do
+    @transcript.model = nil
+    assert @transcript.valid?
+  end
+
+  test "model cannot exceed 100 characters" do
+    @transcript.model = "a" * 101
+    assert_not @transcript.valid?
+  end
+
   test "status must be valid" do
     @transcript.status = "invalid"
     assert_not @transcript.valid?
@@ -81,6 +106,16 @@ class AgentTranscriptTest < ActiveSupport::TestCase
     assert with_prompt.all? { |t| t.prompt_text.present? }
     assert_includes with_prompt, agent_transcripts(:parsed)
     assert_not_includes with_prompt, agent_transcripts(:failed)
+  end
+
+  test "for_task returns empty for non-existent task" do
+    result = AgentTranscript.for_task(999999)
+    assert_equal [], result.to_a
+  end
+
+  test "strict_loading_mode is n_plus_one" do
+    transcript = AgentTranscript.new
+    assert_equal :n_plus_one, transcript.class.strict_loading_mode
   end
 
   # --- capture_from_jsonl! ---

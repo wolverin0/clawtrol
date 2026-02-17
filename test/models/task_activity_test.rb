@@ -298,4 +298,69 @@ class TaskActivityTest < ActiveSupport::TestCase
     activity = TaskActivity.new(task: @task, action: "auto_claimed")
     assert_equal "🤖 Auto-claimed by agent", activity.description
   end
+
+  # --- Edge cases ---
+
+  test "description for created via different sources" do
+    sources = %w[api cli webhook import]
+    sources.each do |source|
+      activity = TaskActivity.new(task: @task, action: "created", source: source)
+      assert activity.description.present?
+    end
+  end
+
+  test "description for updated with long field names" do
+    long_field = "a" * 100
+    activity = TaskActivity.new(
+      task: @task,
+      action: "updated",
+      field_name: long_field,
+      old_value: "old",
+      new_value: "new"
+    )
+    assert activity.description.present?
+    assert activity.description.include?(long_field[0..50]) # truncated
+  end
+
+  test "description for updated with nil old and new value" do
+    activity = TaskActivity.new(
+      task: @task,
+      action: "updated",
+      field_name: "status",
+      old_value: nil,
+      new_value: nil
+    )
+    # Should still have a description
+    assert activity.description.present?
+  end
+
+  test "description for moved without from_to" do
+    activity = TaskActivity.new(task: @task, action: "moved")
+    # Falls back to basic description
+    assert activity.description.present?
+  end
+
+  test "actor can be nil" do
+    activity = TaskActivity.new(task: @task, action: "created", actor: nil)
+    assert activity.valid?
+  end
+
+  test "record_creation with minimal params" do
+    task = tasks(:one)
+    activity = TaskActivity.record_creation(task: task)
+    assert_equal "created", activity.action
+    assert_equal task, activity.task
+    assert activity.persisted?
+  end
+
+  test "record_status_change with custom note" do
+    task = tasks(:one)
+    activity = TaskActivity.record_status_change(
+      task: task,
+      from_status: "inbox",
+      to_status: "done",
+      note: "Custom note"
+    )
+    assert_equal "Custom note", activity.note
+  end
 end

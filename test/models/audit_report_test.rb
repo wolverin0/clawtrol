@@ -41,7 +41,7 @@ class AuditReportTest < ActiveSupport::TestCase
   # --- Associations ---
 
   test "has_many behavioral_interventions" do
-    report = audit_reports(:weekly_report)
+    report = AuditReport.create!(user: users(:one), report_type: "weekly", overall_score: 8.0)
     intervention = BehavioralIntervention.create!(
       user: users(:one),
       audit_report: report,
@@ -80,5 +80,124 @@ class AuditReportTest < ActiveSupport::TestCase
   test "validates overall_score can be zero" do
     report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 0)
     assert report.valid?
+  end
+
+  # --- More validation edge cases ---
+
+  test "validates overall_score maximum is 10" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 10.1)
+    assert_not report.valid?
+    assert_includes report.errors[:overall_score], "must be less than or equal to 10"
+  end
+
+  test "validates overall_score at maximum boundary" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 10)
+    assert report.valid?
+  end
+
+  test "validates messages_analyzed must be integer" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5, messages_analyzed: 1.5)
+    assert_not report.valid?
+    assert report.errors[:messages_analyzed].any?
+  end
+
+  test "validates messages_analyzed cannot be negative" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5, messages_analyzed: -1)
+    assert_not report.valid?
+    assert report.errors[:messages_analyzed].any?
+  end
+
+  test "allows nil messages_analyzed" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5)
+    assert report.valid?
+  end
+
+  test "validates session_files_analyzed must be integer" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5, session_files_analyzed: 2.5)
+    assert_not report.valid?
+    assert report.errors[:session_files_analyzed].any?
+  end
+
+  test "validates session_files_analyzed cannot be negative" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5, session_files_analyzed: -1)
+    assert_not report.valid?
+    assert report.errors[:session_files_analyzed].any?
+  end
+
+  test "allows nil session_files_analyzed" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5)
+    assert report.valid?
+  end
+
+  test "validates report_type presence" do
+    report = AuditReport.new(user: users(:one), overall_score: 5)
+    assert_not report.valid?
+    assert report.errors[:report_type].any?
+  end
+
+  test "validates report_path length maximum" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5, report_path: "a" * 501)
+    assert_not report.valid?
+    assert report.errors[:report_path].any?
+  end
+
+  test "allows nil report_path" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5)
+    assert report.valid?
+  end
+
+  test "validates scores must be a hash" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5, scores: "not a hash")
+    assert_not report.valid?
+    assert_includes report.errors[:scores], "must be a JSON object"
+  end
+
+  test "allows valid scores hash" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5, scores: { "test" => 1.0 })
+    assert report.valid?
+  end
+
+  test "validates anti_pattern_counts must be a hash" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5, anti_pattern_counts: [1, 2, 3])
+    assert_not report.valid?
+    assert_includes report.errors[:anti_pattern_counts], "must be a JSON object"
+  end
+
+  test "allows valid anti_pattern_counts hash" do
+    report = AuditReport.new(user: users(:one), report_type: "daily", overall_score: 5, anti_pattern_counts: { "pattern1" => 5 })
+    assert report.valid?
+  end
+
+  # --- Scopes ---
+
+  test "weekly scope returns only weekly reports" do
+    daily = AuditReport.create!(user: users(:one), report_type: "daily", overall_score: 6.0)
+    weekly = AuditReport.create!(user: users(:one), report_type: "weekly", overall_score: 8.0)
+
+    assert_includes AuditReport.weekly, weekly
+    assert_not_includes AuditReport.weekly, daily
+  end
+
+  # --- Associations edge cases ---
+
+  test "has user association" do
+    report = AuditReport.create!(user: users(:one), report_type: "daily", overall_score: 6.0)
+    assert_not_nil report.user
+    assert_equal users(:one), report.user
+  end
+
+  test "behavioral_interventions count is correct" do
+    report = AuditReport.create!(user: users(:one), report_type: "daily", overall_score: 5.0)
+    3.times do |i|
+      BehavioralIntervention.create!(
+        user: users(:one),
+        audit_report: report,
+        rule: "rule_#{i}",
+        category: "test",
+        status: "active"
+      )
+    end
+
+    assert_equal 3, report.behavioral_interventions.count
   end
 end

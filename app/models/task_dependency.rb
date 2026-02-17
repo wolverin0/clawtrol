@@ -11,6 +11,11 @@ class TaskDependency < ApplicationRecord
   validate :no_self_dependency
   validate :no_circular_dependency
 
+  # Scopes for common queries
+  scope :for_task, ->(task) { where(task_id: task.id) }
+  scope :for_depends_on, ->(task) { where(depends_on_id: task.id) }
+  scope :recent, -> { order(created_at: :desc).limit(100) }
+
   private
 
   def no_self_dependency

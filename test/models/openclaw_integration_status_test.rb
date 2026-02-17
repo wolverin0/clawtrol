@@ -86,4 +86,65 @@ class OpenclawIntegrationStatusTest < ActiveSupport::TestCase
     status.reload
     assert_in_delta now, status.memory_search_last_checked_at, 1.second
   end
+
+  # --- Scopes ---
+
+  test "active scope excludes down statuses" do
+    ok_status = OpenclawIntegrationStatus.create!(user: @user, memory_search_status: :ok)
+    down_status = OpenclawIntegrationStatus.create!(user: users(:two), memory_search_status: :down)
+
+    assert_includes OpenclawIntegrationStatus.active, ok_status
+    assert_not_includes OpenclawIntegrationStatus.active, down_status
+  end
+
+  test "degraded scope returns only degraded" do
+    degraded = OpenclawIntegrationStatus.create!(user: @user, memory_search_status: :degraded)
+    ok = OpenclawIntegrationStatus.create!(user: users(:two), memory_search_status: :ok)
+
+    assert_includes OpenclawIntegrationStatus.degraded, degraded
+    assert_not_includes OpenclawIntegrationStatus.degraded, ok
+  end
+
+  test "ok_status scope returns only ok" do
+    ok = OpenclawIntegrationStatus.create!(user: @user, memory_search_status: :ok)
+    degraded = OpenclawIntegrationStatus.create!(user: users(:two), memory_search_status: :degraded)
+
+    assert_includes OpenclawIntegrationStatus.ok_status, ok
+    assert_not_includes OpenclawIntegrationStatus.ok_status, degraded
+  end
+
+  # --- Edge cases ---
+
+  test "memory_search_status accepts string value" do
+    status = OpenclawIntegrationStatus.new(user: @user, memory_search_status: "ok")
+    assert_equal "ok", status.memory_search_status
+  end
+
+  test "memory_search_status rejects invalid value" do
+    status = OpenclawIntegrationStatus.new(user: @user, memory_search_status: "invalid")
+    assert_not status.valid?
+  end
+
+  test "memory_search_last_error can be nil" do
+    status = OpenclawIntegrationStatus.new(user: @user)
+    assert_nil status.memory_search_last_error
+  end
+
+  test "memory_search_last_error_at can be nil" do
+    status = OpenclawIntegrationStatus.new(user: @user)
+    assert_nil status.memory_search_last_error_at
+  end
+
+  test "memory_search_last_checked_at can be nil" do
+    status = OpenclawIntegrationStatus.new(user: @user)
+    assert_nil status.memory_search_last_checked_at
+  end
+
+  test "all memory_search predicates return correct values" do
+    status = OpenclawIntegrationStatus.new(user: @user, memory_search_status: :unknown)
+    assert status.memory_search_unknown?
+    assert_not status.memory_search_ok?
+    assert_not status.memory_search_degraded?
+    assert_not status.memory_search_down?
+  end
 end

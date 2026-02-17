@@ -1,4 +1,52 @@
-<div class="max-w-5xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold text-content">Task History</h1>
-  <p class="mt-2 text-content-secondary">Placeholder task history view for <span class="font-mono"><%= @agent_id %></span>.</p>
+<% content_for :title, "Task History · #{@agent[:name]} · ZeroBitch" %>
+
+<div class="max-w-5xl mx-auto px-4 py-8" data-controller="zerobitch-task-history">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-content"><%= @agent[:emoji] %> <%= @agent[:name] %> — Task History</h1>
+      <p class="text-sm text-content-muted mt-1"><%= @tasks.size %> task<%= @tasks.size == 1 ? "" : "s" %> logged (max 100, FIFO)</p>
+    </div>
+    <div class="flex gap-2">
+      <%= link_to "← Agent", zerobitch_agent_path(@agent[:id]), class: "px-3 py-2 rounded-md text-xs bg-bg-elevated border border-border text-content hover:border-accent/40" %>
+      <% if @tasks.any? %>
+        <%= button_to "Clear All", clear_zerobitch_agent_tasks_path(@agent[:id]), method: :delete,
+              class: "px-3 py-2 rounded-md text-xs bg-red-700 text-white hover:bg-red-600",
+              data: { turbo_confirm: "Clear all task history for #{@agent[:name]}?" } %>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @tasks.empty? %>
+    <div class="rounded-xl border border-border bg-bg-elevated p-8 text-center">
+      <p class="text-content-muted">No tasks dispatched yet.</p>
+      <p class="text-sm text-content-muted mt-1">Send a task from the <a href="<%= zerobitch_agent_path(@agent[:id]) %>" class="text-accent hover:underline">agent detail page</a>.</p>
+    </div>
+  <% else %>
+    <div class="space-y-2">
+      <% @tasks.reverse_each do |task| %>
+        <% success = task[:success] %>
+        <details class="group rounded-xl border border-border bg-bg-elevated overflow-hidden">
+          <summary class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-bg-base/50 transition-colors">
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-medium border <%= success ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-red-500/15 text-red-400 border-red-500/30' %>">
+              <%= success ? "OK" : "FAIL" %>
+            </span>
+            <span class="text-xs text-content-muted font-mono shrink-0"><%= task[:timestamp] %></span>
+            <span class="text-sm text-content truncate flex-1"><%= truncate(task[:prompt].to_s, length: 80) %></span>
+            <span class="text-xs text-content-muted shrink-0"><%= task[:duration_ms] %>ms</span>
+            <svg class="w-4 h-4 text-content-muted group-open:rotate-180 transition-transform shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </summary>
+          <div class="border-t border-border px-4 py-3 space-y-2">
+            <div>
+              <div class="text-[11px] text-content-muted mb-1">Prompt</div>
+              <pre class="rounded-lg border border-border bg-[#141424] p-3 text-xs text-content whitespace-pre-wrap"><%= task[:prompt] %></pre>
+            </div>
+            <div>
+              <div class="text-[11px] text-content-muted mb-1">Result</div>
+              <pre class="rounded-lg border border-border bg-[#141424] p-3 text-xs text-content whitespace-pre-wrap max-h-96 overflow-auto"><%= task[:result].presence || "(no output)" %></pre>
+            </div>
+          </div>
+        </details>
+      <% end %>
+    </div>
+  <% end %>
 </div>

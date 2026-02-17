@@ -1,10 +1,18 @@
 # frozen_string_literal: true
 
 class Board < ApplicationRecord
-  belongs_to :user
+  belongs_to :user, inverse_of: :boards
   has_many :tasks, dependent: :destroy, inverse_of: :board
   has_many :agent_personas, dependent: :nullify, inverse_of: :board
   has_many :swarm_ideas, dependent: :nullify, inverse_of: :board
+
+  # Scopes for common queries
+  scope :for_user, ->(user) { where(user: user) }
+  scope :by_position, -> { order(:position, :name) }
+  scope :by_name, -> { order(:name) }
+  scope :recent, -> { order(updated_at: :desc) }
+  scope :with_tasks, -> { joins(:tasks).distinct }
+  scope :aggregators, -> { where(is_aggregator: true) }
 
   # Enforce eager loading to prevent N+1 queries in views
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn

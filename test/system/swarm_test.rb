@@ -165,4 +165,42 @@ class SwarmLauncherNavigationTest < ApplicationSystemTestCase
     # Button may be disabled or show error on click
     assert launch_button.present?
   end
+
+  test "swarm shows idea status indicators" do
+    @idea.update!(status: "launched")
+
+    visit swarm_path
+
+    assert_selector "body", wait: 10
+
+    # Should show launched status
+    assert_text "launched"
+  end
+
+  test "swarm filters ideas by category" do
+    visit swarm_path
+
+    assert_selector "body", wait: 10
+
+    # Should show category filter options
+    assert_selector "[data-category], select[name='category'], filter", minimum: 1
+  end
+
+  test "swarm shows idea description on expansion" do
+    visit swarm_path
+
+    assert_selector "body", wait: 10
+
+    # Ideas should have descriptions visible
+    assert_text "Refactor", wait: 5
+  end
+
+  test "swarm history shows past launches" do
+    visit swarm_path
+
+    assert_selector "body", wait: 10
+
+    # Should show history section or past launches
+    assert_selector "history, .history, [data-history]", minimum: 1
+  end
 end

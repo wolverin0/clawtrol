@@ -110,4 +110,65 @@ class TaskRunTest < ActiveSupport::TestCase
     tr.save!
     assert_equal "codex", tr.reload.model_used
   end
+
+  # --- Scopes ---
+  test "recent scope orders by created_at desc" do
+    old = build_run(run_number: 1, run_id: SecureRandom.uuid)
+    old.save!
+    old.update_columns(created_at: 1.day.ago)
+    new = build_run(run_number: 2, run_id: SecureRandom.uuid)
+    new.save!
+
+    assert_equal new.id, TaskRun.recent.first.id
+  end
+
+  test "for_task scope filters by task_id" do
+    other_task = Task.create!(name: "Other", board: @board, user: @user)
+    tr1 = build_run(run_number: 1, run_id: SecureRandom.uuid)
+    tr1.save!
+    tr2 = TaskRun.create!(task: other_task, run_id: SecureRandom.uuid, run_number: 1, recommended_action: "in_review")
+
+    assert_includes TaskRun.for_task(@task.id), tr1
+    assert_not_includes TaskRun.for_task(@task.id), tr2
+  end
+
+  test "completed scope excludes in-progress runs" do
+    running = build_run(run_number: 1, run_id: SecureRandom.uuid, ended_at: nil)
+    running.save!
+    finished = build_run(run_number: 2, run_id: SecureRandom.uuid, ended_at: Time.current)
+    finished.save!
+
+    assert_includes TaskRun.completed, finished
+    assert_not_includes TaskRun.completed, running
+  end
+
+  test "in_progress scope returns only runs without ended_at" do
+    running = build_run(run_number: 1, run_id: SecureRandom.uuid, ended_at: nil)
+    running.save!
+    finished = build_run(run_number: 2, run_id: SecureRandom.uuid, ended_at: Time.current)
+    finished.save!
+
+    assert_includes TaskRun.in_progress, running
+    assert_not_includes TaskRun.in_progress, finished
+  end
+
+  test "by_model scope filters by model_used" do
+    tr1 = build_run(run_number: 1, run_id: SecureRandom.uuid, model_used: "opus")
+    tr1.save!
+    tr2 = build_run(run_number: 2, run_id: SecureRandom.uuid, model_used: "gemini")
+    tr2.save!
+
+    assert_includes TaskRun.by_model("opus"), tr1
+    assert_not_includes TaskRun.by_model("opus"), tr2
+  end
+
+  test "needs_follow_up scope returns runs with flag" do
+    tr1 = build_run(run_number: 1, run_id: SecureRandom.uuid, needs_follow_up: true)
+    tr1.save!
+    tr2 = build_run(run_number: 2, run_id: SecureRandom.uuid, needs_follow_up: false)
+    tr2.save!
+
+    assert_includes TaskRun.needs_follow_up, tr1
+    assert_not_includes TaskRun.needs_follow_up, tr2
+  end
 end

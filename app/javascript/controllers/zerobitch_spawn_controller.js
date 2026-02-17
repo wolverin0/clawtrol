@@ -6,6 +6,7 @@ export default class extends Controller {
 
   connect() {
     this.templates = this.readTemplates()
+    this.fleetTemplates = this.readFleetTemplates()
     this.providerChanged()
     this.apiModeChanged()
   }
@@ -28,21 +29,51 @@ export default class extends Controller {
     const templateId = this.templatePickerTarget.value
     if (!templateId) return
 
-    const template = this.templates.find((item) => item.id === templateId)
-    if (!template) return
+    // Fill SOUL from soul templates
+    const soulTemplate = this.templates.find((item) => item.id === templateId)
+    if (soulTemplate) {
+      this.soulAreaTarget.value = soulTemplate.content || ""
+    }
 
-    this.soulAreaTarget.value = template.content || ""
+    // Fill all other fields from fleet templates
+    const fleet = this.fleetTemplates.find((item) => item.id === templateId)
+    if (!fleet) return
+
+    const form = this.element.querySelector("form") || this.element.closest("form")
+    if (!form) return
+
+    const setField = (name, value) => {
+      const el = form.querySelector(`[name="${name}"]`)
+      if (el && value != null) el.value = value
+    }
+
+    setField("name", fleet.id)
+    setField("emoji", fleet.emoji)
+    setField("role", fleet.role)
+    setField("mode", fleet.mode)
+    setField("model", fleet.suggested_model)
+    setField("autonomy", fleet.autonomy)
+
+    // Fill AGENTS.md
+    const agentsArea = form.querySelector("[name='agents_content']")
+    if (agentsArea && fleet.agents_content) agentsArea.value = fleet.agents_content
+
+    // Set allowed commands checkboxes
+    const checkboxes = form.querySelectorAll("[name='allowed_commands[]']")
+    const allowed = fleet.allowed_commands || []
+    checkboxes.forEach(cb => { cb.checked = allowed.includes(cb.value) })
   }
 
   readTemplates() {
     const node = document.getElementById("zerobitch-soul-templates")
     if (!node) return []
+    try { return JSON.parse(node.textContent) } catch (_) { return [] }
+  }
 
-    try {
-      return JSON.parse(node.textContent)
-    } catch (_error) {
-      return []
-    }
+  readFleetTemplates() {
+    const node = document.getElementById("zerobitch-fleet-templates")
+    if (!node) return []
+    try { return JSON.parse(node.textContent) } catch (_) { return [] }
   }
 
   escapeHtml(value) {

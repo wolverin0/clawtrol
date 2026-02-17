@@ -4,7 +4,7 @@ class InviteCode < ApplicationRecord
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
   strict_loading :n_plus_one
 
-  belongs_to :created_by, class_name: "User"
+  belongs_to :created_by, class_name: "User", inverse_of: :invite_codes
 
   validates :code, presence: true, uniqueness: true, length: { is: 8 }, format: { with: /\A[A-Z0-9]+\z/ }
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
