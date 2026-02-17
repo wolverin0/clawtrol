@@ -15,6 +15,7 @@ class FactoryLoop < ApplicationRecord
   has_many :factory_loop_agents, dependent: :destroy, inverse_of: :factory_loop
   has_many :factory_agents, through: :factory_loop_agents
   has_many :factory_agent_runs, dependent: :destroy, inverse_of: :factory_loop
+  has_many :factory_finding_patterns, dependent: :destroy, inverse_of: :factory_loop
 
   STATUSES = %w[idle playing paused stopped error error_paused].freeze
 
