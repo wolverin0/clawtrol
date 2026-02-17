@@ -131,8 +131,18 @@
               <option value="announce">Announce</option>
               <option value="none">None (silent)</option>
             </select>
-            <input type="text" data-cron-builder-target="deliveryChannel" placeholder="channel (optional)"
-                   class="flex-1 text-sm text-content font-mono bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none" />
+            <select data-cron-builder-target="deliveryTarget"
+                    class="flex-1 text-sm text-content bg-bg-base rounded px-2 py-1.5 border border-border focus:border-accent focus:outline-none">
+              <option value="">(default — last active channel)</option>
+              <option value="telegram|2128295779">💬 Telegram DM (Snake)</option>
+              <option value="telegram|-1003748927245:1">📢 MC: General</option>
+              <option value="telegram|-1003748927245:21">🔧 MC: Infra</option>
+              <option value="telegram|-1003748927245:22">📊 MC: Self-Audit</option>
+              <option value="telegram|-1003748927245:23">💰 MC: Finanzas</option>
+              <option value="telegram|-1003748927245:24">🔬 MC: Research</option>
+              <option value="telegram|-1003748927245:25">💻 MC: Dev</option>
+              <option value="telegram|-1003748927245:27">👤 MC: Asistente</option>
+            </select>
           </div>
         </div>
 
