@@ -15,20 +15,29 @@ class FactoryPromptCompiler
     <<~PROMPT
       #{@agent.system_prompt}
 
-      Stack detection:
+      Context:
+      - loop: #{@loop.name} (##{@loop.id})
+      - workspace: #{workspace_path}
       - framework: #{@stack_info[:framework]}
       - language: #{@stack_info[:language]}
-      - test_command: #{@stack_info[:test_command]}
       - syntax_check: #{@stack_info[:syntax_check]}
+      - test_command: #{@stack_info[:test_command]}
 
-      Recent improvement log entries (last 5):
-      #{format_list(recent_improvement_entries)}
+      Backlog (open items):
+      #{format_list(backlog_items)}
 
-      Unchecked backlog items:
-      #{format_list(unchecked_backlog_items)}
+      Recent improvements (latest cycles):
+      #{format_list(recent_improvements)}
 
-      Recent known findings (avoid duplicates):
-      #{format_list(recent_patterns)}
+      Known finding patterns (dedup target):
+      #{format_list(finding_patterns)}
+
+      Execution rules:
+      - Keep changes minimal and safe.
+      - Address one clear improvement from backlog when possible.
+      - Avoid repeating known findings.
+      - Ensure syntax check and tests pass before finishing.
+      - If verification fails, revert the worktree to previous clean state.
     PROMPT
   end
 
@@ -38,42 +47,37 @@ class FactoryPromptCompiler
     @loop.workspace_path.presence || Rails.root.to_s
   end
 
-  def improvement_log_path
-    File.join(workspace_path, "IMPROVEMENT_LOG.md")
-  end
-
-  def backlog_path
+  def backlog_file_path
     configured = @loop.respond_to?(:backlog_path) ? @loop.backlog_path : nil
     File.join(workspace_path, configured.presence || "FACTORY_BACKLOG.md")
   end
 
-  def recent_improvement_entries
-    return [] unless File.exist?(improvement_log_path)
+  def backlog_items
+    return [] unless File.exist?(backlog_file_path)
 
-    File.readlines(improvement_log_path, chomp: true)
+    File.readlines(backlog_file_path, chomp: true)
         .map(&:strip)
-        .reject(&:blank?)
-        .last(5)
-  rescue StandardError
-    []
-  end
-
-  def unchecked_backlog_items
-    return [] unless File.exist?(backlog_path)
-
-    File.readlines(backlog_path, chomp: true)
         .filter_map do |line|
-      normalized = line.strip
-      next unless normalized.start_with?("- [ ]")
+      next unless line.start_with?("- [ ]")
 
-      normalized.sub(/^- \[ \]\s*/, "")
+      line.sub(/^- \[ \]\s*/, "")
     end
   rescue StandardError
     []
   end
 
-  def recent_patterns
-    @loop.factory_finding_patterns.order(updated_at: :desc).limit(10).map do |pattern|
+  def recent_improvements
+    @loop.factory_cycle_logs.recent.limit(5).pluck(:summary).compact.map(&:strip).reject(&:blank?)
+  end
+
+  def finding_patterns
+    scope = if @loop.factory_finding_patterns.respond_to?(:active)
+      @loop.factory_finding_patterns.active
+    else
+      @loop.factory_finding_patterns
+    end
+
+    scope.order(updated_at: :desc).limit(10).map do |pattern|
       category = pattern.category.presence || "uncategorized"
       "[#{category}] #{pattern.description}"
     end
@@ -82,6 +86,6 @@ class FactoryPromptCompiler
   def format_list(items)
     return "- none" if items.blank?
 
-    items.map { |entry| "- #{entry}" }.join("\n")
+    items.map { |item| "- #{item}" }.join("\n")
   end
 end

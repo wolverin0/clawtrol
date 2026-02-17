@@ -15,18 +15,20 @@ class FactoryStackDetectorTest < ActiveSupport::TestCase
       assert_equal "rails", result[:framework]
       assert_equal "ruby", result[:language]
       assert_equal "bin/rails test", result[:test_command]
+      assert_includes result[:syntax_check], "ruby -c"
     end
   end
 
-  test "detects python stack" do
+  test "detects node stack" do
     Dir.mktmpdir do |dir|
-      File.write(File.join(dir, "requirements.txt"), "pytest")
+      File.write(File.join(dir, "package.json"), "{}")
 
       result = FactoryStackDetector.call(dir)
 
-      assert_equal "python", result[:framework]
-      assert_equal "python", result[:language]
-      assert_equal "pytest", result[:test_command]
+      assert_equal "node", result[:framework]
+      assert_equal "javascript", result[:language]
+      assert_equal "npm test", result[:test_command]
+      assert_includes result[:syntax_check], "node --check"
     end
   end
 
@@ -36,6 +38,7 @@ class FactoryStackDetectorTest < ActiveSupport::TestCase
 
       assert_equal "unknown", result[:framework]
       assert_equal "true", result[:test_command]
+      assert_equal "true", result[:syntax_check]
     end
   end
 end
