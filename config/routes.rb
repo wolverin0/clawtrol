@@ -134,6 +134,18 @@ Rails.application.routes.draw do
       get "factory/loops/:id/metrics", to: "factory_loops#metrics"
       post "factory/cycles/:id/complete", to: "factory_cycles#complete"
 
+      # Agent catalog
+      get "factory/agents", to: "factory_agents#index"
+      post "factory/agents", to: "factory_agents#create"
+      get "factory/agents/:id", to: "factory_agents#show"
+      patch "factory/agents/:id", to: "factory_agents#update"
+
+      # Loop-agent config (nested under loops)
+      get "factory/loops/:loop_id/agents", to: "factory_loop_agents#index"
+      post "factory/loops/:loop_id/agents/:agent_id/enable", to: "factory_loop_agents#enable"
+      post "factory/loops/:loop_id/agents/:agent_id/disable", to: "factory_loop_agents#disable"
+      patch "factory/loops/:loop_id/agents/:agent_id", to: "factory_loop_agents#update"
+
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
 
@@ -576,6 +588,7 @@ Rails.application.routes.draw do
 
   # File viewer (workspace files, no auth)
   get "view", to: "file_viewer#show"
+  put "view", to: "file_viewer#update"
   get "files", to: "file_viewer#browse", as: :browse_files
 
   resources :audits, only: [:index] do
