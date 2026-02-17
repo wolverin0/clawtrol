@@ -3,6 +3,31 @@
 All notable changes to ClawTrol are documented here.
 Generated automatically from [conventional commits](https://www.conventionalcommits.org/).
 
+## [Unreleased]
+
+### 🚀 Features
+
+### 🐛 Bug Fixes
+
+### 📚 Documentation
+
+- **readme:** explain what ZeroBitch is — swarm orchestration for ZeroClaw instances (`5c671ab`)
+- update CHANGELOG.md [skip ci] (`2d984fb`)
+### ♻️  Refactoring
+
+### ⚡ Performance
+
+### 🧪 Tests
+
+### 👷 CI
+
+### 💄 Style
+
+### 📦 Build
+
+### 🔧 Chores
+
+
 ## [v0.9.0] — 2026-02-17
 
 ### 🚀 Features
