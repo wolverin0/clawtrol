@@ -21,7 +21,7 @@
       </li>
     <% end %>
     <% tasks.each do |task| %>
-      <%= render "boards/task_card", task: task %>
+      <%= render "boards/task_card", task: task, blocking_task_ids: (local_assigns[:blocking_task_ids_by_task_id] || {})[task.id] %>
     <% end %>
   </ul>
 
