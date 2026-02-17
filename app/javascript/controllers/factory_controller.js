@@ -13,7 +13,7 @@ export default class extends Controller {
     "searchInput", "filterBtn", "sortSelect",
     "detailPanel", "panelBackdrop", "panelIcon", "panelName", "panelSlug", "panelBadge",
     "tabBar", "tabBtn", "tabSettings", "tabLogs", "tabMetrics", "tabAgents", "tabFindings",
-    "propName", "propSlug", "propWorkspacePath", "propDesc", "propIconCustom", "iconPicker",
+    "propName", "propSlug", "propWorkspacePath", "propWorkBranch", "propDesc", "propIconCustom", "iconPicker",
     "propModel", "propFallback", "intervalPicker", "intervalDisplay",
     "propPrompt", "propConfig",
     "saveBtn", "revertBtn",
@@ -235,7 +235,6 @@ export default class extends Controller {
     if (this.hasPanelIconTarget) this.panelIconTarget.textContent = loop.icon
     if (this.hasPanelNameTarget) this.panelNameTarget.textContent = loop.name
     if (this.hasPanelSlugTarget) this.panelSlugTarget.textContent = loop.slug || "—"
-    if (this.hasPropWorkspacePathTarget) this.propWorkspacePathTarget.textContent = loop.workspace_path || "—"
     if (this.hasPanelBadgeTarget) {
       this.panelBadgeTarget.textContent = loop.status
       this.panelBadgeTarget.className = `ml-2 text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide ${this.statusBadgeClass(loop.status)}`
@@ -244,6 +243,8 @@ export default class extends Controller {
     // Settings fields
     if (this.hasPropNameTarget) this.propNameTarget.value = loop.name || ""
     if (this.hasPropSlugTarget) this.propSlugTarget.textContent = loop.slug || "—"
+    if (this.hasPropWorkspacePathTarget) this.propWorkspacePathTarget.value = loop.workspace_path || ""
+    if (this.hasPropWorkBranchTarget) this.propWorkBranchTarget.value = loop.work_branch || "factory/auto"
     if (this.hasPropDescTarget) this.propDescTarget.value = loop.description || ""
     if (this.hasPropIconCustomTarget) this.propIconCustomTarget.value = loop.icon || ""
     if (this.hasPropModelTarget) this.propModelTarget.value = loop.model || "opus"
@@ -475,6 +476,7 @@ export default class extends Controller {
   captureSnapshot(loop) {
     return {
       name: loop.name || "", description: loop.description || "", icon: loop.icon || "",
+      workspace_path: loop.workspace_path || "", work_branch: loop.work_branch || "factory/auto",
       model: loop.model || "", fallback_model: loop.fallback_model || "",
       interval_ms: loop.interval_ms, system_prompt: loop.system_prompt || "",
       config: JSON.stringify(typeof loop.config === "object" ? loop.config : {})
@@ -532,6 +534,8 @@ export default class extends Controller {
     // Read values from form
     loop.name = this.hasPropNameTarget ? this.propNameTarget.value : loop.name
     loop.description = this.hasPropDescTarget ? this.propDescTarget.value : loop.description
+    loop.workspace_path = this.hasPropWorkspacePathTarget ? this.propWorkspacePathTarget.value.trim() : loop.workspace_path
+    loop.work_branch = this.hasPropWorkBranchTarget ? this.propWorkBranchTarget.value.trim() : loop.work_branch
     loop.icon = this.hasPropIconCustomTarget ? (this.propIconCustomTarget.value || loop.icon) : loop.icon
     loop.model = this.hasPropModelTarget ? this.propModelTarget.value : loop.model
     loop.fallback_model = this.hasPropFallbackTarget ? this.propFallbackTarget.value : loop.fallback_model
@@ -554,6 +558,7 @@ export default class extends Controller {
       body: JSON.stringify({
         factory_loop: {
           name: loop.name, slug: loop.slug, description: loop.description, icon: loop.icon,
+          workspace_path: loop.workspace_path, work_branch: loop.work_branch,
           model: loop.model, fallback_model: loop.fallback_model, interval_ms: loop.interval_ms,
           system_prompt: loop.system_prompt, config: configVal
         }
@@ -579,6 +584,7 @@ export default class extends Controller {
 
     Object.assign(loop, {
       name: this._snapshot.name, description: this._snapshot.description,
+      workspace_path: this._snapshot.workspace_path, work_branch: this._snapshot.work_branch,
       icon: this._snapshot.icon, model: this._snapshot.model,
       fallback_model: this._snapshot.fallback_model, interval_ms: this._snapshot.interval_ms,
       system_prompt: this._snapshot.system_prompt

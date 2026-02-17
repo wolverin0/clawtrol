@@ -7,12 +7,20 @@ module Api
 
       def index
         loops = current_user.factory_loops.by_status(params[:status]).ordered
-        render json: loops
+        render json: loops.map { |loop|
+          loop.as_json(only: [
+            :id, :name, :slug, :description, :icon, :status, :interval_ms,
+            :model, :fallback_model, :system_prompt, :workspace_path, :work_branch,
+            :total_cycles, :total_errors, :avg_cycle_duration_ms, :last_cycle_at, :last_error_message,
+            :config
+          ])
+        }
       end
 
       def show
+        recent_logs = @loop.factory_cycle_logs.order(started_at: :desc).limit(10)
         render json: @loop.as_json.merge(
-          recent_cycles: @loop.factory_cycle_logs.recent.limit(10)
+          recent_logs: recent_logs.as_json(only: [ :id, :status, :summary, :started_at, :finished_at, :duration_ms ])
         )
       end
 
@@ -66,17 +74,7 @@ module Api
       end
 
       def findings
-        runs = @loop.factory_agent_runs
-                    .includes(:factory_agent)
-                    .where(status: "findings")
-                    .order(created_at: :desc)
-                    .limit(50)
-
-        render json: runs.map { |run|
-          run.as_json.merge(
-            factory_agent: run.factory_agent&.as_json(only: [ :id, :name, :slug, :category ])
-          )
-        }
+        render json: @loop.factory_finding_patterns.order(updated_at: :desc).limit(100)
       end
 
       private
@@ -86,13 +84,19 @@ module Api
       end
 
       def factory_loop_params
-        params.permit(
+        attrs = [
           :name, :slug, :description, :icon, :status, :interval_ms, :model,
-          :fallback_model, :system_prompt, :openclaw_cron_id, :openclaw_session_key,
-          :last_cycle_at, :last_error_at, :last_error_message, :total_cycles,
-          :total_errors, :avg_cycle_duration_ms,
+          :fallback_model, :system_prompt, :workspace_path, :work_branch,
+          :openclaw_cron_id, :openclaw_session_key, :last_cycle_at, :last_error_at,
+          :last_error_message, :total_cycles, :total_errors, :avg_cycle_duration_ms,
           state: {}, config: {}, metrics: {}
-        )
+        ]
+
+        if params[:factory_loop].present?
+          params.require(:factory_loop).permit(*attrs)
+        else
+          params.permit(*attrs)
+        end
       end
     end
   end
