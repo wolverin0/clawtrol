@@ -21,6 +21,7 @@ module Zerobitch
 
           {
             name: name,
+            state: row["State"],
             status: row["Status"],
             ports: row["Ports"],
             created: row["RunningFor"],
