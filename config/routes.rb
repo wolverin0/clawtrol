@@ -322,11 +322,14 @@ Rails.application.routes.draw do
     get "/agents/:id/tasks", to: "zerobitch#task_history", as: :zerobitch_agent_tasks
     delete "/agents/:id/tasks", to: "zerobitch#clear_task_history", as: :clear_zerobitch_agent_tasks
     get "/agents/:id/memory", to: "zerobitch#memory", as: :zerobitch_agent_memory
+    post "/agents/:id/memory/transfer", to: "zerobitch#transfer_memory", as: :transfer_zerobitch_agent_memory
     post "/assign_task", to: "zerobitch#assign_task", as: :zerobitch_assign_task
     get "/rules", to: "zerobitch#rules", as: :zerobitch_rules
     get "/rules/new", to: "zerobitch#new_rule", as: :new_zerobitch_rule
     post "/rules", to: "zerobitch#create_rule", as: :create_zerobitch_rule
     post "/rules/evaluate", to: "zerobitch#evaluate_rules", as: :evaluate_zerobitch_rules
+    post "/rules/:rule_id/toggle", to: "zerobitch#toggle_rule", as: :toggle_zerobitch_rule
+    delete "/rules/:rule_id", to: "zerobitch#destroy_rule", as: :destroy_zerobitch_rule
     patch "/agents/:id/soul", to: "zerobitch#save_soul", as: :zerobitch_agent_soul
     patch "/agents/:id/agents_file", to: "zerobitch#save_agents", as: :zerobitch_agent_agents_file
   end

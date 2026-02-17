@@ -1,0 +1,12 @@
+<% agents = Zerobitch::AgentRegistry.all %>
+<% return if agents.empty? %>
+
+<%= form_with url: zerobitch_assign_task_path, method: :post, class: "inline-flex items-center gap-1" do %>
+  <%= hidden_field_tag :task_id, task.id %>
+  <%= select_tag :agent_id,
+      options_for_select(agents.map { |agent| ["#{agent[:emoji]} #{agent[:name]}", agent[:id]] }),
+      class: "text-[10px] rounded border border-border bg-bg-surface px-1.5 py-0.5 text-content-muted" %>
+  <%= button_tag "🐕 Run with ZeroClaw",
+      type: :submit,
+      class: "px-1.5 py-0.5 text-[10px] bg-indigo-600/80 hover:bg-indigo-500 text-white rounded transition-colors" %>
+<% end %>

@@ -13,6 +13,14 @@ class TaskDiff < ApplicationRecord
   validates :diff_type, presence: true, inclusion: { in: DIFF_TYPES }
   validates :diff_content, length: { maximum: 500_000 }, allow_nil: true
 
+  # Scopes for common queries
+  scope :for_task, ->(task) { where(task_id: task.id) }
+  scope :by_type, ->(type) { where(diff_type: type) }
+  scope :added, -> { where(diff_type: "added") }
+  scope :modified, -> { where(diff_type: "modified") }
+  scope :deleted, -> { where(diff_type: "deleted") }
+  scope :recent, -> { order(created_at: :desc).limit(50) }
+
   # Parse the unified diff into structured lines for rendering
   def parsed_lines
     return [] if diff_content.blank?

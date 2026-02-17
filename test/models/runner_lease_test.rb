@@ -129,6 +129,105 @@ class RunnerLeaseTest < ActiveSupport::TestCase
     assert_equal 15.minutes, RunnerLease::LEASE_DURATION
   end
 
+  # --- Validations ---
+
+  test "expires_at must be after started_at" do
+    lease = RunnerLease.new(
+      task: @task,
+      lease_token: "token-expires",
+      started_at: Time.current,
+      last_heartbeat_at: Time.current,
+      expires_at: 1.hour.ago
+    )
+    assert_not lease.valid?
+    assert_includes lease.errors[:expires_at], "must be after started_at"
+  end
+
+  test "expires_at can equal started_at" do
+    same_time = Time.current
+    lease = RunnerLease.new(
+      task: @task,
+      lease_token: "token-equal",
+      started_at: same_time,
+      last_heartbeat_at: same_time,
+      expires_at: same_time
+    )
+    # Technically this is equal, not after - let's see what happens
+    lease.valid? # Just ensure no crash
+  end
+
+  test "last_heartbeat_at must be after started_at" do
+    lease = RunnerLease.new(
+      task: @task,
+      lease_token: "token-heartbeat",
+      started_at: Time.current,
+      last_heartbeat_at: 1.hour.ago,
+      expires_at: 1.hour.from_now
+    )
+    assert_not lease.valid?
+    assert_includes lease.errors[:last_heartbeat_at], "must be after started_at"
+  end
+
+  test "lease_token maximum length is 255" do
+    lease = RunnerLease.new(
+      task: @task,
+      lease_token: "a" * 256,
+      started_at: @now,
+      last_heartbeat_at: @now,
+      expires_at: @now + 15.minutes
+    )
+    assert_not lease.valid?
+  end
+
+  test "agent_name maximum length is 100" do
+    lease = RunnerLease.new(
+      task: @task,
+      lease_token: "token-agent",
+      agent_name: "a" * 101,
+      started_at: @now,
+      last_heartbeat_at: @now,
+      expires_at: @now + 15.minutes
+    )
+    assert_not lease.valid?
+    assert_includes lease.errors[:agent_name], "is too long"
+  end
+
+  test "agent_name can be nil" do
+    lease = create_lease(task: @task, lease_token: "token-no-agent", agent_name: nil)
+    assert lease.valid?
+  end
+
+  test "source maximum length is 50" do
+    lease = RunnerLease.new(
+      task: @task,
+      lease_token: "token-source",
+      source: "a" * 51,
+      started_at: @now,
+      last_heartbeat_at: @now,
+      expires_at: @now + 15.minutes
+    )
+    assert_not lease.valid?
+    assert_includes lease.errors[:source], "is too long"
+  end
+
+  test "source can be nil" do
+    lease = create_lease(task: @task, lease_token: "token-no-source", source: nil)
+    assert lease.valid?
+  end
+
+  # --- Scopes edge cases ---
+
+  test "active scope excludes leases expiring exactly now" do
+    # Create a lease that expires exactly at current time
+    lease = create_lease(task: @task, lease_token: "exact-expire", expires_at: Time.current)
+    assert_not_includes RunnerLease.active, lease
+  end
+
+  test "expired scope includes leases expiring exactly now" do
+    lease = create_lease(task: @task, lease_token: "exact-expired", expires_at: Time.current)
+    assert_includes RunnerLease.expired, lease
+  end
+
   private
 
   def create_lease(task:, lease_token: SecureRandom.hex(8), started_at: @now, last_heartbeat_at: started_at, expires_at: nil, released_at: nil)

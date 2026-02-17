@@ -218,3 +218,114 @@ class BoardNavigationTest < ApplicationSystemTestCase
     assert_selector "[data-status]", minimum: 5
   end
 end
+
+class BoardFiltersTest < ApplicationSystemTestCase
+  setup do
+    @user = users(:one)
+    @board = boards(:one)
+    @task = tasks(:one)
+    @task.update!(user: @user, board: @board, tags: ["bug", "urgent"])
+
+    sign_in_as(@user)
+  end
+
+  test "board shows task with tags" do
+    visit board_path(@board)
+
+    assert_selector "h2", text: "Inbox", wait: 5
+    assert_text "bug"
+  end
+
+  test "board shows task priority indicator when set" do
+    @task.update!(priority: "high")
+
+    visit board_path(@board)
+
+    assert_selector "h2", text: "Inbox", wait: 5
+    # Should show high priority indicator
+    assert_selector "[data-priority='high'], .text-red"
+  end
+
+  test "board shows task assignee when set" do
+    @task.update!(assignee: "agent")
+
+    visit board_path(@board)
+
+    assert_selector "h2", text: "Inbox", wait: 5
+    assert_text "agent"
+  end
+
+  test "board shows due date when set" do
+    @task.update!(due_date: Date.today + 3.days)
+
+    visit board_path(@board)
+
+    assert_selector "h2", text: "Inbox", wait: 5
+    # Should display due date
+    assert_text "3"
+  end
+end
+
+class BoardKanbanTest < ApplicationSystemTestCase
+  setup do
+    @user = users(:one)
+    @board = boards(:one)
+    @task = tasks(:one)
+    @task.update!(user: @user, board: @board)
+
+    sign_in_as(@user)
+  end
+
+  test "kanban columns have correct data attributes" do
+    visit board_path(@board)
+
+    assert_selector "h2", text: "Inbox", wait: 5
+
+    # Check inbox column has correct data attribute
+    inbox = find("[data-status='inbox']")
+    assert_equal "inbox", inbox["data-status"]
+  end
+
+  test "task cards have required identifiers" do
+    visit board_path(@board)
+
+    assert_selector "h2", text: "Inbox", wait: 5
+    assert_selector "#task_#{@task.id}"
+  end
+
+  test "columns maintain order" do
+    # Create multiple tasks
+    3.times do |i|
+      Task.create!(name: "Task #{i}", board: @board, user: @user, status: "inbox")
+    end
+
+    visit board_path(@board)
+
+    assert_selector "h2", text: "Inbox", wait: 5
+
+    # Multiple tasks should be visible
+    assert_selector "#task_", minimum: 3
+  end
+end
+
+class BoardPerformanceTest < ApplicationSystemTestCase
+  setup do
+    @user = users(:one)
+    @board = boards(:one)
+    @task = tasks(:one)
+    @task.update!(user: @user, board: @board)
+
+    sign_in_as(@user)
+  end
+
+  test "board loads within reasonable time" do
+    start_time = Time.now
+
+    visit board_path(@board)
+
+    assert_selector "h2", text: "Inbox", wait: 10
+
+    load_time = Time.now - start_time
+    assert load_time < 10.0, "Board took #{load_time}s to load"
+  end
+end

@@ -7,7 +7,7 @@ require "timeout"
 module Zerobitch
   class DockerService
     CONTAINER_PREFIX = "zeroclaw-"
-    IMAGE_NAME = "zeroclaw-fleet-rex"
+    IMAGE_NAME = "zeroclaw-fleet:latest"
 
     class << self
       def list_agents

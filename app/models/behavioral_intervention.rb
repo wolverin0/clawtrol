@@ -5,12 +5,12 @@ class BehavioralIntervention < ApplicationRecord
   strict_loading :n_plus_one
 
   belongs_to :user, inverse_of: :behavioral_interventions
-  belongs_to :audit_report, optional: true
+  belongs_to :audit_report, optional: true, inverse_of: :behavioral_interventions
 
   STATUSES = %w[active resolved regressed].freeze
 
-  validates :rule, presence: true
-  validates :category, presence: true
+  validates :rule, presence: true, length: { maximum: 1000 }
+  validates :category, presence: true, length: { maximum: 100 }
   validates :status, inclusion: { in: STATUSES }
   validates :baseline_score, :current_score, numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 10 }, allow_nil: true
 

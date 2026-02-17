@@ -25,6 +25,11 @@ default: &default
     queue: default
     schedule: every hour
 
+  zerobitch_metrics:
+    class: ZerobitchMetricsJob
+    queue: default
+    schedule: every 1 minute
+
   nightshift_runner:
     class: NightshiftRunnerJob
     queue: default

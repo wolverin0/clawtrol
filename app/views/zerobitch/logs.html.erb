@@ -1,4 +1,60 @@
-<div class="max-w-5xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold text-content">Agent Logs</h1>
-  <p class="mt-2 text-content-secondary">Placeholder logs view for <span class="font-mono"><%= @agent_id %></span>.</p>
+<% content_for :title, "Logs · #{@agent[:name]} · ZeroBitch" %>
+
+<div class="max-w-6xl mx-auto px-4 py-8" data-controller="zerobitch-logs"
+     data-zerobitch-logs-url-value="<%= zerobitch_agent_logs_path(@agent[:id]) %>">
+
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-content"><%= @agent[:emoji] %> <%= @agent[:name] %> — Logs</h1>
+      <p class="text-sm text-content-muted mt-1">Container: <span class="font-mono"><%= @agent[:container_name] %></span></p>
+    </div>
+    <div class="flex items-center gap-2">
+      <%= link_to "← Agent", zerobitch_agent_path(@agent[:id]), class: "px-3 py-2 rounded-md text-xs bg-bg-elevated border border-border text-content hover:border-accent/40" %>
+    </div>
+  </div>
+
+  <div class="rounded-xl border border-border bg-bg-elevated overflow-hidden">
+    <div class="border-b border-border px-4 py-2 flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
+        <label class="text-xs text-content-muted">Filter:</label>
+        <% %w[ALL INFO WARN ERROR].each do |level| %>
+          <button type="button"
+                  data-action="click->zerobitch-logs#setFilter"
+                  data-level="<%= level %>"
+                  data-zerobitch-logs-target="filterButton"
+                  class="px-2 py-1 rounded text-[11px] font-medium border border-transparent text-content-muted hover:text-content hover:bg-bg-base transition-colors <%= 'bg-bg-base text-content border-border' if level == 'ALL' %>">
+            <%= level %>
+          </button>
+        <% end %>
+      </div>
+
+      <div class="flex items-center gap-2 ml-auto">
+        <label class="text-xs text-content-muted">Lines:</label>
+        <select data-zerobitch-logs-target="tailCount" data-action="change->zerobitch-logs#refresh"
+                class="rounded border border-border bg-bg-base px-2 py-1 text-xs text-content">
+          <% [100, 200, 500, 1000].each do |n| %>
+            <option value="<%= n %>" <%= "selected" if n == 200 %>><%= n %></option>
+          <% end %>
+        </select>
+
+        <button type="button" data-action="click->zerobitch-logs#toggleAutoRefresh"
+                data-zerobitch-logs-target="autoButton"
+                class="px-2 py-1 rounded-md border border-border text-xs text-content-muted hover:text-content">
+          Auto: off
+        </button>
+
+        <button type="button" data-action="click->zerobitch-logs#refresh"
+                class="px-2 py-1 rounded-md bg-accent text-black text-xs font-semibold hover:opacity-90">
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <pre data-zerobitch-logs-target="output"
+         class="p-4 text-xs text-content font-mono leading-relaxed min-h-[60vh] max-h-[80vh] overflow-auto whitespace-pre-wrap"><%= @log_output.presence || "(no logs)" %></pre>
+
+    <div class="border-t border-border px-4 py-2 text-xs text-content-muted" data-zerobitch-logs-target="status">
+      Loaded at <%= Time.current.strftime("%H:%M:%S") %>
+    </div>
+  </div>
 </div>

@@ -42,6 +42,7 @@ module Zerobitch
         autonomy: attrs[:autonomy].presence || "supervised",
         mem_limit: attrs[:mem_limit].presence || "32m",
         cpu_limit: attrs[:cpu_limit].presence || 0.5,
+        task_timeout: attrs[:task_timeout].presence || 120,
         allowed_commands: Array(attrs[:allowed_commands]),
         created_at: Time.current.utc.iso8601,
         template: attrs[:template]

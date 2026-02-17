@@ -273,4 +273,98 @@ class TaskTemplateTest < ActiveSupport::TestCase
     assert_nil attrs[:description]
     assert_nil attrs[:validation_command]
   end
+
+  # --- Edge cases ---
+
+  test "slug can contain underscores and hyphens" do
+    template = TaskTemplate.new(slug: "test_123-abc", name: "Test")
+    assert template.valid?
+  end
+
+  test "slug cannot contain spaces" do
+    template = TaskTemplate.new(slug: "test slug", name: "Test")
+    assert_not template.valid?
+    assert_includes template.errors[:slug].join, "only allows"
+  end
+
+  test "slug cannot contain uppercase" do
+    template = TaskTemplate.new(slug: "TEST", name: "Test")
+    assert_not template.valid?
+  end
+
+  test "slug can be single character" do
+    template = TaskTemplate.new(slug: "a", name: "A")
+    assert template.valid?
+  end
+
+  test "global templates do not require user" do
+    template = TaskTemplate.new(slug: "global-test", name: "Global Test", global: true)
+    assert template.valid?
+  end
+
+  test "user templates require user for uniqueness scope" do
+    template = TaskTemplate.new(slug: @board.slug, name: "Duplicate", user: @user)
+    assert_not template.valid?
+  end
+
+  test "global true takes precedence over user_id for uniqueness" do
+    # Create a global template
+    global = TaskTemplate.create!(slug: "global-slug", name: "Global", global: true, user: nil)
+
+    # User can create same slug if they set global: false
+    user_template = TaskTemplate.new(slug: "global-slug", name: "User", global: false, user: @user)
+    assert user_template.valid?
+  end
+
+  test "priority can be nil" do
+    template = TaskTemplate.new(name: "Test", priority: nil)
+    assert template.valid?
+  end
+
+  test "priority can be 0" do
+    template = TaskTemplate.new(name: "Test", priority: 0)
+    assert template.valid?
+  end
+
+  test "priority can be 3" do
+    template = TaskTemplate.new(name: "Test", priority: 3)
+    assert template.valid?
+  end
+
+  test "priority cannot be negative" do
+    template = TaskTemplate.new(name: "Test", priority: -1)
+    assert_not template.valid?
+  end
+
+  test "priority cannot exceed 3" do
+    template = TaskTemplate.new(name: "Test", priority: 4)
+    assert_not template.valid?
+  end
+
+  test "DEFAULTS contains expected keys" do
+    assert_equal 5, TaskTemplate::DEFAULTS.size
+    assert TaskTemplate::DEFAULTS.key?("review")
+    assert TaskTemplate::DEFAULTS.key?("bug")
+    assert TaskTemplate::DEFAULTS.key?("doc")
+    assert TaskTemplate::DEFAULTS.key?("test")
+    assert TaskTemplate::DEFAULTS.key?("research")
+  end
+
+  test "to_task_attributes copies model when present" do
+    template = TaskTemplate.new(name: "Test", model: "opus")
+    attrs = template.to_task_attributes("Task")
+    assert_equal "opus", attrs[:model]
+  end
+
+  test "to_task_attributes handles empty description_template" do
+    template = TaskTemplate.new(name: "Test", description_template: "")
+    attrs = template.to_task_attributes("Task")
+    assert_nil attrs[:description]
+  end
+
+  test "to_task_attributes handles nil description_template" do
+    template = TaskTemplate.new(name: "Test", description_template: nil)
+    attrs = template.to_task_attributes("Task")
+    assert_nil attrs[:description]
+  end
 end

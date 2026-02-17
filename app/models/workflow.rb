@@ -1,11 +1,16 @@
 # frozen_string_literal: true
 
 class Workflow < ApplicationRecord
-  belongs_to :user, optional: true
+  # Use strict_loading_mode to detect N+1 queries in views
+  strict_loading :n_plus_one
 
-  validates :title, presence: true
+  belongs_to :user, optional: true, inverse_of: :workflows
 
-  scope :for_user, ->(user) { where(user_id: [user.id, nil]) }
+  validates :title, presence: true, length: { maximum: 255 }
+
+  scope :for_user, ->(user) { where(user_id: [user&.id, nil]) }
+  scope :active, -> { where(active: true) }
+  scope :inactive, -> { where(active: false) }
 
   validate :definition_must_be_hash
 

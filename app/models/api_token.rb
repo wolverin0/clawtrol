@@ -9,6 +9,11 @@ class ApiToken < ApplicationRecord
   validates :token_digest, presence: true, uniqueness: true
   validates :name, presence: true
 
+  scope :active, -> { where("expires_at IS NULL OR expires_at > ?", Time.current) }
+  scope :expired, -> { where("expires_at IS NOT NULL AND expires_at <= ?", Time.current) }
+  scope :recently_used, -> { where.not(last_used_at: nil).order(last_used_at: :desc) }
+  scope :by_user, ->(user) { where(user_id: user.id) if user.present? }
+
   # The raw token is only available immediately after creation
   attr_accessor :raw_token
 

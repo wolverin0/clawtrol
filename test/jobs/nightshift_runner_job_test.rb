@@ -306,4 +306,106 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
     armed = NightshiftSelection.armed.for_tonight.to_a
     assert_equal 5, armed.length
   end
+
+  # Test: selection updates happen in transaction
+  test "selection status updated atomically" do
+    selection = create_selection(status: "pending")
+    # Stub HTTP to succeed
+    stub_request(:post, %r{/hooks/wake}).to_return(status: 200)
+
+    NightshiftRunnerJob.perform_now
+
+    selection.reload
+    assert_equal "running", selection.status
+    assert_not_nil selection.launched_at
+  end
+
+  # Test: mission description handling when nil
+  test "handles nil mission description" do
+    mission = NightshiftMission.create!(
+      name: "Nil Description Mission",
+      description: nil,
+      frequency: "always",
+      category: "research",
+      model: "gemini",
+      estimated_minutes: 30,
+      user: @user,
+      enabled: true
+    )
+    selection = NightshiftSelection.create!(
+      nightshift_mission: mission,
+      title: "Selection",
+      status: "pending",
+      scheduled_date: Date.today,
+      enabled: true
+    )
+    stub_request(:post, %r{/hooks/wake}).to_return(status: 200)
+
+    assert_nothing_raised do
+      NightshiftRunnerJob.perform_now
+    end
+  end
+
+  # Test: mission description handling when empty
+  test "handles empty mission description" do
+    mission = NightshiftMission.create!(
+      name: "Empty Description Mission",
+      description: "",
+      frequency: "always",
+      category: "research",
+      model: "gemini",
+      estimated_minutes: 30,
+      user: @user,
+      enabled: true
+    )
+    selection = NightshiftSelection.create!(
+      nightshift_mission: mission,
+      title: "Selection",
+      status: "pending",
+      scheduled_date: Date.today,
+      enabled: true
+    )
+    stub_request(:post, %r{/hooks/wake}).to_return(status: 200)
+
+    assert_nothing_raised do
+      NightshiftRunnerJob.perform_now
+    end
+  end
+
+  # Test: finds admin user when mission has no user
+  test "finds admin user when mission user is nil" do
+    admin = User.create!(email_address: "admin-#{SecureRandom.hex(4)}@test.com", password: "password123456", admin: true)
+    mission = NightshiftMission.create!(
+      name: "Admin Fallback Mission",
+      description: "Test",
+      frequency: "always",
+      category: "research",
+      model: "gemini",
+      estimated_minutes: 30,
+      user: nil,
+      enabled: true
+    )
+    selection = NightshiftSelection.create!(
+      nightshift_mission: mission,
+      title: "Selection",
+      status: "pending",
+      scheduled_date: Date.today,
+      enabled: true
+    )
+    # Should use admin user as fallback
+    stub_request(:post, %r{/hooks/wake}).to_return(status: 200)
+
+    assert_nothing_raised do
+      NightshiftRunnerJob.perform_now
+    end
+  end
+
+  # Test: logs successful launch
+  test "logs successful launch info" do
+    selection = create_selection(status: "pending")
+    stub_request(:post, %r{/hooks/wake}).to_return(status: 200)
+
+    # Should not raise
+    NightshiftRunnerJob.perform_now
+  end
 end

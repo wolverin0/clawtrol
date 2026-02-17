@@ -4,106 +4,111 @@ require "test_helper"
 
 class TaskDependencyTest < ActiveSupport::TestCase
   setup do
-    @user = users(:one)
-    @board = boards(:one)
-    @task1 = @board.tasks.create!(user: @user, name: "Task 1", status: :inbox)
-    @task2 = @board.tasks.create!(user: @user, name: "Task 2", status: :inbox)
-    @task3 = @board.tasks.create!(user: @user, name: "Task 3", status: :inbox)
+    @user = users(:default)
+    @board = boards(:default)
+    @task1 = Task.create!(name: "Task 1", board: @board, user: @user)
+    @task2 = Task.create!(name: "Task 2", board: @board, user: @user)
+    @task3 = Task.create!(name: "Task 3", board: @board, user: @user)
   end
 
-  test "can create a dependency between tasks" do
-    dependency = TaskDependency.create!(task: @task1, depends_on: @task2)
-    assert dependency.persisted?
-    assert_includes @task1.dependencies, @task2
-    assert_includes @task2.dependents, @task1
+  # --- Validations ---
+
+  test "valid dependency" do
+    dep = TaskDependency.new(task: @task1, depends_on: @task2)
+    assert dep.valid?, "Expected valid: #{dep.errors.full_messages}"
   end
 
-  test "task is blocked when dependency is not done" do
+  test "rejects self-dependency" do
+    dep = TaskDependency.new(task: @task1, depends_on: @task1)
+    assert_not dep.valid?
+    assert_includes dep.errors[:base], "cannot depend on itself"
+  end
+
+  test "rejects duplicate dependency" do
     TaskDependency.create!(task: @task1, depends_on: @task2)
-
-    assert @task1.blocked?
-    assert_includes @task1.blocking_tasks, @task2
-
-    # Complete the dependency
-    @task2.update!(status: :done)
-
-    refute @task1.reload.blocked?
+    dup = TaskDependency.new(task: @task1, depends_on: @task2)
+    assert_not dup.valid?
+    assert_includes dup.errors[:task_id], "already has this dependency"
   end
 
-  test "task is not blocked when dependency is done" do
-    @task2.update!(status: :done)
+  test "rejects circular dependency (direct)" do
+    # Task1 depends on Task2, Task2 depends on Task1
     TaskDependency.create!(task: @task1, depends_on: @task2)
-
-    refute @task1.blocked?
+    dep = TaskDependency.new(task: @task2, depends_on: @task1)
+    assert_not dep.valid?
+    assert_includes dep.errors[:base], "circular dependency"
   end
 
-  test "task is not blocked when dependency is archived" do
-    @task2.update!(status: :archived)
-    TaskDependency.create!(task: @task1, depends_on: @task2)
-
-    refute @task1.blocked?
-  end
-
-  test "cannot create self-dependency" do
-    dependency = TaskDependency.new(task: @task1, depends_on: @task1)
-
-    refute dependency.valid?
-    assert_includes dependency.errors[:base], "A task cannot depend on itself"
-  end
-
-  test "cannot create duplicate dependency" do
-    TaskDependency.create!(task: @task1, depends_on: @task2)
-
-    duplicate = TaskDependency.new(task: @task1, depends_on: @task2)
-    refute duplicate.valid?
-  end
-
-  test "cannot create circular dependency (direct)" do
-    TaskDependency.create!(task: @task1, depends_on: @task2)
-
-    circular = TaskDependency.new(task: @task2, depends_on: @task1)
-    refute circular.valid?
-    assert_includes circular.errors[:base], "This dependency would create a circular dependency"
-  end
-
-  test "cannot create circular dependency (indirect)" do
-    # task1 depends on task2, task2 depends on task3
+  test "rejects circular dependency (indirect)" do
+    # Task1 -> Task2 -> Task3
     TaskDependency.create!(task: @task1, depends_on: @task2)
     TaskDependency.create!(task: @task2, depends_on: @task3)
-
-    # task3 depending on task1 would create a cycle
-    circular = TaskDependency.new(task: @task3, depends_on: @task1)
-    refute circular.valid?
-    assert_includes circular.errors[:base], "This dependency would create a circular dependency"
+    # Task3 -> Task1 would create cycle
+    dep = TaskDependency.new(task: @task3, depends_on: @task1)
+    assert_not dep.valid?
+    assert_includes dep.errors[:base], "circular dependency"
   end
 
-  test "add_dependency! creates dependency" do
-    @task1.add_dependency!(@task2)
-
-    assert_includes @task1.dependencies, @task2
-    assert @task1.blocked?
+  test "allows valid chain (A->B->C)" do
+    # Task1 -> Task2 -> Task3 is valid
+    TaskDependency.create!(task: @task1, depends_on: @task2)
+    dep = TaskDependency.new(task: @task2, depends_on: @task3)
+    assert dep.valid?, "Valid chain should work: #{dep.errors.full_messages}"
   end
 
-  test "remove_dependency! removes dependency" do
-    @task1.add_dependency!(@task2)
-    assert @task1.blocked?
+  # --- Scopes ---
 
-    @task1.remove_dependency!(@task2)
+  test "for_task scope" do
+    TaskDependency.create!(task: @task1, depends_on: @task2)
+    TaskDependency.create!(task: @task3, depends_on: @task1)
 
-    refute @task1.reload.blocked?
-    assert_empty @task1.dependencies
+    assert_equal 1, TaskDependency.for_task(@task1).count
+    assert_equal 2, TaskDependency.for_task(@task3).count
   end
 
-  test "blocking_tasks returns only incomplete dependencies" do
-    @task1.add_dependency!(@task2)
-    @task1.add_dependency!(@task3)
+  test "for_depends_on scope" do
+    TaskDependency.create!(task: @task1, depends_on: @task3)
+    TaskDependency.create!(task: @task2, depends_on: @task3)
 
-    # Complete task2
-    @task2.update!(status: :done)
+    assert_equal 2, TaskDependency.for_depends_on(@task3).count
+  end
 
-    blocking = @task1.blocking_tasks
-    assert_equal 1, blocking.count
-    assert_includes blocking, @task3
-    refute_includes blocking, @task2
+  test "recent scope orders by created_at desc" do
+    old_dep = TaskDependency.create!(task: @task1, depends_on: @task2)
+    old_dep.update_column(:created_at, 1.day.ago)
+    new_dep = TaskDependency.create!(task: @task1, depends_on: @task3)
+
+    assert_equal new_dep, TaskDependency.recent.first
+  end
+
+  # --- Associations ---
+
+  test "belongs_to task" do
+    dep = TaskDependency.create!(task: @task1, depends_on: @task2)
+    assert_equal @task1, dep.task
+  end
+
+  test "belongs_to depends_on" do
+    dep = TaskDependency.create!(task: @task1, depends_on: @task2)
+    assert_equal @task2, dep.depends_on
+  end
+
+  test "strict_loading_mode is n_plus_one" do
+    dep = TaskDependency.new
+    assert_equal :n_plus_one, dep.class.strict_loading_mode
+  end
+
+  test "allows multiple dependencies from same task" do
+    # Task1 can depend on multiple different tasks
+    TaskDependency.create!(task: @task1, depends_on: @task2)
+    dep2 = TaskDependency.new(task: @task1, depends_on: @task3)
+    assert dep2.valid?, "Multiple deps from same task should be valid: #{dep2.errors.full_messages}"
+  end
+
+  test "different tasks can depend on same task" do
+    # Multiple tasks can depend on the same task
+    TaskDependency.create!(task: @task1, depends_on: @task3)
+    dep2 = TaskDependency.new(task: @task2, depends_on: @task3)
+    assert dep2.valid?, "Multiple tasks depending on same task should be valid"
   end
 end

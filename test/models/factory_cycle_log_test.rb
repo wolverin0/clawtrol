@@ -120,4 +120,80 @@ class FactoryCycleLogTest < ActiveSupport::TestCase
   test "errors column is ignored" do
     assert_includes FactoryCycleLog.ignored_columns, "errors"
   end
+
+  # --- Delegate ---
+
+  test "delegate user to factory_loop" do
+    log = build_log
+    log.save!
+    assert_equal @user, log.user
+  end
+
+  test "delegate user allows nil factory_loop" do
+    log = build_log(factory_loop: nil)
+    log.save!
+    assert_nil log.user
+  end
+
+  # --- More edge cases ---
+
+  test "can store finished_at timestamp" do
+    log = build_log(started_at: 1.hour.ago, finished_at: Time.current)
+    log.save!
+    assert_not_nil log.finished_at
+  end
+
+  test "finished_at can be nil" do
+    log = build_log
+    log.save!
+    assert_nil log.finished_at
+  end
+
+  test "can store duration_ms" do
+    log = build_log(duration_ms: 30000)
+    log.save!
+    assert_equal 30000, log.duration_ms
+  end
+
+  test "duration_ms can be nil" do
+    log = build_log
+    log.save!
+    assert_nil log.duration_ms
+  end
+
+  test "can store task_count" do
+    log = build_log(task_count: 5)
+    log.save!
+    assert_equal 5, log.task_count
+  end
+
+  test "task_count can be nil" do
+    log = build_log
+    log.save!
+    assert_nil log.task_count
+  end
+
+  test "can store output_tokens" do
+    log = build_log(output_tokens: 10000)
+    log.save!
+    assert_equal 10000, log.output_tokens
+  end
+
+  test "output_tokens can be nil" do
+    log = build_log
+    log.save!
+    assert_nil log.output_tokens
+  end
+
+  test "can store error_message" do
+    log = build_log(status: "failed", error_message: "Something went wrong")
+    log.save!
+    assert_equal "Something went wrong", log.error_message
+  end
+
+  test "error_message can be nil for successful runs" do
+    log = build_log(status: "completed")
+    log.save!
+    assert_nil log.error_message
+  end
 end

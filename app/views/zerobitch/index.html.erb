@@ -9,10 +9,13 @@
       <h1 class="text-2xl font-bold text-content">🐕 ZeroBitch</h1>
       <p class="text-sm text-content-muted mt-1">Fleet Management</p>
     </div>
-    <%= link_to "➕ New Agent", new_zerobitch_agent_path, class: "inline-flex items-center justify-center rounded-lg bg-accent hover:opacity-90 text-white px-4 py-2 text-sm font-medium" %>
+    <div class="flex items-center gap-2">
+      <%= link_to "⚖️ Rules", zerobitch_rules_path, class: "inline-flex items-center justify-center rounded-lg border border-border text-content px-4 py-2 text-sm font-medium" %>
+      <%= link_to "➕ New Agent", new_zerobitch_agent_path, class: "inline-flex items-center justify-center rounded-lg bg-accent hover:opacity-90 text-white px-4 py-2 text-sm font-medium" %>
+    </div>
   </div>
 
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" data-zerobitch-fleet-target="summary">
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-4" data-zerobitch-fleet-target="summary">
     <div class="bg-bg-elevated border border-border rounded-xl p-4">
       <div class="text-2xl font-bold text-content" data-summary-key="total"><%= @summary[:total] %></div>
       <div class="text-xs text-content-muted mt-1">Total Agents</div>
@@ -28,6 +31,44 @@
     <div class="bg-bg-elevated border border-border rounded-xl p-4">
       <div class="text-2xl font-bold text-content" data-summary-key="total_ram"><%= @summary[:total_ram] %></div>
       <div class="text-xs text-content-muted mt-1">Total RAM</div>
+      <div class="text-[11px] text-content-muted mt-1">Avg usage: <span data-summary-key="avg_ram_percent"><%= @summary[:avg_ram_percent] %></span></div>
+    </div>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <div class="text-2xl font-bold text-accent" data-summary-key="tasks_today"><%= @summary[:tasks_today] || 0 %></div>
+      <div class="text-xs text-content-muted mt-1">Tasks Today</div>
+    </div>
+  </div>
+
+  <div class="bg-bg-elevated border border-border rounded-xl p-3 flex items-center justify-between gap-3">
+    <label class="inline-flex items-center gap-2 text-sm text-content">
+      <input type="checkbox" class="rounded border-border bg-bg-base" data-zerobitch-fleet-target="selectAll" data-action="change->zerobitch-fleet#toggleSelectAll">
+      Select All
+    </label>
+    <div class="text-xs text-content-muted">Selected: <span data-zerobitch-fleet-target="selectionCount">0</span></div>
+  </div>
+
+  <div class="hidden bg-bg-elevated border border-border rounded-xl p-3" data-zerobitch-fleet-target="batchToolbar">
+    <div class="flex flex-wrap items-center gap-2">
+      <button type="button" class="px-3 py-1.5 rounded-md text-xs bg-green-600/80 hover:bg-green-500 text-white" data-action="click->zerobitch-fleet#batchStart">Start All</button>
+      <button type="button" class="px-3 py-1.5 rounded-md text-xs bg-yellow-600/80 hover:bg-yellow-500 text-white" data-action="click->zerobitch-fleet#batchStop">Stop All</button>
+      <button type="button" class="px-3 py-1.5 rounded-md text-xs bg-red-700/80 hover:bg-red-600 text-white" data-action="click->zerobitch-fleet#batchDelete">Delete All</button>
+      <button type="button" class="px-3 py-1.5 rounded-md text-xs bg-accent hover:opacity-90 text-white" data-action="click->zerobitch-fleet#openBroadcastModal">Broadcast Task</button>
+    </div>
+  </div>
+
+  <div class="hidden bg-bg-elevated border border-border rounded-xl p-4" data-zerobitch-fleet-target="resultPanel">
+    <h3 class="text-sm font-semibold text-content mb-2">Batch Results</h3>
+    <pre class="text-xs text-content-muted whitespace-pre-wrap" data-zerobitch-fleet-target="resultContent"></pre>
+  </div>
+
+  <div class="hidden fixed inset-0 z-50 bg-black/60 items-center justify-center p-4" data-zerobitch-fleet-target="broadcastModal">
+    <div class="w-full max-w-xl bg-bg-elevated border border-border rounded-xl p-4 space-y-3">
+      <h3 class="text-sm font-semibold text-content">Broadcast Task</h3>
+      <textarea rows="6" class="w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content text-sm" placeholder="Describe task for selected agents..." data-zerobitch-fleet-target="broadcastPrompt"></textarea>
+      <div class="flex justify-end gap-2">
+        <button type="button" class="px-3 py-1.5 rounded-md border border-border text-content-muted" data-action="click->zerobitch-fleet#closeBroadcastModal">Cancel</button>
+        <button type="button" class="px-3 py-1.5 rounded-md bg-accent text-white" data-action="click->zerobitch-fleet#sendBroadcast">Send</button>
+      </div>
     </div>
   </div>
 

@@ -125,4 +125,29 @@ class UserTest < ActiveSupport::TestCase
   test "THEMES constant" do
     assert_equal %w[default vaporwave], User::THEMES
   end
+
+  # --- Scopes ---
+
+  test "admins scope returns only admin users" do
+    admin = User.create!(email_address: "admin#{SecureRandom.hex(4)}@example.com", password: "password123", password_confirmation: "password123", admin: true)
+    non_admin = User.create!(email_address: "user#{SecureRandom.hex(4)}@example.com", password: "password123", password_confirmation: "password123", admin: false)
+
+    assert_includes User.admins, admin
+    assert_not_includes User.admins, non_admin
+  end
+
+  test "active_users scope returns only active users" do
+    active = User.create!(email_address: "active#{SecureRandom.hex(4)}@example.com", password: "password123", password_confirmation: "password123", active: true)
+    inactive = User.create!(email_address: "inactive#{SecureRandom.hex(4)}@example.com", password: "password123", password_confirmation: "password123", active: false)
+
+    assert_includes User.active_users, active
+    assert_not_includes User.active_users, inactive
+  end
+
+  test "by_email scope is case insensitive" do
+    user = User.create!(email_address: "testemail#{SecureRandom.hex(4)}@example.com", password: "password123", password_confirmation: "password123")
+
+    assert_includes User.by_email(user.email_address.downcase), user
+    assert_includes User.by_email(user.email_address.upcase), user
+  end
 end
