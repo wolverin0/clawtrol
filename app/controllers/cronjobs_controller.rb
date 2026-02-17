@@ -225,9 +225,7 @@ class CronjobsController < ApplicationController
   end
 
   def fetch_cronjobs
-    result = Rails.cache.fetch("cronjobs/index/v1/user=#{current_user.id}", expires_in: cache_ttl) do
-      run_openclaw_cron_list
-    end
+    result = run_openclaw_cron_list
 
     stdout = result.fetch(:stdout)
     stderr = result.fetch(:stderr)
@@ -297,12 +295,6 @@ class CronjobsController < ApplicationController
   end
 
   def invalidate_cron_cache
-    Rails.cache.delete("cronjobs/index/v1/user=#{current_user.id}")
-  end
-
-  def cache_ttl
-    Integer(ENV.fetch("CRONJOBS_CACHE_TTL_SECONDS", "5")).seconds
-  rescue ArgumentError
-    5.seconds
+    # no-op: caching removed to avoid stale/error data
   end
 end
