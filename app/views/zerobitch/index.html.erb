@@ -1,4 +1,39 @@
-<div class="max-w-5xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold text-content">ZeroBitch Fleet Dashboard</h1>
-  <p class="mt-2 text-content-secondary">Phase 1 scaffold is active.</p>
+<% content_for :title, "ZeroBitch - clawdeck" %>
+<% content_for :breadcrumb_standalone, "🐕 ZeroBitch" %>
+
+<div class="py-6 space-y-6"
+     data-controller="zerobitch-fleet"
+     data-zerobitch-fleet-refresh-interval-value="15000">
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-content">🐕 ZeroBitch</h1>
+      <p class="text-sm text-content-muted mt-1">Fleet Management</p>
+    </div>
+    <%= link_to "➕ New Agent", new_zerobitch_agent_path, class: "inline-flex items-center justify-center rounded-lg bg-accent hover:opacity-90 text-white px-4 py-2 text-sm font-medium" %>
+  </div>
+
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" data-zerobitch-fleet-target="summary">
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <div class="text-2xl font-bold text-content" data-summary-key="total"><%= @summary[:total] %></div>
+      <div class="text-xs text-content-muted mt-1">Total Agents</div>
+    </div>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <div class="text-2xl font-bold text-emerald-400" data-summary-key="running"><%= @summary[:running] %></div>
+      <div class="text-xs text-content-muted mt-1">Running</div>
+    </div>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <div class="text-2xl font-bold text-red-400" data-summary-key="stopped"><%= @summary[:stopped] %></div>
+      <div class="text-xs text-content-muted mt-1">Stopped</div>
+    </div>
+    <div class="bg-bg-elevated border border-border rounded-xl p-4">
+      <div class="text-2xl font-bold text-content" data-summary-key="total_ram"><%= @summary[:total_ram] %></div>
+      <div class="text-xs text-content-muted mt-1">Total RAM</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" data-zerobitch-fleet-target="grid">
+    <% @agents.each do |agent| %>
+      <%= render "agent_card", agent: agent %>
+    <% end %>
+  </div>
 </div>

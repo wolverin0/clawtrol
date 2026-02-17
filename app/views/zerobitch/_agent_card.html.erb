@@ -1,0 +1,38 @@
+<% status_classes = case agent[:status]
+                  when "running" then "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                  when "restarting" then "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
+                  else "bg-red-500/15 text-red-400 border-red-500/30"
+                  end %>
+
+<div class="group bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/40 transition-colors cursor-pointer"
+     data-agent-id="<%= agent[:id] %>"
+     data-action="click->zerobitch-fleet#openAgent">
+  <div class="flex items-start justify-between gap-3">
+    <div class="min-w-0">
+      <div class="flex items-center gap-2">
+        <span class="text-xl"><%= agent[:emoji] %></span>
+        <h3 class="text-sm font-semibold text-content truncate"><%= agent[:name] %></h3>
+      </div>
+      <p class="text-xs text-content-muted mt-1 truncate"><%= agent[:role] %></p>
+    </div>
+    <span class="px-2 py-0.5 rounded-full text-xs font-medium border <%= status_classes %>"><%= agent[:status_label] %></span>
+  </div>
+
+  <div class="mt-3 space-y-1 text-xs text-content-muted">
+    <p><span class="text-content-secondary">Provider:</span> <%= agent[:provider] %></p>
+    <p class="truncate"><span class="text-content-secondary">Model:</span> <%= agent[:model] %></p>
+    <p><span class="text-content-secondary">RAM:</span> <%= agent[:ram_usage] %></p>
+    <p><span class="text-content-secondary">Uptime:</span> <%= agent[:uptime] %></p>
+  </div>
+
+  <div class="mt-4 grid grid-cols-2 gap-2" data-action="click->zerobitch-fleet#consumeClick">
+    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-green-600/80 hover:bg-green-500 text-white" data-command="start" data-agent-id="<%= agent[:id] %>" data-action="click->zerobitch-fleet#invokeAction">▶️ Start</button>
+    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-yellow-600/80 hover:bg-yellow-500 text-white" data-command="stop" data-agent-id="<%= agent[:id] %>" data-action="click->zerobitch-fleet#invokeAction">⏹ Stop</button>
+    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-orange-600/80 hover:bg-orange-500 text-white" data-command="restart" data-agent-id="<%= agent[:id] %>" data-action="click->zerobitch-fleet#invokeAction">🔄 Restart</button>
+    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-red-700/80 hover:bg-red-600 text-white" data-command="delete" data-agent-id="<%= agent[:id] %>" data-action="click->zerobitch-fleet#invokeAction">🗑 Delete</button>
+  </div>
+
+  <a href="<%= agent[:detail_path] %>" class="mt-3 inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium bg-accent hover:opacity-90 text-white" data-action="click->zerobitch-fleet#consumeClick">
+    Send Task
+  </a>
+</div>

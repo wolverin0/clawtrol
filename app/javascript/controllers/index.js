@@ -47,6 +47,9 @@ import CommandPaletteController from "controllers/command_palette_controller"
 import InlineEditController from "controllers/inline_edit_controller"
 import AuditChartController from "controllers/audit_chart_controller"
 import InterventionRowController from "controllers/intervention_row_controller"
+import ZerobitchFleetController from "controllers/zerobitch_fleet_controller"
+import ZerobitchSpawnController from "controllers/zerobitch_spawn_controller"
+import ZerobitchAgentController from "controllers/zerobitch_agent_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -90,6 +93,9 @@ application.register("command-palette", CommandPaletteController)
 application.register("inline-edit", InlineEditController)
 application.register("audit-chart", AuditChartController)
 application.register("intervention-row", InterventionRowController)
+application.register("zerobitch-fleet", ZerobitchFleetController)
+application.register("zerobitch-spawn", ZerobitchSpawnController)
+application.register("zerobitch-agent", ZerobitchAgentController)
 
 import ThemeToggleController from "controllers/theme_toggle_controller"
 application.register("theme-toggle", ThemeToggleController)
