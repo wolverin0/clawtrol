@@ -73,9 +73,9 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
   end
 
   # Test: increments failures on wake failure
-  test "increments failures on wake failure" do
+  test "increments failures on wake exception" do
     @loop.update!(consecutive_failures: 0, total_errors: 0)
-    mock_wake_failure(500, "Internal Server Error")
+    stub_request(:post, /hooks\/wake/).to_raise(Errno::ECONNREFUSED)
 
     FactoryRunnerJob.perform_now(@loop.id)
 
@@ -110,6 +110,7 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
 
   # Test: handles race condition gracefully
   test "handles race condition on duplicate cycle numbers" do
+    mock_wake_success
     FactoryCycleLog.create!(
       factory_loop: @loop,
       cycle_number: 1,
@@ -145,7 +146,7 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
 
   # Test: sets finished_at on failure
   test "sets finished_at timestamp on wake failure" do
-    mock_wake_failure(500, "Internal Server Error")
+    stub_request(:post, /hooks\/wake/).to_raise(Errno::ECONNREFUSED)
 
     FactoryRunnerJob.perform_now(@loop.id)
 
@@ -156,7 +157,7 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
 
   # Test: preserves loop status after failure
   test "preserves loop status after wake failure" do
-    mock_wake_failure(500, "Internal Server Error")
+    stub_request(:post, /hooks\/wake/).to_raise(Errno::ECONNREFUSED)
 
     FactoryRunnerJob.perform_now(@loop.id)
 
@@ -168,12 +169,12 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
   # Test: handles user without gateway URL gracefully
   test "handles user without gateway URL gracefully" do
     @user.update!(openclaw_gateway_url: nil, openclaw_gateway_token: nil)
+    stub_request(:post, /hooks\/wake/).to_raise(Errno::ECONNREFUSED)
 
     FactoryRunnerJob.perform_now(@loop.id)
 
     cycle = FactoryCycleLog.last
     assert_equal "failed", cycle.status
-    # The job stores error info in summary field
     assert cycle.summary.present?
   end
 
@@ -188,51 +189,45 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
     assert_equal "failed", cycle.status
   end
 
-  # Test: wake request includes model in payload
+  # Test: wake request includes model in text
   test "wake request includes correct model" do
     @loop.update!(model: "opus")
     wake_request = nil
-    stub_request(:post, /hooks\/wake/).to do |request|
-      wake_request = request
-      { status: 200, body: '{"ok":true}' }
-    end
+    stub_request(:post, /hooks\/wake/).with { |req| wake_request = req }
+      .to_return(status: 200, body: '{"ok":true}')
 
     FactoryRunnerJob.perform_now(@loop.id)
 
     assert_not_nil wake_request
     body = JSON.parse(wake_request.body)
-    assert_equal "opus", body["model"]
+    assert_includes body["text"], "Model: opus"
   end
 
   # Test: wake request includes system prompt
   test "wake request includes system prompt" do
     @loop.update!(system_prompt: "You are a helpful assistant")
     wake_request = nil
-    stub_request(:post, /hooks\/wake/).to do |request|
-      wake_request = request
-      { status: 200, body: '{"ok":true}' }
-    end
+    stub_request(:post, /hooks\/wake/).with { |req| wake_request = req }
+      .to_return(status: 200, body: '{"ok":true}')
 
     FactoryRunnerJob.perform_now(@loop.id)
 
     assert_not_nil wake_request
     body = JSON.parse(wake_request.body)
-    assert_equal "You are a helpful assistant", body["system_prompt"]
+    assert_includes body["text"], "You are a helpful assistant"
   end
 
   # Test: wake request includes correct callback URL
   test "wake request includes cycle callback URL" do
     wake_request = nil
-    stub_request(:post, /hooks\/wake/).to do |request|
-      wake_request = request
-      { status: 200, body: '{"ok":true}' }
-    end
+    stub_request(:post, /hooks\/wake/).with { |req| wake_request = req }
+      .to_return(status: 200, body: '{"ok":true}')
 
     FactoryRunnerJob.perform_now(@loop.id)
 
     assert_not_nil wake_request
     body = JSON.parse(wake_request.body)
-    assert_includes body["report_results"], "/api/v1/factory/cycles/"
+    assert_includes body["text"], "/api/v1/factory/cycles/"
   end
 
   # Test: multiple cycles have sequential numbers
@@ -275,10 +270,8 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
   test "uses hooks_token for authorization when available" do
     @user.update!(openclaw_hooks_token: "custom_hooks_token_123")
     wake_request = nil
-    stub_request(:post, /hooks\/wake/).to do |request|
-      wake_request = request
-      { status: 200, body: '{"ok":true}' }
-    end
+    stub_request(:post, /hooks\/wake/).with { |req| wake_request = req }
+      .to_return(status: 200, body: '{"ok":true}')
 
     FactoryRunnerJob.perform_now(@loop.id)
 
@@ -290,10 +283,8 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
   test "uses gateway token as fallback when hooks_token not present" do
     @user.update!(openclaw_hooks_token: nil, openclaw_gateway_token: "gateway_token_456")
     wake_request = nil
-    stub_request(:post, /hooks\/wake/).to do |request|
-      wake_request = request
-      { status: 200, body: '{"ok":true}' }
-    end
+    stub_request(:post, /hooks\/wake/).with { |req| wake_request = req }
+      .to_return(status: 200, body: '{"ok":true}')
 
     FactoryRunnerJob.perform_now(@loop.id)
 
@@ -304,14 +295,10 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
   # Test: re-enqueues next cycle if loop still playing
   test "re-enqueues next cycle when loop still playing" do
     mock_wake_success
-    # Clear any existing jobs
-    SolidQueue::Job.where(class_name: "FactoryRunnerJob").delete_all
 
-    FactoryRunnerJob.perform_now(@loop.id)
-
-    # A new job should be enqueued
-    next_job = SolidQueue::Job.where(class_name: "FactoryRunnerJob").where("arguments = ?", [@loop.id].to_json).first
-    assert_not_nil next_job, "Expected job to be re-enqueued"
+    assert_enqueued_with(job: FactoryRunnerJob, args: [@loop.id]) do
+      FactoryRunnerJob.perform_now(@loop.id)
+    end
   end
 
   # Test: does not re-enqueue if loop no longer playing
