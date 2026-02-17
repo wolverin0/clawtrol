@@ -132,7 +132,21 @@ Rails.application.routes.draw do
       post "factory/loops/:id/pause", to: "factory_loops#pause"
       post "factory/loops/:id/stop", to: "factory_loops#stop"
       get "factory/loops/:id/metrics", to: "factory_loops#metrics"
+      get "factory/loops/:id/findings", to: "factory_loops#findings"
       post "factory/cycles/:id/complete", to: "factory_cycles#complete"
+      post "factory/finding_patterns/:id/dismiss", to: "factory_finding_patterns#dismiss"
+
+      # Agent catalog
+      get "factory/agents", to: "factory_agents#index"
+      post "factory/agents", to: "factory_agents#create"
+      get "factory/agents/:id", to: "factory_agents#show"
+      patch "factory/agents/:id", to: "factory_agents#update"
+
+      # Loop-agent config (nested under loops)
+      get "factory/loops/:loop_id/agents", to: "factory_loop_agents#index"
+      post "factory/loops/:loop_id/agents/:agent_id/enable", to: "factory_loop_agents#enable"
+      post "factory/loops/:loop_id/agents/:agent_id/disable", to: "factory_loop_agents#disable"
+      patch "factory/loops/:loop_id/agents/:agent_id", to: "factory_loop_agents#update"
 
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
@@ -238,7 +252,7 @@ Rails.application.routes.draw do
   get "command", to: "command#index"
 
   # Cron jobs (OpenClaw Gateway)
-  resources :cronjobs, only: [:index, :create, :destroy] do
+  resources :cronjobs, only: [:index, :create, :update, :destroy] do
     member do
       post :toggle
       post :run
@@ -283,6 +297,13 @@ Rails.application.routes.draw do
   # Identity & branding configuration
   get   "identity-config", to: "identity_config#show",   as: :identity_config
   patch "identity-config", to: "identity_config#update",  as: :identity_config_update
+
+  # Soul editor
+  get   "soul-editor", to: "soul_editor#show",      as: :soul_editor
+  patch "soul-editor", to: "soul_editor#update"
+  get   "soul-editor/history", to: "soul_editor#history", as: :soul_editor_history
+  post  "soul-editor/revert", to: "soul_editor#revert", as: :soul_editor_revert
+  get   "soul-editor/templates", to: "soul_editor#templates", as: :soul_editor_templates
 
   # Send policy & access groups
   get   "send-policy", to: "send_policy#show",   as: :send_policy
@@ -427,6 +448,7 @@ Rails.application.routes.draw do
   post "factory/:id/stop", to: "factory#stop", as: :factory_stop
   post "factory/bulk_play", to: "factory#bulk_play", as: :factory_bulk_play
   post "factory/bulk_pause", to: "factory#bulk_pause", as: :factory_bulk_pause
+  get "factory/loops/:id/history", to: "factory#history", as: :factory_loop_history
 
   # Cherry-pick pipeline
   get "factory/cherry_pick", to: "factory#cherry_pick_index", as: :factory_cherry_pick
@@ -576,6 +598,7 @@ Rails.application.routes.draw do
 
   # File viewer (workspace files, no auth)
   get "view", to: "file_viewer#show"
+  put "view", to: "file_viewer#update"
   get "files", to: "file_viewer#browse", as: :browse_files
 
   resources :audits, only: [:index] do

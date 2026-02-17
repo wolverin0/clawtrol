@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "fileutils"
+require "tmpdir"
 require "test_helper"
 
 class FactoryLoopTest < ActiveSupport::TestCase
@@ -131,5 +133,179 @@ class FactoryLoopTest < ActiveSupport::TestCase
     assert_equal 1, fl.factory_cycle_logs.count
     fl.destroy
     assert_equal 0, FactoryCycleLog.where(id: log.id).count
+  end
+
+  test "setup_workspace! creates worktree directory" do
+    Dir.mktmpdir do |tmpdir|
+      workspace = File.join(tmpdir, "worktree")
+      loop = build_loop(workspace_path: workspace, work_branch: "factory/test", config: { "git_repo_path" => tmpdir })
+
+      with_stubbed_git(workspace) do
+        loop.setup_workspace!
+      end
+
+      assert File.directory?(workspace)
+    end
+  end
+
+  test "setup_workspace! creates work_branch if missing" do
+    Dir.mktmpdir do |tmpdir|
+      workspace = File.join(tmpdir, "worktree")
+      loop = build_loop(workspace_path: workspace, work_branch: "factory/new-branch", config: { "git_repo_path" => tmpdir })
+      commands = []
+
+      with_stubbed_git(workspace, commands:) do
+        loop.setup_workspace!
+      end
+
+      assert commands.any? { |cmd| cmd.include?("branch --list factory/new-branch") }
+      assert commands.any? { |cmd| cmd.include?("branch factory/new-branch") }
+    end
+  end
+
+  test "setup_workspace! writes pre-commit hook" do
+    Dir.mktmpdir do |tmpdir|
+      workspace = File.join(tmpdir, "worktree")
+      loop = build_loop(
+        workspace_path: workspace,
+        work_branch: "factory/test",
+        protected_branches: %w[main release],
+        config: { "git_repo_path" => tmpdir }
+      )
+
+      with_stubbed_git(workspace) do
+        loop.setup_workspace!
+      end
+
+      hook_path = File.join(workspace, ".factory-hooks", "pre-commit")
+      assert File.exist?(hook_path)
+      hook = File.read(hook_path)
+      assert_includes hook, "git symbolic-ref --short HEAD"
+      assert_includes hook, "main"
+      assert_includes hook, "release"
+    end
+  end
+
+  test "setup_workspace! is idempotent" do
+    Dir.mktmpdir do |tmpdir|
+      workspace = File.join(tmpdir, "worktree")
+      loop = build_loop(workspace_path: workspace, work_branch: "factory/test", config: { "git_repo_path" => tmpdir })
+
+      with_stubbed_git(workspace) do
+        loop.setup_workspace!
+        loop.setup_workspace!
+      end
+
+      assert File.exist?(File.join(workspace, ".git"))
+    end
+  end
+
+  test "setup_workspace! raises if workspace_path is blank" do
+    loop = build_loop(workspace_path: nil)
+
+    assert_raises(ArgumentError) { loop.setup_workspace! }
+  end
+
+  test "teardown_workspace! removes worktree" do
+    Dir.mktmpdir do |tmpdir|
+      workspace = File.join(tmpdir, "worktree")
+      loop = build_loop(workspace_path: workspace, work_branch: "factory/test", config: { "git_repo_path" => tmpdir })
+
+      with_stubbed_git(workspace) do
+        loop.setup_workspace!
+        assert File.exist?(File.join(workspace, ".git"))
+
+        loop.teardown_workspace!
+      end
+
+      assert_not File.exist?(workspace)
+    end
+  end
+
+  test "setup_workspace! executes db sandbox SQL when db_url_override is present" do
+    loop = build_loop(
+      workspace_path: "/tmp/factory-db-sandbox",
+      db_url_override: "postgres://sandbox_user:sandbox_pass@localhost:5432/sandbox_db"
+    )
+    admin_sql = []
+    sandbox_sql = []
+    admin_conn = fake_connection(admin_sql)
+    sandbox_conn = fake_connection(sandbox_sql, database: "sandbox_db")
+
+    with_replaced_singleton_method(loop, :ensure_work_branch!, -> { true }) do
+      with_replaced_singleton_method(loop, :ensure_worktree!, -> { true }) do
+        with_replaced_singleton_method(loop, :configure_workspace_hooks!, -> { true }) do
+          with_replaced_singleton_method(loop, :with_admin_connection, ->(_db_info, &blk) { blk.call(admin_conn) }) do
+            with_replaced_singleton_method(loop, :with_database_connection, ->(_db_info, &blk) { blk.call(sandbox_conn) }) do
+              loop.setup_workspace!
+            end
+          end
+        end
+      end
+    end
+
+    assert admin_sql.any? { |sql| sql.include?("CREATE DATABASE") }
+    assert admin_sql.any? { |sql| sql.include?("CREATE USER") }
+    assert sandbox_sql.any? { |sql| sql.include?("GRANT SELECT, INSERT, UPDATE, DELETE") }
+  end
+
+  private
+
+  def with_stubbed_git(workspace_path, commands: [])
+    success = Struct.new(:success?).new(true)
+    original_capture3 = Open3.method(:capture3)
+
+    Open3.define_singleton_method(:capture3) do |*args|
+      cmd = args.join(" ")
+      commands << cmd
+
+      if cmd.include?(" branch --list ")
+        [ "", "", success ]
+      elsif cmd.include?(" worktree add ")
+        FileUtils.mkdir_p(workspace_path)
+        File.write(File.join(workspace_path, ".git"), "gitdir: /tmp/fake")
+        [ "", "", success ]
+      elsif cmd.include?(" worktree list --porcelain")
+        [ "", "", success ]
+      elsif cmd.include?(" worktree remove ")
+        FileUtils.rm_rf(workspace_path)
+        [ "", "", success ]
+      else
+        [ "", "", success ]
+      end
+    end
+
+    yield
+  ensure
+    Open3.define_singleton_method(:capture3) { |*args, &blk| original_capture3.call(*args, &blk) }
+  end
+
+  def fake_connection(executed_sql, database: "postgres")
+    Class.new do
+      define_method(:initialize) do |sqls, db|
+        @sqls = sqls
+        @db = db
+      end
+
+      define_method(:select_value) { |_sql| nil }
+      define_method(:quote) { |value| "'#{value}'" }
+      define_method(:execute) { |sql| @sqls << sql }
+      define_method(:current_database) { @db }
+    end.new(executed_sql, database)
+  end
+
+  def with_replaced_singleton_method(object, method_name, replacement)
+    singleton = object.singleton_class
+    had_method = singleton.method_defined?(method_name)
+    original_method = singleton.instance_method(method_name) if had_method
+
+    singleton.define_method(method_name, &replacement)
+    yield
+  ensure
+    if had_method
+      singleton.define_method(method_name, original_method)
+    else
+      singleton.remove_method(method_name)
+    end
   end
 end

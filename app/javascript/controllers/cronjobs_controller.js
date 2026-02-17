@@ -185,6 +185,70 @@ export default class extends Controller {
     }
   }
 
+  async deleteJob(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const btn = event.currentTarget
+    const id = btn?.dataset?.id
+    const name = btn?.dataset?.name || id
+    if (!id) return
+
+    if (!confirm(`Delete "${name}"?\n\nThis cannot be undone.`)) return
+
+    btn.disabled = true
+    btn.textContent = "…"
+
+    try {
+      const res = await fetch(`/cronjobs/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: {
+          "Accept": "application/json",
+          "X-CSRF-Token": this.csrfToken() || ""
+        }
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data.ok === false) throw new Error(data.error || "Delete failed")
+
+      // Remove the card from DOM immediately
+      const card = btn.closest(".bg-card")
+      if (card) card.remove()
+
+      // Refresh to update count
+      await this.refresh()
+    } catch (e) {
+      console.error("delete failed", e)
+      this.errorTarget.textContent = e?.message || "Delete failed"
+      this.errorTarget.classList.remove("hidden")
+      btn.disabled = false
+      btn.textContent = "🗑️"
+    }
+  }
+
+  editJob(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const jobJson = event.currentTarget?.dataset?.job
+    if (!jobJson) return
+
+    let job
+    try {
+      job = JSON.parse(jobJson)
+    } catch {
+      return
+    }
+
+    const builder = document.querySelector('[data-controller="cron-builder"]')
+    const details = builder?.querySelector("details") || builder?.closest("details")
+    if (details) details.open = true
+
+    if (builder) {
+      builder.dispatchEvent(new CustomEvent("cron-builder:load", { detail: job }))
+    }
+  }
+
   copyId(event) {
     const el = event.currentTarget
     const id = el?.dataset?.id
@@ -212,6 +276,14 @@ export default class extends Controller {
     const safeName = this.escapeHtml(job.name || job.id)
     const scheduleText = this.escapeHtml(job.scheduleText || "")
     const nextRun = this.formatTime(job.nextRunAt)
+    const rawJobData = JSON.stringify({
+      id: job.id,
+      name: job.name,
+      schedule: job.schedule,
+      sessionTarget: job.sessionTarget,
+      delivery: job.delivery,
+      payload: job.payload
+    })
 
     return `
       <div class="bg-card border border-border rounded-lg p-4 flex flex-col gap-3 shadow-sm hover:border-accent/50 transition-colors" data-action="click->cronjobs#copyId" data-id="${this.escapeAttr(job.id)}">
@@ -252,11 +324,28 @@ export default class extends Controller {
           </button>
 
           <button type="button"
+                  class="flex-1 text-xs px-3 py-2 rounded-md border border-border bg-white/5 hover:bg-white/10 transition-colors"
+                  data-action="click->cronjobs#editJob"
+                  data-id="${this.escapeAttr(job.id)}"
+                  data-job='${this.escapeAttr(rawJobData)}'>
+            Edit
+          </button>
+
+          <button type="button"
                   class="flex-1 text-xs px-3 py-2 rounded-md border border-border ${enabled ? "bg-red-500/10 hover:bg-red-500/20 text-red-200" : "bg-green-500/10 hover:bg-green-500/20 text-green-200"} transition-colors"
                   data-action="click->cronjobs#toggle"
                   data-id="${this.escapeAttr(job.id)}"
                   data-enabled="${enabled}">
             ${enabled ? "Disable" : "Enable"}
+          </button>
+
+          <button type="button"
+                  class="text-xs px-2 py-2 rounded-md border border-red-800/50 bg-red-900/20 hover:bg-red-700/30 text-red-300 transition-colors"
+                  data-action="click->cronjobs#deleteJob"
+                  data-id="${this.escapeAttr(job.id)}"
+                  data-name="${this.escapeAttr(job.name || job.id)}"
+                  title="Delete job">
+            🗑️
           </button>
         </div>
       </div>
@@ -283,7 +372,7 @@ export default class extends Controller {
   }
 
   escapeAttr(str) {
-    // minimal attribute escaping
-    return this.escapeHtml(str).replace(/`/g, "&#096;")
+    // minimal attribute escaping — must handle single AND double quotes
+    return this.escapeHtml(str).replace(/`/g, "&#096;").replace(/'/g, "&#39;")
   }
 }

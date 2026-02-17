@@ -25,3 +25,6 @@ puts "Created #{TaskTemplate.global_templates.count} global templates: #{TaskTem
 
 # Nightshift missions
 load Rails.root.join("db/seeds/nightshift_missions.rb")
+
+# Built-in factory agents
+load Rails.root.join("db/seeds/factory_agents.rb")

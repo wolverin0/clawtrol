@@ -125,8 +125,8 @@
       <!-- Content: Single column on mobile, two columns on desktop -->
       <div class="flex-1 min-h-0 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden overflow-x-hidden">
 
-        <!-- Left Column: Task Details (scrollable on desktop, natural flow on mobile) -->
-        <div class="flex-1 lg:flex-[3] lg:overflow-y-auto overflow-visible px-5 py-6 lg:border-r lg:border-border min-w-0">
+        <!-- Left Column: Task Details (scrollable) -->
+        <div class="flex-shrink-0 lg:flex-[3] lg:min-h-0 lg:overflow-y-auto px-5 py-6 lg:border-r lg:border-border min-w-0">
           <% if missing_output_warning %>
             <div class="mb-4 rounded-lg border border-orange-500/50 bg-orange-500/10 px-3 py-2 text-sm text-orange-200 space-y-2">
               <div>⚠️ Missing Agent Output — add ## Agent Output section before moving to Done</div>
@@ -775,7 +775,7 @@
         </div>
 
         <!-- Mobile: Agent Activity + Output Files (shown below left column on mobile) -->
-        <div class="lg:hidden px-5 py-4 border-t border-border min-w-0 overflow-x-hidden">
+        <div class="lg:hidden px-5 py-4 pb-24 border-t border-border min-w-0 overflow-x-hidden">
 
           <%# Mobile Output Files %>
           <% if has_output_files %>
