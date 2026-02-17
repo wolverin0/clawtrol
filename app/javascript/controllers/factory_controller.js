@@ -13,12 +13,13 @@ export default class extends Controller {
     "searchInput", "filterBtn", "sortSelect",
     "detailPanel", "panelBackdrop", "panelIcon", "panelName", "panelSlug", "panelBadge",
     "tabBar", "tabBtn", "tabSettings", "tabLogs", "tabMetrics", "tabAgents", "tabFindings",
-    "propName", "propSlug", "propDesc", "propIconCustom", "iconPicker",
+    "propName", "propSlug", "propWorkspacePath", "propDesc", "propIconCustom", "iconPicker",
     "propModel", "propFallback", "intervalPicker", "intervalDisplay",
     "propPrompt", "propConfig",
     "saveBtn", "revertBtn",
     "logsList", "metricCycles", "metricErrors", "metricAvg", "metricDetails", "agentsList", "findingsList",
     "createModal", "createName", "createDesc", "createModel", "createInterval", "createIconBtn",
+    "createWorkspacePath", "createGithubUrl", "createWorkBranch", "localPathField", "githubField", "sourceTypeBtn",
     "deleteModal", "deleteLoopName"
   ]
 
@@ -31,6 +32,7 @@ export default class extends Controller {
     this.dirty = false
     this.activeTab = "settings"
     this.createIcon = "🏭"
+    this.sourceType = "local"
     this._snapshot = null
     this._agentsLoadedFor = null
     this._findingsLoadedFor = null
@@ -233,6 +235,7 @@ export default class extends Controller {
     if (this.hasPanelIconTarget) this.panelIconTarget.textContent = loop.icon
     if (this.hasPanelNameTarget) this.panelNameTarget.textContent = loop.name
     if (this.hasPanelSlugTarget) this.panelSlugTarget.textContent = loop.slug || "—"
+    if (this.hasPropWorkspacePathTarget) this.propWorkspacePathTarget.textContent = loop.workspace_path || "—"
     if (this.hasPanelBadgeTarget) {
       this.panelBadgeTarget.textContent = loop.status
       this.panelBadgeTarget.className = `ml-2 text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide ${this.statusBadgeClass(loop.status)}`
@@ -651,12 +654,26 @@ export default class extends Controller {
     if (!this.hasCreateModalTarget) return
     this.createModalTarget.classList.remove("hidden")
     this.createIcon = "🏭"
+    this.sourceType = "local"
     if (this.hasCreateNameTarget) this.createNameTarget.value = ""
     if (this.hasCreateDescTarget) this.createDescTarget.value = ""
+    if (this.hasCreateWorkspacePathTarget) this.createWorkspacePathTarget.value = ""
+    if (this.hasCreateGithubUrlTarget) this.createGithubUrlTarget.value = ""
+    if (this.hasCreateWorkBranchTarget) this.createWorkBranchTarget.value = "factory/auto"
     this.createIconBtnTargets.forEach(btn => {
       btn.classList.toggle("border-accent", btn.dataset.icon === "🏭")
       btn.classList.toggle("bg-accent/10", btn.dataset.icon === "🏭")
     })
+    this.sourceTypeBtnTargets.forEach(btn => {
+      const isActive = btn.dataset.source === "local"
+      btn.classList.toggle("border-accent", isActive)
+      btn.classList.toggle("bg-accent/10", isActive)
+      btn.classList.toggle("text-accent", isActive)
+      btn.classList.toggle("border-border", !isActive)
+      btn.classList.toggle("text-content-muted", !isActive)
+    })
+    if (this.hasLocalPathFieldTarget) this.localPathFieldTarget.classList.remove("hidden")
+    if (this.hasGithubFieldTarget) this.githubFieldTarget.classList.add("hidden")
     setTimeout(() => { if (this.hasCreateNameTarget) this.createNameTarget.focus() }, 100)
   }
 
@@ -673,6 +690,21 @@ export default class extends Controller {
     })
   }
 
+  setSourceType(e) {
+    const source = e.currentTarget.dataset.source
+    this.sourceType = source
+    this.sourceTypeBtnTargets.forEach(btn => {
+      const isActive = btn.dataset.source === source
+      btn.classList.toggle("border-accent", isActive)
+      btn.classList.toggle("bg-accent/10", isActive)
+      btn.classList.toggle("text-accent", isActive)
+      btn.classList.toggle("border-border", !isActive)
+      btn.classList.toggle("text-content-muted", !isActive)
+    })
+    if (this.hasLocalPathFieldTarget) this.localPathFieldTarget.classList.toggle("hidden", source !== "local")
+    if (this.hasGithubFieldTarget) this.githubFieldTarget.classList.toggle("hidden", source !== "github")
+  }
+
   async createLoop() {
     const name = this.hasCreateNameTarget ? this.createNameTarget.value.trim() : ""
     if (!name) { this.setStatus("⚠ Name is required"); return }
@@ -680,11 +712,19 @@ export default class extends Controller {
     const desc = this.hasCreateDescTarget ? this.createDescTarget.value.trim() : ""
     const model = this.hasCreateModelTarget ? this.createModelTarget.value : "opus"
     const intervalMs = this.hasCreateIntervalTarget ? parseInt(this.createIntervalTarget.value) : 900000
+    const workspacePath = this.hasCreateWorkspacePathTarget ? this.createWorkspacePathTarget.value.trim() : ""
+    const githubUrl = this.hasCreateGithubUrlTarget ? this.createGithubUrlTarget.value.trim() : ""
+    const workBranch = this.hasCreateWorkBranchTarget ? this.createWorkBranchTarget.value.trim() : "factory/auto"
+
+    // If github, workspace_path will be set server-side after clone
+    const finalWorkspacePath = this.sourceType === "github" ? "" : workspacePath
+    if (!finalWorkspacePath && this.sourceType !== "github") { this.setStatus("⚠ Workspace path required"); return }
+    if (!githubUrl && this.sourceType === "github") { this.setStatus("⚠ GitHub URL required"); return }
 
     const res = await fetch("/factory/loops", {
       method: "POST",
       headers: { "X-CSRF-Token": this.csrfToken, "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify({ factory_loop: { name, description: desc, icon: this.createIcon, model, interval_ms: intervalMs } })
+      body: JSON.stringify({ factory_loop: { name, description: desc, icon: this.createIcon, model, interval_ms: intervalMs, workspace_path: finalWorkspacePath, work_branch: workBranch, config: { github_url: githubUrl || null } } })
     })
 
     if (res.ok) {

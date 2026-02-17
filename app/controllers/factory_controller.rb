@@ -45,6 +45,16 @@ class FactoryController < ApplicationController
 
   def create
     loop = current_user.factory_loops.new(factory_loop_params)
+
+    if loop.config["github_url"].present? && loop.workspace_path.blank?
+      repo_name = loop.config["github_url"].split("/").last.gsub(".git", "")
+      clone_dir = File.expand_path("~/factory-workspaces/#{repo_name}")
+      unless Dir.exist?(clone_dir)
+        system("git", "clone", loop.config["github_url"], clone_dir)
+      end
+      loop.workspace_path = clone_dir
+    end
+
     if loop.save
       respond_to do |format|
         format.html { redirect_to factory_path, notice: "Factory loop created" }
@@ -155,7 +165,7 @@ class FactoryController < ApplicationController
   private
 
   def factory_loop_params
-    params.require(:factory_loop).permit(:name, :slug, :description, :icon, :interval_ms, :model, :fallback_model, :system_prompt, config: {}, state: {})
+    params.require(:factory_loop).permit(:name, :slug, :description, :icon, :interval_ms, :model, :fallback_model, :system_prompt, :workspace_path, :work_branch, config: {}, state: {})
   end
 
   # Safe shell execution with timeout and error handling
