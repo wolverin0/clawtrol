@@ -111,6 +111,12 @@
   🫀
 <% end %>
 
+<%= link_to zerobitch_path,
+    class: "#{icon_base_class} #{controller_name == 'zerobitch' ? icon_active_class : icon_inactive_class}",
+    title: "ZeroBitch" do %>
+  🐕
+<% end %>
+
 <%= link_to webhook_mappings_path,
     class: "#{icon_base_class} #{controller_name == 'webhook_mappings' ? icon_active_class : icon_inactive_class}",
     title: "Webhook Mappings" do %>

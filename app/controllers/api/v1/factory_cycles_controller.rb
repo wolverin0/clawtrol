@@ -3,6 +3,27 @@
 module Api
   module V1
     class FactoryCyclesController < BaseController
+      # POST /api/v1/factory/loops/:loop_id/cycles
+      def create
+        loop = current_user.factory_loops.find(params[:loop_id])
+
+        cycle_log = nil
+        FactoryLoop.transaction do
+          loop.lock!
+          next_cycle = (loop.factory_cycle_logs.maximum(:cycle_number) || 0) + 1
+          cycle_log = loop.factory_cycle_logs.create!(
+            cycle_number: next_cycle,
+            status: params[:status].presence || "running",
+            started_at: Time.current,
+            trigger: "cron"
+          )
+        end
+
+        render json: { id: cycle_log.id, cycle_number: cycle_log.cycle_number, status: cycle_log.status }, status: :created
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: "Factory loop not found" }, status: :not_found
+      end
+
       # POST /api/v1/factory/cycles/:id/complete
       def complete
         cycle_log = FactoryCycleLog
