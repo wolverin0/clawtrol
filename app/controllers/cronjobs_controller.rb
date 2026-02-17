@@ -33,6 +33,7 @@ class CronjobsController < ApplicationController
       end
     end
 
+    invalidate_cron_cache
     respond_to do |format|
       format.json { render json: { ok: true } }
       format.html { redirect_to cronjobs_path, notice: "Cron job created." }
@@ -48,18 +49,18 @@ class CronjobsController < ApplicationController
     id = params[:id].to_s
     return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
 
-    patch_data = build_patch_from_params
-    json_arg = JSON.generate(patch_data)
-    result = run_openclaw_cli("cron", "update", id, "--json-input", json_arg)
+    args = build_cron_edit_args
+    result = run_openclaw_cli("cron", "edit", id, *args)
 
     if result[:exitstatus] != 0
-      error_msg = result[:stderr].to_s.strip.presence || "Failed to update cron job"
+      error_msg = result[:stderr].to_s.strip.presence || result[:stdout].to_s.strip.presence || "Failed to update cron job"
       return respond_to do |format|
         format.json { render json: { ok: false, error: error_msg }, status: :unprocessable_entity }
         format.html { redirect_to cronjobs_path, alert: error_msg }
       end
     end
 
+    invalidate_cron_cache
     respond_to do |format|
       format.json { render json: { ok: true } }
       format.html { redirect_to cronjobs_path, notice: "Cron job updated." }
@@ -85,6 +86,7 @@ class CronjobsController < ApplicationController
       end
     end
 
+    invalidate_cron_cache
     respond_to do |format|
       format.json { render json: { ok: true } }
       format.html { redirect_to cronjobs_path, notice: "Cron job deleted." }
@@ -116,6 +118,7 @@ class CronjobsController < ApplicationController
       return render json: { ok: false, error: msg, stdout: result[:stdout].to_s }, status: :unprocessable_entity
     end
 
+    Rails.cache.delete("cronjobs/index/v1/user=#{current_user.id}")
     render json: { ok: true, id: id, enabled: desired }
   rescue Errno::ENOENT
     render json: { ok: false, error: "openclaw CLI not found" }, status: :service_unavailable
@@ -192,6 +195,11 @@ class CronjobsController < ApplicationController
     args
   end
 
+  def build_cron_edit_args
+    # Same structure as add but only includes fields that were sent
+    build_cron_add_args
+  end
+
   def build_job_from_params
     job = params[:job] || params
     {
@@ -251,7 +259,7 @@ class CronjobsController < ApplicationController
   end
 
   def run_openclaw_cron_list
-    run_openclaw_cli("cron", "list", "--json")
+    run_openclaw_cli("cron", "list", "--json", "--all")
   end
 
   def normalize_job(job)
@@ -286,6 +294,10 @@ class CronjobsController < ApplicationController
       scheduleText: "(unparseable)",
       raw: job
     }
+  end
+
+  def invalidate_cron_cache
+    Rails.cache.delete("cronjobs/index/v1/user=#{current_user.id}")
   end
 
   def cache_ttl
