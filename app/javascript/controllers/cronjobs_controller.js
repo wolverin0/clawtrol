@@ -185,6 +185,47 @@ export default class extends Controller {
     }
   }
 
+  async deleteJob(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const btn = event.currentTarget
+    const id = btn?.dataset?.id
+    const name = btn?.dataset?.name || id
+    if (!id) return
+
+    if (!confirm(`Delete "${name}"?\n\nThis cannot be undone.`)) return
+
+    btn.disabled = true
+    btn.textContent = "…"
+
+    try {
+      const res = await fetch(`/cronjobs/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: {
+          "Accept": "application/json",
+          "X-CSRF-Token": this.csrfToken() || ""
+        }
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || data.ok === false) throw new Error(data.error || "Delete failed")
+
+      // Remove the card from DOM immediately
+      const card = btn.closest(".bg-card")
+      if (card) card.remove()
+
+      // Refresh to update count
+      await this.refresh()
+    } catch (e) {
+      console.error("delete failed", e)
+      this.errorTarget.textContent = e?.message || "Delete failed"
+      this.errorTarget.classList.remove("hidden")
+      btn.disabled = false
+      btn.textContent = "🗑️"
+    }
+  }
+
   editJob(event) {
     event.preventDefault()
     event.stopPropagation()
@@ -296,6 +337,15 @@ export default class extends Controller {
                   data-id="${this.escapeAttr(job.id)}"
                   data-enabled="${enabled}">
             ${enabled ? "Disable" : "Enable"}
+          </button>
+
+          <button type="button"
+                  class="text-xs px-2 py-2 rounded-md border border-red-800/50 bg-red-900/20 hover:bg-red-700/30 text-red-300 transition-colors"
+                  data-action="click->cronjobs#deleteJob"
+                  data-id="${this.escapeAttr(job.id)}"
+                  data-name="${this.escapeAttr(job.name || job.id)}"
+                  title="Delete job">
+            🗑️
           </button>
         </div>
       </div>
