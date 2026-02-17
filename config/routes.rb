@@ -251,7 +251,7 @@ Rails.application.routes.draw do
   get "command", to: "command#index"
 
   # Cron jobs (OpenClaw Gateway)
-  resources :cronjobs, only: [:index, :create, :destroy] do
+  resources :cronjobs, only: [:index, :create, :update, :destroy] do
     member do
       post :toggle
       post :run

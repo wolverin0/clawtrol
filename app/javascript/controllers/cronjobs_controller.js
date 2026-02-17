@@ -185,6 +185,29 @@ export default class extends Controller {
     }
   }
 
+  editJob(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const jobJson = event.currentTarget?.dataset?.job
+    if (!jobJson) return
+
+    let job
+    try {
+      job = JSON.parse(jobJson)
+    } catch {
+      return
+    }
+
+    const builder = document.querySelector('[data-controller="cron-builder"]')
+    const details = builder?.closest("details")
+    if (details) details.open = true
+
+    if (builder) {
+      builder.dispatchEvent(new CustomEvent("cron-builder:load", { detail: job }))
+    }
+  }
+
   copyId(event) {
     const el = event.currentTarget
     const id = el?.dataset?.id
@@ -212,6 +235,14 @@ export default class extends Controller {
     const safeName = this.escapeHtml(job.name || job.id)
     const scheduleText = this.escapeHtml(job.scheduleText || "")
     const nextRun = this.formatTime(job.nextRunAt)
+    const rawJobData = JSON.stringify({
+      id: job.id,
+      name: job.name,
+      schedule: job.schedule,
+      sessionTarget: job.sessionTarget,
+      delivery: job.delivery,
+      payload: job.payload
+    })
 
     return `
       <div class="bg-card border border-border rounded-lg p-4 flex flex-col gap-3 shadow-sm hover:border-accent/50 transition-colors" data-action="click->cronjobs#copyId" data-id="${this.escapeAttr(job.id)}">
@@ -249,6 +280,14 @@ export default class extends Controller {
                   data-action="click->cronjobs#runNow"
                   data-id="${this.escapeAttr(job.id)}">
             Run Now
+          </button>
+
+          <button type="button"
+                  class="flex-1 text-xs px-3 py-2 rounded-md border border-border bg-white/5 hover:bg-white/10 transition-colors"
+                  data-action="click->cronjobs#editJob"
+                  data-id="${this.escapeAttr(job.id)}"
+                  data-job='${this.escapeAttr(rawJobData)}'>
+            Edit
           </button>
 
           <button type="button"

@@ -13,8 +13,18 @@ export default class extends Controller {
                      "jsonPreview", "status"]
 
   connect() {
+    this._onLoadJob = (event) => this.loadJob(event.detail)
+    this.element.addEventListener("cron-builder:load", this._onLoadJob)
+
     this.updateScheduleUI()
     this.updateCronPreview()
+    this.updatePayloadUI()
+  }
+
+  disconnect() {
+    if (this._onLoadJob) {
+      this.element.removeEventListener("cron-builder:load", this._onLoadJob)
+    }
   }
 
   updateScheduleUI() {
@@ -81,6 +91,121 @@ export default class extends Controller {
         setTimeout(() => window.location.reload(), 1500)
       } else {
         this.showStatus(data.error || "Creation failed", "error")
+      }
+    } catch (err) {
+      this.showStatus(`Error: ${err.message}`, "error")
+    }
+  }
+
+  loadJob(job) {
+    if (!job) return
+
+    this._editingId = job.id
+
+    if (this.hasNameTarget) this.nameTarget.value = job.name || ""
+
+    const schedule = job.schedule || {}
+    if (this.hasScheduleTypeTarget) {
+      this.scheduleTypeTarget.value = schedule.kind || "cron"
+      this.updateScheduleUI()
+    }
+
+    if (schedule.kind === "cron" && schedule.expr) {
+      const parts = String(schedule.expr).split(/\s+/)
+      if (this.hasCronMinuteTarget) this.cronMinuteTarget.value = parts[0] || "*"
+      if (this.hasCronHourTarget) this.cronHourTarget.value = parts[1] || "*"
+      if (this.hasCronDomTarget) this.cronDomTarget.value = parts[2] || "*"
+      if (this.hasCronMonthTarget) this.cronMonthTarget.value = parts[3] || "*"
+      if (this.hasCronDowTarget) this.cronDowTarget.value = parts[4] || "*"
+      this.updateCronPreview()
+    } else if (schedule.kind === "every") {
+      const ms = schedule.everyMs || 3600000
+      if (ms >= 3600000) {
+        if (this.hasIntervalValueTarget) this.intervalValueTarget.value = ms / 3600000
+        if (this.hasIntervalUnitTarget) this.intervalUnitTarget.value = "hours"
+      } else {
+        if (this.hasIntervalValueTarget) this.intervalValueTarget.value = ms / 60000
+        if (this.hasIntervalUnitTarget) this.intervalUnitTarget.value = "minutes"
+      }
+    } else if (schedule.kind === "at" && schedule.at) {
+      if (this.hasAtTimeTarget) {
+        const d = new Date(schedule.at)
+        if (!Number.isNaN(d.getTime())) {
+          this.atTimeTarget.value = d.toISOString().slice(0, 16)
+        }
+      }
+    }
+
+    const payload = job.payload || {}
+    const sessionTarget = job.sessionTarget || "isolated"
+    if (this.hasSessionTargetTarget) {
+      this.sessionTargetTarget.value = sessionTarget
+      this.updatePayloadUI()
+    }
+
+    if (this.hasMessageTarget) {
+      this.messageTarget.value = payload.message || payload.text || ""
+    }
+
+    if (this.hasModelTarget) {
+      this.modelTarget.value = payload.model || ""
+    }
+
+    const delivery = job.delivery || {}
+    if (this.hasDeliveryModeTarget) {
+      this.deliveryModeTarget.value = delivery.mode || "announce"
+    }
+
+    if (this.hasDeliveryTargetTarget) {
+      if (delivery.channel) {
+        const targetVal = delivery.to ? `${delivery.channel}|${delivery.to}` : delivery.channel
+        const options = Array.from(this.deliveryTargetTarget.options)
+        const match = options.find((o) => o.value === targetVal)
+        if (match) this.deliveryTargetTarget.value = targetVal
+      } else {
+        this.deliveryTargetTarget.value = ""
+      }
+    }
+
+    this._updateCreateButton(true)
+    this.element.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  _updateCreateButton(editing) {
+    const btn = this.element.querySelector('[data-action="click->cron-builder#create"], [data-action="click->cron-builder#update"]')
+    if (!btn) return
+
+    btn.textContent = editing ? "Update Job" : "Create Job"
+    btn.dataset.action = editing ? "click->cron-builder#update" : "click->cron-builder#create"
+  }
+
+  async update() {
+    if (!this._editingId) return this.create()
+
+    const job = this.buildJob()
+
+    this.showStatus("Updating cron job...", "info")
+
+    try {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content
+      const response = await fetch(`/cronjobs/${encodeURIComponent(this._editingId)}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": token,
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(job)
+      })
+
+      const data = await response.json()
+      if (data.ok || data.success) {
+        this.showStatus("Job updated! Reloading...", "success")
+        this._editingId = null
+        this._updateCreateButton(false)
+        setTimeout(() => window.location.reload(), 1500)
+      } else {
+        this.showStatus(data.error || "Update failed", "error")
       }
     } catch (err) {
       this.showStatus(`Error: ${err.message}`, "error")
