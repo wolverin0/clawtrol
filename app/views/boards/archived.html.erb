@@ -1,4 +1,5 @@
 <%# Archived Tasks View %>
+<%= turbo_frame_tag "board-content" do %>
 <div class="h-screen flex flex-col bg-bg-base">
   <%# Header %>
   <%= render "boards/header" %>
@@ -88,3 +89,4 @@
     <% end %>
   </div>
 </div>
+<% end %>

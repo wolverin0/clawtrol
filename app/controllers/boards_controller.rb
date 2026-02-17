@@ -48,6 +48,8 @@ class BoardsController < ApplicationController
       @column_counts[status] = all_counts[status.to_s] || 0
     end
 
+    @blocking_task_ids_by_task_id = build_blocking_task_ids(@columns.values.flatten)
+
     # Get all unique tags for the sidebar filter
     if @board.aggregator?
       @all_tags = Task.joins(:board)
@@ -141,10 +143,13 @@ class BoardsController < ApplicationController
     scope = tasks.where(status: status).ordered_for_column(status)
     @pagy, @tasks = pagy(scope, limit: PER_COLUMN_ITEMS)
 
+    blocking_task_ids_by_task_id = build_blocking_task_ids(@tasks)
+
     html = render_to_string(
       partial: "boards/task_card",
       collection: @tasks,
-      as: :task
+      as: :task,
+      locals: { blocking_task_ids_by_task_id: blocking_task_ids_by_task_id }
     )
 
     response.set_header("X-Has-More", @pagy.next.present?.to_s)
@@ -288,12 +293,12 @@ class BoardsController < ApplicationController
         .joins(:board)
         .where(boards: { is_aggregator: false })
         .not_archived
-        .includes(:user, :board, :parent_task, :followup_task, :agent_persona, :runner_leases, :dependencies)
+        .includes(:user, :board, :parent_task, :followup_task, :agent_persona, :runner_leases, :dependencies, :dependents)
     else
       @is_aggregator = false
       board.tasks
         .not_archived
-        .includes(:user, :parent_task, :followup_task, :agent_persona, :runner_leases, :dependencies)
+        .includes(:user, :board, :parent_task, :followup_task, :agent_persona, :runner_leases, :dependencies, :dependents)
     end
   end
 
@@ -303,5 +308,23 @@ class BoardsController < ApplicationController
 
   def board_params
     params.require(:board).permit(:name, :icon, :color, :auto_claim_enabled, :auto_claim_prefix, auto_claim_tags: [])
+  end
+
+  def build_blocking_task_ids(tasks)
+    task_ids = Array(tasks).map(&:id).compact
+    return {} if task_ids.empty?
+
+    done = Task.statuses.fetch("done")
+    archived = Task.statuses.fetch("archived")
+
+    pairs = TaskDependency
+      .joins("INNER JOIN tasks AS depends_on_tasks ON depends_on_tasks.id = task_dependencies.depends_on_id")
+      .where(task_id: task_ids)
+      .where.not("depends_on_tasks.status IN (?, ?)", done, archived)
+      .pluck(:task_id, :depends_on_id)
+
+    pairs.each_with_object(Hash.new { |h, k| h[k] = [] }) do |(task_id, depends_on_id), acc|
+      acc[task_id] << depends_on_id
+    end
   end
 end
