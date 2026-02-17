@@ -57,14 +57,20 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Confidence Scoring** — Findings rated 0-100, deduplicated by SHA256 pattern hash
 - **Backlog-Driven** — Agents read `FACTORY_BACKLOG.md` and work through items in priority order
 
-### ⚔️ ZeroBitch — Fleet Management
-- **Fleet Dashboard** — Monitor ZeroClaw agent instances with real-time status, RAM, CPU
-- **One-Click Spawn** — Create agents from templates (Infra Monitor, Research Analyst, Security Auditor, etc.)
-- **Docker Lifecycle** — Start/Stop/Restart/Destroy from the UI
-- **Task Dispatch** — Send prompts to agents, track execution history
-- **Memory Browser** — Browse agent memory databases
-- **Auto-Scaler Rules** — Define automatic fleet scaling conditions
-- **SOUL.md Editor** — Edit agent personality directly from the detail page
+### ⚔️ ZeroBitch — Agent Swarm Orchestration
+
+ZeroBitch is ClawTrol's fleet management layer for [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw) — a lightweight, Rust-based AI agent runtime. Instead of running a single agent, ZeroBitch lets you spawn, manage, and orchestrate a **swarm of ZeroClaw instances** as Docker containers, each with its own role, model, personality, and resource limits. Think of it as Kubernetes for your AI agents — launch a security auditor, a research analyst, and a code reviewer, all running in parallel on cheap/free LLMs, coordinated from one dashboard.
+
+- **Fleet Dashboard** (`/zerobitch`) — Monitor all agent instances with real-time status, RAM, CPU, sparkline charts
+- **One-Click Spawn** — Create agents from 6 templates (Infra Monitor, Research Analyst, Security Auditor, Content Writer, Code Reviewer, Data Analyst) or configure custom agents
+- **Docker Lifecycle** — Start/Stop/Restart/Destroy containers directly from the UI
+- **Task Dispatch** — Send prompts to individual agents and track execution results with timing
+- **Memory Browser** — Browse each agent's SQLite memory database, transfer knowledge between agents
+- **Auto-Scaler Rules** — Define conditions for automatic fleet scaling (e.g., "if CPU > 80% on all agents, spawn another")
+- **SOUL.md / AGENTS.md Editor** — Edit agent personality and instructions from the detail page, changes mount into the container live
+- **Logs Viewer** — Real-time container log streaming with auto-scroll and filtering
+- **Batch Operations** — Start/stop/restart multiple agents at once
+- **Resource Limits** — Per-agent memory (default 32MB) and CPU caps to keep your fleet lightweight
 
 ### 🔄 Model Rate Limiting
 - **Model Status** — Check which models are available
