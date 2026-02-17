@@ -3,6 +3,10 @@ import { Controller } from "@hotwired/stimulus"
 // Connects to data-controller="dropdown"
 export default class extends Controller {
   static targets = ["button", "menu", "container", "trigger", "input", "display"]
+  static values = {
+    contextMenuUrl: String,
+    contextMenuFrameId: String
+  }
 
   connect() {
     this.handleClickOutside = this.handleClickOutside.bind(this)
@@ -64,27 +68,21 @@ export default class extends Controller {
     document.addEventListener("keydown", this.handleKeydown)
   }
 
-  openAtCursor(event) {
+  async openAtCursor(event) {
     event.preventDefault()
     event.stopPropagation()
 
-    // Close any other open dropdowns first
     document.dispatchEvent(new CustomEvent("dropdown:close-all", { detail: { except: this.element } }))
-    // Hide any visible agent previews (they shouldn't overlap context menus)
     document.dispatchEvent(new CustomEvent("dropdown:opened"))
 
     const isOpen = !this.menuTarget.classList.contains("hidden")
-    if (isOpen) {
-      return
-    }
+    if (isOpen) return
 
-    // Play codec call sound on context menu open
+    await this.ensureContextMenuLoaded()
+
     document.dispatchEvent(new CustomEvent("codec:play", { detail: { sound: "codec_call" } }))
-
-    // Boost card z-index so dropdown menu appears above sibling cards
     this.element.classList.add("z-[100]")
 
-    // Show menu first (but keep it positioned off-screen temporarily to measure)
     const menu = this.menuTarget
     menu.classList.remove("hidden")
     menu.style.visibility = "hidden"
@@ -92,41 +90,24 @@ export default class extends Controller {
     menu.style.left = "0"
     menu.style.top = "0"
 
-    // Now we can measure it
     const rect = menu.getBoundingClientRect()
     const viewportWidth = window.innerWidth
     const viewportHeight = window.innerHeight
 
-    // Calculate position - try to position near cursor but keep menu in viewport
     let left = event.clientX
     let top = event.clientY
 
-    // Adjust if menu would go off right edge
-    if (left + rect.width > viewportWidth) {
-      left = viewportWidth - rect.width - 8
-    }
+    if (left + rect.width > viewportWidth) left = viewportWidth - rect.width - 8
+    if (top + rect.height > viewportHeight) top = viewportHeight - rect.height - 8
+    if (left < 8) left = 8
+    if (top < 8) top = 8
 
-    // Adjust if menu would go off bottom edge
-    if (top + rect.height > viewportHeight) {
-      top = viewportHeight - rect.height - 8
-    }
-
-    // Ensure menu doesn't go off left or top edges
-    if (left < 8) {
-      left = 8
-    }
-    if (top < 8) {
-      top = 8
-    }
-
-    // Apply final positioning and make visible
     menu.style.left = `${left}px`
     menu.style.top = `${top}px`
     menu.style.right = "auto"
     menu.style.marginTop = "0"
     menu.style.visibility = "visible"
 
-    // Complete the open process
     const triggerEl = this.hasTriggerTarget ? this.triggerTarget : this.buttonTarget
     triggerEl.setAttribute("aria-expanded", "true")
     if (this.hasContainerTarget) {
@@ -200,5 +181,25 @@ export default class extends Controller {
     if (event.key === "Escape") {
       this.close()
     }
+  }
+
+  async ensureContextMenuLoaded() {
+    if (!this.hasContextMenuUrlValue || !this.hasContextMenuFrameIdValue) return
+
+    const frame = document.getElementById(this.contextMenuFrameIdValue)
+    if (!frame) return
+    if (frame.dataset.loaded === "true") return
+
+    await new Promise((resolve) => {
+      const done = () => {
+        frame.dataset.loaded = "true"
+        frame.removeEventListener("turbo:frame-load", done)
+        resolve()
+      }
+      frame.addEventListener("turbo:frame-load", done, { once: true })
+      if (!frame.getAttribute("src")) {
+        frame.setAttribute("src", this.contextMenuUrlValue)
+      }
+    })
   }
 }
