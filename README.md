@@ -48,6 +48,24 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Auto-Status** — Pass → `in_review`, Fail → stays `in_progress`
 - **Command Sandboxing** — Shellwords + allowlist prevents injection attacks
 
+### 🏭 Factory v2 — Continuous Improvement Engine
+- **Automated Code Improvement** — Configure loops that continuously improve your codebase
+- **10 Built-in Agents** — Security Auditor, Code Reviewer, Performance Profiler, Test Coverage Hunter, and more
+- **Stack Auto-Detection** — Detects Rails, Node, Python, Rust, Go and configures appropriate syntax/test commands
+- **OpenClaw Cron Sync** — Play/Pause/Stop loops from UI, syncs with OpenClaw scheduler
+- **Cycle Reporting** — Agents report progress via API with commit tracking and finding dedup
+- **Confidence Scoring** — Findings rated 0-100, deduplicated by SHA256 pattern hash
+- **Backlog-Driven** — Agents read `FACTORY_BACKLOG.md` and work through items in priority order
+
+### ⚔️ ZeroBitch — Fleet Management
+- **Fleet Dashboard** — Monitor ZeroClaw agent instances with real-time status, RAM, CPU
+- **One-Click Spawn** — Create agents from templates (Infra Monitor, Research Analyst, Security Auditor, etc.)
+- **Docker Lifecycle** — Start/Stop/Restart/Destroy from the UI
+- **Task Dispatch** — Send prompts to agents, track execution history
+- **Memory Browser** — Browse agent memory databases
+- **Auto-Scaler Rules** — Define automatic fleet scaling conditions
+- **SOUL.md Editor** — Edit agent personality directly from the detail page
+
 ### 🔄 Model Rate Limiting
 - **Model Status** — Check which models are available
 - **Best Model Selection** — Automatically pick the best available model

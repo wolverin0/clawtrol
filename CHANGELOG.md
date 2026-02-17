@@ -3,6 +3,70 @@
 All notable changes to ClawTrol are documented here.
 Generated automatically from [conventional commits](https://www.conventionalcommits.org/).
 
+## v0.9.0 — Factory v2 + ZeroBitch Fleet + Kanban Performance (2026-02-17)
+
+### 🏭 Factory v2 — Continuous Improvement Engine
+- **FactoryRunnerV2Job** — New job with StackDetector + PromptCompiler for automated code improvement cycles
+- **Factory Agents** — 10 built-in agents (Security Auditor, Code Reviewer, Performance Profiler, Test Coverage Hunter, etc.)
+- **FactoryLoopAgents** — Assign multiple agents per loop with enable/disable and rotation
+- **OpenClaw Cron Sync** — Play/Pause/Stop from UI syncs directly with OpenClaw cron scheduler via CLI
+- **Cycle Reporting API** — `POST /factory/loops/:id/cycles` + `POST /factory/cycles/:id/complete` for agent self-reporting
+- **Workspace Setup** — Git worktree isolation + DB sandbox per factory loop
+- **Confidence Scoring** — Finding dedup with SHA256 pattern matching and confidence thresholds
+- **GitHub Integration** — Clone repos + create PRs from factory findings (workspace_path + github_url fields)
+
+### ⚔️ ZeroBitch — Fleet Management Dashboard
+- **Fleet Dashboard** (`/zerobitch`) — Monitor all ZeroClaw agent instances with status, RAM, CPU
+- **Agent Spawn** — Create new agents from 6 templates (Infra Monitor, Research Analyst, Security Auditor, Content Writer, Code Reviewer, Data Analyst)
+- **Docker Lifecycle** — Start/Stop/Restart/Destroy agents directly from UI
+- **Task Dispatch** — Send prompts to agents and track execution history
+- **Memory Browser** — Browse agent SQLite memory databases
+- **Auto-Scaler Rules** — Define rules for automatic fleet scaling
+- **Metrics Collection** — Periodic stats collection with sparkline charts
+- **SOUL.md / AGENTS.md Editor** — Edit agent personality and instructions from detail page
+- **Logs Viewer** — Real-time container log streaming with auto-scroll
+
+### ⚡ Kanban Performance
+- **N+1 Query Elimination** — Preload dependencies, dependents, board, blocking_tasks
+- **Fragment Caching** — Task card partial caching for faster board rendering
+- **Turbo Frame Board Switch** — Switch boards without full page reload
+- **Lazy-Load Modals** — Delete and agent modals load on demand, not on page load
+- **Task Dependencies Preload** — Optimized status-change blocking ID lookups
+
+### 🔧 Cron Job Builder Improvements
+- **Edit Functionality** — Edit existing cron jobs from the UI
+- **Delete Button** — Remove cron jobs with confirmation
+- **Delivery Target Dropdown** — Replace free-text channel input with structured selector
+- **CLI Gateway Auth** — Fixed authentication flow for cron CRUD operations
+
+### 🐛 Bug Fixes
+- fix(zerobitch): Docker container name matching — agents always showed "stopped"
+- fix(zerobitch): Class method calls (start/stop/restart were using instance methods)
+- fix(zerobitch): Missing `:state` field from Docker JSON parsing
+- fix(zerobitch): Storage path constants (BASE_DIR, config/workspace paths)
+- fix(mobile): Task modal scroll — left column + Agent Activity fully scrollable
+- fix(mobile): Turbo-frame src for board navigation
+- fix: Default origin_chat_id on task creation → routes to Mission Control
+- fix: Memory search health — CLI probe instead of non-existent HTTP API
+- fix: Default DB name to clawdeck_development
+- fix: Correct inverse_of on followup_task association
+
+### 🧪 Testing
+- 30+ new model tests (AgentTestRecording, ApiToken, BehavioralIntervention, Board, InviteCode, RunnerLease, TaskActivity, TaskDependency, TaskRun, TaskTemplate, User, Workflow)
+- System tests for Board Kanban (21 tests) and Swarm Launcher (16 tests)
+- Job tests for CatastrophicGuardrailsJob, NightshiftRunnerJob
+- Controller tests for ZeroBitch, FactoryLoops, API concerns
+- Service tests for DockerService, TaskHistory, QdrantClient
+
+### 🏗️ Model Improvements
+- Added `inverse_of` declarations across 16 models for proper association caching
+- Added `strict_loading :n_plus_one` for N+1 detection
+- New scopes on ApiToken (active, expired, recently_used)
+- StatusConstants concern for DRY status management
+- BudgetPresenter + CostAnalyticsPresenter for analytics views
+
+---
+
 ## February 2026
 
 ### Documentation and Operations
