@@ -30,8 +30,15 @@ module OpenclawCliRunnable
   # @param args [Array<String>] CLI arguments (e.g. "sessions", "--active", "120", "--json")
   # @return [Hash] { stdout:, stderr:, exitstatus: }
   def run_openclaw_cli(*args)
+    # Clear gateway env vars so the CLI connects as an external client,
+    # not as an internal gateway subprocess (which causes WS auth issues).
+    clean_env = {
+      "OPENCLAW_SERVICE_KIND" => nil,
+      "OPENCLAW_SYSTEMD_UNIT" => nil
+    }
+
     stdout, stderr, status = ::Timeout.timeout(openclaw_timeout_seconds) do
-      Open3.capture3("openclaw", *args.map(&:to_s))
+      Open3.capture3(clean_env, "openclaw", *args.map(&:to_s))
     end
 
     { stdout: stdout, stderr: stderr, exitstatus: status&.exitstatus }

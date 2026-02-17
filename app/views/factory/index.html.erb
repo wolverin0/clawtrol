@@ -7,15 +7,29 @@
 
 <div class="h-full flex flex-col" data-controller="factory"
      data-factory-loops-value="<%= @loops.map { |l|
+       logs = l.factory_cycle_logs.order(started_at: :desc).limit(10)
+       latest_commits = logs.first&.commits
+       latest_commit =
+         if latest_commits.is_a?(Array)
+           latest_commits.first
+         elsif latest_commits.is_a?(Hash)
+           latest_commits
+         end
+
        {
          id: l.id, name: l.name, slug: l.slug, description: l.description,
          icon: l.icon.presence || '🏭', status: l.status,
          interval_ms: l.interval_ms, model: l.model, fallback_model: l.fallback_model,
-         system_prompt: l.system_prompt, config: l.config || {},
+         system_prompt: l.system_prompt, config: l.config || {}, idle_policy: l.idle_policy,
+         workspace_path: l.workspace_path, work_branch: l.work_branch,
          total_cycles: l.total_cycles || 0, total_errors: l.total_errors || 0,
          avg_cycle_duration_ms: l.avg_cycle_duration_ms,
          last_cycle_at: l.last_cycle_at&.iso8601, last_error_message: l.last_error_message,
-         recent_logs: l.factory_cycle_logs.order(started_at: :desc).limit(10).reverse.map { |log| { status: log.status, summary: log.summary.to_s.truncate(80), started_at: log.started_at&.iso8601 } }
+         last_commit: {
+           sha: latest_commit&.dig("sha") || latest_commit&.dig(:sha),
+           message: latest_commit&.dig("message") || latest_commit&.dig(:message)
+         },
+         recent_logs: logs.reverse.map { |log| { status: log.status, summary: log.summary.to_s.truncate(80), started_at: log.started_at&.iso8601 } }
        }
      }.to_json %>"
      data-factory-model-options-value="<%= model_options.to_json %>"
@@ -125,6 +139,12 @@
                 class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">Logs</button>
         <button type="button" data-action="factory#switchTab" data-tab="metrics"
                 class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">Metrics</button>
+        <button type="button" data-action="factory#switchTab" data-tab="agents"
+                class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">Agents</button>
+        <button type="button" data-action="factory#switchTab" data-tab="findings"
+                class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">Findings</button>
+        <button type="button" data-action="factory#switchTab" data-tab="history"
+                class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">History</button>
       </div>
 
       <!-- Tab Content -->
@@ -143,6 +163,23 @@
           <div>
             <label class="block text-xs font-medium text-content-muted mb-1">Slug</label>
             <div class="text-xs text-content-muted font-mono bg-bg-elevated px-3 py-2 rounded-md border border-border" data-factory-target="propSlug">—</div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Workspace Path</label>
+            <input type="text" data-factory-target="propWorkspacePath" data-action="input->factory#markDirty"
+                   class="w-full px-3 py-2 text-sm font-mono bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Work Branch</label>
+            <input type="text" data-factory-target="propWorkBranch" data-action="input->factory#markDirty"
+                   class="w-full px-3 py-2 text-sm font-mono bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Detected Stack</label>
+            <div data-factory-target="propDetectedStack" class="inline-flex items-center px-2 py-1 text-xs rounded-md bg-bg-elevated border border-border text-content-muted">unknown</div>
           </div>
 
           <!-- Description -->
@@ -256,6 +293,34 @@
           </div>
           <div class="mt-4" data-factory-target="metricDetails"></div>
         </div>
+
+        <!-- Agents Tab -->
+        <div data-factory-target="tabAgents" class="p-5 hidden">
+          <div data-factory-target="agentsList" class="space-y-2">
+            <p class="text-xs text-content-muted">Loading agents…</p>
+          </div>
+        </div>
+
+        <!-- Findings Tab -->
+        <div data-factory-target="tabFindings" class="p-5 hidden">
+          <div data-factory-target="findingsList" class="space-y-2">
+            <p class="text-xs text-content-muted">Loading findings…</p>
+          </div>
+        </div>
+
+        <!-- History Tab -->
+        <div data-factory-target="tabHistory" class="p-5 hidden space-y-4">
+          <div>
+            <h4 class="text-xs font-medium text-content-muted mb-2">Git Log (last 20)</h4>
+            <div data-factory-target="historyGitLog" class="space-y-2">
+              <p class="text-xs text-content-muted">Open tab to load history…</p>
+            </div>
+          </div>
+          <div>
+            <h4 class="text-xs font-medium text-content-muted mb-2">IMPROVEMENT_LOG.md</h4>
+            <pre data-factory-target="historyImprovementLog" class="max-h-72 overflow-auto bg-bg-elevated border border-border rounded-md p-3 text-[11px] text-content-muted whitespace-pre-wrap">No history loaded.</pre>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -273,6 +338,32 @@
         <div>
           <label class="block text-xs font-medium text-content-muted mb-1">Name *</label>
           <input type="text" data-factory-target="createName" placeholder="My Loop"
+                 class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Project Source *</label>
+          <div class="flex gap-2 mb-2">
+            <button type="button" data-action="factory#setSourceType" data-source="local"
+                    data-factory-target="sourceTypeBtn"
+                    class="flex-1 px-3 py-2 text-xs font-medium border border-accent rounded-md bg-accent/10 text-accent">📁 Local Path</button>
+            <button type="button" data-action="factory#setSourceType" data-source="github"
+                    data-factory-target="sourceTypeBtn"
+                    class="flex-1 px-3 py-2 text-xs font-medium border border-border rounded-md text-content-muted hover:border-accent/30">🐙 GitHub Repo</button>
+          </div>
+          <div data-factory-target="localPathField">
+            <input type="text" data-factory-target="createWorkspacePath" placeholder="/mnt/pyapps/myproject"
+                   class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
+            <p class="text-xs text-content-muted mt-1">Path to local project directory</p>
+          </div>
+          <div data-factory-target="githubField" class="hidden">
+            <input type="text" data-factory-target="createGithubUrl" placeholder="https://github.com/owner/repo"
+                   class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
+            <p class="text-xs text-content-muted mt-1">Will be cloned to ~/factory-workspaces/</p>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Work Branch</label>
+          <input type="text" data-factory-target="createWorkBranch" placeholder="factory/auto" value="factory/auto"
                  class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
         </div>
         <div>
@@ -304,6 +395,12 @@
               <option value="<%= ms %>" <%= 'selected' if label == '15m' %>><%= label %></option>
             <% end %>
           </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-2">Agents</label>
+          <div data-factory-target="createAgentsList" class="max-h-40 overflow-y-auto border border-border rounded-md bg-bg-elevated p-2 space-y-1.5">
+            <p class="text-xs text-content-muted">Open modal to load agents…</p>
+          </div>
         </div>
       </div>
       <div class="px-6 py-4 border-t border-border flex justify-end gap-2">

@@ -42,6 +42,12 @@ class FactoryEngineService
         last_error_at: nil,
         last_error_message: nil
       )
+
+      cycle_log.factory_agent_runs.includes(:factory_loop, :factory_agent).find_each do |run|
+        FactoryFindingProcessor.new(run).process!
+      rescue StandardError => e
+        Rails.logger.error("[FactoryEngineService] finding processing failed for run ##{run.id}: #{e.message}")
+      end
     else
       new_failures = loop.consecutive_failures + 1
       attrs = {

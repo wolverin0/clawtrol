@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_16_062000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_17_022000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -224,13 +224,58 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_062000) do
     t.index ["user_id"], name: "index_cost_snapshots_on_user_id"
   end
 
+  create_table "factory_agent_runs", force: :cascade do |t|
+    t.string "commit_sha"
+    t.datetime "created_at", null: false
+    t.bigint "factory_agent_id", null: false
+    t.bigint "factory_cycle_log_id"
+    t.bigint "factory_loop_id", null: false
+    t.jsonb "findings", default: []
+    t.integer "findings_count", default: 0
+    t.datetime "finished_at"
+    t.integer "items_generated", default: 0
+    t.datetime "started_at"
+    t.string "status"
+    t.integer "tokens_used"
+    t.datetime "updated_at", null: false
+    t.index ["factory_agent_id"], name: "index_factory_agent_runs_on_factory_agent_id"
+    t.index ["factory_cycle_log_id"], name: "index_factory_agent_runs_on_factory_cycle_log_id"
+    t.index ["factory_loop_id", "factory_agent_id", "created_at"], name: "idx_agent_runs_loop_agent_created"
+    t.index ["factory_loop_id"], name: "index_factory_agent_runs_on_factory_loop_id"
+    t.index ["status"], name: "index_factory_agent_runs_on_status"
+  end
+
+  create_table "factory_agents", force: :cascade do |t|
+    t.boolean "builtin", default: false
+    t.string "category"
+    t.integer "cooldown_hours", default: 24
+    t.datetime "created_at", null: false
+    t.integer "default_confidence_threshold", default: 80
+    t.text "description"
+    t.string "name", null: false
+    t.integer "priority", default: 5
+    t.string "run_condition", default: "new_commits"
+    t.string "slug", null: false
+    t.string "source"
+    t.text "system_prompt", null: false
+    t.jsonb "tools_needed", default: []
+    t.datetime "updated_at", null: false
+    t.index ["builtin"], name: "index_factory_agents_on_builtin"
+    t.index ["category"], name: "index_factory_agents_on_category"
+    t.index ["slug"], name: "index_factory_agents_on_slug", unique: true
+  end
+
   create_table "factory_cycle_logs", force: :cascade do |t|
     t.jsonb "actions_taken", default: []
+    t.string "agent_name"
+    t.string "backlog_item"
+    t.jsonb "commits", default: []
     t.datetime "created_at", null: false
     t.integer "cycle_number", null: false
     t.integer "duration_ms"
     t.jsonb "errors", default: []
     t.bigint "factory_loop_id", null: false
+    t.integer "files_changed", default: 0
     t.datetime "finished_at"
     t.integer "input_tokens"
     t.string "model_used"
@@ -241,6 +286,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_062000) do
     t.jsonb "state_before"
     t.string "status", default: "running", null: false
     t.text "summary"
+    t.integer "tests_failed"
+    t.integer "tests_passed"
+    t.integer "tests_run"
+    t.string "trigger", default: "backlog"
     t.index ["factory_loop_id", "created_at"], name: "idx_cycle_logs_loop_created"
     t.index ["factory_loop_id", "created_at"], name: "idx_cycle_logs_loop_recent", order: { created_at: :desc }
     t.index ["factory_loop_id", "cycle_number"], name: "idx_cycle_logs_loop_cycle", unique: true
@@ -248,24 +297,59 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_062000) do
     t.index ["status"], name: "index_factory_cycle_logs_on_status"
   end
 
+  create_table "factory_finding_patterns", force: :cascade do |t|
+    t.string "category"
+    t.datetime "created_at", null: false
+    t.text "description", null: false
+    t.integer "dismiss_count", default: 0
+    t.bigint "factory_loop_id"
+    t.string "pattern_hash", null: false
+    t.boolean "suppressed", default: false
+    t.datetime "updated_at", null: false
+    t.index ["factory_loop_id", "pattern_hash"], name: "idx_finding_patterns_loop_hash", unique: true
+    t.index ["factory_loop_id"], name: "index_factory_finding_patterns_on_factory_loop_id"
+    t.index ["suppressed"], name: "index_factory_finding_patterns_on_suppressed"
+  end
+
+  create_table "factory_loop_agents", force: :cascade do |t|
+    t.integer "confidence_threshold_override"
+    t.integer "cooldown_hours_override"
+    t.datetime "created_at", null: false
+    t.boolean "enabled", default: true
+    t.bigint "factory_agent_id", null: false
+    t.bigint "factory_loop_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["factory_agent_id"], name: "index_factory_loop_agents_on_factory_agent_id"
+    t.index ["factory_loop_id", "factory_agent_id"], name: "idx_loop_agents_unique", unique: true
+    t.index ["factory_loop_id"], name: "index_factory_loop_agents_on_factory_loop_id"
+  end
+
   create_table "factory_loops", force: :cascade do |t|
     t.integer "avg_cycle_duration_ms"
+    t.string "backlog_path", default: "FACTORY_BACKLOG.md"
+    t.integer "confidence_threshold", default: 90
     t.jsonb "config", default: {}, null: false
     t.integer "consecutive_failures", default: 0, null: false
     t.datetime "created_at", null: false
     t.integer "cycle_count", default: 0
+    t.string "db_url_override"
     t.text "description"
     t.string "fallback_model"
+    t.string "findings_path", default: "FACTORY_FINDINGS.md"
     t.string "icon", default: "🏭"
+    t.string "idle_policy", default: "pause"
     t.integer "interval_ms", null: false
     t.datetime "last_cycle_at"
     t.datetime "last_error_at"
     t.text "last_error_message"
+    t.integer "max_findings_per_run", default: 5
+    t.integer "max_session_minutes", default: 240
     t.jsonb "metrics", default: {}, null: false
     t.string "model", null: false
     t.string "name", null: false
     t.string "openclaw_cron_id"
     t.string "openclaw_session_key"
+    t.jsonb "protected_branches", default: ["main", "master"]
     t.string "slug", null: false
     t.jsonb "state", default: {}, null: false
     t.string "status", default: "idle", null: false
@@ -274,6 +358,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_062000) do
     t.integer "total_errors", default: 0
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.string "work_branch", default: "factory/auto"
+    t.string "workspace_path"
     t.index ["openclaw_cron_id"], name: "index_factory_loops_on_openclaw_cron_id", unique: true, where: "(openclaw_cron_id IS NOT NULL)"
     t.index ["slug"], name: "index_factory_loops_on_slug", unique: true
     t.index ["status"], name: "index_factory_loops_on_status"
@@ -890,7 +976,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_16_062000) do
   add_foreign_key "behavioral_interventions", "users"
   add_foreign_key "boards", "users"
   add_foreign_key "cost_snapshots", "users"
+  add_foreign_key "factory_agent_runs", "factory_agents"
+  add_foreign_key "factory_agent_runs", "factory_cycle_logs"
+  add_foreign_key "factory_agent_runs", "factory_loops"
   add_foreign_key "factory_cycle_logs", "factory_loops"
+  add_foreign_key "factory_finding_patterns", "factory_loops"
+  add_foreign_key "factory_loop_agents", "factory_agents"
+  add_foreign_key "factory_loop_agents", "factory_loops"
   add_foreign_key "factory_loops", "users"
   add_foreign_key "feed_entries", "users"
   add_foreign_key "invite_codes", "users", column: "created_by_id"

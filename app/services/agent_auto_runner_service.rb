@@ -73,21 +73,24 @@ class AgentAutoRunnerService
   end
 
   # Pipeline: process tasks that need pipeline advancement
+  # Simplified: skip triage, go straight to context compilation + routing
   def process_pipeline_tasks!(user)
     count = 0
+    # Process tasks that are either not started OR partially through pipeline
     tasks = user.tasks.where(pipeline_enabled: true, status: :up_next)
                       .where(pipeline_stage: [nil, "", "unstarted", "triaged", "context_ready"])
                       .limit(5)
 
     tasks.find_each do |task|
       Task.transaction(requires_new: true) do
-        Pipeline::Orchestrator.new(task, user: user).process_to_completion!
-
-        # If pipeline routing produced a runnable payload, ensure it's runnable
-        # for the auto-runner wake mechanism.
-        if task.reload.pipeline_ready? && !task.assigned_to_agent?
-          task.assign_to_agent!
+        # Simplified pipeline: skip triage voting, just do context + routing
+        # If task has no model set, default to opus
+        if task.model.blank?
+          task.update_columns(model: Task::DEFAULT_MODEL)
         end
+
+        # Let orchestrator handle context compilation and routing
+        Pipeline::Orchestrator.new(task, user: user).process_to_completion!
 
         count += 1
       end

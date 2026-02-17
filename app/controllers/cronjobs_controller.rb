@@ -22,12 +22,48 @@ class CronjobsController < ApplicationController
   end
 
   def create
-    client = OpenclawGatewayClient.new(current_user)
-    result = client.cron_create(cron_params)
+    args = build_cron_add_args
+    result = run_openclaw_cli("cron", "add", *args)
 
+    if result[:exitstatus] != 0
+      error_msg = result[:stderr].to_s.strip.presence || result[:stdout].to_s.strip.presence || "Failed to create cron job"
+      return respond_to do |format|
+        format.json { render json: { ok: false, error: error_msg }, status: :unprocessable_entity }
+        format.html { redirect_to cronjobs_path, alert: error_msg }
+      end
+    end
+
+    invalidate_cron_cache
     respond_to do |format|
-      format.json { render json: { ok: true, cron: result } }
+      format.json { render json: { ok: true } }
       format.html { redirect_to cronjobs_path, notice: "Cron job created." }
+    end
+  rescue StandardError => e
+    respond_to do |format|
+      format.json { render json: { ok: false, error: e.message }, status: :unprocessable_entity }
+      format.html { redirect_to cronjobs_path, alert: e.message }
+    end
+  end
+
+  def update
+    id = params[:id].to_s
+    return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
+
+    args = build_cron_edit_args
+    result = run_openclaw_cli("cron", "edit", id, *args)
+
+    if result[:exitstatus] != 0
+      error_msg = result[:stderr].to_s.strip.presence || result[:stdout].to_s.strip.presence || "Failed to update cron job"
+      return respond_to do |format|
+        format.json { render json: { ok: false, error: error_msg }, status: :unprocessable_entity }
+        format.html { redirect_to cronjobs_path, alert: error_msg }
+      end
+    end
+
+    invalidate_cron_cache
+    respond_to do |format|
+      format.json { render json: { ok: true } }
+      format.html { redirect_to cronjobs_path, notice: "Cron job updated." }
     end
   rescue StandardError => e
     respond_to do |format|
@@ -40,9 +76,17 @@ class CronjobsController < ApplicationController
     id = params[:id].to_s
     return head(:bad_request) unless id.match?(/\A[\w.-]+\z/)
 
-    client = OpenclawGatewayClient.new(current_user)
-    client.cron_delete(id)
+    result = run_openclaw_cli("cron", "remove", id)
 
+    if result[:exitstatus] != 0
+      error_msg = result[:stderr].to_s.strip.presence || "Failed to delete cron job"
+      return respond_to do |format|
+        format.json { render json: { ok: false, error: error_msg }, status: :unprocessable_entity }
+        format.html { redirect_to cronjobs_path, alert: error_msg }
+      end
+    end
+
+    invalidate_cron_cache
     respond_to do |format|
       format.json { render json: { ok: true } }
       format.html { redirect_to cronjobs_path, notice: "Cron job deleted." }
@@ -74,6 +118,7 @@ class CronjobsController < ApplicationController
       return render json: { ok: false, error: msg, stdout: result[:stdout].to_s }, status: :unprocessable_entity
     end
 
+    Rails.cache.delete("cronjobs/index/v1/user=#{current_user.id}")
     render json: { ok: true, id: id, enabled: desired }
   rescue Errno::ENOENT
     render json: { ok: false, error: "openclaw CLI not found" }, status: :service_unavailable
@@ -103,14 +148,84 @@ class CronjobsController < ApplicationController
 
   private
 
-  def cron_params
-    params.permit(:name, :agent_id, :schedule, :enabled, :session_target, :wake_mode, :prompt)
+  def build_cron_add_args
+    job = (params[:job] || params).to_unsafe_h.deep_symbolize_keys
+    schedule = job[:schedule] || {}
+    payload = job[:payload] || {}
+    session_target = job[:sessionTarget] || job[:session_target] || "isolated"
+    delivery = job[:delivery] || {}
+
+    args = []
+    args.push("--name", job[:name]) if job[:name].present?
+
+    # Schedule
+    case schedule[:kind]
+    when "cron"
+      args.push("--cron", schedule[:expr].to_s)
+      args.push("--tz", schedule[:tz].to_s) if schedule[:tz].present?
+    when "every"
+      ms = schedule[:everyMs].to_i
+      if ms >= 3_600_000
+        args.push("--every", "#{ms / 3_600_000}h")
+      else
+        args.push("--every", "#{ms / 60_000}m")
+      end
+    when "at"
+      args.push("--at", schedule[:at].to_s)
+    end
+
+    # Session target
+    args.push("--session", session_target)
+
+    # Payload
+    if session_target == "isolated"
+      args.push("--message", payload[:message].to_s) if payload[:message].present?
+      args.push("--model", payload[:model].to_s) if payload[:model].present?
+    else
+      args.push("--system-event", payload[:text].to_s) if payload[:text].present?
+    end
+
+    # Delivery
+    if delivery[:mode] == "announce"
+      args.push("--announce")
+      args.push("--channel", delivery[:channel].to_s) if delivery[:channel].present?
+      args.push("--to", delivery[:to].to_s) if delivery[:to].present?
+    end
+
+    args
+  end
+
+  def build_cron_edit_args
+    # Same structure as add but only includes fields that were sent
+    build_cron_add_args
+  end
+
+  def build_job_from_params
+    job = params[:job] || params
+    {
+      name: job[:name].presence,
+      schedule: job[:schedule]&.to_unsafe_h || {},
+      payload: job[:payload]&.to_unsafe_h || {},
+      sessionTarget: job[:sessionTarget] || job[:session_target] || "isolated",
+      delivery: job[:delivery]&.to_unsafe_h,
+      enabled: true
+    }.compact
+  end
+
+  def build_patch_from_params
+    job = params[:job] || params
+    patch = {}
+    patch[:name] = job[:name] if job.key?(:name)
+    patch[:schedule] = job[:schedule]&.to_unsafe_h if job.key?(:schedule)
+    patch[:payload] = job[:payload]&.to_unsafe_h if job.key?(:payload)
+    patch[:sessionTarget] = job[:sessionTarget] || job[:session_target] if job.key?(:sessionTarget) || job.key?(:session_target)
+    patch[:delivery] = job[:delivery]&.to_unsafe_h if job.key?(:delivery)
+    patch[:enabled] = job[:enabled] if job.key?(:enabled)
+    patch.compact
   end
 
   def fetch_cronjobs
-    result = Rails.cache.fetch("cronjobs/index/v1/user=#{current_user.id}", expires_in: cache_ttl) do
-      run_openclaw_cron_list
-    end
+    result = run_openclaw_cron_list
 
     stdout = result.fetch(:stdout)
     stderr = result.fetch(:stderr)
@@ -142,7 +257,7 @@ class CronjobsController < ApplicationController
   end
 
   def run_openclaw_cron_list
-    run_openclaw_cli("cron", "list", "--json")
+    run_openclaw_cli("cron", "list", "--json", "--all")
   end
 
   def normalize_job(job)
@@ -166,7 +281,8 @@ class CronjobsController < ApplicationController
       consecutiveErrors: state["consecutiveErrors"],
       sessionTarget: job["sessionTarget"],
       wakeMode: job["wakeMode"],
-      delivery: job["delivery"]
+      delivery: job["delivery"],
+      payload: job["payload"]
     }
   rescue StandardError
     {
@@ -178,9 +294,7 @@ class CronjobsController < ApplicationController
     }
   end
 
-  def cache_ttl
-    Integer(ENV.fetch("CRONJOBS_CACHE_TTL_SECONDS", "5")).seconds
-  rescue ArgumentError
-    5.seconds
+  def invalidate_cron_cache
+    # no-op: caching removed to avoid stale/error data
   end
 end

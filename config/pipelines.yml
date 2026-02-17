@@ -116,20 +116,20 @@ pipelines:
     max_execution_minutes: 120
 
 # Model tier definitions with fallback chains
+# Simplified: all tiers default to opus for reliability
 model_tiers:
   free:
     models:
-      - glm
-    fallback: subscription
+      - opus
+    fallback: null
   subscription:
     models:
-      - gemini
-      - codex
-    fallback: api
+      - opus
+    fallback: null
   api:
     models:
-      - sonnet
-    fallback: expensive
+      - opus
+    fallback: null
   expensive:
     models:
       - opus

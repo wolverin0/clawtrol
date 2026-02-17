@@ -105,6 +105,12 @@
   ⚙️
 <% end %>
 
+<%= link_to soul_editor_path,
+    class: "#{icon_base_class} #{controller_name == 'soul_editor' ? icon_active_class : icon_inactive_class}",
+    title: "Soul Editor" do %>
+  🫀
+<% end %>
+
 <%= link_to webhook_mappings_path,
     class: "#{icon_base_class} #{controller_name == 'webhook_mappings' ? icon_active_class : icon_inactive_class}",
     title: "Webhook Mappings" do %>
