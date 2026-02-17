@@ -47,7 +47,8 @@
     tasks: tasks,
     board: @board,
     has_more: has_more,
-    tag: (defined?(tag) ? tag : nil) %>
+    tag: (defined?(tag) ? tag : nil),
+    blocking_task_ids_by_task_id: (defined?(blocking_task_ids_by_task_id) ? blocking_task_ids_by_task_id : nil) %>
 
   <%# Inline Add Card Form (hidden by default) %>
   <div data-inline-add-target="form" class="hidden px-2 py-2">
