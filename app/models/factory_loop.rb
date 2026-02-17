@@ -6,6 +6,9 @@ class FactoryLoop < ApplicationRecord
 
   belongs_to :user, optional: true, inverse_of: :factory_loops
   has_many :factory_cycle_logs, dependent: :destroy, inverse_of: :factory_loop, counter_cache: :cycle_count
+  has_many :factory_loop_agents, dependent: :destroy, inverse_of: :factory_loop
+  has_many :factory_agents, through: :factory_loop_agents
+  has_many :factory_agent_runs, dependent: :destroy, inverse_of: :factory_loop
 
   STATUSES = %w[idle playing paused stopped error error_paused].freeze
 
@@ -13,10 +16,15 @@ class FactoryLoop < ApplicationRecord
   validates :slug, uniqueness: true, format: { with: /\A[a-z0-9]+(?:-[a-z0-9]+)*\z/ }
   validates :status, inclusion: { in: STATUSES }
   validates :interval_ms, numericality: { only_integer: true, greater_than: 0 }
+  validates :idle_policy, inclusion: { in: %w[pause maintenance full_auto] }, allow_nil: true
+  validates :confidence_threshold, numericality: { only_integer: true, in: 0..100 }, allow_nil: true
+  validates :max_findings_per_run, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
+  validates :max_session_minutes, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
 
   scope :ordered, -> { order(:name) }
   scope :by_status, ->(status) { where(status:) if status.present? }
   scope :playing, -> { where(status: "playing") }
+  scope :with_idle_policy, ->(policy) { where(idle_policy: policy) }
 
   # Status query methods
   STATUSES.each do |s|
@@ -40,6 +48,10 @@ class FactoryLoop < ApplicationRecord
 
   def as_json(options = {})
     super(options.merge(include: { factory_cycle_logs: { only: [ :id, :cycle_number, :status, :started_at, :finished_at, :duration_ms, :summary ] } }))
+  end
+
+  def enabled_agents
+    factory_agents.joins(:factory_loop_agents).merge(FactoryLoopAgent.enabled)
   end
 
   private

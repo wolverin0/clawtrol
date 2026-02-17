@@ -9,11 +9,14 @@ class FactoryCycleLog < ApplicationRecord
 
   belongs_to :factory_loop, inverse_of: :factory_cycle_logs
   belongs_to :user, optional: true, inverse_of: :factory_cycle_logs
+  has_many :factory_agent_runs, dependent: :nullify, inverse_of: :factory_cycle_log
 
   STATUSES = %w[pending running completed failed skipped timed_out].freeze
+  TRIGGERS = %w[backlog maintenance idle_agent].freeze
 
   validates :cycle_number, :started_at, :status, presence: true
   validates :status, inclusion: { in: STATUSES }
+  validates :trigger, inclusion: { in: TRIGGERS }, allow_nil: true
   validates :cycle_number, uniqueness: { scope: :factory_loop_id }
 
   scope :recent, -> { order(created_at: :desc) }
