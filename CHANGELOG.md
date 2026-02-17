@@ -11,6 +11,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 📚 Documentation
 
+- add complete feature diagnostic with intent analysis for 30 features (`e9e7a86`)
+- update CHANGELOG.md [skip ci] (`d328a21`)
 - **readme:** explain what ZeroBitch is — swarm orchestration for ZeroClaw instances (`5c671ab`)
 - update CHANGELOG.md [skip ci] (`2d984fb`)
 ### ♻️  Refactoring
