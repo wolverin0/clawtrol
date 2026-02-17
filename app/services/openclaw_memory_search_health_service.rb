@@ -3,6 +3,7 @@
 require "net/http"
 require "uri"
 require "json"
+require "open3"
 
 # Checks whether OpenClaw's memory_search is functional.
 #
@@ -67,12 +68,11 @@ class OpenclawMemorySearchHealthService
       )
     end
 
-    # 2) Probe memory_search to check embeddings provider health
-    search = post_json("/api/memory/search", body: { query: "health check", top_k: 1 })
+    # 2) Probe memory_search via CLI (OpenClaw has no HTTP API for memory_search)
+    search = probe_memory_via_cli
     unless search[:ok]
-      status = classify_memory_error(search[:http_code], search[:error])
       return persist!(
-        status: status,
+        status: search[:status] || :degraded,
         last_checked_at: now,
         error_message: "memory_search: #{search[:error]}",
         error_at: now
@@ -89,6 +89,35 @@ class OpenclawMemorySearchHealthService
       error_message: "Exception: #{e.class}: #{e.message}",
       error_at: Time.current
     )
+  end
+
+  def probe_memory_via_cli
+    stdout, stderr, status = Open3.capture3(
+      "openclaw", "memory", "status", "--json", "--deep",
+      chdir: File.expand_path("~")
+    )
+
+    unless status.success?
+      return { ok: false, status: :down, error: "CLI failed: #{stderr.to_s.truncate(200)}" }
+    end
+
+    json = JSON.parse(stdout) rescue nil
+    return { ok: false, status: :degraded, error: "Invalid CLI output" } unless json
+
+    # CLI returns array of agents; check the "main" agent
+    entry = json.is_a?(Array) ? json.find { |e| e["agentId"] == "main" } || json.first : json
+    return { ok: false, status: :degraded, error: "No agent entry found" } unless entry
+
+    probe_ok = entry.dig("embeddingProbe", "ok")
+    if probe_ok == false
+      { ok: false, status: :degraded, error: "Embedding provider unavailable" }
+    else
+      { ok: true }
+    end
+  rescue Errno::ENOENT
+    { ok: false, status: :down, error: "openclaw CLI not found in PATH" }
+  rescue StandardError => e
+    { ok: false, status: :degraded, error: "CLI probe: #{e.message}" }
   end
 
   def classify_memory_error(http_code, error)
