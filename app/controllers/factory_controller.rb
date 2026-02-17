@@ -56,9 +56,13 @@ class FactoryController < ApplicationController
     end
 
     if loop.save
+      detected_stack = FactoryStackDetector.call(loop.workspace_path)
+      loop.config = (loop.config || {}).merge("detected_stack" => detected_stack)
+      loop.save
+
       respond_to do |format|
         format.html { redirect_to factory_path, notice: "Factory loop created" }
-        format.json { render json: { success: true, id: loop.id, name: loop.name } }
+        format.json { render json: { success: true, id: loop.id, name: loop.name, detected_stack: detected_stack } }
       end
     else
       respond_to do |format|
@@ -119,6 +123,28 @@ class FactoryController < ApplicationController
   def bulk_pause
     current_user.factory_loops.where(status: :playing).find_each(&:pause!)
     render json: { success: true }
+  end
+
+  def history
+    loop = current_user.factory_loops.find(params[:id])
+    workspace_path = loop.workspace_path.to_s
+
+    git_log = safe_shell("git", "-C", workspace_path, "log", "--oneline", "--format=%h|%s|%ai", "-20")
+      .split("\n")
+      .filter_map do |line|
+        parts = line.split("|", 3)
+        next unless parts.size == 3
+        { short_hash: parts[0], message: parts[1], date: parts[2] }
+      end
+
+    improvement_log_path = File.join(workspace_path, "IMPROVEMENT_LOG.md")
+    improvement_log = File.exist?(improvement_log_path) ? File.read(improvement_log_path, encoding: "utf-8") : nil
+
+    render json: {
+      success: true,
+      git_log: git_log,
+      improvement_log: improvement_log&.truncate(100_000)
+    }
   end
 
   # === Cherry-Pick Pipeline ===

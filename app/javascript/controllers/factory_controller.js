@@ -12,13 +12,13 @@ export default class extends Controller {
     "loopList", "statusMsg", "statusCounts",
     "searchInput", "filterBtn", "sortSelect",
     "detailPanel", "panelBackdrop", "panelIcon", "panelName", "panelSlug", "panelBadge",
-    "tabBar", "tabBtn", "tabSettings", "tabLogs", "tabMetrics", "tabAgents", "tabFindings",
-    "propName", "propSlug", "propWorkspacePath", "propWorkBranch", "propDesc", "propIconCustom", "iconPicker",
+    "tabBar", "tabBtn", "tabSettings", "tabLogs", "tabMetrics", "tabAgents", "tabFindings", "tabHistory",
+    "propName", "propSlug", "propWorkspacePath", "propWorkBranch", "propDetectedStack", "propDesc", "propIconCustom", "iconPicker",
     "propModel", "propFallback", "intervalPicker", "intervalDisplay",
     "propPrompt", "propConfig",
     "saveBtn", "revertBtn",
-    "logsList", "metricCycles", "metricErrors", "metricAvg", "metricDetails", "agentsList", "findingsList",
-    "createModal", "createName", "createDesc", "createModel", "createInterval", "createIconBtn",
+    "logsList", "metricCycles", "metricErrors", "metricAvg", "metricDetails", "agentsList", "findingsList", "historyGitLog", "historyImprovementLog",
+    "createModal", "createName", "createDesc", "createModel", "createInterval", "createIconBtn", "createAgentsList",
     "createWorkspacePath", "createGithubUrl", "createWorkBranch", "localPathField", "githubField", "sourceTypeBtn",
     "deleteModal", "deleteLoopName"
   ]
@@ -36,14 +36,16 @@ export default class extends Controller {
     this._snapshot = null
     this._agentsLoadedFor = null
     this._findingsLoadedFor = null
+    this._historyLoadedFor = null
+    this._createAgentsCatalog = []
+    this._pollFastMs = 5000
 
     try { this.loops = JSON.parse(this.loopsValue || "[]") } catch { this.loops = [] }
 
     this.renderList()
     this.updateStatusCounts()
     this.updateFilterButtons()
-
-    this.refreshTimer = setInterval(() => this.refreshMetrics(), 15000)
+    this.updatePolling()
   }
 
   disconnect() {
@@ -245,6 +247,10 @@ export default class extends Controller {
     if (this.hasPropSlugTarget) this.propSlugTarget.textContent = loop.slug || "—"
     if (this.hasPropWorkspacePathTarget) this.propWorkspacePathTarget.value = loop.workspace_path || ""
     if (this.hasPropWorkBranchTarget) this.propWorkBranchTarget.value = loop.work_branch || "factory/auto"
+    if (this.hasPropDetectedStackTarget) {
+      const stack = loop.config?.detected_stack?.framework || "unknown"
+      this.propDetectedStackTarget.textContent = stack
+    }
     if (this.hasPropDescTarget) this.propDescTarget.value = loop.description || ""
     if (this.hasPropIconCustomTarget) this.propIconCustomTarget.value = loop.icon || ""
     if (this.hasPropModelTarget) this.propModelTarget.value = loop.model || "opus"
@@ -312,9 +318,11 @@ export default class extends Controller {
     if (this.hasTabMetricsTarget) this.tabMetricsTarget.classList.toggle("hidden", tab !== "metrics")
     if (this.hasTabAgentsTarget) this.tabAgentsTarget.classList.toggle("hidden", tab !== "agents")
     if (this.hasTabFindingsTarget) this.tabFindingsTarget.classList.toggle("hidden", tab !== "findings")
+    if (this.hasTabHistoryTarget) this.tabHistoryTarget.classList.toggle("hidden", tab !== "history")
 
     if (tab === "agents") this.loadAgents()
     if (tab === "findings") this.loadFindings()
+    if (tab === "history") this.loadHistory()
   }
 
   // ── Logs ──
@@ -469,6 +477,48 @@ export default class extends Controller {
           ${findingsHtml}
         </div>`
     }).join("")
+  }
+
+  async loadHistory(force = false) {
+    if (!this.selectedId || !this.hasHistoryGitLogTarget || !this.hasHistoryImprovementLogTarget) return
+    if (!force && this._historyLoadedFor === this.selectedId) return
+
+    this.historyGitLogTarget.innerHTML = '<p class="text-xs text-content-muted">Loading git history…</p>'
+    this.historyImprovementLogTarget.textContent = "Loading IMPROVEMENT_LOG.md…"
+
+    try {
+      const res = await fetch(`/factory/loops/${this.selectedId}/history`, {
+        headers: { "Accept": "application/json", "X-CSRF-Token": this.csrfToken }
+      })
+      if (!res.ok) throw new Error("failed")
+      const data = await res.json()
+      this.renderHistory(data)
+      this._historyLoadedFor = this.selectedId
+    } catch {
+      this.historyGitLogTarget.innerHTML = '<p class="text-xs text-red-400">Failed to load history.</p>'
+      this.historyImprovementLogTarget.textContent = "Failed to load IMPROVEMENT_LOG.md"
+    }
+  }
+
+  renderHistory(data) {
+    if (!this.hasHistoryGitLogTarget || !this.hasHistoryImprovementLogTarget) return
+
+    const commits = Array.isArray(data?.git_log) ? data.git_log : []
+    if (!commits.length) {
+      this.historyGitLogTarget.innerHTML = '<p class="text-xs text-content-muted">No git commits found.</p>'
+    } else {
+      this.historyGitLogTarget.innerHTML = commits.map(commit => {
+        const date = commit.date ? new Date(commit.date).toLocaleString() : "—"
+        return `
+          <div class="border border-border rounded-md p-2 bg-bg-elevated">
+            <div class="text-[11px] text-content font-mono">${this.esc(commit.short_hash || "—")}</div>
+            <div class="text-xs text-content mt-1">${this.esc(commit.message || "")}</div>
+            <div class="text-[10px] text-content-muted mt-1">${this.esc(date)}</div>
+          </div>`
+      }).join("")
+    }
+
+    this.historyImprovementLogTarget.textContent = data?.improvement_log || "No IMPROVEMENT_LOG.md found."
   }
 
   // ── Dirty tracking ──
@@ -626,6 +676,7 @@ export default class extends Controller {
     this.renderList()
     if (loop.id === this.selectedId) this.syncPanel()
     this.updateStatusCounts()
+    this.updatePolling()
 
     const res = await fetch(`/factory/${loop.id}/${action}`, {
       method: "POST",
@@ -643,6 +694,7 @@ export default class extends Controller {
     this.renderList()
     if (loop.id === this.selectedId) this.syncPanel()
     this.updateStatusCounts()
+    this.updatePolling()
   }
 
   // ── Kebab Menu ──
@@ -680,6 +732,7 @@ export default class extends Controller {
     })
     if (this.hasLocalPathFieldTarget) this.localPathFieldTarget.classList.remove("hidden")
     if (this.hasGithubFieldTarget) this.githubFieldTarget.classList.add("hidden")
+    this.loadCreateAgents()
     setTimeout(() => { if (this.hasCreateNameTarget) this.createNameTarget.focus() }, 100)
   }
 
@@ -711,6 +764,57 @@ export default class extends Controller {
     if (this.hasGithubFieldTarget) this.githubFieldTarget.classList.toggle("hidden", source !== "github")
   }
 
+  async loadCreateAgents() {
+    if (!this.hasCreateAgentsListTarget) return
+
+    this.createAgentsListTarget.innerHTML = '<p class="text-xs text-content-muted">Loading agents…</p>'
+    try {
+      const res = await fetch("/api/v1/factory/agents", {
+        headers: { "Accept": "application/json", "X-CSRF-Token": this.csrfToken }
+      })
+      if (!res.ok) throw new Error("failed")
+      const data = await res.json()
+      this._createAgentsCatalog = Array.isArray(data) ? data : []
+      this.renderCreateAgents(this._createAgentsCatalog)
+    } catch {
+      this.createAgentsListTarget.innerHTML = '<p class="text-xs text-red-400">Failed to load agents.</p>'
+    }
+  }
+
+  renderCreateAgents(agents) {
+    if (!this.hasCreateAgentsListTarget) return
+    if (!agents.length) {
+      this.createAgentsListTarget.innerHTML = '<p class="text-xs text-content-muted">No agents available.</p>'
+      return
+    }
+
+    this.createAgentsListTarget.innerHTML = agents.map(agent => `
+      <label class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-md hover:bg-bg-surface cursor-pointer">
+        <span class="flex items-center gap-2 min-w-0">
+          <input type="checkbox" data-factory-create-agent-checkbox="true" value="${agent.id}" class="rounded border-border bg-bg-surface text-accent focus:ring-accent/50" />
+          <span class="text-xs text-content truncate">${this.esc(agent.name || "Agent")}</span>
+        </span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded-full border border-border bg-bg-surface text-content-muted">${this.esc(agent.category || "general")}</span>
+      </label>
+    `).join("")
+  }
+
+  selectedCreateAgentIds() {
+    if (!this.hasCreateAgentsListTarget) return []
+    return Array.from(this.createAgentsListTarget.querySelectorAll('input[data-factory-create-agent-checkbox="true"]:checked'))
+      .map(el => parseInt(el.value))
+      .filter(id => Number.isFinite(id))
+  }
+
+  async enableAgentsForLoop(loopId, agentIds) {
+    for (const agentId of agentIds) {
+      await fetch(`/api/v1/factory/loops/${loopId}/agents/${agentId}/enable`, {
+        method: "POST",
+        headers: { "Accept": "application/json", "X-CSRF-Token": this.csrfToken }
+      }).catch(() => {})
+    }
+  }
+
   async createLoop() {
     const name = this.hasCreateNameTarget ? this.createNameTarget.value.trim() : ""
     if (!name) { this.setStatus("⚠ Name is required"); return }
@@ -727,6 +831,8 @@ export default class extends Controller {
     if (!finalWorkspacePath && this.sourceType !== "github") { this.setStatus("⚠ Workspace path required"); return }
     if (!githubUrl && this.sourceType === "github") { this.setStatus("⚠ GitHub URL required"); return }
 
+    const selectedAgentIds = this.selectedCreateAgentIds()
+
     const res = await fetch("/factory/loops", {
       method: "POST",
       headers: { "X-CSRF-Token": this.csrfToken, "Content-Type": "application/json", "Accept": "application/json" },
@@ -736,12 +842,38 @@ export default class extends Controller {
     if (res.ok) {
       const data = await res.json().catch(() => ({}))
       if (data.id) {
-        this.loops.push(data)
+        if (selectedAgentIds.length) await this.enableAgentsForLoop(data.id, selectedAgentIds)
+
+        const detectedStack = data.detected_stack || {}
+        const loopPayload = {
+          id: data.id,
+          name,
+          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+          description: desc,
+          icon: this.createIcon,
+          status: "stopped",
+          interval_ms: intervalMs,
+          model,
+          fallback_model: "",
+          system_prompt: "",
+          config: { github_url: githubUrl || null, detected_stack: detectedStack },
+          workspace_path: finalWorkspacePath,
+          work_branch: workBranch,
+          total_cycles: 0,
+          total_errors: 0,
+          avg_cycle_duration_ms: null,
+          last_cycle_at: null,
+          recent_logs: []
+        }
+
+        this.loops.push(loopPayload)
         this.closeCreateModal()
         this.renderList()
         this.updateStatusCounts()
+        this.updatePolling()
         this.selectLoop(data.id)
-        this.setStatus(`✓ Created "${name}"`)
+        const framework = detectedStack.framework ? ` · Detected: ${detectedStack.framework}` : ""
+        this.setStatus(`✓ Created "${name}"${framework}`)
       } else {
         // API returned OK but no id — reload
         window.location.reload()
@@ -780,6 +912,7 @@ export default class extends Controller {
       this.closePanel()
       this.renderList()
       this.updateStatusCounts()
+      this.updatePolling()
       this.setStatus(`Deleted "${loop.name}"`)
     } else {
       this.setStatus("⚠ Delete failed")
@@ -788,21 +921,40 @@ export default class extends Controller {
 
   // ── Metrics Refresh ──
 
-  refreshMetrics() {
-    this.loops.forEach(loop => {
-      fetch(`/api/v1/factory/loops/${loop.id}/metrics`, { headers: { "Accept": "application/json" } })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (!data) return
-          loop.status = data.status || loop.status
-          loop.total_cycles = data.total_cycles ?? loop.total_cycles
-          loop.total_errors = data.total_errors ?? loop.total_errors
-          loop.avg_cycle_duration_ms = data.avg_cycle_duration_ms ?? loop.avg_cycle_duration_ms
-          if (loop.id === this.selectedId) this.syncPanel()
-        }).catch(() => {})
+  updatePolling() {
+    const hasPlaying = this.loops.some(loop => loop.status === "playing")
+
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer)
+      this.refreshTimer = null
+    }
+
+    if (!hasPlaying) return
+
+    this.refreshTimer = setInterval(() => this.refreshMetrics(), this._pollFastMs)
+  }
+
+  async refreshMetrics() {
+    const updates = this.loops.map(async (loop) => {
+      try {
+        const r = await fetch(`/api/v1/factory/loops/${loop.id}/metrics`, { headers: { "Accept": "application/json" } })
+        if (!r.ok) return
+        const data = await r.json()
+        loop.status = data.status || loop.status
+        loop.total_cycles = data.total_cycles ?? loop.total_cycles
+        loop.total_errors = data.total_errors ?? loop.total_errors
+        loop.avg_cycle_duration_ms = data.avg_cycle_duration_ms ?? loop.avg_cycle_duration_ms
+      } catch {
+        // noop
+      }
     })
+
+    await Promise.all(updates)
+
     this.renderList()
     this.updateStatusCounts()
+    this.updatePolling()
+    if (this.selectedId) this.syncPanel()
   }
 
   updateStatusCounts() {
