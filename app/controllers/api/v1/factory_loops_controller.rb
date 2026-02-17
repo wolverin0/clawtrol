@@ -3,7 +3,7 @@
 module Api
   module V1
     class FactoryLoopsController < BaseController
-      before_action :set_loop, only: [ :show, :update, :destroy, :play, :pause, :stop, :metrics ]
+      before_action :set_loop, only: [ :show, :update, :destroy, :play, :pause, :stop, :metrics, :findings ]
 
       def index
         loops = current_user.factory_loops.by_status(params[:status]).ordered
@@ -62,6 +62,20 @@ module Api
           metrics: @loop.metrics,
           last_cycle_at: @loop.last_cycle_at,
           status: @loop.status
+        }
+      end
+
+      def findings
+        runs = @loop.factory_agent_runs
+                    .includes(:factory_agent)
+                    .where(status: "findings")
+                    .order(created_at: :desc)
+                    .limit(50)
+
+        render json: runs.map { |run|
+          run.as_json.merge(
+            factory_agent: run.factory_agent&.as_json(only: [ :id, :name, :slug, :category ])
+          )
         }
       end
 

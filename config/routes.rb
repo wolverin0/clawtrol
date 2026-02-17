@@ -132,6 +132,7 @@ Rails.application.routes.draw do
       post "factory/loops/:id/pause", to: "factory_loops#pause"
       post "factory/loops/:id/stop", to: "factory_loops#stop"
       get "factory/loops/:id/metrics", to: "factory_loops#metrics"
+      get "factory/loops/:id/findings", to: "factory_loops#findings"
       post "factory/cycles/:id/complete", to: "factory_cycles#complete"
 
       # Agent catalog

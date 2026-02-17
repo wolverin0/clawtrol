@@ -55,11 +55,24 @@ module Api
       end
 
       def serialize_loop_agent(loop_agent)
-        loop_agent.factory_agent.as_json.merge(
+        agent = loop_agent.factory_agent
+        last_run = FactoryAgentRun.where(factory_loop_id: @loop.id, factory_agent_id: agent.id)
+                                  .order(created_at: :desc)
+                                  .first
+
+        cooldown_hours = loop_agent.cooldown_hours_override || agent.cooldown_hours || 0
+        on_cooldown = last_run&.created_at.present? && cooldown_hours.positive? && last_run.created_at > cooldown_hours.hours.ago
+        cooldown_until = on_cooldown ? (last_run.created_at + cooldown_hours.hours) : nil
+
+        agent.as_json.merge(
           factory_loop_agent_id: loop_agent.id,
           enabled: loop_agent.enabled,
           cooldown_hours_override: loop_agent.cooldown_hours_override,
-          confidence_threshold_override: loop_agent.confidence_threshold_override
+          confidence_threshold_override: loop_agent.confidence_threshold_override,
+          last_run_at: last_run&.created_at,
+          last_run_status: last_run&.status,
+          on_cooldown: on_cooldown || false,
+          cooldown_until: cooldown_until&.iso8601
         )
       end
     end
