@@ -12,7 +12,7 @@ class FactoryCycleLog < ApplicationRecord
   has_many :factory_agent_runs, dependent: :nullify, inverse_of: :factory_cycle_log
 
   STATUSES = %w[pending running completed failed skipped timed_out].freeze
-  TRIGGERS = %w[backlog maintenance idle_agent].freeze
+  TRIGGERS = %w[backlog maintenance idle_agent cron manual].freeze
 
   validates :cycle_number, :started_at, :status, presence: true
   validates :status, inclusion: { in: STATUSES }

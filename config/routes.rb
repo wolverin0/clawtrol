@@ -133,6 +133,7 @@ Rails.application.routes.draw do
       post "factory/loops/:id/stop", to: "factory_loops#stop"
       get "factory/loops/:id/metrics", to: "factory_loops#metrics"
       get "factory/loops/:id/findings", to: "factory_loops#findings"
+      post "factory/loops/:loop_id/cycles", to: "factory_cycles#create"
       post "factory/cycles/:id/complete", to: "factory_cycles#complete"
       post "factory/finding_patterns/:id/dismiss", to: "factory_finding_patterns#dismiss"
 
@@ -304,6 +305,20 @@ Rails.application.routes.draw do
   get   "soul-editor/history", to: "soul_editor#history", as: :soul_editor_history
   post  "soul-editor/revert", to: "soul_editor#revert", as: :soul_editor_revert
   get   "soul-editor/templates", to: "soul_editor#templates", as: :soul_editor_templates
+
+  scope :zerobitch do
+    get "/", to: "zerobitch#index", as: :zerobitch
+    get "/agents/new", to: "zerobitch#new_agent", as: :new_zerobitch_agent
+    post "/agents", to: "zerobitch#create_agent", as: :zerobitch_agents
+    get "/agents/:id", to: "zerobitch#show_agent", as: :zerobitch_agent
+    delete "/agents/:id", to: "zerobitch#destroy_agent"
+    post "/agents/:id/start", to: "zerobitch#start_agent", as: :start_zerobitch_agent
+    post "/agents/:id/stop", to: "zerobitch#stop_agent", as: :stop_zerobitch_agent
+    post "/agents/:id/restart", to: "zerobitch#restart_agent", as: :restart_zerobitch_agent
+    post "/agents/:id/task", to: "zerobitch#send_task", as: :zerobitch_agent_task
+    get "/agents/:id/logs", to: "zerobitch#logs", as: :zerobitch_agent_logs
+    get "/agents/:id/tasks", to: "zerobitch#task_history", as: :zerobitch_agent_tasks
+  end
 
   # Send policy & access groups
   get   "send-policy", to: "send_policy#show",   as: :send_policy

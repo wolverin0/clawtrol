@@ -1,0 +1,12 @@
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold text-content">New ZeroBitch Agent</h1>
+
+  <%= form_with url: zerobitch_agents_path, method: :post, class: "mt-6 space-y-4" do |f| %>
+    <div>
+      <%= f.label :name, "Agent Name", class: "block text-sm font-medium text-content" %>
+      <%= f.text_field :name, class: "mt-1 w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-content" %>
+    </div>
+
+    <%= f.submit "Create Agent (stub)", class: "rounded-md bg-accent px-4 py-2 text-sm font-medium text-black" %>
+  <% end %>
+</div>
