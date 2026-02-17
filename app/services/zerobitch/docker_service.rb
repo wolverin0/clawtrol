@@ -20,7 +20,7 @@ module Zerobitch
           next unless name.start_with?(CONTAINER_PREFIX)
 
           {
-            name: name.delete_prefix(CONTAINER_PREFIX),
+            name: name,
             status: row["Status"],
             ports: row["Ports"],
             created: row["RunningFor"],
@@ -140,7 +140,10 @@ module Zerobitch
       end
 
       def container_name(name)
-        safe = sanitize_name(name)
+        candidate = name.to_s.strip
+        return candidate if candidate.start_with?(CONTAINER_PREFIX)
+
+        safe = sanitize_name(candidate)
         "#{CONTAINER_PREFIX}#{safe}"
       end
 
