@@ -2,7 +2,7 @@
   <div class="px-4 md:px-6 py-2 border-t border-border/50 bg-bg-base w-full">
     <%# Mobile: Select dropdown %>
     <div class="md:hidden flex items-center gap-2">
-      <select onchange="if(this.value) Turbo.visit(this.value, { frame: 'board-content', action: 'advance' })"
+      <select onchange="if(this.value) { const f = document.getElementById('board-content'); if(f) { f.src = this.value; history.pushState({}, '', this.value); } else { Turbo.visit(this.value); } }"
               class="flex-1 px-3 py-2 text-sm bg-bg-elevated border border-border rounded-lg text-content focus:outline-none focus:ring-2 focus:ring-accent appearance-none cursor-pointer">
         <% @boards.each do |board| %>
           <% task_count = @board_active_counts[board.id] || 0 %>
