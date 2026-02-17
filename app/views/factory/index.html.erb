@@ -7,15 +7,28 @@
 
 <div class="h-full flex flex-col" data-controller="factory"
      data-factory-loops-value="<%= @loops.map { |l|
+       logs = l.factory_cycle_logs.order(started_at: :desc).limit(10)
+       latest_commits = logs.first&.commits
+       latest_commit =
+         if latest_commits.is_a?(Array)
+           latest_commits.first
+         elsif latest_commits.is_a?(Hash)
+           latest_commits
+         end
+
        {
          id: l.id, name: l.name, slug: l.slug, description: l.description,
          icon: l.icon.presence || '🏭', status: l.status,
          interval_ms: l.interval_ms, model: l.model, fallback_model: l.fallback_model,
-         system_prompt: l.system_prompt, config: l.config || {},
+         system_prompt: l.system_prompt, config: l.config || {}, idle_policy: l.idle_policy,
          total_cycles: l.total_cycles || 0, total_errors: l.total_errors || 0,
          avg_cycle_duration_ms: l.avg_cycle_duration_ms,
          last_cycle_at: l.last_cycle_at&.iso8601, last_error_message: l.last_error_message,
-         recent_logs: l.factory_cycle_logs.order(started_at: :desc).limit(10).reverse.map { |log| { status: log.status, summary: log.summary.to_s.truncate(80), started_at: log.started_at&.iso8601 } }
+         last_commit: {
+           sha: latest_commit&.dig("sha") || latest_commit&.dig(:sha),
+           message: latest_commit&.dig("message") || latest_commit&.dig(:message)
+         },
+         recent_logs: logs.reverse.map { |log| { status: log.status, summary: log.summary.to_s.truncate(80), started_at: log.started_at&.iso8601 } }
        }
      }.to_json %>"
      data-factory-model-options-value="<%= model_options.to_json %>"
@@ -125,6 +138,10 @@
                 class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">Logs</button>
         <button type="button" data-action="factory#switchTab" data-tab="metrics"
                 class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">Metrics</button>
+        <button type="button" data-action="factory#switchTab" data-tab="agents"
+                class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">Agents</button>
+        <button type="button" data-action="factory#switchTab" data-tab="findings"
+                class="px-3 py-2.5 text-xs font-medium border-b-2 transition-colors" data-factory-target="tabBtn">Findings</button>
       </div>
 
       <!-- Tab Content -->
@@ -255,6 +272,20 @@
             </div>
           </div>
           <div class="mt-4" data-factory-target="metricDetails"></div>
+        </div>
+
+        <!-- Agents Tab -->
+        <div data-factory-target="tabAgents" class="p-5 hidden">
+          <div data-factory-target="agentsList" class="space-y-2">
+            <p class="text-xs text-content-muted">Loading agents…</p>
+          </div>
+        </div>
+
+        <!-- Findings Tab -->
+        <div data-factory-target="tabFindings" class="p-5 hidden">
+          <div data-factory-target="findingsList" class="space-y-2">
+            <p class="text-xs text-content-muted">Loading findings…</p>
+          </div>
         </div>
       </div>
     </div>

@@ -12,12 +12,12 @@ export default class extends Controller {
     "loopList", "statusMsg", "statusCounts",
     "searchInput", "filterBtn", "sortSelect",
     "detailPanel", "panelBackdrop", "panelIcon", "panelName", "panelSlug", "panelBadge",
-    "tabBar", "tabBtn", "tabSettings", "tabLogs", "tabMetrics",
+    "tabBar", "tabBtn", "tabSettings", "tabLogs", "tabMetrics", "tabAgents", "tabFindings",
     "propName", "propSlug", "propDesc", "propIconCustom", "iconPicker",
     "propModel", "propFallback", "intervalPicker", "intervalDisplay",
     "propPrompt", "propConfig",
     "saveBtn", "revertBtn",
-    "logsList", "metricCycles", "metricErrors", "metricAvg", "metricDetails",
+    "logsList", "metricCycles", "metricErrors", "metricAvg", "metricDetails", "agentsList", "findingsList",
     "createModal", "createName", "createDesc", "createModel", "createInterval", "createIconBtn",
     "deleteModal", "deleteLoopName"
   ]
@@ -32,6 +32,8 @@ export default class extends Controller {
     this.activeTab = "settings"
     this.createIcon = "🏭"
     this._snapshot = null
+    this._agentsLoadedFor = null
+    this._findingsLoadedFor = null
 
     try { this.loops = JSON.parse(this.loopsValue || "[]") } catch { this.loops = [] }
 
@@ -87,6 +89,9 @@ export default class extends Controller {
       return `<span class="inline-block w-1.5 h-1.5 rounded-full ${c}" title="${this.esc(log.status)}"></span>`
     }).join("")
 
+    const idlePolicy = loop.idle_policy || "pause"
+    const lastCommitSha = loop.last_commit?.sha ? String(loop.last_commit.sha).slice(0, 7) : null
+    const lastCommitMsg = loop.last_commit?.message || ""
     const isPlaying = loop.status === "playing"
     const playPauseBtn = isPlaying
       ? `<button data-action="click->factory#quickPause" data-loop-id="${loop.id}" title="Pause" class="w-7 h-7 flex items-center justify-center rounded-md text-amber-400 hover:bg-amber-500/10 transition-colors opacity-0 group-hover:opacity-100">⏸</button>`
@@ -105,12 +110,14 @@ export default class extends Controller {
             <span class="text-sm font-medium text-content truncate">${this.esc(loop.name)}</span>
             <span class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wide flex-shrink-0 ${this.statusBadgeClass(loop.status)}">${loop.status}</span>
           </div>
-          <div class="flex items-center gap-3 mt-0.5">
+          <div class="flex items-center gap-2 mt-0.5 flex-wrap">
             <span class="text-[11px] text-content-muted">${this.esc(loop.model || "—")}</span>
             <span class="text-[11px] text-content-muted">⏱ ${intervalText}</span>
-            <span class="text-[11px] text-content-muted">${loop.total_cycles || 0} cycles</span>
+            <span class="text-[11px] text-content-muted">🔄 ${loop.total_cycles || 0} cycles</span>
             <span class="text-[11px] text-content-muted">avg ${avgText}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-bg-elevated border border-border text-content-muted">${this.esc(idlePolicy)}</span>
           </div>
+          ${lastCommitSha ? `<div class="mt-0.5 text-[10px] text-content-muted truncate">🧾 ${this.esc(lastCommitSha)} ${this.esc(lastCommitMsg)}</div>` : ""}
         </div>
 
         <!-- Sparkline dots -->
@@ -299,6 +306,11 @@ export default class extends Controller {
     if (this.hasTabSettingsTarget) this.tabSettingsTarget.classList.toggle("hidden", tab !== "settings")
     if (this.hasTabLogsTarget) this.tabLogsTarget.classList.toggle("hidden", tab !== "logs")
     if (this.hasTabMetricsTarget) this.tabMetricsTarget.classList.toggle("hidden", tab !== "metrics")
+    if (this.hasTabAgentsTarget) this.tabAgentsTarget.classList.toggle("hidden", tab !== "agents")
+    if (this.hasTabFindingsTarget) this.tabFindingsTarget.classList.toggle("hidden", tab !== "findings")
+
+    if (tab === "agents") this.loadAgents()
+    if (tab === "findings") this.loadFindings()
   }
 
   // ── Logs ──
@@ -324,6 +336,133 @@ export default class extends Controller {
             <span class="text-[10px] text-content-muted ml-auto">${time}</span>
           </div>
           ${log.summary ? `<p class="text-[11px] text-content-muted mt-1 line-clamp-2">${this.esc(log.summary)}</p>` : ""}
+        </div>`
+    }).join("")
+  }
+
+  async loadAgents(force = false) {
+    if (!this.selectedId || !this.hasAgentsListTarget) return
+    if (!force && this._agentsLoadedFor === this.selectedId) return
+
+    this.agentsListTarget.innerHTML = '<p class="text-xs text-content-muted">Loading agents…</p>'
+    try {
+      const res = await fetch(`/api/v1/factory/loops/${this.selectedId}/agents`, {
+        headers: { "Accept": "application/json", "X-CSRF-Token": this.csrfToken }
+      })
+      if (!res.ok) throw new Error("failed")
+      const data = await res.json()
+      this.renderAgents(data || [])
+      this._agentsLoadedFor = this.selectedId
+    } catch {
+      this.agentsListTarget.innerHTML = '<p class="text-xs text-red-400">Failed to load agents.</p>'
+    }
+  }
+
+  renderAgents(agents) {
+    if (!this.hasAgentsListTarget) return
+    if (!agents.length) {
+      this.agentsListTarget.innerHTML = '<p class="text-xs text-content-muted py-4 text-center">No agents assigned to this loop.</p>'
+      return
+    }
+
+    this.agentsListTarget.innerHTML = agents.map(agent => {
+      const enabled = !!agent.enabled
+      const ready = !agent.on_cooldown
+      const lastRun = agent.last_run_at ? new Date(agent.last_run_at).toLocaleString() : "Never"
+      const cooldownUntil = agent.cooldown_until ? new Date(agent.cooldown_until).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null
+      return `
+        <div class="border border-border rounded-md p-3 bg-bg-elevated">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-sm text-content font-medium truncate">${this.esc(agent.name)}</div>
+              <div class="mt-1 flex items-center gap-2 text-[11px] text-content-muted">
+                <span class="px-1.5 py-0.5 rounded-full border border-border bg-bg-surface">${this.esc(agent.category || "general")}</span>
+                <span>Last run: ${this.esc(lastRun)}</span>
+              </div>
+              <div class="mt-1 text-[11px] ${ready ? "text-green-300" : "text-amber-300"}">
+                ${ready ? "Ready" : `On cooldown until ${this.esc(cooldownUntil || "—")}`}
+              </div>
+            </div>
+            <button type="button" data-action="factory#toggleAgent" data-agent-id="${agent.id}" data-enabled="${enabled ? "true" : "false"}"
+                    class="px-2.5 py-1 text-[11px] rounded-md border ${enabled ? "text-red-300 border-red-500/30 bg-red-500/10" : "text-green-300 border-green-500/30 bg-green-500/10"}">
+              ${enabled ? "Disable" : "Enable"}
+            </button>
+          </div>
+        </div>`
+    }).join("")
+  }
+
+  async toggleAgent(event) {
+    event.preventDefault()
+    const agentId = event.currentTarget.dataset.agentId
+    const enabled = event.currentTarget.dataset.enabled === "true"
+    const action = enabled ? "disable" : "enable"
+
+    try {
+      const res = await fetch(`/api/v1/factory/loops/${this.selectedId}/agents/${agentId}/${action}`, {
+        method: "POST",
+        headers: { "Accept": "application/json", "X-CSRF-Token": this.csrfToken }
+      })
+      if (!res.ok) throw new Error("failed")
+      await this.loadAgents(true)
+      this.setStatus(`Agent ${enabled ? "disabled" : "enabled"}`)
+    } catch {
+      this.setStatus("⚠ Failed to update agent")
+    }
+  }
+
+  async loadFindings(force = false) {
+    if (!this.selectedId || !this.hasFindingsListTarget) return
+    if (!force && this._findingsLoadedFor === this.selectedId) return
+
+    this.findingsListTarget.innerHTML = '<p class="text-xs text-content-muted">Loading findings…</p>'
+    try {
+      const res = await fetch(`/api/v1/factory/loops/${this.selectedId}/findings`, {
+        headers: { "Accept": "application/json", "X-CSRF-Token": this.csrfToken }
+      })
+      if (!res.ok) throw new Error("failed")
+      const data = await res.json()
+      this.renderFindings(data || [])
+      this._findingsLoadedFor = this.selectedId
+    } catch {
+      this.findingsListTarget.innerHTML = '<p class="text-xs text-red-400">Failed to load findings.</p>'
+    }
+  }
+
+  renderFindings(runs) {
+    if (!this.hasFindingsListTarget) return
+    if (!runs.length) {
+      this.findingsListTarget.innerHTML = '<p class="text-xs text-content-muted py-4 text-center">No findings for this loop yet.</p>'
+      return
+    }
+
+    this.findingsListTarget.innerHTML = runs.map(run => {
+      const agentName = run.factory_agent?.name || "Unknown Agent"
+      const runAt = run.created_at ? new Date(run.created_at).toLocaleString() : "—"
+      const sha = run.commit_sha ? String(run.commit_sha).slice(0, 7) : "—"
+      const findings = Array.isArray(run.findings) ? run.findings : []
+
+      const findingsHtml = findings.length ? findings.map(f => {
+        const confidence = Number(f.confidence || f.score || 0)
+        const confidenceClass = confidence > 80 ? "text-green-300" : (confidence >= 50 ? "text-amber-300" : "text-red-300")
+        const description = f.description || f.summary || "No description"
+        return `
+          <div class="border border-border rounded-md p-2 bg-bg-surface">
+            <div class="text-[12px] text-content">${this.esc(description)}</div>
+            <div class="mt-1 flex items-center justify-between gap-2">
+              <span class="text-[11px] ${confidenceClass}">Confidence: ${Number.isFinite(confidence) ? confidence : 0}%</span>
+              <div class="flex items-center gap-1">
+                <button type="button" class="px-2 py-0.5 text-[10px] rounded border border-green-500/30 text-green-300 bg-green-500/10">Accept</button>
+                <button type="button" class="px-2 py-0.5 text-[10px] rounded border border-red-500/30 text-red-300 bg-red-500/10">Dismiss</button>
+              </div>
+            </div>
+          </div>`
+      }).join("") : '<p class="text-[11px] text-content-muted">No findings payload.</p>'
+
+      return `
+        <div class="border border-border rounded-md p-3 bg-bg-elevated space-y-2">
+          <div class="text-[11px] text-content-muted">${this.esc(agentName)} · ${this.esc(runAt)} · commit ${this.esc(sha)}</div>
+          ${findingsHtml}
         </div>`
     }).join("")
   }
