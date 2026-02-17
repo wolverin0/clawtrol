@@ -23,6 +23,7 @@ class User < ApplicationRecord
   has_many :nightshift_missions, dependent: :nullify, inverse_of: :user
   has_many :invite_codes, foreign_key: :created_by_id, dependent: :nullify, inverse_of: :created_by
   has_many :factory_loops, dependent: :nullify, inverse_of: :user
+  has_many :factory_cycle_logs, through: :factory_loops
   has_many :workflows, dependent: :nullify, inverse_of: :user
   has_many :webhook_logs, dependent: :delete_all, inverse_of: :user
   has_many :cost_snapshots, dependent: :delete_all, inverse_of: :user
