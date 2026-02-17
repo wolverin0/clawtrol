@@ -21,6 +21,7 @@
          icon: l.icon.presence || '🏭', status: l.status,
          interval_ms: l.interval_ms, model: l.model, fallback_model: l.fallback_model,
          system_prompt: l.system_prompt, config: l.config || {}, idle_policy: l.idle_policy,
+         workspace_path: l.workspace_path, work_branch: l.work_branch,
          total_cycles: l.total_cycles || 0, total_errors: l.total_errors || 0,
          avg_cycle_duration_ms: l.avg_cycle_duration_ms,
          last_cycle_at: l.last_cycle_at&.iso8601, last_error_message: l.last_error_message,
@@ -160,6 +161,11 @@
           <div>
             <label class="block text-xs font-medium text-content-muted mb-1">Slug</label>
             <div class="text-xs text-content-muted font-mono bg-bg-elevated px-3 py-2 rounded-md border border-border" data-factory-target="propSlug">—</div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-content-muted mb-1">Workspace Path</label>
+            <div class="text-xs text-content-muted font-mono bg-bg-elevated px-3 py-2 rounded-md border border-border break-all" data-factory-target="propWorkspacePath">—</div>
           </div>
 
           <!-- Description -->
@@ -310,6 +316,32 @@
           <label class="block text-xs font-medium text-content-muted mb-1">Description</label>
           <textarea data-factory-target="createDesc" rows="2" placeholder="What does this loop do?"
                     class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Project Source *</label>
+          <div class="flex gap-2 mb-2">
+            <button type="button" data-action="factory#setSourceType" data-source="local"
+                    data-factory-target="sourceTypeBtn"
+                    class="flex-1 px-3 py-2 text-xs font-medium border border-accent rounded-md bg-accent/10 text-accent">📁 Local Path</button>
+            <button type="button" data-action="factory#setSourceType" data-source="github"
+                    data-factory-target="sourceTypeBtn"
+                    class="flex-1 px-3 py-2 text-xs font-medium border border-border rounded-md text-content-muted hover:border-accent/30">🐙 GitHub Repo</button>
+          </div>
+          <div data-factory-target="localPathField">
+            <input type="text" data-factory-target="createWorkspacePath" placeholder="/mnt/pyapps/myproject"
+                   class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
+            <p class="text-xs text-content-muted mt-1">Path to local project directory</p>
+          </div>
+          <div data-factory-target="githubField" class="hidden">
+            <input type="text" data-factory-target="createGithubUrl" placeholder="https://github.com/owner/repo"
+                   class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
+            <p class="text-xs text-content-muted mt-1">Will be cloned to ~/factory-workspaces/</p>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Work Branch</label>
+          <input type="text" data-factory-target="createWorkBranch" placeholder="factory/auto" value="factory/auto"
+                 class="w-full px-3 py-2 text-sm bg-bg-elevated border border-border rounded-md text-content focus:outline-none focus:ring-1 focus:ring-accent/50" />
         </div>
         <div>
           <label class="block text-xs font-medium text-content-muted mb-1">Icon</label>
