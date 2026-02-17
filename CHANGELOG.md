@@ -3,81 +3,28 @@
 All notable changes to ClawTrol are documented here.
 Generated automatically from [conventional commits](https://www.conventionalcommits.org/).
 
-## v0.9.0 — Factory v2 + ZeroBitch Fleet + Kanban Performance (2026-02-17)
-
-### 🏭 Factory v2 — Continuous Improvement Engine
-- **FactoryRunnerV2Job** — New job with StackDetector + PromptCompiler for automated code improvement cycles
-- **Factory Agents** — 10 built-in agents (Security Auditor, Code Reviewer, Performance Profiler, Test Coverage Hunter, etc.)
-- **FactoryLoopAgents** — Assign multiple agents per loop with enable/disable and rotation
-- **OpenClaw Cron Sync** — Play/Pause/Stop from UI syncs directly with OpenClaw cron scheduler via CLI
-- **Cycle Reporting API** — `POST /factory/loops/:id/cycles` + `POST /factory/cycles/:id/complete` for agent self-reporting
-- **Workspace Setup** — Git worktree isolation + DB sandbox per factory loop
-- **Confidence Scoring** — Finding dedup with SHA256 pattern matching and confidence thresholds
-- **GitHub Integration** — Clone repos + create PRs from factory findings (workspace_path + github_url fields)
-
-### ⚔️ ZeroBitch — Fleet Management Dashboard
-- **Fleet Dashboard** (`/zerobitch`) — Monitor all ZeroClaw agent instances with status, RAM, CPU
-- **Agent Spawn** — Create new agents from 6 templates (Infra Monitor, Research Analyst, Security Auditor, Content Writer, Code Reviewer, Data Analyst)
-- **Docker Lifecycle** — Start/Stop/Restart/Destroy agents directly from UI
-- **Task Dispatch** — Send prompts to agents and track execution history
-- **Memory Browser** — Browse agent SQLite memory databases
-- **Auto-Scaler Rules** — Define rules for automatic fleet scaling
-- **Metrics Collection** — Periodic stats collection with sparkline charts
-- **SOUL.md / AGENTS.md Editor** — Edit agent personality and instructions from detail page
-- **Logs Viewer** — Real-time container log streaming with auto-scroll
-
-### ⚡ Kanban Performance
-- **N+1 Query Elimination** — Preload dependencies, dependents, board, blocking_tasks
-- **Fragment Caching** — Task card partial caching for faster board rendering
-- **Turbo Frame Board Switch** — Switch boards without full page reload
-- **Lazy-Load Modals** — Delete and agent modals load on demand, not on page load
-- **Task Dependencies Preload** — Optimized status-change blocking ID lookups
-
-### 🔧 Cron Job Builder Improvements
-- **Edit Functionality** — Edit existing cron jobs from the UI
-- **Delete Button** — Remove cron jobs with confirmation
-- **Delivery Target Dropdown** — Replace free-text channel input with structured selector
-- **CLI Gateway Auth** — Fixed authentication flow for cron CRUD operations
-
-### 🐛 Bug Fixes
-- fix(zerobitch): Docker container name matching — agents always showed "stopped"
-- fix(zerobitch): Class method calls (start/stop/restart were using instance methods)
-- fix(zerobitch): Missing `:state` field from Docker JSON parsing
-- fix(zerobitch): Storage path constants (BASE_DIR, config/workspace paths)
-- fix(mobile): Task modal scroll — left column + Agent Activity fully scrollable
-- fix(mobile): Turbo-frame src for board navigation
-- fix: Default origin_chat_id on task creation → routes to Mission Control
-- fix: Memory search health — CLI probe instead of non-existent HTTP API
-- fix: Default DB name to clawdeck_development
-- fix: Correct inverse_of on followup_task association
-
-### 🧪 Testing
-- 30+ new model tests (AgentTestRecording, ApiToken, BehavioralIntervention, Board, InviteCode, RunnerLease, TaskActivity, TaskDependency, TaskRun, TaskTemplate, User, Workflow)
-- System tests for Board Kanban (21 tests) and Swarm Launcher (16 tests)
-- Job tests for CatastrophicGuardrailsJob, NightshiftRunnerJob
-- Controller tests for ZeroBitch, FactoryLoops, API concerns
-- Service tests for DockerService, TaskHistory, QdrantClient
-
-### 🏗️ Model Improvements
-- Added `inverse_of` declarations across 16 models for proper association caching
-- Added `strict_loading :n_plus_one` for N+1 detection
-- New scopes on ApiToken (active, expired, recently_used)
-- StatusConstants concern for DRY status management
-- BudgetPresenter + CostAnalyticsPresenter for analytics views
-
----
-
-## February 2026
-
-### Documentation and Operations
-
-- docs: add `docs/OPENCLAW_ONBOARDING.md` with self-install, self-heal, and reporting contract
-- docs: clarify OpenClaw-first orchestration flow and follow-up approval policy in `README.md`
-- settings: expand Integration tab prompt with copy-ready workflow contract and self-heal injection blocks
-- ops: document nightly execution window for Argentina (`23:00-08:00`, `America/Argentina/Buenos_Aires`)
+## [v0.9.0] — 2026-02-17
 
 ### 🚀 Features
 
+- **factory-v2:** connect play/pause/stop to OpenClaw cron sync (#87) (`4f125e9`)
+- migrate MiniMax cron to Factory v2 — cycle create endpoint + cron reporting (#88) (`7dc8244`)
+- **factory-v2:** workspace + github fields from Codex #94 (`da5c48d`)
+- **factory:** add workspace/branch fields to UI + API controller (#94) (`ef98f0c`)
+- **factory-v2:** add workspace_path + GitHub URL to loop creation UI (#94) (`6a5f803`)
+- **factory-v2:** add FactoryRunnerV2Job + StackDetector + PromptCompiler (#93) (`1a4f897`)
+- **cronjobs:** add Delete button, remove stale antfarm crons, drop error-prone cache (`82bc1ac`)
+- **factory-v2:** add FactoryRunnerV2Job + StackDetector + PromptCompiler (#93) (`3b9411b`)
+- **factory:** add confidence scoring + finding dedup + auto-feed logic (#86) (`7435d9d`)
+- **crons:** add edit functionality to cron builder UI (#90) (`2b033c2`)
+- **factory:** add setup_workspace! + teardown_workspace! with git worktree + DB sandbox (#85) (`e1f6074`)
+- **factory:** expand UI with loop card details, agents tab, findings tab (#84) (`7296fb1`)
+- **cron-builder:** replace channel text input with delivery target dropdown (#89) (`44e79f6`)
+- **factory:** seed 10 built-in factory agents from VoltAgent/Anthropic sources (`70147f6`)
+- **factory-v2:** add FactoryAgents + FactoryLoopAgents API controllers + tests (#82) (`15bd62d`)
+- **factory-v2:** add Factory v2 models + associations + validations + tests (#81) (`d241f08`)
+- **factory-v2:** add Factory v2 migrations — expand loops/cycle_logs + agents/runs/loop-agents tables (#80) (`e315740`)
+- **factory-v2:** add Factory v2 migrations — agents, runs, loop-agents tables + expand loops/cycle_logs (#80) (`4cd290f`)
 - integrate minimax playground main (`2957a61`)
 - **saved-links:** add deep summary toggle (#632) (`fcb3cb2`)
 - audit ingest API + auto-update interventions (#649) (`a343eb9`)
@@ -166,8 +113,24 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Task ID display + Quick action buttons (NEXT, Follow-up) (`07ec84e`)
 - Agent integration enhancements (`42d206b`)
 - Agent live view, model routing, recurring tasks, and UI improvements (`a5b92da`)
+- add onboarding board with starter tasks for new users (`a3b95e0`)
+- add Discord community links (readme, dropdown, footer) (`c6506f6`)
 ### 🐛 Bug Fixes
 
+- **zerobitch:** 4 bugs — docker name matching, class vs instance methods, state field, path constants (`035e357`)
+- **zerobitch:** docker name matching — containers showed as stopped when running (`937e0da`)
+- correct inverse_of on followup_task association (`365b396`)
+- **factory:** use openclaw CLI instead of HTTP API for cron sync (`6562e17`)
+- **mobile:** use turbo-frame src instead of invalid Turbo.visit frame option (`743c0ef`)
+- default origin_chat_id on task creation → results route to Mission Control instead of DM (`9ccd819`)
+- factory runner job tests — WebMock syntax + assertion fixes (#87) (`1291fa2`)
+- memory search health — use CLI probe instead of non-existent HTTP API (`96c12eb`)
+- default DB name to clawdeck_development (was clawtrolplayground_development) (`0ae6f6a`)
+- **mobile:** task modal scroll — left column + Agent Activity fully scrollable (`6390c4c`)
+- **cronjobs:** E2E fixes — disabled jobs visible, Edit opens builder, CRUD via CLI (`37f6405`)
+- **cronjobs:** fix CLI gateway auth + create flow + model dropdown + Edit button (`0282e21`)
+- **mobile:** task modal scroll - add bottom padding + fix flex for agent activity visibility (#84) (`20df19f`)
+- **config:** fall back to CLAWTROL_HOOKS_TOKEN env var for hooks auth (`ec4589a`)
 - **saved-links:** restore inbox rendering and add QA validation baseline (`5b621a5`)
 - move cost snapshot strict_loading inside model class (`485d19d`)
 - fail-safe encrypted user token reads to prevent board crash (`4603feb`)
@@ -299,8 +262,13 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - NEXT button + async follow-up modal + model selector (`4e727f2`)
 - Move action buttons outside link wrapper (`c6c477c`)
 - Disable GLM thinking mode for proper content response (`2a93b83`)
+- task drag-and-drop not persisting to database (`519a035`)
+- guard against nil current_user in task card broadcast (`a27a195`)
 ### 📚 Documentation
 
+- update README + CHANGELOG for v0.9.0 release (`0d94285`)
+- add OpenClaw onboarding and settings self-heal prompts (`b7b230f`)
+- update CHANGELOG.md [skip ci] (`7a1cf6d`)
 - update CHANGELOG.md [skip ci] (`c946bb2`)
 - update CHANGELOG.md [skip ci] (`6506219`)
 - update CHANGELOG.md [skip ci] (`8aba2f9`)
@@ -332,12 +300,16 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - Rebrand to ClawTrol with comprehensive feature documentation (`3b3cecf`)
 - comprehensive changelog for PR #16 (`47b01bd`)
 - Add changelog draft for v0.2.0 (`05f8c55`)
+- rewrite agent integration for v2 API (`38fd3fa`)
 ### ♻️  Refactoring
 
 - **ux:** sprint 5 — design consistency, controller consolidation, themes, accessibility (`444f979`)
 - extract Task concerns from god object (#503) (`b9c7417`)
 ### ⚡ Performance
 
+- **kanban:** lazy-load task context menu and agent modal (`a4225cb`)
+- **kanban:** add task_dependencies preload, fix status-change blocking ids, simplify cache key (`021264d`)
+- **kanban:** preload dependency data, frame board switches, cache task cards (`cf4d926`)
 - **backend:** sprint 2 — race conditions, indexes, pagination, N+1 fixes (`4ffc6d6`)
 ### 🧪 Tests
 
@@ -350,6 +322,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🔧 Chores
 
+- cherry-pick minimax factory improvements from clawtrolplayground (`d16fab5`)
+- split backlog — 72 done items to FACTORY_BACKLOG_DONE.md, 28 pending remain (`9a3bcfc`)
 - update schema after project_path migration (`4b1ede5`)
 - **nightshift:** schedule timeout sweeper job hourly (`43b426f`)
 - **deps:** add dependabot config for bundler and npm_and_yarn (`a895cf3`)
@@ -367,32 +341,4 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **deps:** bump actions/cache from 4 to 5 (#2) (`8dceab3`)
 - **deps:** bump actions/checkout from 5 to 6 (#1) (`47897eb`)
 - remove debug console.log statements, production ready (`d71c50b`)
-
-## January 2026
-
-### 🚀 Features
-
-- add onboarding board with starter tasks for new users (`a3b95e0`)
-- add Discord community links (readme, dropdown, footer) (`c6506f6`)
-### 🐛 Bug Fixes
-
-- task drag-and-drop not persisting to database (`519a035`)
-- guard against nil current_user in task card broadcast (`a27a195`)
-### 📚 Documentation
-
-- rewrite agent integration for v2 API (`38fd3fa`)
-### ♻️  Refactoring
-
-### ⚡ Performance
-
-### 🧪 Tests
-
-### 👷 CI
-
-### 💄 Style
-
-### 📦 Build
-
-### 🔧 Chores
-
 - migrate domain from app.clawdeck.io to clawdeck.io (`2e270fd`)
