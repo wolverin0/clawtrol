@@ -32,7 +32,8 @@ class OpenclawWebhookService
       end
 
     model = task.model.presence || Task::DEFAULT_MODEL
-    send_webhook(task, "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona})")
+    origin = origin_routing_text(task)
+    send_webhook(task, "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona})#{origin}")
   end
 
   # Pipeline-enriched wake: sends enriched prompt + routed model to OpenClaw
@@ -76,6 +77,14 @@ class OpenclawWebhookService
   end
 
   private
+
+  def origin_routing_text(task)
+    return "" if task.origin_chat_id.blank?
+
+    text = "\nReport results to Telegram chat: #{task.origin_chat_id}"
+    text += " thread: #{task.origin_thread_id}" if task.origin_thread_id.present?
+    text
+  end
 
   def hook_token
     if @user.respond_to?(:openclaw_hooks_token)

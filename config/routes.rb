@@ -318,6 +318,8 @@ Rails.application.routes.draw do
     post "/agents/:id/task", to: "zerobitch#send_task", as: :zerobitch_agent_task
     get "/agents/:id/logs", to: "zerobitch#logs", as: :zerobitch_agent_logs
     get "/agents/:id/tasks", to: "zerobitch#task_history", as: :zerobitch_agent_tasks
+    patch "/agents/:id/soul", to: "zerobitch#save_soul", as: :zerobitch_agent_soul
+    patch "/agents/:id/agents_file", to: "zerobitch#save_agents", as: :zerobitch_agent_agents_file
   end
 
   # Send policy & access groups

@@ -24,7 +24,8 @@ module Zerobitch
       validate_required!(attrs)
 
       agents = read_registry
-      id = unique_id_for(attrs[:name], agents)
+      requested_id = attrs[:id].presence
+      id = requested_id.present? ? unique_id_for(requested_id, agents) : unique_id_for(attrs[:name], agents)
       port = attrs[:port].presence || next_available_port(agents)
 
       agent = {

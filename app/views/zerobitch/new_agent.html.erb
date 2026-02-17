@@ -1,12 +1,116 @@
-<div class="max-w-3xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold text-content">New ZeroBitch Agent</h1>
+<% content_for :title, "New ZeroBitch Agent - clawdeck" %>
+<% content_for :breadcrumb_standalone, "➕ ZeroBitch Agent" %>
 
-  <%= form_with url: zerobitch_agents_path, method: :post, class: "mt-6 space-y-4" do |f| %>
-    <div>
-      <%= f.label :name, "Agent Name", class: "block text-sm font-medium text-content" %>
-      <%= f.text_field :name, class: "mt-1 w-full rounded-md border border-border bg-bg-elevated px-3 py-2 text-content" %>
+<div class="py-6" data-controller="zerobitch-spawn"
+     data-zerobitch-spawn-provider-models-value="<%= json_escape(@provider_models.to_json) %>">
+  <div class="max-w-5xl mx-auto">
+    <div class="mb-4">
+      <h1 class="text-2xl font-bold text-content">Spawn New Agent</h1>
+      <p class="text-sm text-content-muted mt-1">Define behavior, model, limits, and workspace files.</p>
     </div>
 
-    <%= f.submit "Create Agent (stub)", class: "rounded-md bg-accent px-4 py-2 text-sm font-medium text-black" %>
-  <% end %>
+    <%= form_with url: zerobitch_agents_path, method: :post, class: "space-y-5" do |f| %>
+      <div class="bg-bg-elevated border border-border rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <%= f.label :name, "Name", class: "block text-sm text-content mb-1" %>
+          <%= f.text_field :name, required: true, placeholder: "rex", class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content" %>
+        </div>
+        <div>
+          <%= f.label :emoji, "Emoji", class: "block text-sm text-content mb-1" %>
+          <%= f.text_field :emoji, value: @default_emoji, class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content" %>
+        </div>
+        <div>
+          <%= f.label :role, "Role", class: "block text-sm text-content mb-1" %>
+          <%= f.text_field :role, required: true, placeholder: "Infrastructure Monitor", class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content" %>
+        </div>
+        <div>
+          <%= f.label :mode, "Mode", class: "block text-sm text-content mb-1" %>
+          <%= f.select :mode, [["Daemon (persistent)", "daemon"], ["Gateway (on-demand)", "gateway"]], {}, class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content" %>
+        </div>
+      </div>
+
+      <div class="bg-bg-elevated border border-border rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <%= f.label :provider, "Provider", class: "block text-sm text-content mb-1" %>
+          <%= f.select :provider, [["OpenRouter", "openrouter"], ["Groq (via OpenRouter)", "groq"], ["Cerebras (custom)", "cerebras"], ["Mistral (custom)", "mistral"], ["Ollama", "ollama"]], {}, class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content", data: { zerobitch_spawn_target: "provider", action: "change->zerobitch-spawn#providerChanged" } %>
+        </div>
+        <div>
+          <%= f.label :model, "Model", class: "block text-sm text-content mb-1" %>
+          <%= f.text_field :model, required: true, list: "provider-models", class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content" %>
+          <datalist id="provider-models" data-zerobitch-spawn-target="modelList"></datalist>
+        </div>
+
+        <div>
+          <%= f.label :api_key_mode, "API Key", class: "block text-sm text-content mb-1" %>
+          <%= f.select :api_key_mode, [["Use fleet default (OpenRouter)", "default"], ["Custom", "custom"]], {}, class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content", data: { zerobitch_spawn_target: "apiMode", action: "change->zerobitch-spawn#apiModeChanged" } %>
+        </div>
+        <div class="hidden" data-zerobitch-spawn-target="customKeyWrap">
+          <%= f.label :custom_api_key, "Custom API Key", class: "block text-sm text-content mb-1" %>
+          <%= f.password_field :custom_api_key, class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content" %>
+        </div>
+
+        <div>
+          <span class="block text-sm text-content mb-1">Autonomy</span>
+          <div class="flex items-center gap-4 text-sm text-content-muted">
+            <label class="flex items-center gap-2"><%= f.radio_button :autonomy, "supervised", checked: true %> Supervised</label>
+            <label class="flex items-center gap-2"><%= f.radio_button :autonomy, "full" %> Full</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-bg-elevated border border-border rounded-xl p-4">
+        <span class="block text-sm text-content mb-2">Allowed Commands</span>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-content-muted">
+          <% @allowed_commands.each do |cmd| %>
+            <label class="flex items-center gap-2 rounded-md border border-border px-2 py-1.5 bg-bg-base">
+              <%= check_box_tag "allowed_commands[]", cmd, true %>
+              <span class="font-mono"><%= cmd %></span>
+            </label>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="bg-bg-elevated border border-border rounded-xl p-4 space-y-4">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <%= f.label :soul_content, "SOUL.md", class: "block text-sm text-content" %>
+            <select class="rounded-md border border-border bg-bg-base px-2 py-1 text-xs text-content"
+                    data-zerobitch-spawn-target="templatePicker"
+                    data-action="change->zerobitch-spawn#applyTemplate">
+              <option value="">Template picker</option>
+              <% @soul_templates.each do |template| %>
+                <option value="<%= template[:id] %>"><%= template[:name] %></option>
+              <% end %>
+            </select>
+          </div>
+          <%= f.text_area :soul_content, value: "# SOUL\n\nYou are a focused ZeroClaw fleet agent.\n- Complete assigned tasks with clear outputs.\n- Stay within configured command and safety boundaries.\n", rows: 12, class: "w-full rounded-xl bg-[#1a1a2e] border border-border text-content text-sm font-mono leading-relaxed px-3 py-2", data: { zerobitch_spawn_target: "soulArea" } %>
+        </div>
+
+        <div>
+          <%= f.label :agents_content, "AGENTS.md (optional)", class: "block text-sm text-content mb-2" %>
+          <%= f.text_area :agents_content, rows: 6, class: "w-full rounded-xl bg-[#1a1a2e] border border-border text-content text-sm font-mono leading-relaxed px-3 py-2" %>
+        </div>
+      </div>
+
+      <div class="bg-bg-elevated border border-border rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <%= f.label :mem_limit, "Memory Limit", class: "block text-sm text-content mb-1" %>
+          <%= f.text_field :mem_limit, value: "32m", class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content" %>
+        </div>
+        <div>
+          <%= f.label :cpu_limit, "CPU Limit", class: "block text-sm text-content mb-1" %>
+          <%= f.text_field :cpu_limit, value: "0.5", class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content" %>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2">
+        <%= link_to "Cancel", zerobitch_path, class: "px-4 py-2 rounded-lg border border-border text-content-muted hover:text-content" %>
+        <%= f.submit "Create & Start Agent", class: "px-4 py-2 rounded-lg bg-accent text-white font-medium hover:opacity-90" %>
+      </div>
+    <% end %>
+  </div>
 </div>
+
+<script type="application/json" id="zerobitch-soul-templates">
+  <%= raw json_escape(@soul_templates.to_json) %>
+</script>

@@ -133,6 +133,7 @@ class Task < ApplicationRecord
 
   # Position management
   before_create :set_position
+  before_create :set_default_origin
   before_save :sync_completed_with_status
   before_update :track_completion_time, if: :will_save_change_to_status?
 
@@ -257,6 +258,16 @@ end
 
     max_position = board.tasks.where(status: status).maximum(:position) || 0
     self.position = max_position + 1
+  end
+
+  # Default origin to Mission Control so task results route there instead of DM
+  def set_default_origin
+    return if origin_chat_id.present?
+
+    self.origin_chat_id = user&.telegram_chat_id.presence ||
+      ENV["CLAWTROL_TELEGRAM_CHAT_ID"].presence ||
+      ENV["TELEGRAM_CHAT_ID"].presence
+    self.origin_thread_id ||= ExternalNotificationService::DEFAULT_MISSION_CONTROL_THREAD_ID if origin_chat_id.present?
   end
 
   def sync_completed_with_status
