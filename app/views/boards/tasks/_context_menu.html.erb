@@ -1,0 +1,99 @@
+<%# Locals: task, user_boards, current_user %>
+<%# Agent Assignment %>
+<% agent_connected = current_user.agent_last_active_at.present? %>
+<% if agent_connected %>
+  <% agent_emoji = current_user.agent_emoji || "🦞" %>
+  <% agent_name = current_user.agent_name || "Agent" %>
+  <% if task.assigned_to_agent? %>
+    <%= button_to unassign_board_task_path(task.board, task),
+        method: :patch,
+        data: { action: "click->dropdown#close" },
+        class: "w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" do %>
+      <span class="w-4 text-center"><%= agent_emoji %></span>
+      Unassign from <%= agent_name %>
+    <% end %>
+  <% else %>
+    <%= button_to assign_board_task_path(task.board, task),
+        method: :patch,
+        data: { action: "click->dropdown#close" },
+        class: "w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" do %>
+      <span class="w-4 text-center"><%= agent_emoji %></span>
+      Assign to <%= agent_name %>
+    <% end %>
+  <% end %>
+  <div class="border-t border-border my-1"></div>
+<% end %>
+
+<div class="relative group/move">
+  <button type="button" class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors">
+    <span class="flex items-center gap-2">Move to</span>
+    <span>›</span>
+  </button>
+  <div class="absolute left-full top-0 ml-1 hidden group-hover/move:block min-w-[140px] bg-bg-elevated border border-border rounded-lg shadow-lg py-1">
+    <% [["inbox", "📥 Inbox"],["up_next", "⏳ Up Next"],["in_progress", "🔄 In Progress"],["in_review", "👀 In Review"],["done", "✅ Done"],["archived", "📦 Archived"]].each do |status, label| %>
+      <%= button_to move_board_task_path(task.board, task), method: :patch, params: { status: status }, data: { action: "click->dropdown#close" }, class: "w-full flex items-center justify-between gap-3 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors #{task.status == status ? 'bg-bg-hover' : ''}" do %>
+        <span><%= label %></span>
+        <% if task.status == status %><span class="text-accent">✓</span><% end %>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+
+<% if user_boards.size > 1 %>
+  <div class="relative group/board">
+    <button type="button" class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors">
+      <span class="flex items-center gap-2">Move to board</span>
+      <span>›</span>
+    </button>
+    <div class="absolute left-full top-0 ml-1 hidden group-hover/board:block min-w-[160px] bg-bg-elevated border border-border rounded-lg shadow-lg py-1">
+      <% user_boards.each do |board| %>
+        <% if task.board_id == board.id %>
+          <div class="w-full flex items-center justify-between gap-3 px-3 py-2 text-sm text-content-muted bg-bg-hover cursor-default">
+            <span><%= board.icon %> <%= board.name %></span><span class="text-accent">✓</span>
+          </div>
+        <% else %>
+          <%= button_to move_to_board_board_task_path(task.board, task), method: :patch, params: { target_board_id: board.id }, data: { action: "click->dropdown#close" }, class: "w-full flex items-center justify-between gap-3 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" do %>
+            <span><%= board.icon %> <%= board.name %></span>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+<% end %>
+
+<div class="relative group/priority">
+  <button type="button" class="w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors">
+    <span class="flex items-center gap-2">Priority</span><span>›</span>
+  </button>
+  <div class="absolute left-full top-0 ml-1 hidden group-hover/priority:block min-w-[140px] bg-bg-elevated border border-border rounded-lg shadow-lg py-1">
+    <% [["none", "None"],["low", "Low"],["medium", "Medium"],["high", "High"]].each do |priority, label| %>
+      <%= button_to board_task_path(task.board, task), method: :patch, params: { task: { priority: priority } }, data: { action: "click->dropdown#close" }, class: "w-full flex items-center justify-between gap-3 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" do %>
+        <span><%= label %></span>
+        <% if task.priority == priority %><span class="text-accent">✓</span><% end %>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+<div class="border-t border-border my-1"></div>
+
+<%= link_to "Create Follow-up", followup_modal_board_task_path(task.board, task), data: { turbo_frame: "followup_modal", action: "click->dropdown#close" }, class: "w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" %>
+<div class="border-t border-border my-1"></div>
+<%= link_to "🔍 Validate...", validate_modal_board_task_path(task.board, task), data: { turbo_frame: "validate_modal", action: "click->dropdown#close" }, class: "w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" %>
+<%= link_to "🎭 Debate Review...", debate_modal_board_task_path(task.board, task), data: { turbo_frame: "debate_modal", action: "click->dropdown#close" }, class: "w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" %>
+<% if task.has_review? %>
+  <%= link_to "📊 View Review Output", review_output_modal_board_task_path(task.board, task), data: { turbo_frame: "review_output_modal", action: "click->dropdown#close" }, class: "w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" %>
+<% end %>
+<% if task.validation_command.present? %>
+  <%= button_to revalidate_board_task_path(task.board, task), method: :post, data: { action: "click->dropdown#close" }, class: "w-full flex items-center gap-2 px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors" do %>
+    Re-run Validation
+  <% end %>
+<% end %>
+<% if task.errored? %>
+  <%= link_to "Handoff to Another Model", handoff_modal_board_task_path(task.board, task), data: { turbo_frame: "handoff_modal", action: "click->dropdown#close" }, class: "w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors" %>
+<% end %>
+
+<div class="border-t border-border my-1"></div>
+<div data-controller="delete-confirm" data-delete-confirm-item-name-value="<%= h(task.name.truncate(30)) %>">
+  <button type="button" data-action="click->delete-confirm#open" class="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">Delete</button>
+  <%= render "application/delete_modal", url: board_task_path(task.board, task) %>
+</div>

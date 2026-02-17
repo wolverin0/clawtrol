@@ -5,7 +5,7 @@ class Boards::TasksController < ApplicationController
   include OutputRenderable
 
   before_action :set_board
-  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file, :diff_file, :generate_validation_suggestion, :chat_history]
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :assign, :unassign, :move, :move_to_board, :followup_modal, :create_followup, :generate_followup, :enhance_followup, :handoff_modal, :handoff, :revalidate, :validation_output_modal, :validate_modal, :debate_modal, :review_output_modal, :run_validation, :run_debate, :view_file, :diff_file, :generate_validation_suggestion, :chat_history, :context_menu, :agent_modal]
   before_action :set_web_activity_source, only: [:update, :destroy, :assign, :unassign, :move, :move_to_board, :handoff, :revalidate, :run_validation, :run_debate, :create_followup]
 
   def show
@@ -146,6 +146,15 @@ class Boards::TasksController < ApplicationController
     # Don't generate suggestion here - let it load async via JS
     # @task.suggested_followup will be fetched by Stimulus controller
     render layout: false
+  end
+
+  def context_menu
+    @user_boards = current_user.boards.order(position: :asc).to_a
+    render partial: "boards/tasks/context_menu", locals: { task: @task, user_boards: @user_boards }, layout: false
+  end
+
+  def agent_modal
+    render partial: "boards/tasks/agent_modal", locals: { task: @task, board: @board }, layout: false
   end
 
   def handoff_modal

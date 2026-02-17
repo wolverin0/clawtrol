@@ -308,6 +308,8 @@ Rails.application.routes.draw do
 
   scope :zerobitch do
     get "/", to: "zerobitch#index", as: :zerobitch
+    get "/metrics", to: "zerobitch#metrics", as: :zerobitch_metrics
+    post "/batch", to: "zerobitch#batch_action", as: :zerobitch_batch
     get "/agents/new", to: "zerobitch#new_agent", as: :new_zerobitch_agent
     post "/agents", to: "zerobitch#create_agent", as: :zerobitch_agents
     get "/agents/:id", to: "zerobitch#show_agent", as: :zerobitch_agent
@@ -318,6 +320,13 @@ Rails.application.routes.draw do
     post "/agents/:id/task", to: "zerobitch#send_task", as: :zerobitch_agent_task
     get "/agents/:id/logs", to: "zerobitch#logs", as: :zerobitch_agent_logs
     get "/agents/:id/tasks", to: "zerobitch#task_history", as: :zerobitch_agent_tasks
+    delete "/agents/:id/tasks", to: "zerobitch#clear_task_history", as: :clear_zerobitch_agent_tasks
+    get "/agents/:id/memory", to: "zerobitch#memory", as: :zerobitch_agent_memory
+    post "/assign_task", to: "zerobitch#assign_task", as: :zerobitch_assign_task
+    get "/rules", to: "zerobitch#rules", as: :zerobitch_rules
+    get "/rules/new", to: "zerobitch#new_rule", as: :new_zerobitch_rule
+    post "/rules", to: "zerobitch#create_rule", as: :create_zerobitch_rule
+    post "/rules/evaluate", to: "zerobitch#evaluate_rules", as: :evaluate_zerobitch_rules
     patch "/agents/:id/soul", to: "zerobitch#save_soul", as: :zerobitch_agent_soul
     patch "/agents/:id/agents_file", to: "zerobitch#save_agents", as: :zerobitch_agent_agents_file
   end
@@ -556,6 +565,8 @@ Rails.application.routes.draw do
         get :validate_modal
         get :debate_modal
         get :review_output_modal
+        get :context_menu
+        get :agent_modal
         post :generate_followup
         post :enhance_followup
         post :create_followup

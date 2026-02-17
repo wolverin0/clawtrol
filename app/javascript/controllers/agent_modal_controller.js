@@ -9,13 +9,14 @@ import { Controller } from "@hotwired/stimulus"
  * - Accessible: focus trap, ESC key, aria-modal
  */
 export default class extends Controller {
-  static targets = ["modal", "log", "statusBadge"]
+  static targets = ["modal", "log", "statusBadge", "frame"]
   static values = {
     taskId: Number,
     boardId: Number,
     sessionId: String,
     taskStatus: String,
     boardIcon: { type: String, default: '📋' },
+    modalUrl: String,
     pollInterval: { type: Number, default: 5000 }
   }
 
@@ -34,28 +35,20 @@ export default class extends Controller {
     document.removeEventListener("keydown", this.boundKeyHandler)
   }
 
-  open(event) {
+  async open(event) {
     event?.preventDefault()
     event?.stopPropagation()
-    
+
     if (this.isOpen) return
+
+    await this.ensureModalLoaded()
+    if (!this.hasModalTarget) return
+
     this.isOpen = true
-    
-    // Show modal (simple show/hide like followup_modal)
-    if (this.hasModalTarget) {
-      this.modalTarget.classList.remove("hidden")
-    }
-    
-    // Prevent body scroll
+    this.modalTarget.classList.remove("hidden")
     document.body.style.overflow = "hidden"
-    
-    // Add ESC key listener
     document.addEventListener("keydown", this.boundKeyHandler)
-    
-    // Focus trap - focus first focusable element
     this.trapFocus()
-    
-    // Start polling for content
     this.startPolling()
   }
 
@@ -280,16 +273,30 @@ export default class extends Controller {
     const taskId = btn.dataset.taskId || this.taskIdValue
     const taskName = btn.dataset.taskName || `Task #${taskId}`
     const boardIcon = btn.dataset.boardIcon || this.boardIconValue || '📋'
-    
-    // Dispatch custom event for terminal panel to catch
+
     document.dispatchEvent(new CustomEvent('agent-terminal:pin', {
       detail: { taskId, taskName, boardIcon }
     }))
-    
-    // Visual feedback
+
     btn.textContent = '✅ Pinned!'
     setTimeout(() => {
       btn.textContent = '📌 Pin to Terminal'
     }, 1500)
+  }
+
+  async ensureModalLoaded() {
+    if (this.hasModalTarget || !this.hasFrameTarget || !this.hasModalUrlValue) return
+
+    const frame = this.frameTarget
+    await new Promise((resolve) => {
+      const done = () => {
+        frame.removeEventListener('turbo:frame-load', done)
+        resolve()
+      }
+      frame.addEventListener('turbo:frame-load', done, { once: true })
+      if (!frame.getAttribute('src')) {
+        frame.setAttribute('src', this.modalUrlValue)
+      }
+    })
   }
 }
