@@ -9,9 +9,9 @@ class FactoryRunnerV2JobTest < ActiveJob::TestCase
     @user = User.first || User.create!(email_address: "runner_v2@example.com", password: "password123456")
   end
 
-  test "iterates active loops and creates run records" do
+  test "runs active loops, creates cycle log + agent run and updates status" do
     Dir.mktmpdir do |dir|
-      system("bash", "-lc", "cd #{Shellwords.escape(dir)} && git init -q && git config user.email 'test@example.com' && git config user.name 'Test User' && touch README.md && git add README.md && git commit -m init -q")
+      system("bash", "-lc", "cd #{Shellwords.escape(dir)} && git init -q && git config user.email 'test@example.com' && git config user.name 'Test User' && echo hi > README.md && git add README.md && git commit -m init -q")
 
       loop = FactoryLoop.create!(
         name: "Runner Loop #{SecureRandom.hex(3)}",
@@ -20,7 +20,6 @@ class FactoryRunnerV2JobTest < ActiveJob::TestCase
         model: "minimax",
         status: "idle",
         workspace_path: dir,
-        idle_policy: "maintenance",
         user: @user
       )
 
@@ -42,43 +41,41 @@ class FactoryRunnerV2JobTest < ActiveJob::TestCase
       run = FactoryAgentRun.where(factory_loop: loop, factory_agent: agent).order(created_at: :desc).first
       assert_not_nil run
       assert_includes %w[clean findings error], run.status
+      assert_not_nil run.finished_at
 
       cycle_log = FactoryCycleLog.where(factory_loop: loop).order(created_at: :desc).first
       assert_not_nil cycle_log
       assert_includes %w[completed failed], cycle_log.status
+      assert_equal agent.name, cycle_log.agent_name
     end
   end
 
-  test "skips pause policy loops when recently active" do
+  test "uses least recently run agent when last_run_at column does not exist" do
     Dir.mktmpdir do |dir|
+      system("bash", "-lc", "cd #{Shellwords.escape(dir)} && git init -q && git config user.email 'test@example.com' && git config user.name 'Test User' && echo hi > README.md && git add README.md && git commit -m init -q")
+
       loop = FactoryLoop.create!(
-        name: "Paused Loop #{SecureRandom.hex(3)}",
-        slug: "paused-loop-#{SecureRandom.hex(3)}",
+        name: "Rotation Loop #{SecureRandom.hex(3)}",
+        slug: "rotation-loop-#{SecureRandom.hex(3)}",
         interval_ms: 60_000,
         model: "minimax",
         status: "idle",
         workspace_path: dir,
-        idle_policy: "pause",
-        last_cycle_at: 5.minutes.ago,
         user: @user
       )
 
-      agent = FactoryAgent.create!(
-        name: "Paused Agent #{SecureRandom.hex(2)}",
-        slug: "paused-agent-#{SecureRandom.hex(4)}",
-        category: "testing",
-        system_prompt: "Run tests",
-        run_condition: "always",
-        cooldown_hours: 1,
-        default_confidence_threshold: 80,
-        priority: 5
-      )
+      a1 = FactoryAgent.create!(name: "A1 #{SecureRandom.hex(2)}", slug: "a1-#{SecureRandom.hex(4)}", category: "testing", system_prompt: "A1", run_condition: "always", cooldown_hours: 1, default_confidence_threshold: 80, priority: 5)
+      a2 = FactoryAgent.create!(name: "A2 #{SecureRandom.hex(2)}", slug: "a2-#{SecureRandom.hex(4)}", category: "testing", system_prompt: "A2", run_condition: "always", cooldown_hours: 1, default_confidence_threshold: 80, priority: 5)
 
-      FactoryLoopAgent.create!(factory_loop: loop, factory_agent: agent, enabled: true)
+      FactoryLoopAgent.create!(factory_loop: loop, factory_agent: a1, enabled: true)
+      FactoryLoopAgent.create!(factory_loop: loop, factory_agent: a2, enabled: true)
 
-      assert_no_difference("FactoryAgentRun.count") do
-        FactoryRunnerV2Job.perform_now
-      end
+      FactoryAgentRun.create!(factory_loop: loop, factory_agent: a1, status: "clean", started_at: 1.minute.ago, finished_at: 1.minute.ago)
+
+      FactoryRunnerV2Job.perform_now
+
+      latest = FactoryAgentRun.where(factory_loop: loop).order(created_at: :desc).first
+      assert_equal a2.id, latest.factory_agent_id
     end
   end
 end

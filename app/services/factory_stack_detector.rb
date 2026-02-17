@@ -10,27 +10,36 @@ class FactoryStackDetector
   end
 
   def call
-    return fallback_stack unless Dir.exist?(@workspace_path)
+    return unknown_stack unless Dir.exist?(@workspace_path)
 
-    if file?("Gemfile") && file?("config/application.rb")
-      rails_stack
-    elsif file?("next.config.js") || file?("next.config.mjs")
-      nextjs_stack
-    elsif file?("vite.config.js") || file?("vite.config.ts")
-      vite_stack
-    elsif file?("package.json")
-      node_stack
-    elsif file?("requirements.txt") || file?("pyproject.toml")
-      python_stack
-    else
-      fallback_stack
-    end
+    return rails_stack if rails?
+    return next_stack if nextjs?
+    return node_stack if node?
+    return python_stack if python?
+
+    unknown_stack
   end
 
   private
 
-  def file?(name)
-    File.exist?(File.join(@workspace_path, name))
+  def rails?
+    file?("Gemfile") && file?("config/application.rb")
+  end
+
+  def nextjs?
+    file?("next.config.js") || file?("next.config.mjs") || file?("next.config.ts")
+  end
+
+  def node?
+    file?("package.json")
+  end
+
+  def python?
+    file?("pyproject.toml") || file?("requirements.txt")
+  end
+
+  def file?(path)
+    File.exist?(File.join(@workspace_path, path))
   end
 
   def rails_stack
@@ -38,25 +47,16 @@ class FactoryStackDetector
       framework: "rails",
       language: "ruby",
       test_command: "bin/rails test",
-      syntax_check: "ruby -c"
+      syntax_check: "git diff --name-only -- '*.rb' | xargs -r ruby -c"
     }
   end
 
-  def nextjs_stack
+  def next_stack
     {
       framework: "nextjs",
       language: "javascript",
-      test_command: "npm test",
-      syntax_check: "node -c"
-    }
-  end
-
-  def vite_stack
-    {
-      framework: "vite",
-      language: "javascript",
-      test_command: "npm test",
-      syntax_check: "node -c"
+      test_command: "npm test -- --watch=false",
+      syntax_check: "git diff --name-only -- '*.js' '*.jsx' '*.mjs' '*.cjs' '*.ts' '*.tsx' | xargs -r node --check"
     }
   end
 
@@ -65,7 +65,7 @@ class FactoryStackDetector
       framework: "node",
       language: "javascript",
       test_command: "npm test",
-      syntax_check: "node -c"
+      syntax_check: "git diff --name-only -- '*.js' '*.jsx' '*.mjs' '*.cjs' '*.ts' '*.tsx' | xargs -r node --check"
     }
   end
 
@@ -74,11 +74,11 @@ class FactoryStackDetector
       framework: "python",
       language: "python",
       test_command: "pytest",
-      syntax_check: "python -m py_compile"
+      syntax_check: "python -m py_compile $(git diff --name-only -- '*.py')"
     }
   end
 
-  def fallback_stack
+  def unknown_stack
     {
       framework: "unknown",
       language: "unknown",
