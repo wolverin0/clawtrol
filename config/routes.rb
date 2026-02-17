@@ -448,6 +448,7 @@ Rails.application.routes.draw do
   post "factory/:id/stop", to: "factory#stop", as: :factory_stop
   post "factory/bulk_play", to: "factory#bulk_play", as: :factory_bulk_play
   post "factory/bulk_pause", to: "factory#bulk_pause", as: :factory_bulk_pause
+  get "factory/loops/:id/history", to: "factory#history", as: :factory_loop_history
 
   # Cherry-pick pipeline
   get "factory/cherry_pick", to: "factory#cherry_pick_index", as: :factory_cherry_pick
