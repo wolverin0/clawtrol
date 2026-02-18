@@ -156,7 +156,6 @@ class SwarmLauncherNavigationTest < ApplicationSystemTestCase
   end
 
   test "swarm shows idea status indicators" do
-
     visit swarm_path
 
     assert_selector "body", wait: 10

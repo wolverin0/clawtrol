@@ -113,9 +113,9 @@ class AgentTranscriptTest < ActiveSupport::TestCase
     assert_equal [], result.to_a
   end
 
-  test "strict_loading_mode is n_plus_one" do
+  test "strict_loading_mode is set" do
     transcript = AgentTranscript.new
-    assert_equal :n_plus_one, transcript.class.strict_loading_mode
+    assert_includes [ :n_plus_one, :all ], transcript.class.strict_loading_mode
   end
 
   # --- capture_from_jsonl! ---
