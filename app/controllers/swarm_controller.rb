@@ -4,7 +4,7 @@ class SwarmController < ApplicationController
   before_action :set_idea, only: [:launch, :destroy, :update, :toggle_favorite]
 
   def index
-    @ideas = current_user.swarm_ideas.enabled.order(favorite: :desc, category: :asc, title: :asc)
+    @ideas = current_user.swarm_ideas.enabled.includes(:board).order(favorite: :desc, category: :asc, title: :asc)
     @categories = SwarmIdea::CATEGORIES
     @models = SwarmIdea::MODELS
     @boards = current_user.boards.includes(:user).order(:name)

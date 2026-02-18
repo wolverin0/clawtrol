@@ -37,6 +37,9 @@ class FactoryCronSyncService
       factory_loop.update!(openclaw_cron_id: cron_id) if cron_id.present?
 
       parsed
+    rescue Errno::ENOENT
+      Rails.logger.warn("FactoryCronSync: openclaw CLI not found, skipping cron create")
+      {}
     end
 
     def pause_cron(factory_loop)
@@ -64,6 +67,9 @@ class FactoryCronSyncService
       output, status = Open3.capture2(*cmd)
       Rails.logger.warn("FactoryCronSync CLI failed: #{cmd.join(' ')} → #{output}") unless status.success?
       output
+    rescue Errno::ENOENT
+      Rails.logger.warn("FactoryCronSync CLI not found: #{cmd.first}")
+      ""
     end
 
     def model_identifier(model_alias)
