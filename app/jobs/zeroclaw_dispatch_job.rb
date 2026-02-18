@@ -7,7 +7,8 @@ class ZeroclawDispatchJob < ApplicationJob
     task = Task.find(task_id)
     agent = ZeroclawAgent.find(agent_id)
 
-    message = task.description.to_s.presence || task.name.to_s
+    # Use task name only — description can be 500KB+ (agent logs) and causes LLM timeouts
+    message = task.name.to_s
 
     result = agent.dispatch(message)
     agent.update_column(:last_seen_at, Time.current)

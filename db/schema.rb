@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_140002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -136,12 +136,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
 
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "expires_at"
     t.datetime "last_used_at"
     t.string "name"
     t.string "token_digest", null: false
     t.string "token_prefix", limit: 8
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["expires_at"], name: "index_api_tokens_on_expires_at"
     t.index ["token_digest"], name: "index_api_tokens_on_token_digest", unique: true
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
   end
@@ -275,7 +277,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
     t.integer "cycle_number", null: false
     t.integer "duration_ms"
     t.jsonb "errors", default: []
-    t.bigint "factory_loop_id", null: false
+    t.bigint "factory_loop_id"
     t.integer "files_changed", default: 0
     t.datetime "finished_at"
     t.integer "input_tokens"
@@ -501,7 +503,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
     t.datetime "last_heartbeat_at", null: false
     t.string "lease_token", null: false
     t.datetime "released_at"
-    t.string "source", default: "auto_runner", null: false
+    t.string "source", default: "auto_runner"
     t.datetime "started_at", null: false
     t.bigint "task_id", null: false
     t.datetime "updated_at", null: false

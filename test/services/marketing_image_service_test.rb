@@ -5,6 +5,12 @@ require "test_helper"
 class MarketingImageServiceTest < ActiveSupport::TestCase
   setup do
     @service = MarketingImageService
+    # Stub OpenAI API to avoid real network calls
+    stub_request(:post, /api\.openai\.com/).to_return(
+      status: 200,
+      body: { data: [ { url: "https://example.com/image.png" } ] }.to_json,
+      headers: { "Content-Type" => "application/json" }
+    )
   end
 
   test "returns failure when prompt is blank" do

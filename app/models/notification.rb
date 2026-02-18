@@ -37,6 +37,8 @@ class Notification < ApplicationRecord
   validates :message, presence: true, length: { maximum: 10_000 }
   validates :read_at, presence: true, if: -> { persisted? && read_at.present? }
 
+  after_create :enforce_cap_for_user
+
   # Scopes
   scope :unread, -> { where(read_at: nil) }
   scope :read, -> { where.not(read_at: nil) }

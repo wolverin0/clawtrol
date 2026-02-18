@@ -7,7 +7,7 @@ class FactoryCycleLog < ApplicationRecord
   # The 'errors' column conflicts with ActiveRecord::Base#errors in Rails 8.1+
   self.ignored_columns += ["errors"]
 
-  belongs_to :factory_loop, inverse_of: :factory_cycle_logs
+  belongs_to :factory_loop, optional: true, inverse_of: :factory_cycle_logs
   belongs_to :user, optional: true, inverse_of: :factory_cycle_logs
   has_many :factory_agent_runs, dependent: :nullify, inverse_of: :factory_cycle_log
 

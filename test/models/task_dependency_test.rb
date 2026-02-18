@@ -61,6 +61,7 @@ class TaskDependencyTest < ActiveSupport::TestCase
   test "for_task scope" do
     TaskDependency.create!(task: @task1, depends_on: @task2)
     TaskDependency.create!(task: @task3, depends_on: @task1)
+    TaskDependency.create!(task: @task3, depends_on: @task2)
 
     assert_equal 1, TaskDependency.for_task(@task1).count
     assert_equal 2, TaskDependency.for_task(@task3).count

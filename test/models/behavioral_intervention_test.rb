@@ -112,7 +112,7 @@ class BehavioralInterventionTest < ActiveSupport::TestCase
     intervention = BehavioralIntervention.create!(user: @user, rule: "Test", category: "focus", status: "active")
     assert_nil intervention.audit_report
 
-    report = AuditReport.create!(user: @user, report_type: "security")
+    report = AuditReport.create!(user: @user, report_type: "daily", overall_score: 5)
     intervention.update!(audit_report: report)
     assert_equal report, intervention.audit_report
   end
