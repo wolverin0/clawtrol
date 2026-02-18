@@ -42,7 +42,12 @@ class Task < ApplicationRecord
   # Pipeline stages - production pipeline services use these values.
   PIPELINE_STAGES = %w[unstarted triaged context_ready routed executing verifying completed failed].freeze
 
-  # NOTE: pipeline_stage is a string column in production (not integer).
+  # NOTE: Some deployments may lag migrations; declare explicit attribute types so model boot
+  # remains safe even when pipeline columns are absent.
+  attribute :pipeline_enabled, :boolean, default: false
+  attribute :pipeline_type, :string
+  attribute :pipeline_log, :json, default: []
+  attribute :pipeline_stage, :string
   # Use string-backed enum to match the DB schema.
   enum :pipeline_stage, {
     unstarted: "unstarted",
