@@ -4,6 +4,10 @@ require "test_helper"
 
 class NightshiftRunnerJobTest < ActiveJob::TestCase
   setup do
+    # Stub all HTTP requests to wake endpoints to avoid real network calls
+    stub_request(:any, %r{/hooks/wake}).to_return(status: 200, body: "{}")
+    stub_request(:any, %r{/api/sessions}).to_return(status: 200, body: "{}")
+
     @user = User.first || User.create!(email_address: "test@test.com", password: "password123456")
     @mission = NightshiftMission.create!(
       name: "Test Nightshift Mission",

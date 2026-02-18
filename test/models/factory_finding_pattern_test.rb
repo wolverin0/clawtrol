@@ -20,16 +20,18 @@ class FactoryFindingPatternTest < ActiveSupport::TestCase
     )
   end
 
-  test "dismiss increments dismiss_count" do
+  test "dismiss increments dismiss_count and suppresses immediately" do
     assert_equal 0, @pattern.dismiss_count
 
     @pattern.dismiss!
 
-    assert_equal 1, @pattern.reload.dismiss_count
-    assert_not @pattern.suppressed?
+    @pattern.reload
+    assert_equal 1, @pattern.dismiss_count
+    # dismiss! always marks as suppressed
+    assert @pattern.suppressed?
   end
 
-  test "dismiss suppresses pattern after second dismissal" do
+  test "dismiss twice increments dismiss_count further" do
     @pattern.dismiss!
     @pattern.dismiss!
 

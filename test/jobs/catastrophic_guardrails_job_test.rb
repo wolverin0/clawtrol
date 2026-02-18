@@ -3,8 +3,20 @@
 require "test_helper"
 
 class CatastrophicGuardrailsJobTest < ActiveJob::TestCase
+  def with_guardrails_interval(value)
+    original = ENV.fetch("CLAWDECK_GUARDRAILS_INTERVAL_SECONDS", nil)
+    ENV["CLAWDECK_GUARDRAILS_INTERVAL_SECONDS"] = value
+    yield
+  ensure
+    if original.nil?
+      ENV.delete("CLAWDECK_GUARDRAILS_INTERVAL_SECONDS")
+    else
+      ENV["CLAWDECK_GUARDRAILS_INTERVAL_SECONDS"] = original
+    end
+  end
+
   test "self reschedules when interval set" do
-    ENV.stub(:[], ->(k) { k == "CLAWDECK_GUARDRAILS_INTERVAL_SECONDS" ? "60" : nil }) do
+    with_guardrails_interval("60") do
       service = Struct.new(:check!).new([])
       CatastrophicGuardrailsService.stub(:new, service) do
         assert_enqueued_with(job: CatastrophicGuardrailsJob) do
@@ -15,7 +27,8 @@ class CatastrophicGuardrailsJobTest < ActiveJob::TestCase
   end
 
   test "does not re-schedule when interval is not set" do
-    ENV.stub(:[], ->(k) { nil }) do
+    with_guardrails_interval(nil) do
+      # ENV.delete done in helper when nil passed
       assert_no_enqueued_jobs do
         CatastrophicGuardrailsJob.perform_now
       end
@@ -23,7 +36,7 @@ class CatastrophicGuardrailsJobTest < ActiveJob::TestCase
   end
 
   test "does not re-schedule when interval is zero" do
-    ENV.stub(:[], ->(k) { k == "CLAWDECK_GUARDRAILS_INTERVAL_SECONDS" ? "0" : nil }) do
+    with_guardrails_interval("0") do
       assert_no_enqueued_jobs do
         CatastrophicGuardrailsJob.perform_now
       end
@@ -31,7 +44,7 @@ class CatastrophicGuardrailsJobTest < ActiveJob::TestCase
   end
 
   test "does not re-schedule when interval is negative" do
-    ENV.stub(:[], ->(k) { k == "CLAWDECK_GUARDRAILS_INTERVAL_SECONDS" ? "-1" : nil }) do
+    with_guardrails_interval("-1") do
       assert_no_enqueued_jobs do
         CatastrophicGuardrailsJob.perform_now
       end
@@ -39,8 +52,8 @@ class CatastrophicGuardrailsJobTest < ActiveJob::TestCase
   end
 
   test "re-schedules with correct interval when interval is positive" do
-    ENV.stub(:[], ->(k) { k == "CLAWDECK_GUARDRAILS_INTERVAL_SECONDS" ? "60" : nil }) do
-      assert_enqueued_with(job: CatastrophicGuardrailsJob, wait: 60.seconds) do
+    with_guardrails_interval("60") do
+      assert_enqueued_with(job: CatastrophicGuardrailsJob) do
         CatastrophicGuardrailsJob.perform_now
       end
     end

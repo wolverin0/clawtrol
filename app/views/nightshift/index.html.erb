@@ -112,13 +112,15 @@
            data-mission-days="<%= (mission.days_of_week || []).join(',') %>"
            data-mission-category="<%= mission.category %>"
            data-mission-enabled="<%= mission.enabled %>"
-           data-nightshift-target="card">
+           data-mission-scheduled-hour="<%= mission.scheduled_hour %>"
+           data-nightshift-target="card"
+           data-action="click->nightshift#toggle">
         <div class="flex justify-between items-start gap-4">
-          <div class="ns-checkbox w-6 h-6 border-2 border-border rounded flex items-center justify-center shrink-0 transition-all bg-bg-base">
+          <div class="ns-checkbox w-6 h-6 border-2 border-border rounded flex items-center justify-center shrink-0 transition-all bg-bg-base" data-action="click->nightshift#stopPropagation">
             <span class="ns-checkmark font-bold transition-all opacity-0">&#10003;</span>
           </div>
-          <div>
-            <div class="text-base font-semibold text-content">
+          <div class="cursor-pointer flex-1" data-action="click->nightshift#openEditModal click->nightshift#stopPropagation">
+            <div class="text-base font-semibold text-content hover:text-sky-400 transition-colors">
               <%= mission.icon %> <%= mission.name %>
               <% if selection %>
                 <span class="ns-badge ns-badge-status ns-badge-<%= selection.status %> text-xs px-2 py-0.5 rounded font-semibold uppercase tracking-wide border ml-2"><%= selection.status %></span>
@@ -295,6 +297,13 @@
           <% @frequencies.each do |freq| %>
             <option value="<%= freq %>"><%= freq %></option>
           <% end %>
+        </select>
+
+        <label class="block text-content-muted text-sm mb-1">Scheduled Hour (ART, optional)</label>
+        <select name="nightshift_mission[scheduled_hour]" data-nightshift-target="editScheduledHour" class="w-full bg-bg-base border border-border text-content p-2 rounded font-mono text-sm mb-4 box-border">
+          <option value="">— Any time (nightshift window) —</option>
+          <% (23..23).each do |h| %><option value="<%= h %>"><%= "%02d:00" % h %></option><% end %>
+          <% (0..8).each do |h| %><option value="<%= h %>"><%= "%02d:00" % h %></option><% end %>
         </select>
 
         <div data-nightshift-target="editDaysWrap" style="display:none;">
