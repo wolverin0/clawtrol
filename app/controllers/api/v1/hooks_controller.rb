@@ -114,6 +114,44 @@ module Api
         }
       end
 
+      # POST /api/v1/hooks/agent_done
+      #
+      # Generic webhook receiver for OpenClaw cron job completions.
+      # Used by Factory cron jobs (delivery.mode: "webhook") to push results
+      # directly to ClawTrol instead of relying on announce.
+      #
+      # Payload (from OpenClaw cron webhook delivery):
+      #   jobId, runId, status, output, startedAt, endedAt, error
+      def agent_done
+        data = request.body.read
+        parsed = JSON.parse(data) rescue {}
+
+        job_id = parsed["jobId"] || params[:job_id]
+        run_id = parsed["runId"] || params[:run_id]
+        status = parsed["status"] || "unknown"
+        output = parsed["output"] || parsed["result"] || ""
+        error  = parsed["error"]
+
+        Rails.logger.info("[HooksController#agent_done] job=#{job_id} run=#{run_id} status=#{status}")
+
+        # If it's a Factory job, create a FactoryLog or just log it
+        # Future: map job_id to a Task and update accordingly
+        if error.present?
+          Rails.logger.warn("[HooksController#agent_done] Error from job #{job_id}: #{error}")
+        end
+
+        render json: {
+          ok: true,
+          job_id: job_id,
+          run_id: run_id,
+          status: status,
+          received_at: Time.current.iso8601
+        }
+      rescue => e
+        Rails.logger.error("[HooksController#agent_done] #{e.message}")
+        render json: { ok: false, error: e.message }, status: :internal_server_error
+      end
+
       # POST /api/v1/hooks/task_outcome
       #
       # OpenClaw completion hook (OutcomeContract v1). This is intentionally
