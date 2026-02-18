@@ -37,8 +37,10 @@
         <%= link_to analytics_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">📊</span> Analytics
         <% end %>
-        <%= link_to pipeline_dashboard_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🧪</span> Pipeline
+        <% if pipeline_ui_enabled? %>
+          <%= link_to pipeline_dashboard_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+            <span class="text-lg w-7 text-center">🧪</span> Pipeline
+          <% end %>
         <% end %>
         <%= link_to tokens_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">🪙</span> Tokens

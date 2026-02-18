@@ -42,6 +42,10 @@ module OpenclawCliRunnable
     end
 
     { stdout: stdout, stderr: stderr, exitstatus: status&.exitstatus }
+  rescue Errno::ENOENT
+    { stdout: "", stderr: "openclaw CLI not found", exitstatus: 127 }
+  rescue ::Timeout::Error
+    { stdout: "", stderr: "Command timed out", exitstatus: 124 }
   end
 
   # Run an openclaw CLI command and parse JSON output.

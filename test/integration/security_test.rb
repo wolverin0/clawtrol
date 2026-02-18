@@ -83,5 +83,4 @@ class SecurityTest < ActionDispatch::IntegrationTest
       assert_response :redirect, "#{path} should redirect unauthenticated user"
     end
   end
-
 end

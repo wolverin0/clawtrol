@@ -1,5 +1,6 @@
 <%# Pipeline log panel - renders task.pipeline_log entries in a compact, mobile-readable format %>
 <%
+  return unless pipeline_ui_enabled?(task.user)
   log = Array(task.pipeline_log)
   return if log.empty?
 

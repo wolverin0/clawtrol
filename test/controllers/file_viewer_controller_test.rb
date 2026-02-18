@@ -3,8 +3,18 @@
 require "test_helper"
 
 class FileViewerControllerTest < ActionDispatch::IntegrationTest
-  # FileViewer allows unauthenticated access by design (public file viewer).
-  # Security is enforced by path validation, not authentication.
+  setup do
+    @user = users(:one)
+    sign_in_as(@user)
+  end
+
+  test "requires authentication" do
+    sign_out
+
+    get view_path(file: "README.md")
+    assert_response :redirect
+    assert_redirected_to new_session_path
+  end
 
   test "returns 403 for nonexistent files" do
     get view_path(file: "nonexistent_file_that_does_not_exist.md")

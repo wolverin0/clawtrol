@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class FileViewerController < ApplicationController
-  allow_unauthenticated_access
-  skip_before_action :verify_authenticity_token, only: [:update]
   rate_limit to: 60, within: 1.minute, with: -> { render plain: "Rate limit exceeded. Try again later.", status: :too_many_requests }
   include MarkdownSanitizationHelper
 
@@ -276,6 +274,7 @@ class FileViewerController < ApplicationController
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="#{form_authenticity_token}">
         <title>#{escaped_title} — ClawTrol Viewer</title>
         <style>
           *{box-sizing:border-box;margin:0;padding:0}
@@ -380,7 +379,10 @@ class FileViewerController < ApplicationController
 
             fetch(window.location.pathname + '?file=' + encodeURIComponent(currentFile), {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRF-Token': (document.querySelector('meta[name=\"csrf-token\"]') || {}).content || ''
+                },
               body: JSON.stringify({ file: currentFile, content: textarea.value })
             })
             .then(function(r) { return r.json(); })

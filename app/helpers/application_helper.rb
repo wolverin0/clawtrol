@@ -53,4 +53,28 @@ module ApplicationHelper
   def file_viewer_url(relative_path)
     "#{app_base_url}/view?file=#{relative_path}"
   end
+
+  def pipeline_ui_enabled?(user = current_user)
+    user.present? && user.respond_to?(:pipeline_assist_mode?) && user.pipeline_assist_mode?
+  end
+
+  def model_select_options(user = current_user, include_default: true)
+    ids = ModelCatalogService.new(user).model_ids
+    options = ids.map { |id| [model_display_name(id), id] }
+    include_default ? [["Default", ""]] + options : options
+  rescue StandardError
+    fallback = Task::MODELS.map { |m| [model_display_name(m), m] }
+    include_default ? [["Default", ""]] + fallback : fallback
+  end
+
+  def model_display_name(model_id)
+    id = model_id.to_s
+    return id if id.blank?
+
+    return id.upcase if id.match?(/\A(opus|codex|glm|grok)\z/i)
+    return "Gemini" if id.casecmp("gemini").zero?
+    return "Sonnet" if id.casecmp("sonnet").zero?
+
+    id
+  end
 end

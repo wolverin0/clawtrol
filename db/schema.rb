@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_000500) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_120001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -823,7 +823,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_000500) do
     t.text "original_description"
     t.jsonb "output_files", default: [], null: false
     t.bigint "parent_task_id"
-    t.boolean "pipeline_enabled", default: true
+    t.boolean "pipeline_enabled", default: false
     t.jsonb "pipeline_log"
     t.string "pipeline_stage", default: "unstarted", null: false
     t.string "pipeline_type"
@@ -925,6 +925,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_000500) do
     t.string "openclaw_gateway_token"
     t.string "openclaw_gateway_url"
     t.string "openclaw_hooks_token"
+    t.string "orchestration_mode", default: "openclaw_only", null: false
     t.string "password_digest"
     t.string "provider"
     t.string "telegram_bot_token"
@@ -970,6 +971,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_000500) do
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.index ["user_id"], name: "index_workflows_on_user_id"
+  end
+
+  create_table "zeroclaw_agents", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_seen_at"
+    t.string "mode"
+    t.string "name"
+    t.string "status"
+    t.datetime "updated_at", null: false
+    t.string "url"
+    t.index ["status"], name: "index_zeroclaw_agents_on_status"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"

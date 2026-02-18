@@ -9,7 +9,7 @@ module Api
       include Api::TaskPipelineManagement
       include Api::TaskAgentLifecycle
       include Api::TaskValidationManagement
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health ]
 
       # GET /api/v1/tasks/:id/agent_log - get agent transcript for this task
       # Returns parsed messages from the OpenClaw session transcript
@@ -27,6 +27,35 @@ module Api
           error: result.error,
           task_status: result.task_status
         }.compact
+      end
+
+      # POST /api/v1/tasks/:id/dispatch_zeroclaw
+      # Dispatches task description to next available ZeroClaw agent (round-robin, health-checked)
+      def dispatch_zeroclaw
+        agent = ZeroclawAgent.next_available
+        return render json: { error: "No available ZeroClaw agents" }, status: :service_unavailable unless agent
+
+        message = @task.description.to_s.presence || @task.name.to_s
+
+        result = agent.dispatch(message)
+        agent.update_column(:last_seen_at, Time.current)
+
+        dispatch_data = {
+          "agent_name" => agent.name,
+          "agent_url" => agent.url,
+          "model" => result["model"],
+          "response" => result["response"],
+          "dispatched_at" => Time.current.iso8601
+        }
+
+        new_state = @task.state_data.merge("zeroclaw_dispatch" => dispatch_data)
+        append = "\n\n---\n\n## ZeroClaw Response (#{agent.name})\n\n#{result['response']}"
+        new_desc = @task.description.to_s + append
+        @task.update_columns(state_data: new_state, description: new_desc)
+
+        render json: { success: true, task_id: @task.id }.merge(dispatch_data)
+      rescue => e
+        render json: { error: "Dispatch failed: #{e.message}" }, status: :unprocessable_entity
       end
 
       TASK_JSON_INCLUDES = {
@@ -110,9 +139,15 @@ module Api
 
       # POST /api/v1/tasks/:id/handoff - handoff task to a different model
       def handoff
-        new_model = params[:model]
-        unless Task::MODELS.include?(new_model)
-          render json: { error: "Invalid model. Must be one of: #{Task::MODELS.join(', ')}" }, status: :unprocessable_entity
+        new_model = params[:model].to_s.strip
+        if new_model.blank? || new_model.length > 120
+          render json: { error: "Invalid model" }, status: :unprocessable_entity
+          return
+        end
+
+        available_models = ModelCatalogService.new(@task.user).model_ids
+        unless available_models.include?(new_model)
+          render json: { error: "Invalid model" }, status: :unprocessable_entity
           return
         end
 

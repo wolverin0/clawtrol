@@ -36,7 +36,8 @@ class OpenclawWebhookService
     send_webhook(task, "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona})#{origin}")
   end
 
-  # Pipeline-enriched wake: sends enriched prompt + routed model to OpenClaw
+  # Pipeline-enriched wake: includes routing/context details only.
+  # OpenClaw stays responsible for claim/spawn/execution.
   def notify_auto_pull_ready_with_pipeline(task)
     return unless configured?
     return notify_auto_pull_ready(task) unless task.pipeline_ready?
@@ -49,31 +50,12 @@ class OpenclawWebhookService
       end
 
     model = task.routed_model.presence || task.model.presence || Task::DEFAULT_MODEL
+    prompt_len = task.compiled_prompt.to_s.length
 
-    # Use gateway client to spawn with enriched prompt
-    gateway = OpenclawGatewayClient.new(@user)
-    result = gateway.spawn_session!(
-      model: model,
-      prompt: task.compiled_prompt
+    send_webhook(
+      task,
+      "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona}, pipeline: #{task.pipeline_stage}, prompt_chars: #{prompt_len})"
     )
-
-    if result[:child_session_key].present?
-      task.update_columns(
-        agent_session_key: result[:child_session_key],
-        agent_session_id: result[:session_id],
-        pipeline_stage: "executing"
-      )
-
-      Rails.logger.info("[OpenClawWebhook] pipeline spawn ok task_id=#{task.id} model=#{model} session_key=#{result[:child_session_key]}")
-    else
-      # Fallback to standard wake
-      Rails.logger.warn("[OpenClawWebhook] pipeline spawn returned no session key, falling back to standard wake task_id=#{task.id}")
-      send_webhook(task, "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona})")
-    end
-  rescue StandardError => e
-    Rails.logger.error("[OpenClawWebhook] pipeline spawn failed task_id=#{task.id} err=#{e.class}: #{e.message}, falling back")
-    # Fallback to standard wake on any error
-    send_webhook(task, "Auto-pull ready: ##{task.id} #{task.name} (model: #{task.model.presence || Task::DEFAULT_MODEL})")
   end
 
   private

@@ -32,17 +32,16 @@
       <div class="bg-bg-elevated border border-border rounded-xl p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <%= f.label :provider, "Provider", class: "block text-sm text-content mb-1" %>
-          <%= f.select :provider, [["OpenRouter", "openrouter"], ["Groq (via OpenRouter)", "groq"], ["Cerebras (custom)", "cerebras"], ["Mistral (custom)", "mistral"], ["Ollama", "ollama"]], {}, class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content", data: { zerobitch_spawn_target: "provider", action: "change->zerobitch-spawn#providerChanged" } %>
+          <%= f.select :provider, @providers_for_select, { selected: "zai" }, class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content", data: { zerobitch_spawn_target: "provider", action: "change->zerobitch-spawn#providerChanged" } %>
         </div>
         <div>
           <%= f.label :model, "Model", class: "block text-sm text-content mb-1" %>
-          <%= f.text_field :model, required: true, list: "provider-models", class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content" %>
-          <datalist id="provider-models" data-zerobitch-spawn-target="modelList"></datalist>
+          <%= f.select :model, [], { include_blank: "— select a model —" }, class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content", data: { zerobitch_spawn_target: "model" } %>
         </div>
 
         <div>
           <%= f.label :api_key_mode, "API Key", class: "block text-sm text-content mb-1" %>
-          <%= f.select :api_key_mode, [["Use fleet default (OpenRouter)", "default"], ["Custom", "custom"]], {}, class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content", data: { zerobitch_spawn_target: "apiMode", action: "change->zerobitch-spawn#apiModeChanged" } %>
+          <%= f.select :api_key_mode, [["Use OpenClaw config (recommended)", "default"], ["Custom key", "custom"]], { selected: "default" }, class: "w-full rounded-lg border border-border bg-bg-base px-3 py-2 text-content", data: { zerobitch_spawn_target: "apiMode", action: "change->zerobitch-spawn#apiModeChanged" } %>
         </div>
         <div class="hidden" data-zerobitch-spawn-target="customKeyWrap">
           <%= f.label :custom_api_key, "Custom API Key", class: "block text-sm text-content mb-1" %>

@@ -63,7 +63,7 @@ Rails.application.configure do
       Bullet.enable = true
       Bullet.raise = true # Raise errors on N+1 queries
       # unused_eager_loading disabled: boards/broadcasting use broad includes for HTML rendering
-      # Bullet.unused_eager_loading_enable = true
+      Bullet.unused_eager_loading_enable = false
     end
   end
 end

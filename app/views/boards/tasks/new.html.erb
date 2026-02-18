@@ -54,7 +54,7 @@
             <div class="flex items-center justify-between">
               <span class="text-sm text-content-muted">Model</span>
               <%= form.select :model,
-                  options_for_select([["Default", ""], ["Opus", "opus"], ["Codex", "codex"], ["Gemini", "gemini"], ["GLM", "glm"], ["Sonnet", "sonnet"]], @task.model),
+                  options_for_select(model_select_options(current_user, include_default: true), @task.model),
                   {},
                   class: "bg-bg-elevated border-none rounded-md text-sm text-content-secondary px-2 py-1.5 focus:ring-0 focus:outline-none" %>
             </div>

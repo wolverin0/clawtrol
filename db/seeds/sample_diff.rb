@@ -12,11 +12,11 @@ index 1234567..abcdefg 100644
    has_many :boards, through: :tasks
 +  has_many :notifications
 +  has_many :preferences
- 
+#{' '}
    validates :email, presence: true, uniqueness: true
    validates :name, presence: true
 +  validates :role, inclusion: { in: %w[admin member viewer] }
- 
+#{' '}
 -  def full_name
 -    "\#{first_name} \#{last_name}"
 +  # Enhanced full name with optional title
@@ -24,7 +24,7 @@ index 1234567..abcdefg 100644
 +    base = "\#{first_name} \#{last_name}"
 +    include_title && title.present? ? "\#{title} \#{base}" : base
    end
- 
+#{' '}
    def admin?
 -    role == "admin"
 +    role.to_s == "admin"
@@ -51,7 +51,7 @@ index 9876543..fedcba9 100644
 +    "descriptionField",
 +    "priorityField"
    ]
- 
+#{' '}
    static values = {
      taskId: Number,
 +    autoSaveDelay: { type: Number, default: 1000 }
@@ -65,15 +65,15 @@ index 9876543..fedcba9 100644
 +    this._autoSaveTimer = null
 +    this._pendingChanges = false
    }
- 
+#{' '}
    disconnect() {
 @@ -22,6 +30,22 @@ export default class extends Controller {
      document.removeEventListener("keydown", this._handleEscape)
    }
- 
+#{' '}
 +  scheduleAutoSave() {
 +    this._pendingChanges = true
-+    
++#{'    '}
 +    if (this._autoSaveTimer) {
 +      clearTimeout(this._autoSaveTimer)
 +    }
@@ -102,7 +102,7 @@ index abcdef1..1234567 100644
 @@ -12,6 +12,18 @@
  .scrollbar-hide::-webkit-scrollbar { display: none; }
  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
- 
+#{' '}
 +/* Diff viewer enhancements */
 +.diff-viewer-enhanced .d2h-wrapper {
 +  border-radius: 0.75rem;

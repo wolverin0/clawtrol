@@ -13,6 +13,7 @@ class Notification < ApplicationRecord
   # Event types
   EVENT_TYPES = %w[
     task_completed
+    task_outcome_reported
     task_errored
     review_passed
     review_failed
@@ -60,7 +61,7 @@ class Notification < ApplicationRecord
   # Icon based on event type
   def icon
     case event_type
-    when "task_completed", "validation_passed"
+    when "task_completed", "task_outcome_reported", "validation_passed"
       "✅"
     when "task_errored", "validation_failed"
       "❌"
@@ -86,7 +87,7 @@ class Notification < ApplicationRecord
   # Color class based on event type
   def color_class
     case event_type
-    when "task_completed", "review_passed", "validation_passed"
+    when "task_completed", "task_outcome_reported", "review_passed", "validation_passed"
       "text-status-success"
     when "task_errored", "review_failed", "validation_failed"
       "text-status-error"

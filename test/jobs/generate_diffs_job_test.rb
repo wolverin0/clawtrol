@@ -22,7 +22,7 @@ class GenerateDiffsJobTest < ActiveJob::TestCase
 
   test "does nothing when project dir does not exist" do
     @task.board.update!(project_path: "/nonexistent/path")
-    
+
     assert_no_enqueued_jobs do
       GenerateDiffsJob.perform_now(@task.id, ["test.rb"])
     end
@@ -43,7 +43,7 @@ class GenerateDiffsJobTest < ActiveJob::TestCase
     File.write(File.join(@project_dir, "test.rb"), "puts 'hello'\nputs 'world'\n")
     system("git -C #{@project_dir} add test.rb")
     system("git -C #{@project_dir} commit -q -m 'initial'")
-    
+
     # Modify the file
     File.write(File.join(@project_dir, "test.rb"), "puts 'hello'\nputs 'modified'\n")
 

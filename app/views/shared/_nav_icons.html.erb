@@ -1,4 +1,4 @@
-<% icon_base_class = "hidden md:flex w-8 h-8 rounded-md items-center justify-center transition-colors" %>
+<% icon_base_class = "w-8 h-8 rounded-md flex items-center justify-center transition-colors" %>
 <% icon_inactive_class = "text-content-muted hover:text-content hover:bg-bg-elevated" %>
 <% icon_active_class = "text-content bg-bg-elevated" %>
 <% last_board = session[:last_board_id] && current_user&.boards&.order(position: :asc)&.find_by(id: session[:last_board_id]) %>
@@ -6,146 +6,203 @@
 <%= link_to dashboard_path,
     class: "#{icon_base_class} #{controller_name == 'dashboard' ? icon_active_class : icon_inactive_class}",
     title: "Dashboard" do %>
-  📊
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path d="M15.5 2a1.5 1.5 0 0 0-1.5 1.5v13A1.5 1.5 0 0 0 15.5 18h1A1.5 1.5 0 0 0 18 16.5v-13A1.5 1.5 0 0 0 16.5 2h-1ZM9.5 6a1.5 1.5 0 0 0-1.5 1.5v9A1.5 1.5 0 0 0 9.5 18h1a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 10.5 6h-1ZM3.5 10a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 3.5 18h1A1.5 1.5 0 0 0 6 16.5v-5A1.5 1.5 0 0 0 4.5 10h-1Z"/>
+  </svg>
 <% end %>
 
 <%= link_to analytics_path,
     class: "#{icon_base_class} #{controller_name == 'analytics' ? icon_active_class : icon_inactive_class}",
     title: "Analytics" do %>
-  📈
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M1 2.75A.75.75 0 0 1 1.75 2h16.5a.75.75 0 0 1 0 1.5H18v8.75A2.75 2.75 0 0 1 15.25 15h-1.072l.798 3.06a.75.75 0 0 1-1.452.38L13.41 18H6.59l-.114.44a.75.75 0 0 1-1.452-.38L5.823 15H4.75A2.75 2.75 0 0 1 2 12.25V3.5h-.25A.75.75 0 0 1 1 2.75ZM7.373 15l-.391 1.5h6.037l-.392-1.5H7.373Zm7.49-8.931a.75.75 0 0 1-.175 1.046 19.904 19.904 0 0 1-3.918 2.256l-1.98-1.485a.75.75 0 0 0-.84-.044L5.46 9.27a.75.75 0 0 1-.921-1.185l3-1.98a2.25 2.25 0 0 1 2.518.132l1.842 1.38a18.4 18.4 0 0 0 3.225-1.817.75.75 0 0 1 1.046.175c.254.362.17.86-.307 1.094Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to command_path,
     class: "#{icon_base_class} #{controller_name == 'command' ? icon_active_class : icon_inactive_class}",
     title: "Command Center" do %>
-  🎮
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M2 5.25A3.25 3.25 0 0 1 5.25 2h9.5A3.25 3.25 0 0 1 18 5.25v9.5A3.25 3.25 0 0 1 14.75 18h-9.5A3.25 3.25 0 0 1 2 14.75v-9.5Zm7.47.97a.75.75 0 0 1 1.06 0l2 2a.75.75 0 0 1 0 1.06l-2 2a.75.75 0 0 1-1.06-1.06L10.94 9 9.47 7.53a.75.75 0 0 1 0-1.06ZM6.75 11.5a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to(last_board ? board_path(last_board) : boards_path,
     class: "#{icon_base_class} #{controller_name == 'boards' ? icon_active_class : icon_inactive_class}",
     title: "Board") do %>
-  📋
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path d="M5.127 3.502 5.25 3.5h9.5c.041 0 .082 0 .123.002A3.251 3.251 0 0 0 11.75 1h-3.5a3.251 3.251 0 0 0-3.123 2.502ZM1 10.25A2.25 2.25 0 0 1 3.25 8h13.5A2.25 2.25 0 0 1 19 10.25v5.5A2.25 2.25 0 0 1 16.75 18H3.25A2.25 2.25 0 0 1 1 15.75v-5.5ZM3.25 6.5c-.04 0-.082 0-.123.002A3.25 3.25 0 0 1 6.25 5h7.5a3.25 3.25 0 0 1 3.123 1.502A3.26 3.26 0 0 0 16.75 6.5H3.25Z"/>
+  </svg>
 <% end %>
 
 <%= link_to workflows_path,
     class: "#{icon_base_class} #{controller_name == 'workflows' ? icon_active_class : icon_inactive_class}",
     title: "Workflows" do %>
-  🔀
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M13.47 3.47a.75.75 0 0 1 1.06 0l2.25 2.25a.75.75 0 0 1 0 1.06l-2.25 2.25a.75.75 0 0 1-1.06-1.06l.97-.97H3.75a.75.75 0 0 1 0-1.5h10.69l-.97-.97a.75.75 0 0 1 0-1.06Zm-6.94 9a.75.75 0 0 1 0 1.06l-.97.97h10.69a.75.75 0 0 1 0 1.5H5.56l.97.97a.75.75 0 0 1-1.06 1.06l-2.25-2.25a.75.75 0 0 1 0-1.06l2.25-2.25a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to cronjobs_path,
     class: "#{icon_base_class} #{controller_name == 'cronjobs' ? icon_active_class : icon_inactive_class}",
     title: "Cron Jobs" do %>
-  🕐
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 0 0 0-1.5h-3.25V5Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to terminal_path,
     class: "#{icon_base_class} #{controller_name == 'terminal' ? icon_active_class : icon_inactive_class}",
     title: "Terminal" do %>
-  🖥️
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 0 1 5.25 2h9.5A2.25 2.25 0 0 1 17 4.25v11.5A2.25 2.25 0 0 1 14.75 18H5.25A2.25 2.25 0 0 1 3 15.75V4.25Zm2.25 6.5a.75.75 0 0 1-.75-.75V7.5a.75.75 0 0 1 1.5 0v2.5a.75.75 0 0 1-.75.75Zm4.75 3.75a.75.75 0 0 0 0-1.5H7.5a.75.75 0 0 0 0 1.5H10Zm-2.75-3a.75.75 0 0 1-.53-1.28L8.69 9 6.72 7.03a.75.75 0 0 1 1.06-1.06l2.5 2.5a.75.75 0 0 1 0 1.06l-2.5 2.5a.75.75 0 0 1-.53.22Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to tokens_path,
     class: "#{icon_base_class} #{controller_name == 'tokens' ? icon_active_class : icon_inactive_class}",
     title: "Tokens" do %>
-  🪙
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.732 6.232a2.5 2.5 0 0 1 3.536 0 .75.75 0 1 0 1.06-1.06A4 4 0 0 0 6.5 8v.165c0 .364.034.728.1 1.085h-.35a.75.75 0 0 0 0 1.5h.737a5.25 5.25 0 0 0 .59.95H6.75a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 .75-.75v-.002a3.514 3.514 0 0 1 2.234-3.261.75.75 0 0 0 0-1.437A3.514 3.514 0 0 1 10 4.689a3.488 3.488 0 0 0-1.268 1.543Z"/>
+  </svg>
 <% end %>
 
 <%= link_to nightshift_path,
     class: "#{icon_base_class} #{controller_name == 'nightshift' ? icon_active_class : icon_inactive_class}",
     title: "Nightshift" do %>
-  🌙
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M7.455 2.004a.75.75 0 0 1 .26.77 7 7 0 0 0 9.958 7.967.75.75 0 0 1 1.067.853A8.5 8.5 0 1 1 6.647 1.921a.75.75 0 0 1 .808.083Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to factory_path,
     class: "#{icon_base_class} #{controller_name == 'factory' ? icon_active_class : icon_inactive_class}",
     title: "Factory" do %>
-  🏭
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M1 2.75A.75.75 0 0 1 1.75 2h10.5a.75.75 0 0 1 0 1.5H12v13.75a.25.25 0 0 1-.25.25h-8.5a.25.25 0 0 1-.25-.25V3.5h-.25A.75.75 0 0 1 1 2.75ZM4 7.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm4 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm-4 4a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Zm4 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1Z" clip-rule="evenodd"/>
+    <path d="M15 1a1 1 0 0 1 1 1v16h1.25a.75.75 0 0 1 0 1.5H15a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1Z"/>
+  </svg>
 <% end %>
 
 <%= link_to sessions_explorer_path,
     class: "#{icon_base_class} #{controller_name == 'sessions_explorer' ? icon_active_class : icon_inactive_class}",
     title: "Sessions" do %>
-  🔗
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M12.232 4.232a2.5 2.5 0 0 1 3.536 3.536l-1.225 1.224a.75.75 0 0 0 1.061 1.06l1.224-1.224a4 4 0 0 0-5.656-5.656l-3 3a4 4 0 0 0 .225 5.865.75.75 0 0 0 .977-1.138 2.5 2.5 0 0 1-.142-3.667l3-3Z" clip-rule="evenodd"/>
+    <path fill-rule="evenodd" d="M7.768 15.768a2.5 2.5 0 0 1-3.536-3.536l1.225-1.224a.75.75 0 0 0-1.061-1.06l-1.224 1.224a4 4 0 0 0 5.656 5.656l3-3a4 4 0 0 0-.225-5.865.75.75 0 0 0-.977 1.138 2.5 2.5 0 0 1 .142 3.667l-3 3Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to nodes_path,
     class: "#{icon_base_class} #{controller_name == 'nodes' ? icon_active_class : icon_inactive_class}",
     title: "Nodes" do %>
-  📱
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path d="M8 16.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z"/>
+    <path fill-rule="evenodd" d="M4 4a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V4Zm4-1.5v.75c0 .414.336.75.75.75h2.5a.75.75 0 0 0 .75-.75V2.5h1A1.5 1.5 0 0 1 14.5 4v12a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 16V4A1.5 1.5 0 0 1 7 2.5h1Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to skill_manager_path,
     class: "#{icon_base_class} #{controller_name == 'skills' ? icon_active_class : icon_inactive_class}",
     title: "Skills" do %>
-  🧩
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path d="M12 4.467c0-.405.262-.75.559-1.027.276-.257.441-.584.441-.94 0-.828-.895-1.5-2-1.5s-2 .672-2 1.5c0 .362.171.694.456.953.29.265.544.6.544.994a.968.968 0 0 1-1.024.974 39.655 39.655 0 0 1-3.014-.306.75.75 0 0 0-.848.847c.14.993.242 1.999.306 3.014A.968.968 0 0 1 4.447 10c-.393 0-.729-.253-.994-.544C3.194 9.171 2.862 9 2.5 9 1.672 9 1 9.895 1 11s.672 2 1.5 2c.356 0 .683-.165.94-.441.276-.297.622-.559 1.027-.559a.997.997 0 0 1 1.004 1.03 39.747 39.747 0 0 1-.319 3.734.75.75 0 0 0 .64.842c1.05.146 2.111.252 3.184.318A.97.97 0 0 0 10 16.948c0-.394-.254-.73-.545-.995C9.171 15.693 9 15.362 9 15c0-.828.895-1.5 2-1.5s2 .672 2 1.5c0 .356-.165.683-.441.94-.297.276-.559.622-.559 1.027a.998.998 0 0 0 1.03 1.005c1.337-.05 2.659-.162 3.961-.337a.75.75 0 0 0 .644-.644c.175-1.302.288-2.624.337-3.961A.998.998 0 0 0 16.967 12c-.405 0-.75.262-1.027.559-.257.276-.584.441-.94.441-.828 0-1.5-.895-1.5-2s.672-2 1.5-2c.362 0 .694.171.953.456.265.29.6.544.994.544a.968.968 0 0 0 .974-1.024c-.05-1.18-.147-2.346-.288-3.496a.75.75 0 0 0-.627-.627c-1.15-.141-2.316-.238-3.496-.288A.968.968 0 0 0 12 4.467Z"/>
+  </svg>
 <% end %>
 
 <%= link_to saved_links_path,
     class: "#{icon_base_class} #{controller_name == 'saved_links' ? icon_active_class : icon_inactive_class}",
     title: "Saved Links" do %>
-  📥
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M1 11.27c0-.295.025-.586.069-.87L2.065 5.05A2.75 2.75 0 0 1 4.8 2.75h10.4a2.75 2.75 0 0 1 2.735 2.3l.995 5.35c.044.284.07.574.07.87v3.98A2.75 2.75 0 0 1 16.25 18H3.75A2.75 2.75 0 0 1 1 15.25v-3.98Zm7.53-5.47a.75.75 0 0 1 1.06 0l1.75 1.75a.75.75 0 0 1-1.06 1.06l-.47-.47V11a.75.75 0 0 1-1.5 0V8.14l-.47.47a.75.75 0 0 1-1.06-1.06L8.53 5.8Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to showcases_path,
     class: "#{icon_base_class} #{controller_name == 'showcases' ? icon_active_class : icon_inactive_class}",
     title: "Showcase" do %>
-  🏆
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M10 .438A2 2 0 0 0 8 2.5V3c0 .838.458 1.61 1.196 2.007a.75.75 0 0 1-.46 1.422A4.002 4.002 0 0 1 6 2.5V2A3.5 3.5 0 0 1 9.5 0h1A3.5 3.5 0 0 1 14 3.5v.338c0 .94.16 1.872.477 2.756l.236.66a.75.75 0 0 1-1.415.506l-.237-.66A8.065 8.065 0 0 1 12.5 3.838V3.5A2 2 0 0 0 10 .438Zm3.75 14.544V16.5h-7.5v-1.518a2.25 2.25 0 0 1 .919-1.817 7.251 7.251 0 0 0 2.831-5.13v-.011a.75.75 0 1 1 1.5 0v.01a7.251 7.251 0 0 0 2.831 5.13 2.25 2.25 0 0 1 .919 1.818ZM10 5.25A4.75 4.75 0 0 0 5.25 10v.018a.75.75 0 0 1-1.5 0V10a6.25 6.25 0 1 1 12.5 0v.018a.75.75 0 0 1-1.5 0V10A4.75 4.75 0 0 0 10 5.25ZM5 16a.75.75 0 0 0 0 1.5h10a.75.75 0 0 0 0-1.5H5Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to outputs_path,
     class: "#{icon_base_class} #{controller_name == 'previews' ? icon_active_class : icon_inactive_class}",
     title: "Outputs" do %>
-  👁️
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path d="M10 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/>
+    <path fill-rule="evenodd" d="M.664 10.59a1.651 1.651 0 0 1 0-1.186A10.004 10.004 0 0 1 10 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0 1 10 17c-4.257 0-7.893-2.66-9.336-6.41ZM14 10a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to gateway_config_path,
     class: "#{icon_base_class} #{controller_name == 'gateway_config' ? icon_active_class : icon_inactive_class}",
     title: "Gateway Config" do %>
-  ⚙️
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M8.34 1.804A1 1 0 0 1 9.32 1h1.36a1 1 0 0 1 .98.804l.295 1.473c.497.144.971.342 1.416.587l1.25-.834a1 1 0 0 1 1.262.125l.962.962a1 1 0 0 1 .125 1.262l-.834 1.25c.245.445.443.919.587 1.416l1.473.295a1 1 0 0 1 .804.98v1.36a1 1 0 0 1-.804.98l-1.473.295a6.95 6.95 0 0 1-.587 1.416l.834 1.25a1 1 0 0 1-.125 1.262l-.962.962a1 1 0 0 1-1.262.125l-1.25-.834a6.953 6.953 0 0 1-1.416.587l-.295 1.473a1 1 0 0 1-.98.804H9.32a1 1 0 0 1-.98-.804l-.295-1.473a6.957 6.957 0 0 1-1.416-.587l-1.25.834a1 1 0 0 1-1.262-.125l-.962-.962a1 1 0 0 1-.125-1.262l.834-1.25a6.957 6.957 0 0 1-.587-1.416l-1.473-.295A1 1 0 0 1 1 10.68V9.32a1 1 0 0 1 .804-.98l1.473-.295c.144-.497.342-.971.587-1.416l-.834-1.25a1 1 0 0 1 .125-1.262l.962-.962A1 1 0 0 1 5.38 3.03l1.25.834a6.957 6.957 0 0 1 1.416-.587l.295-1.473ZM13 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to soul_editor_path,
     class: "#{icon_base_class} #{controller_name == 'soul_editor' ? icon_active_class : icon_inactive_class}",
     title: "Soul Editor" do %>
-  🫀
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path d="m9.653 16.915-.005-.003-.019-.01a20.759 20.759 0 0 1-1.162-.682 22.045 22.045 0 0 1-2.582-2.09c-1.06-1.07-2.124-2.53-2.124-4.13C3.761 7.218 5.36 6 7 6c.628 0 1.243.191 1.808.533.27.164.528.368.769.607l.423.423.423-.423a4.88 4.88 0 0 1 .769-.607C11.757 6.19 12.372 6 13 6c1.64 0 3.239 1.218 3.239 4a6.5 6.5 0 0 1-1.35 3.785A14.934 14.934 0 0 1 10.32 16.9l-.019.01-.005.003h-.002a.739.739 0 0 1-.641 0l-.002-.001Z"/>
+  </svg>
 <% end %>
 
 <%= link_to zerobitch_path,
     class: "#{icon_base_class} #{controller_name == 'zerobitch' ? icon_active_class : icon_inactive_class}",
     title: "ZeroBitch" do %>
-  🐕
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M2 9.5A3.5 3.5 0 0 1 5.5 6H6a.75.75 0 0 1 0 1.5h-.5a2 2 0 0 0 0 4H6a.75.75 0 0 1 0 1.5h-.5A3.5 3.5 0 0 1 2 9.5Zm10.5 1a2 2 0 0 0 0-4H12a.75.75 0 0 1 0-1.5h.5a3.5 3.5 0 1 1 0 7H12a.75.75 0 0 1 0-1.5h.5Zm-5.75-.75a.75.75 0 0 1 .75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
 <%= link_to webhook_mappings_path,
     class: "#{icon_base_class} #{controller_name == 'webhook_mappings' ? icon_active_class : icon_inactive_class}",
     title: "Webhook Mappings" do %>
-  🪝
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
 
-<div class="hidden md:block relative" data-controller="dropdown">
+<div class="relative" data-controller="dropdown">
   <button type="button"
           data-dropdown-target="button"
           data-action="click->dropdown#toggle"
           class="flex items-center gap-1 w-8 h-8 rounded-md justify-center transition-colors cursor-pointer <%= controller_name == 'agent_personas' ? icon_active_class : icon_inactive_class %>"
           title="Agent Personas">
-    🧠
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+      <path d="M14 6a2.5 2.5 0 0 0-4-2 2.5 2.5 0 0 0-4 2 2.5 2.5 0 0 0-.126 4.963.75.75 0 0 0 .252-1.478A1 1 0 0 1 5.5 8.5 1 1 0 0 1 7 7.5a.75.75 0 0 0 1.5 0 1 1 0 0 1 2 0 .75.75 0 0 0 1.5 0 1 1 0 0 1 1.5 1 1 1 0 0 1-.626 1.485.75.75 0 0 0 .252 1.478A2.5 2.5 0 0 0 14 6Z"/>
+      <path fill-rule="evenodd" d="M10 15.5a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15ZM10 18a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" clip-rule="evenodd"/>
+      <path d="M7.75 10.5a.75.75 0 0 1 .75.75v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 1 .75-.75ZM12.25 10.5a.75.75 0 0 1 .75.75v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 1 .75-.75Z"/>
+    </svg>
   </button>
   <div data-dropdown-target="menu"
        class="hidden absolute left-0 top-full mt-1 w-44 bg-bg-surface rounded-lg shadow-lg border border-border overflow-hidden z-50">
     <div class="py-1">
       <%= link_to agent_personas_path,
           class: "flex items-center gap-2 px-3 py-2 text-xs #{controller_name == 'agent_personas' && action_name != 'roster' ? 'text-content bg-bg-elevated' : 'text-content-secondary hover:bg-bg-elevated'} transition-colors" do %>
-        🧠 Agent Personas
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+          <path d="M14 6a2.5 2.5 0 0 0-4-2 2.5 2.5 0 0 0-4 2 2.5 2.5 0 0 0-.126 4.963.75.75 0 0 0 .252-1.478A1 1 0 0 1 5.5 8.5 1 1 0 0 1 7 7.5a.75.75 0 0 0 1.5 0 1 1 0 0 1 2 0 .75.75 0 0 0 1.5 0 1 1 0 0 1 1.5 1 1 1 0 0 1-.626 1.485.75.75 0 0 0 .252 1.478A2.5 2.5 0 0 0 14 6Z"/>
+        </svg>
+        Agent Personas
       <% end %>
       <%= link_to roster_agent_personas_path,
           class: "flex items-center gap-2 px-3 py-2 text-xs #{controller_name == 'agent_personas' && action_name == 'roster' ? 'text-content bg-bg-elevated' : 'text-content-secondary hover:bg-bg-elevated'} transition-colors" do %>
-        📋 Roster
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+          <path d="M5.127 3.502 5.25 3.5h9.5c.041 0 .082 0 .123.002A3.251 3.251 0 0 0 11.75 1h-3.5a3.251 3.251 0 0 0-3.123 2.502ZM1 10.25A2.25 2.25 0 0 1 3.25 8h13.5A2.25 2.25 0 0 1 19 10.25v5.5A2.25 2.25 0 0 1 16.75 18H3.25A2.25 2.25 0 0 1 1 15.75v-5.5ZM3.25 6.5c-.04 0-.082 0-.123.002A3.25 3.25 0 0 1 6.25 5h7.5a3.25 3.25 0 0 1 3.123 1.502A3.26 3.26 0 0 0 16.75 6.5H3.25Z"/>
+        </svg>
+        Roster
       <% end %>
       <div class="border-t border-border my-1"></div>
       <%= link_to agent_config_path,
           class: "flex items-center gap-2 px-3 py-2 text-xs #{controller_name == 'agent_config' ? 'text-content bg-bg-elevated' : 'text-content-secondary hover:bg-bg-elevated'} transition-colors" do %>
-        🤖 Multi-Agent Config
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+          <path fill-rule="evenodd" d="M8.34 1.804A1 1 0 0 1 9.32 1h1.36a1 1 0 0 1 .98.804l.295 1.473c.497.144.971.342 1.416.587l1.25-.834a1 1 0 0 1 1.262.125l.962.962a1 1 0 0 1 .125 1.262l-.834 1.25c.245.445.443.919.587 1.416l1.473.295a1 1 0 0 1 .804.98v1.36a1 1 0 0 1-.804.98l-1.473.295a6.95 6.95 0 0 1-.587 1.416l.834 1.25a1 1 0 0 1-.125 1.262l-.962.962a1 1 0 0 1-1.262.125l-1.25-.834a6.953 6.953 0 0 1-1.416.587l-.295 1.473a1 1 0 0 1-.98.804H9.32a1 1 0 0 1-.98-.804l-.295-1.473a6.957 6.957 0 0 1-1.416-.587l-1.25.834a1 1 0 0 1-1.262-.125l-.962-.962a1 1 0 0 1-.125-1.262l.834-1.25a6.957 6.957 0 0 1-.587-1.416l-1.473-.295A1 1 0 0 1 1 10.68V9.32a1 1 0 0 1 .804-.98l1.473-.295c.144-.497.342-.971.587-1.416l-.834-1.25a1 1 0 0 1 .125-1.262l.962-.962A1 1 0 0 1 5.38 3.03l1.25.834a6.957 6.957 0 0 1 1.416-.587l.295-1.473ZM13 10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" clip-rule="evenodd"/>
+        </svg>
+        Multi-Agent Config
       <% end %>
     </div>
   </div>
@@ -154,22 +211,7 @@
 <%= link_to audits_path,
     class: "#{icon_base_class} #{controller_name == 'audits' ? icon_active_class : icon_inactive_class}",
     title: "Self-Audit" do %>
-  🧠
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+    <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd"/>
+  </svg>
 <% end %>
-
-<div data-controller="search" data-search-url-value="<%= search_path %>" class="relative">
-  <form action="<%= search_path %>" method="get" class="hidden md:block" data-turbo-frame="_top">
-    <div class="relative">
-      <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-content-muted text-xs">🔍</span>
-      <input type="text" name="q" value="<%= params[:q] %>"
-             data-search-target="input"
-             placeholder="Search..."
-             class="w-36 lg:w-44 pl-8 pr-3 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent focus:w-52 text-content placeholder-content-muted transition-all <%= controller_name == 'search' ? 'ring-1 ring-accent' : '' %>">
-    </div>
-  </form>
-  <a href="<%= search_path %>"
-     class="md:hidden w-8 h-8 rounded-md <%= controller_name == 'search' ? 'bg-bg-elevated text-content' : 'bg-bg-elevated hover:bg-bg-hover text-content-muted hover:text-content' %> flex items-center justify-center text-sm transition-colors"
-     title="Search">
-    🔍
-  </a>
-</div>

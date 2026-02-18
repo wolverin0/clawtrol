@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["provider", "modelList", "apiMode", "customKeyWrap", "templatePicker", "soulArea"]
+  static targets = ["provider", "model", "apiMode", "customKeyWrap", "templatePicker", "soulArea"]
   static values = { providerModels: Object }
 
   connect() {
@@ -15,9 +15,19 @@ export default class extends Controller {
     const provider = this.providerTarget.value
     const models = this.providerModelsValue?.[provider] || []
 
-    this.modelListTarget.innerHTML = models
-      .map((model) => `<option value="${this.escapeHtml(model)}"></option>`)
-      .join("")
+    if (this.hasModelTarget) {
+      const sel = this.modelTarget
+      const current = sel.value
+      sel.innerHTML = models.length > 0
+        ? models.map((m) => `<option value="${this.escapeHtml(m)}">${this.escapeHtml(m)}</option>`).join("")
+        : `<option value="">— no models configured —</option>`
+      // Restore previous selection if still valid, else pick first
+      if (models.includes(current)) {
+        sel.value = current
+      } else if (models.length > 0) {
+        sel.value = models[0]
+      }
+    }
   }
 
   apiModeChanged() {

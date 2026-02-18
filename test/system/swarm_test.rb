@@ -35,7 +35,7 @@ class SwarmLauncherTest < ApplicationSystemTestCase
 
     # Find and click an idea card
     assert_text "Refactor auth module"
-    
+
     # The page should have selection UI
     # Check for launch button presence
     assert_selector "button", minimum: 1

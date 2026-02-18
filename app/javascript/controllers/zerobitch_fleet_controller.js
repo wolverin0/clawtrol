@@ -124,7 +124,7 @@ export default class extends Controller {
     if (this.selected.size === 0) return
 
     const token = document.querySelector('meta[name="csrf-token"]')?.content
-    const body = { action, agent_ids: Array.from(this.selected), prompt }
+    const body = { batch_action: action, agent_ids: Array.from(this.selected), prompt }
 
     const response = await fetch("/zerobitch/batch", {
       method: "POST",
@@ -147,7 +147,7 @@ export default class extends Controller {
     this.resultPanelTarget.classList.remove("hidden")
 
     const lines = [
-      `Action: ${payload.action}`,
+      `Action: ${payload.batch_action || payload.action}`,
       `Total: ${payload.total} | OK: ${payload.ok} | Failed: ${payload.failed}`,
       ""
     ]

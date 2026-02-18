@@ -98,6 +98,7 @@ class TaskOutcomeService
     task_run = nil
     idempotent = false
     old_status = @task.status
+    status_changed = false
 
     Task.transaction do
       @task.lock!
@@ -143,12 +144,67 @@ class TaskOutcomeService
       }
 
       @task.update!(base_updates)
+      status_changed = @task.saved_change_to_status?
     end
 
-    # Broadcast kanban update outside the transaction
-    broadcast_update(old_status) unless idempotent
+    unless idempotent
+      sync_pipeline_stage_for_outcome!
+      broadcast_update(old_status)
+      notify_outcome_reported!(task_run, status_changed: status_changed)
+    end
 
     Result.new(success: true, idempotent: idempotent, task_run: task_run, task: @task)
+  end
+
+  def sync_pipeline_stage_for_outcome!
+    return unless @task.pipeline_enabled?
+
+    target_stage = case @task.status.to_s
+    when "in_progress" then "executing"
+    when "in_review" then "verifying"
+    when "done", "archived" then "completed"
+    else nil
+    end
+
+    return if target_stage.blank? || @task.pipeline_stage.to_s == target_stage
+
+    log = Array(@task.pipeline_log)
+    log << {
+      stage: "pipeline_sync",
+      from: @task.pipeline_stage,
+      to: target_stage,
+      source: "task_outcome",
+      at: Time.current.iso8601
+    }
+
+    @task.update_columns(pipeline_stage: target_stage, pipeline_log: log, updated_at: Time.current)
+    @task.reload
+  rescue StandardError => e
+    Rails.logger.warn("[TaskOutcomeService] Pipeline sync failed for task_id=#{@task.id}: #{e.message}")
+  end
+
+  def notify_outcome_reported!(task_run, status_changed:)
+    needs_follow_up_text = task_run&.needs_follow_up? ? "YES" : "NO"
+    action_text = task_run&.recommended_action.to_s.presence || "in_review"
+    summary_text = task_run&.summary.to_s.truncate(100)
+
+    message = "Outcome reported for ##{@task.id}: follow-up #{needs_follow_up_text} (#{action_text})"
+    message = "#{message} — #{summary_text}" if summary_text.present?
+
+    Notification.create_deduped!(
+      user: @task.user,
+      task: @task,
+      event_type: "task_outcome_reported",
+      message: message
+    )
+
+    # If status did not change (already in_review), create_for_status_change won't fire,
+    # so we send an explicit external notification here.
+    unless status_changed
+      ExternalNotificationService.new(@task).notify_task_completion
+    end
+  rescue StandardError => e
+    Rails.logger.warn("[TaskOutcomeService] Outcome notification failed task_id=#{@task.id}: #{e.message}")
   end
 
   def broadcast_update(old_status)

@@ -37,8 +37,10 @@ class AgentAutoRunnerService
 
       next if agent_currently_working?(user)
 
-      # Pipeline: process pending tasks before wake
-      stats[:pipeline_processed] += process_pipeline_tasks!(user)
+      # Optional pipeline pre-routing only in pipeline assist mode.
+      if pipeline_assist_enabled_for?(user)
+        stats[:pipeline_processed] += process_pipeline_tasks!(user)
+      end
 
       if wake_if_work_available!(user)
         stats[:users_woken] += 1
@@ -54,6 +56,10 @@ class AgentAutoRunnerService
   def openclaw_configured?(user)
     hooks_token = user.respond_to?(:openclaw_hooks_token) ? user.openclaw_hooks_token : nil
     user.openclaw_gateway_url.present? && (hooks_token.present? || user.openclaw_gateway_token.present?)
+  end
+
+  def pipeline_assist_enabled_for?(user)
+    user.respond_to?(:pipeline_assist_mode?) && user.pipeline_assist_mode?
   end
 
   def agent_currently_working?(user)
@@ -76,20 +82,16 @@ class AgentAutoRunnerService
   # Simplified: skip triage, go straight to context compilation + routing
   def process_pipeline_tasks!(user)
     count = 0
-    # Process tasks that are either not started OR partially through pipeline
     tasks = user.tasks.where(pipeline_enabled: true, status: :up_next)
                       .where(pipeline_stage: [nil, "", "unstarted", "triaged", "context_ready"])
                       .limit(5)
 
     tasks.find_each do |task|
       Task.transaction(requires_new: true) do
-        # Simplified pipeline: skip triage voting, just do context + routing
-        # If task has no model set, default to opus
         if task.model.blank?
           task.update_columns(model: Task::DEFAULT_MODEL)
         end
 
-        # Let orchestrator handle context compilation and routing
         Pipeline::Orchestrator.new(task, user: user).process_to_completion!
 
         count += 1
@@ -116,11 +118,9 @@ class AgentAutoRunnerService
     )
 
     begin
-      if task.pipeline_ready?
-        # Pipeline active mode: wake with enriched payload
+      if pipeline_assist_enabled_for?(user) && task.pipeline_ready?
         @openclaw_webhook_service.new(user).notify_auto_pull_ready_with_pipeline(task)
       else
-        # Standard wake
         @openclaw_webhook_service.new(user).notify_auto_pull_ready(task)
       end
     rescue StandardError => e
@@ -129,7 +129,7 @@ class AgentAutoRunnerService
 
     @cache.write(cache_key, Time.current.to_i, expires_in: SPAWN_COOLDOWN)
 
-    @logger.info("[AgentAutoRunner] wake sent user_id=#{user.id} task_id=#{task.id} pipeline_ready=#{task.pipeline_ready?}")
+    @logger.info("[AgentAutoRunner] wake sent user_id=#{user.id} task_id=#{task.id} pipeline_ready=#{task.pipeline_ready?} orchestration_mode=#{user.orchestration_mode}")
     true
   rescue StandardError => e
     @logger.error("[AgentAutoRunner] auto-pull wake failed user_id=#{user.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")

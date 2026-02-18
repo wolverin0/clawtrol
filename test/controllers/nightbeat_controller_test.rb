@@ -53,6 +53,4 @@ class NightbeatControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
-
-
 end

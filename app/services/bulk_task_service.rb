@@ -70,7 +70,7 @@ class BulkTaskService
   end
 
   def change_model(tasks, affected_statuses)
-    if value.present? && !Task::MODELS.include?(value)
+    if value.present? && value.to_s.length > 120
       return Result.new(success: false, error: "Invalid model: #{value}")
     end
 

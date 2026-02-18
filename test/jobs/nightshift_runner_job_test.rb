@@ -46,7 +46,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
 
     selection1.reload
     selection2.reload
-    
+
     # selection1 is for today and should be processed (status changed from pending)
     assert selection1.status != "pending" || selection2.status != "pending"
   end
@@ -68,7 +68,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
 
     enabled_sel.reload
     disabled_sel.reload
-    
+
     # Enabled should be processed, disabled should remain
     assert disabled_sel.status == "pending"
   end
@@ -130,7 +130,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
         enabled: true
       )
     end
-    
+
     sel1 = create_selection(status: "pending", scheduled_date: Date.today, mission: missions[0])
     sel2 = create_selection(status: "pending", scheduled_date: Date.today, mission: missions[1])
     sel3 = create_selection(status: "pending", scheduled_date: Date.today, mission: missions[2])
@@ -255,7 +255,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
     assert_equal 1, armed_count # Only enabled one counts
   end
 
-  # Test: handles selection without mission gracefully  
+  # Test: handles selection without mission gracefully
   test "handles selection with missing mission" do
     # First create a mission to satisfy uniqueness, then we'll delete it
     temp_mission = NightshiftMission.create!(
@@ -268,7 +268,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
       user: @user,
       enabled: true
     )
-    
+
     # This test is problematic because belongs_to requires mission exist
     # The job uses includes so it won't load orphan selections anyway
     # Skip this test as it's not realistically testable
