@@ -16,11 +16,11 @@ class AnalyticsController < ApplicationController
     @generated_at = Time.parse(data[:generatedAt]) rescue Time.current
     @start_time = data[:rangeStart].present? ? (Time.parse(data[:rangeStart]) rescue nil) : nil
     @start_time ||= case @period
-                    when "24h" then 24.hours.ago
-                    when "7d"  then 7.days.ago
-                    when "30d" then 30.days.ago
-                    else            @generated_at - 1.year
-                    end
+    when "24h" then 24.hours.ago
+    when "7d"  then 7.days.ago
+    when "30d" then 30.days.ago
+    else            @generated_at - 1.year
+    end
 
     @total_cost        = data.dig(:stats, :totalCost) || 0.0
     @total_input       = data.dig(:tokens, :input) || 0

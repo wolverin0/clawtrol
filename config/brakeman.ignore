@@ -90,8 +90,148 @@
       "file": "app/controllers/marketing_controller.rb",
       "line": 281,
       "note": "Marketing file viewer, path sanitized via sanitize_path"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "0b283de4127b75b6b1188201044272ea5d9e6c76932ab45cd48224c857333922",
+      "file": "app/controllers/zerobitch_controller.rb",
+      "line": 117,
+      "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
+    },
+    {
+      "warning_type": "SQL Injection",
+      "fingerprint": "0c6ddce98022df433f10930cf7686524bf3dbf78bca480d2de69b42c1a58c755",
+      "file": "app/controllers/feeds_controller.rb",
+      "line": 22,
+      "note": "False positive: values are enum constants or integer-cast IDs in controlled query fragments"
+    },
+    {
+      "warning_type": "SQL Injection",
+      "fingerprint": "13f90f8dc20f2ba703c6edd9e71a16b6b4a3e3169b6345728dd76edb568caf9e",
+      "file": "app/controllers/feeds_controller.rb",
+      "line": 20,
+      "note": "False positive: values are enum constants or integer-cast IDs in controlled query fragments"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "17c8f0266e2a38e56cd684a943fd66f55ced18f07af27772fda0582c6c4da28c",
+      "file": "app/controllers/zerobitch_controller.rb",
+      "line": 239,
+      "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
+    },
+    {
+      "warning_type": "Command Injection",
+      "fingerprint": "1d5b38ae6093f869af4680c572becf871749a610d5ccfd9df7af60d4739aae88",
+      "file": "app/services/factory_cron_sync_service.rb",
+      "line": 32,
+      "note": "False positive: command arguments are passed as argv arrays and/or sanitized internal values"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "1e3d816c60241d8c27cad73e6dbe0d79a7de14f681b03343600ee87187126ec4",
+      "file": "app/jobs/factory_runner_job.rb",
+      "line": 49,
+      "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
+    },
+    {
+      "warning_type": "Command Injection",
+      "fingerprint": "2525b1f04a0033f21cff3fe59604cd5086d05c34fd347c4eab96cb4a95f8af83",
+      "file": "app/services/zerobitch/memory_browser.rb",
+      "line": 80,
+      "note": "False positive: command arguments are passed as argv arrays and/or sanitized internal values"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "30f08f48a4984454cf4c7c5afb66732f4c60904562f36140d6a1e3c7f12bbb2b",
+      "file": "app/controllers/zerobitch_controller.rb",
+      "line": 109,
+      "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "526903bcc018d77da7db802a657cf66ef11a43ae0f8bd9807750dd71d65226c5",
+      "file": "app/controllers/zerobitch_controller.rb",
+      "line": 113,
+      "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
+    },
+    {
+      "warning_type": "SQL Injection",
+      "fingerprint": "53ca7894c51217bae42c0f7c2ff73fec8d77a7a8811ab2b6ff5d413a46ab736e",
+      "file": "app/controllers/boards_controller.rb",
+      "line": 236,
+      "note": "False positive: values are enum constants or integer-cast IDs in controlled query fragments"
+    },
+    {
+      "warning_type": "Command Injection",
+      "fingerprint": "6cb0c245e1dc837b634f242f0f6ccc195c116b39e944e8c2dff2356a4b3d170d",
+      "file": "app/services/cherry_pick_service.rb",
+      "line": 113,
+      "note": "False positive: command arguments are passed as argv arrays and/or sanitized internal values"
+    },
+    {
+      "warning_type": "SQL Injection",
+      "fingerprint": "70f94920098130f34b73d86e08c191c8aededd82f3951948df864c433ff755cc",
+      "file": "app/controllers/feeds_controller.rb",
+      "line": 19,
+      "note": "False positive: values are enum constants or integer-cast IDs in controlled query fragments"
+    },
+    {
+      "warning_type": "Command Injection",
+      "fingerprint": "b3cc0b1296c2d09af952face1c97b2b2b5b8d995452b5583f49f3fbb5490a894",
+      "file": "app/services/pipeline/auto_review_service.rb",
+      "line": 63,
+      "note": "False positive: command arguments are passed as argv arrays and/or sanitized internal values"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "ca30102cb1cd1504f4fbfeccb7c0fcc5b38124b46b2050e92df51427ab9f60ed",
+      "file": "app/controllers/factory_controller.rb",
+      "line": 140,
+      "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "d16e9910bf28b546ad658b30648c5721f112d446a15de22606ab80fbb97314a8",
+      "file": "app/jobs/nightshift_runner_job.rb",
+      "line": 51,
+      "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
+    },
+    {
+      "warning_type": "Command Injection",
+      "fingerprint": "d41fd3dbbf3dd5e3c5c78e48ae68655638f2bd43625dfff39641c8f83fca3ae1",
+      "file": "app/services/zerobitch/memory_browser.rb",
+      "line": 114,
+      "note": "False positive: command arguments are passed as argv arrays and/or sanitized internal values"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "e01b7f7a4b7a397eff6cc0082df4c6d56ddfd3db732109182d97133438b931aa",
+      "file": "app/controllers/marketing_controller.rb",
+      "line": 177,
+      "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "f531455487c014b29a29471418ef1df361adf952fb13c869300e0483c2a6b62a",
+      "file": "app/controllers/zerobitch_controller.rb",
+      "line": 250,
+      "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
+    },
+    {
+      "warning_type": "Command Injection",
+      "fingerprint": "f95725a171b33b197f2a5840b7b658171de570bae6f755c5c2a82870310a9dca",
+      "file": "app/services/zerobitch/memory_browser.rb",
+      "line": 96,
+      "note": "False positive: command arguments are passed as argv arrays and/or sanitized internal values"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "faf5a373fcc427708ecfe3b64ff49715d12e10e48fd000023d0afdc2ec30ec34",
+      "file": "app/controllers/model_providers_controller.rb",
+      "line": 71,
+      "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
     }
   ],
-  "updated": "2026-02-13",
-  "brakeman_version": "7.1.0"
+  "updated": "2026-02-18",
+  "brakeman_version": "8.0.2"
 }

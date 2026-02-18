@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 class NightshiftController < ApplicationController
-
   def index
     sync_service = NightshiftSyncService.new
     sync_service.sync_tonight_selections

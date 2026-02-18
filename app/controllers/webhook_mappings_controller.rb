@@ -120,7 +120,7 @@ class WebhookMappingsController < ApplicationController
           name: "GitHub Push",
           match: { "headers" => { "x-github-event" => "push" } },
           action: "wake",
-          template: 'GitHub push to {{body.repository.full_name}} branch {{body.ref}} by {{body.pusher.name}}: {{body.head_commit.message}}'
+          template: "GitHub push to {{body.repository.full_name}} branch {{body.ref}} by {{body.pusher.name}}: {{body.head_commit.message}}"
         }
       },
       {
@@ -140,7 +140,7 @@ class WebhookMappingsController < ApplicationController
           name: "n8n Workflow",
           match: { "headers" => { "x-n8n-webhook" => "*" } },
           action: "wake",
-          template: 'n8n workflow trigger: {{body.workflowName}} — {{body.message}}'
+          template: "n8n workflow trigger: {{body.workflowName}} — {{body.message}}"
         }
       },
       {
@@ -150,7 +150,7 @@ class WebhookMappingsController < ApplicationController
           name: "Custom Hook",
           match: { "body" => { "type" => "custom" } },
           action: "wake",
-          template: 'Custom webhook: {{body.message}}'
+          template: "Custom webhook: {{body.message}}"
         }
       }
     ]
