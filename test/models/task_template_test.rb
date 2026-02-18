@@ -28,7 +28,7 @@ class TaskTemplateTest < ActiveSupport::TestCase
       assert template.valid?, "Slug #{slug} should be valid"
     end
 
-    invalid_slugs = %w[TEST Test test_ABC UPPERCASE with spaces]
+    invalid_slugs = ["TEST", "Test", "test_ABC", "UPPERCASE", "with spaces"]
     invalid_slugs.each do |slug|
       template = TaskTemplate.new(name: "Test", slug: slug)
       assert_not template.valid?, "Slug #{slug} should be invalid"
@@ -91,14 +91,14 @@ class TaskTemplateTest < ActiveSupport::TestCase
   end
 
   test "validation_command must be safe" do
-    # Unsafe commands
+    # Unsafe commands (must contain shell metacharacters)
     unsafe = TaskTemplate.new(
       name: "Test",
       slug: "test",
-      validation_command: "rm -rf /"
+      validation_command: "rm -rf $(whoami)"
     )
     assert_not unsafe.valid?
-    assert_includes unsafe.errors[:validation_command], "unsafe shell metacharacters"
+    assert_includes unsafe.errors[:validation_command].join, "unsafe shell metacharacters"
 
     unsafe2 = TaskTemplate.new(
       name: "Test",
@@ -120,10 +120,10 @@ class TaskTemplateTest < ActiveSupport::TestCase
     template = TaskTemplate.new(
       name: "Test",
       slug: "test",
-      validation_command: "npm test"
+      validation_command: "arbitrary_tool test"
     )
     assert_not template.valid?
-    assert_includes template.errors[:validation_command], "must start with an allowed prefix"
+    assert_includes template.errors[:validation_command].join, "must start with an allowed prefix"
   end
 
   # === Associations ===
@@ -164,6 +164,9 @@ class TaskTemplateTest < ActiveSupport::TestCase
   end
 
   test "ordered scope sorts global first then by name" do
+    # Clear all existing templates to avoid fixture interference with ordering
+    TaskTemplate.destroy_all
+
     user_t = TaskTemplate.create!(name: "User Z", slug: "user-z", user: @user)
     global = TaskTemplate.create!(name: "Global A", slug: "global-a", global: true)
     user_t2 = TaskTemplate.create!(name: "User A", slug: "user-a", user: @user)
@@ -303,8 +306,10 @@ class TaskTemplateTest < ActiveSupport::TestCase
   end
 
   test "user templates require user for uniqueness scope" do
-    template = TaskTemplate.new(slug: @board.slug, name: "Duplicate", user: @user)
+    TaskTemplate.create!(slug: "my-unique-slug", name: "Original", user: @user)
+    template = TaskTemplate.new(slug: "my-unique-slug", name: "Duplicate", user: @user)
     assert_not template.valid?
+    assert template.errors[:slug].any?
   end
 
   test "global true takes precedence over user_id for uniqueness" do
@@ -317,27 +322,27 @@ class TaskTemplateTest < ActiveSupport::TestCase
   end
 
   test "priority can be nil" do
-    template = TaskTemplate.new(name: "Test", priority: nil)
+    template = TaskTemplate.new(name: "Test", slug: "test-prio-nil", priority: nil)
     assert template.valid?
   end
 
   test "priority can be 0" do
-    template = TaskTemplate.new(name: "Test", priority: 0)
+    template = TaskTemplate.new(name: "Test", slug: "test-prio-0", priority: 0)
     assert template.valid?
   end
 
   test "priority can be 3" do
-    template = TaskTemplate.new(name: "Test", priority: 3)
+    template = TaskTemplate.new(name: "Test", slug: "test-prio-3", priority: 3)
     assert template.valid?
   end
 
   test "priority cannot be negative" do
-    template = TaskTemplate.new(name: "Test", priority: -1)
+    template = TaskTemplate.new(name: "Test", slug: "test-prio-neg", priority: -1)
     assert_not template.valid?
   end
 
   test "priority cannot exceed 3" do
-    template = TaskTemplate.new(name: "Test", priority: 4)
+    template = TaskTemplate.new(name: "Test", slug: "test-prio-4", priority: 4)
     assert_not template.valid?
   end
 

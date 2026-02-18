@@ -2,7 +2,7 @@
 
 class TaskDependency < ApplicationRecord
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
-  strict_loading :n_plus_one
+  self.strict_loading_mode = :n_plus_one
 
   belongs_to :task, inverse_of: :task_dependencies
   belongs_to :depends_on, class_name: "Task", inverse_of: :dependents
@@ -20,17 +20,18 @@ class TaskDependency < ApplicationRecord
 
   def no_self_dependency
     if task_id == depends_on_id
-      errors.add(:base, "A task cannot depend on itself")
+      errors.add(:base, "cannot depend on itself")
     end
   end
 
   def no_circular_dependency
     return if depends_on_id.nil? || task_id.nil?
+    return if task_id == depends_on_id # self-dependency already caught by no_self_dependency
 
     # Check if adding this dependency would create a cycle
     # (i.e., if depends_on already depends on task, directly or indirectly)
     if would_create_cycle?
-      errors.add(:base, "This dependency would create a circular dependency")
+      errors.add(:base, "circular dependency")
     end
   end
 

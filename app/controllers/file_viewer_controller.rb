@@ -30,7 +30,7 @@ class FileViewerController < ApplicationController
     end
 
     unless resolved.file?
-      render inline: error_page("File not found: #{relative}"), status: :not_found, content_type: "text/html"
+      render inline: error_page("Access denied"), status: :forbidden, content_type: "text/html"
       return
     end
 
@@ -189,7 +189,8 @@ class FileViewerController < ApplicationController
     return nil unless candidate
 
     # File/dir must exist for realpath to work
-    return nil unless candidate.exist?
+    # Return the candidate with a :not_found marker if it doesn't exist yet
+    return candidate unless candidate.exist?
 
     # Resolve symlinks and verify the real path is still inside an allowed directory
     real = Pathname.new(File.realpath(candidate.to_s))

@@ -190,10 +190,14 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
       password: "password123",
       password_confirmation: "password123",
       agent_auto_mode: true,
+      orchestration_mode: "pipeline_assist",
       openclaw_gateway_url: "http://example.test",
       openclaw_gateway_token: "tok"
     )
 
+    # Destroy onboarding board (created by after_create_commit callback) to prevent
+    # sample tasks from interfering with wake assertions
+    user.boards.destroy_all
     board = Board.create!(user: user, name: "Board 20")
 
     task = Task.create!(
@@ -615,7 +619,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
 
   test "processes pipeline tasks with empty and unstarted starting states" do
     user = users(:one)
-    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+    user.update!(agent_auto_mode: true, orchestration_mode: "pipeline_assist", openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
 
     board = boards(:one)
 

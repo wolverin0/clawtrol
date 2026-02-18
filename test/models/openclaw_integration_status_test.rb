@@ -5,8 +5,8 @@ require "test_helper"
 class OpenclawIntegrationStatusTest < ActiveSupport::TestCase
   setup do
     @user = users(:one)
-    # Clean up any existing status for this user
-    OpenclawIntegrationStatus.where(user: @user).delete_all
+    # Clean up any existing status for these users to avoid uniqueness conflicts with fixtures
+    OpenclawIntegrationStatus.where(user: [ @user, users(:two) ]).delete_all
   end
 
   # --- Validations ---
@@ -121,8 +121,10 @@ class OpenclawIntegrationStatusTest < ActiveSupport::TestCase
   end
 
   test "memory_search_status rejects invalid value" do
-    status = OpenclawIntegrationStatus.new(user: @user, memory_search_status: "invalid")
-    assert_not status.valid?
+    # Rails 8 enums raise ArgumentError for unknown values at the setter level
+    assert_raises(ArgumentError) do
+      OpenclawIntegrationStatus.new(user: @user, memory_search_status: "invalid")
+    end
   end
 
   test "memory_search_last_error can be nil" do
