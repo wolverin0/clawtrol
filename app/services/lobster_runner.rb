@@ -1,51 +1,104 @@
 # frozen_string_literal: true
 
-# LobsterRunner — Executes Lobster workflow pipelines via OpenClaw Gateway.
-#
-# Lobster is OpenClaw's deterministic pipeline runner with resumeToken support
-# for approval gates (pausing mid-pipeline until a human approves/rejects).
-#
-# Usage:
-#   LobsterRunner.run("code-review", { "task_id" => "42" })
-#   LobsterRunner.resume(token, approve: true)
+require "yaml"
+require "open3"
+require "securerandom"
+
 class LobsterRunner
-  LOBSTER_DIR = Rails.root.join("lobster")
+  PIPELINE_DIR = Rails.root.join("lobster")
+  TIMEOUT_SECONDS = 30
 
-  def self.run(pipeline_name, args = {})
-    pipeline_path = LOBSTER_DIR.join("#{pipeline_name}.lobster")
-    raise ArgumentError, "Pipeline not found: #{pipeline_name}" unless pipeline_path.exist?
+  Result = Struct.new(:success, :output, :resume_token, :waiting_approval, :error, keyword_init: true)
 
-    client = OpenclawGatewayClient.new(nil)
-    client.invoke_tool!("lobster", args: {
-      action: "run",
-      pipeline: pipeline_path.to_s,
-      args: args,
-      timeoutMs: 60_000
-    })
-  rescue OpenclawGatewayClient::Error => e
-    Rails.logger.error("[LobsterRunner] run failed: #{e.message}")
-    { "error" => e.message }
-  rescue ArgumentError => e
-    { "error" => e.message }
+  def self.run(pipeline_name, task:, args: {})
+    new(pipeline_name, task: task, args: args).run
   end
 
-  def self.resume(token, approve: true)
-    raise ArgumentError, "Token is required" if token.blank?
-
-    client = OpenclawGatewayClient.new(nil)
-    client.invoke_tool!("lobster", args: {
-      action: "resume",
-      token: token,
-      approve: approve
-    })
-  rescue OpenclawGatewayClient::Error => e
-    Rails.logger.error("[LobsterRunner] resume failed: #{e.message}")
-    { "error" => e.message }
+  def self.resume(task, approve:)
+    new(nil, task: task).resume(approve: approve)
   end
 
-  def self.available_pipelines
-    return [] unless LOBSTER_DIR.exist?
+  def initialize(pipeline_name, task:, args: {})
+    @pipeline_name = pipeline_name
+    @task = task
+    @args = args
+  end
 
-    LOBSTER_DIR.glob("*.lobster").map { |f| f.basename(".lobster").to_s }.sort
+  def run
+    pipeline_file = PIPELINE_DIR.join("#{@pipeline_name}.lobster")
+    return Result.new(success: false, error: "Pipeline not found: #{@pipeline_name}") unless pipeline_file.exist?
+
+    pipeline = YAML.load_file(pipeline_file)
+    steps = pipeline["steps"] || []
+    outputs = []
+
+    steps.each do |step|
+      cmd = interpolate(step["command"], @args.merge("task_id" => @task.id.to_s))
+
+      if step["approval"] == "required"
+        token = SecureRandom.hex(16)
+        @task.update!(
+          resume_token: token,
+          lobster_status: "waiting_approval",
+          lobster_pipeline: @pipeline_name
+        )
+        return Result.new(
+          success: true,
+          output: outputs.join("\n"),
+          resume_token: token,
+          waiting_approval: true
+        )
+      end
+
+      stdout, stderr, status = Open3.capture3(cmd)
+      output = stdout.presence || stderr.presence || "(no output)"
+      outputs << "[#{step["id"]}] #{output.strip}"
+
+      unless status.success?
+        return Result.new(success: false, output: outputs.join("\n"), error: "Step '#{step["id"]}' failed: #{stderr.strip}")
+      end
+    end
+
+    @task.update!(lobster_status: "completed", resume_token: nil)
+    Result.new(success: true, output: outputs.join("\n"))
+  rescue => e
+    Result.new(success: false, error: e.message)
+  end
+
+  def resume(approve:)
+    unless approve
+      @task.update!(lobster_status: "rejected", resume_token: nil)
+      return Result.new(success: true, output: "Pipeline rejected by user.")
+    end
+
+    pipeline_name = @task.lobster_pipeline
+    return Result.new(success: false, error: "No pipeline stored on task") unless pipeline_name.present?
+
+    pipeline_file = PIPELINE_DIR.join("#{pipeline_name}.lobster")
+    return Result.new(success: false, error: "Pipeline not found: #{pipeline_name}") unless pipeline_file.exist?
+
+    pipeline = YAML.load_file(pipeline_file)
+    steps = pipeline["steps"] || []
+    approval_idx = steps.index { |s| s["approval"] == "required" }
+    remaining = approval_idx ? steps[(approval_idx + 1)..] : []
+
+    outputs = []
+    remaining.each do |step|
+      cmd = interpolate(step["command"], { "task_id" => @task.id.to_s })
+      stdout, stderr, status = Open3.capture3(cmd)
+      output = stdout.presence || stderr.presence || "(no output)"
+      outputs << "[#{step["id"]}] #{output.strip}"
+    end
+
+    @task.update!(lobster_status: "completed", resume_token: nil)
+    Result.new(success: true, output: outputs.join("\n"))
+  rescue => e
+    Result.new(success: false, error: e.message)
+  end
+
+  private
+
+  def interpolate(cmd, vars)
+    cmd.gsub(/\$(\w+)/) { vars[$1] || ENV[$1] || "" }
   end
 end
