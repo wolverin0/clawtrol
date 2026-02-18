@@ -42,6 +42,9 @@ gem "image_processing", "~> 1.2"
 # Rate limiting for API endpoints
 gem "rack-attack"
 
+# HTTP client (CVE-2026-25765 fix)
+gem "faraday", ">= 2.14.1"
+
 # OAuth authentication
 gem "omniauth"
 gem "omniauth-github"
