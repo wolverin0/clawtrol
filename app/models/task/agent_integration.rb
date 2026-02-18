@@ -270,7 +270,8 @@ module Task::AgentIntegration
   end
 
   def requires_agent_output_for_done?
-    assigned_to_agent? || agent_session_id.present? || assigned_at.present?
+    # Only require agent output if an agent actually ran (claimed the task)
+    (agent_claimed_at.present? || agent_session_id.present?)
   end
 
   def missing_agent_output?
@@ -311,7 +312,8 @@ module Task::AgentIntegration
   # We enforce this only for agent-assigned tasks to avoid breaking
   # human-only workflows.
   def in_progress_requires_active_lease
-    return unless assigned_to_agent?
+    # Only enforce for tasks that an agent has actively claimed (not just queued)
+    return unless assigned_to_agent? && agent_claimed_at.present?
 
     # Accept a linked session as legacy/equivalent evidence.
     return if runner_lease_active? || agent_session_id.present?

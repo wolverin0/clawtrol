@@ -35,25 +35,10 @@ module Api
         agent = ZeroclawAgent.next_available
         return render json: { error: "No available ZeroClaw agents" }, status: :service_unavailable unless agent
 
-        message = @task.description.to_s.presence || @task.name.to_s
+        # Use job async to avoid request timeout (GLM-4.7 can take 30s+)
+        ZeroclawDispatchJob.perform_later(@task.id, agent.id)
 
-        result = agent.dispatch(message)
-        agent.update_column(:last_seen_at, Time.current)
-
-        dispatch_data = {
-          "agent_name" => agent.name,
-          "agent_url" => agent.url,
-          "model" => result["model"],
-          "response" => result["response"],
-          "dispatched_at" => Time.current.iso8601
-        }
-
-        new_state = @task.state_data.merge("zeroclaw_dispatch" => dispatch_data)
-        append = "\n\n---\n\n## ZeroClaw Response (#{agent.name})\n\n#{result['response']}"
-        new_desc = @task.description.to_s + append
-        @task.update_columns(state_data: new_state, description: new_desc)
-
-        render json: { success: true, task_id: @task.id }.merge(dispatch_data)
+        render json: { success: true, task_id: @task.id, agent_name: agent.name, queued: true }
       rescue => e
         render json: { error: "Dispatch failed: #{e.message}" }, status: :unprocessable_entity
       end

@@ -341,13 +341,13 @@ class TaskActivityTest < ActiveSupport::TestCase
   end
 
   test "actor can be nil" do
-    activity = TaskActivity.new(task: @task, action: "created", actor: nil)
+    activity = TaskActivity.new(task: @task, action: "created", actor_name: nil, actor_type: nil)
     assert activity.valid?
   end
 
   test "record_creation with minimal params" do
     task = tasks(:one)
-    activity = TaskActivity.record_creation(task: task)
+    activity = TaskActivity.record_creation(task)
     assert_equal "created", activity.action
     assert_equal task, activity.task
     assert activity.persisted?
@@ -356,9 +356,9 @@ class TaskActivityTest < ActiveSupport::TestCase
   test "record_status_change with custom note" do
     task = tasks(:one)
     activity = TaskActivity.record_status_change(
-      task: task,
-      from_status: "inbox",
-      to_status: "done",
+      task,
+      old_status: "inbox",
+      new_status: "done",
       note: "Custom note"
     )
     assert_equal "Custom note", activity.note
