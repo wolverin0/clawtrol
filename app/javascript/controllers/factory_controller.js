@@ -387,8 +387,9 @@ export default class extends Controller {
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <div class="text-sm text-content font-medium truncate">${this.esc(agent.name)}</div>
-              <div class="mt-1 flex items-center gap-2 text-[11px] text-content-muted">
+              <div class="mt-1 flex items-center gap-2 text-[11px] text-content-muted flex-wrap">
                 <span class="px-1.5 py-0.5 rounded-full border border-border bg-bg-surface">${this.esc(agent.category || "general")}</span>
+                <span class="px-1.5 py-0.5 rounded-full border border-border bg-bg-surface">${this.esc(agent.model || "—")}</span>
                 <span>Last run: ${this.esc(lastRun)}</span>
               </div>
               <div class="mt-1 text-[11px] ${ready ? "text-green-300" : "text-amber-300"}">
@@ -441,42 +442,65 @@ export default class extends Controller {
     }
   }
 
-  renderFindings(runs) {
+  renderFindings(patterns) {
     if (!this.hasFindingsListTarget) return
-    if (!runs.length) {
+    if (!patterns.length) {
       this.findingsListTarget.innerHTML = '<p class="text-xs text-content-muted py-4 text-center">No findings for this loop yet.</p>'
       return
     }
 
-    this.findingsListTarget.innerHTML = runs.map(run => {
-      const agentName = run.factory_agent?.name || "Unknown Agent"
-      const runAt = run.created_at ? new Date(run.created_at).toLocaleString() : "—"
-      const sha = run.commit_sha ? String(run.commit_sha).slice(0, 7) : "—"
-      const findings = Array.isArray(run.findings) ? run.findings : []
-
-      const findingsHtml = findings.length ? findings.map(f => {
-        const confidence = Number(f.confidence || f.score || 0)
-        const confidenceClass = confidence > 80 ? "text-green-300" : (confidence >= 50 ? "text-amber-300" : "text-red-300")
-        const description = f.description || f.summary || "No description"
-        return `
-          <div class="border border-border rounded-md p-2 bg-bg-surface">
-            <div class="text-[12px] text-content">${this.esc(description)}</div>
-            <div class="mt-1 flex items-center justify-between gap-2">
-              <span class="text-[11px] ${confidenceClass}">Confidence: ${Number.isFinite(confidence) ? confidence : 0}%</span>
-              <div class="flex items-center gap-1">
-                <button type="button" class="px-2 py-0.5 text-[10px] rounded border border-green-500/30 text-green-300 bg-green-500/10">Accept</button>
-                <button type="button" class="px-2 py-0.5 text-[10px] rounded border border-red-500/30 text-red-300 bg-red-500/10">Dismiss</button>
-              </div>
-            </div>
-          </div>`
-      }).join("") : '<p class="text-[11px] text-content-muted">No findings payload.</p>'
+    this.findingsListTarget.innerHTML = patterns.map(pattern => {
+      const confidence = Number(pattern.confidence_score || pattern.confidence || 0)
+      const confidenceSafe = Number.isFinite(confidence) ? Math.max(0, Math.min(100, confidence)) : 0
+      const confidenceClass = confidenceSafe > 80 ? "text-green-300" : (confidenceSafe >= 50 ? "text-amber-300" : "text-red-300")
+      const state = pattern.review_state || (pattern.suppressed ? "dismissed" : (pattern.accepted ? "accepted" : "pending"))
+      const stateClass = state === "accepted" ? "text-green-300" : state === "dismissed" ? "text-red-300" : "text-content-muted"
+      const stateLabel = state.charAt(0).toUpperCase() + state.slice(1)
 
       return `
         <div class="border border-border rounded-md p-3 bg-bg-elevated space-y-2">
-          <div class="text-[11px] text-content-muted">${this.esc(agentName)} · ${this.esc(runAt)} · commit ${this.esc(sha)}</div>
-          ${findingsHtml}
+          <div class="text-[12px] text-content">${this.esc(pattern.description || "No description")}</div>
+          <div class="flex items-center justify-between gap-2 text-[11px] text-content-muted flex-wrap">
+            <span class="px-1.5 py-0.5 rounded-full border border-border bg-bg-surface">${this.esc(pattern.category || "general")}</span>
+            <span class="${confidenceClass}">Confidence: ${confidenceSafe}%</span>
+            <span class="${stateClass}">State: ${this.esc(stateLabel)}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button type="button" data-action="factory#acceptFinding" data-finding-id="${pattern.id}"
+                    class="px-2 py-0.5 text-[10px] rounded border border-green-500/30 text-green-300 bg-green-500/10 hover:bg-green-500/15 transition-colors">Accept</button>
+            <button type="button" data-action="factory#dismissFinding" data-finding-id="${pattern.id}"
+                    class="px-2 py-0.5 text-[10px] rounded border border-red-500/30 text-red-300 bg-red-500/10 hover:bg-red-500/15 transition-colors">Dismiss</button>
+          </div>
         </div>`
     }).join("")
+  }
+
+  async acceptFinding(event) {
+    event.preventDefault()
+    const id = event.currentTarget.dataset.findingId
+    await this.updateFindingState(id, "accept")
+  }
+
+  async dismissFinding(event) {
+    event.preventDefault()
+    const id = event.currentTarget.dataset.findingId
+    await this.updateFindingState(id, "dismiss")
+  }
+
+  async updateFindingState(id, action) {
+    if (!id) return
+
+    try {
+      const res = await fetch(`/api/v1/factory/finding_patterns/${id}/${action}`, {
+        method: "POST",
+        headers: { "Accept": "application/json", "X-CSRF-Token": this.csrfToken }
+      })
+      if (!res.ok) throw new Error("failed")
+      await this.loadFindings(true)
+      this.setStatus(`Finding ${action}ed`)
+    } catch {
+      this.setStatus("⚠ Failed to update finding")
+    }
   }
 
   async loadHistory(force = false) {

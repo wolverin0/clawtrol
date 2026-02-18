@@ -138,6 +138,7 @@ Rails.application.routes.draw do
       post "factory/loops/:id/create_pr", to: "factory_loops#create_pr"
       post "factory/loops/:loop_id/cycles", to: "factory_cycles#create"
       post "factory/cycles/:id/complete", to: "factory_cycles#complete"
+      post "factory/finding_patterns/:id/accept", to: "factory_finding_patterns#accept"
       post "factory/finding_patterns/:id/dismiss", to: "factory_finding_patterns#dismiss"
 
       # Agent catalog

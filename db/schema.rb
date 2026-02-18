@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_17_180748) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_000500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -299,10 +299,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_17_180748) do
   end
 
   create_table "factory_finding_patterns", force: :cascade do |t|
+    t.boolean "accepted", default: false, null: false
+    t.datetime "accepted_at"
     t.string "category"
     t.datetime "created_at", null: false
     t.text "description", null: false
     t.integer "dismiss_count", default: 0
+    t.datetime "dismissed_at"
     t.bigint "factory_loop_id"
     t.string "pattern_hash", null: false
     t.boolean "suppressed", default: false
