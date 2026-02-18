@@ -62,7 +62,7 @@ Rails.application.configure do
     config.after_initialize do
       Bullet.enable = true
       Bullet.raise = true # Raise errors on N+1 queries
-      Bullet.unused_eager_loading = true
+      Bullet.unused_eager_loading_enable = true
     end
   end
 end
