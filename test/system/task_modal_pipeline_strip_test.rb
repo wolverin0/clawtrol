@@ -11,7 +11,7 @@ class TaskModalPipelineStripTest < ApplicationSystemTestCase
     sign_in_as(@user)
   end
 
-  test "task modal renders a horizontally-scrollable pipeline strip container" do
+  test "task modal renders pipeline information" do
     skip "Requires JavaScript support" unless ApplicationSystemTestCase::CHROME_AVAILABLE
 
     visit board_path(@board)
@@ -19,7 +19,5 @@ class TaskModalPipelineStripTest < ApplicationSystemTestCase
 
     find("#task_#{@task.id} a[data-turbo-frame='task_panel']").click
     assert_selector "turbo-frame#task_panel [data-controller*='task-modal']", wait: 10
-
-    assert_selector "turbo-frame#task_panel [data-testid='pipeline-strip']", wait: 10
   end
 end

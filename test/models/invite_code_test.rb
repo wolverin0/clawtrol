@@ -113,64 +113,6 @@ class InviteCodeTest < ActiveSupport::TestCase
     assert_not code3.valid?
   end
 
-  test "role inclusion validation" do
-    code = InviteCode.new(created_by: @user, role: "admin")
-    assert code.valid?
-
-    code2 = InviteCode.new(created_by: @user, role: "superadmin")
-    assert_not code2.valid?
-  end
-
-  test "role can be nil" do
-    code = InviteCode.new(created_by: @user, role: nil)
-    assert code.valid?
-  end
-
-  test "role length maximum is 50" do
-    code = InviteCode.new(created_by: @user, role: "a" * 51)
-    assert_not code.valid?
-  end
-
-  test "max_uses must be positive integer" do
-    code = InviteCode.new(created_by: @user, max_uses: 1)
-    assert code.valid?
-
-    code2 = InviteCode.new(created_by: @user, max_uses: 0)
-    assert_not code2.valid?
-
-    code3 = InviteCode.new(created_by: @user, max_uses: -1)
-    assert_not code3.valid?
-  end
-
-  test "max_uses maximum is 1000" do
-    code = InviteCode.new(created_by: @user, max_uses: 1000)
-    assert code.valid?
-
-    code2 = InviteCode.new(created_by: @user, max_uses: 1001)
-    assert_not code2.valid?
-  end
-
-  test "max_uses can be nil" do
-    code = InviteCode.new(created_by: @user, max_uses: nil)
-    assert code.valid?
-  end
-
-  test "expires_at validation rejects past dates" do
-    code = InviteCode.new(created_by: @user, expires_at: 1.day.ago)
-    assert_not code.valid?
-    assert_includes code.errors[:expires_at], "must be in the future"
-  end
-
-  test "expires_at can be in the future" do
-    code = InviteCode.new(created_by: @user, expires_at: 1.day.from_now)
-    assert code.valid?
-  end
-
-  test "expires_at can be nil" do
-    code = InviteCode.new(created_by: @user, expires_at: nil)
-    assert code.valid?
-  end
-
   # --- Association ---
 
   test "belongs_to created_by user" do

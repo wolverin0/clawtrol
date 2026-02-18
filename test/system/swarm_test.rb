@@ -49,7 +49,8 @@ class SwarmLauncherTest < ApplicationSystemTestCase
 
     # Favorite idea should be visible
     assert_text "Research AI agents"
-    assert_text "⭐"  # favorite icon
+    # Favorite icon is rendered as ★ (filled star)
+    assert_text "★"
   end
 
   test "disabled ideas are not shown or are marked" do
