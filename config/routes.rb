@@ -155,6 +155,7 @@ Rails.application.routes.draw do
 
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
+      post "hooks/agent_done", to: "hooks#agent_done"
 
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
@@ -189,6 +190,8 @@ Rails.application.routes.draw do
           post :complete_review
           post :recover_output
           post :dispatch_zeroclaw
+          post :run_lobster
+          post :resume_lobster
           get :file
           post :route_pipeline
           get :pipeline_info
