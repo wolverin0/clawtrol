@@ -14,9 +14,9 @@ class NightshiftEngineService
 
     # result column is text — serialize hashes/arrays as JSON for consistent storage
     serialized_result = case result
-                        when Hash, Array then result.to_json
-                        else result
-                        end
+    when Hash, Array then result.to_json
+    else result
+    end
 
     attrs = {
       status: status,
