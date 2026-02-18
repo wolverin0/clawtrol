@@ -38,17 +38,15 @@ class TaskTest < ActiveSupport::TestCase
     assert_equal "none", task.priority
   end
 
-  test "validates model inclusion" do
-    task = Task.new(name: "Test", board: boards(:one), user: users(:one), model: "invalid_model")
-    assert_not task.valid?
-    assert task.errors[:model].any?
+  test "model field accepts any string value" do
+    # model no longer validates inclusion — any string is allowed
+    task = Task.new(name: "Test", board: boards(:one), user: users(:one), model: "any_model_string")
+    assert task.valid?
   end
 
-  test "allows valid models" do
-    Task::MODELS.each do |model_name|
-      task = Task.new(name: "Test", board: boards(:one), user: users(:one), model: model_name)
-      assert task.valid?, "Model '#{model_name}' should be valid"
-    end
+  test "model field can be blank" do
+    task = Task.new(name: "Test", board: boards(:one), user: users(:one), model: nil)
+    assert task.valid?
   end
 
   test "allows nil model" do

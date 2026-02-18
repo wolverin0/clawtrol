@@ -126,7 +126,7 @@ class BehavioralInterventionTest < ActiveSupport::TestCase
   test "rule cannot exceed 1000 characters" do
     intervention = BehavioralIntervention.new(user: @user, rule: "a" * 1001, category: "focus", status: "active")
     assert_not intervention.valid?
-    assert_includes intervention.errors[:rule], "is too long"
+    assert_includes intervention.errors[:rule].join, "too long"
   end
 
   test "category accepts valid values" do

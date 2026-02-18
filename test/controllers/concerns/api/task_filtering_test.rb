@@ -7,7 +7,7 @@ class Api::TaskFilteringTest < ActionDispatch::IntegrationTest
     @user = users(:one)
     @board = boards(:one)
     @task = @user.tasks.create!(
-      title: "Test Task",
+      name: "Test Task",
       board: @board,
       status: :inbox,
       position: 1
@@ -53,7 +53,7 @@ class Api::TaskFilteringTest < ActionDispatch::IntegrationTest
   test "filter_tasks filters by priority" do
     controller = MockController.new
     high_priority = @user.tasks.create!(
-      title: "High Priority",
+      name: "High Priority",
       board: @board,
       status: :inbox,
       position: 2,
@@ -89,8 +89,8 @@ class Api::TaskFilteringTest < ActionDispatch::IntegrationTest
 
   test "paginate_tasks applies limit and offset" do
     controller = MockController.new
-    @user.tasks.create!(title: "Task 2", board: @board, status: :inbox, position: 3)
-    @user.tasks.create!(title: "Task 3", board: @board, status: :inbox, position: 4)
+    @user.tasks.create!(name: "Task 2", board: @board, status: :inbox, position: 3)
+    @user.tasks.create!(name: "Task 3", board: @board, status: :inbox, position: 4)
 
     tasks = controller.filter_tasks(Task.all, ActionController::Parameters.new(page: "2", per_page: "1"))
 

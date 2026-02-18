@@ -172,5 +172,4 @@ class FactoryCycleLogTest < ActiveSupport::TestCase
     log.save!
     assert_nil log.output_tokens
   end
-
 end
