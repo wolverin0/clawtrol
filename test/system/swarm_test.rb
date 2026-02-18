@@ -156,7 +156,6 @@ class SwarmLauncherNavigationTest < ApplicationSystemTestCase
   end
 
   test "swarm shows idea status indicators" do
-    @idea.update!(status: "launched")
 
     visit swarm_path
 
