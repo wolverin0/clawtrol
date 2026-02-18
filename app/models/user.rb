@@ -8,7 +8,7 @@ class User < ApplicationRecord
   strict_loading :n_plus_one
 
   THEMES = %w[default vaporwave].freeze
-  ORCHESTRATION_MODES = %w[openclaw_only pipeline_assist].freeze
+  ORCHESTRATION_MODES = %w[openclaw_only].freeze
 
   has_many :sessions, dependent: :destroy, inverse_of: :user
   has_many :boards, dependent: :destroy, inverse_of: :user
@@ -138,11 +138,7 @@ class User < ApplicationRecord
 
 
 def openclaw_only_mode?
-  orchestration_mode.to_s != "pipeline_assist"
-end
-
-def pipeline_assist_mode?
-  orchestration_mode.to_s == "pipeline_assist"
+  true
 end
   # Check if user signed up via OAuth
   def oauth_user?

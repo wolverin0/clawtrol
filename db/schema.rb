@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_142134) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_161710) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -828,10 +828,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_142134) do
     t.text "original_description"
     t.jsonb "output_files", default: [], null: false
     t.bigint "parent_task_id"
-    t.boolean "pipeline_enabled", default: false
-    t.jsonb "pipeline_log"
-    t.string "pipeline_stage", default: "unstarted", null: false
-    t.string "pipeline_type"
     t.integer "position"
     t.integer "priority", default: 0, null: false
     t.string "recurrence_rule"
@@ -865,7 +861,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_142134) do
     t.index ["auto_pull_blocked"], name: "index_tasks_on_auto_pull_blocked"
     t.index ["blocked"], name: "index_tasks_on_blocked"
     t.index ["board_id", "archived_at"], name: "idx_tasks_board_archived"
-    t.index ["board_id", "pipeline_stage"], name: "index_tasks_on_board_pipeline"
     t.index ["board_id", "status", "position"], name: "index_tasks_on_board_status_position"
     t.index ["board_id"], name: "index_tasks_on_board_id"
     t.index ["description"], name: "index_tasks_on_description_trigram", opclass: :gin_trgm_ops, using: :gin
@@ -877,8 +872,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_142134) do
     t.index ["next_recurrence_at"], name: "index_tasks_on_next_recurrence_at"
     t.index ["nightly"], name: "index_tasks_on_nightly"
     t.index ["parent_task_id"], name: "index_tasks_on_parent_task_id"
-    t.index ["pipeline_enabled"], name: "index_tasks_on_pipeline_enabled"
-    t.index ["pipeline_stage"], name: "index_tasks_on_pipeline_stage"
     t.index ["position"], name: "index_tasks_on_position"
     t.index ["recurring"], name: "index_tasks_on_recurring"
     t.index ["review_status"], name: "index_tasks_on_review_status", where: "(review_status IS NOT NULL)"
