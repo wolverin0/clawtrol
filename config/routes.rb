@@ -553,6 +553,9 @@ Rails.application.routes.draw do
       get :dependency_graph
       post :generate_persona
     end
+    resource :roadmap, only: [:update], controller: "boards/roadmaps" do
+      post :generate_tasks, on: :member
+    end
     resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "boards/tasks" do
       collection do
         post :bulk_update
