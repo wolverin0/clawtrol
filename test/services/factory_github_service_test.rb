@@ -268,7 +268,7 @@ class FactoryGithubServiceTest < ActiveSupport::TestCase
       cmd = args.join(" ")
 
       if cmd.include?("pr list")
-        json_output = exists ? '[{"number": 1}]' : '[]'
+        json_output = exists ? '[{"number": 1}]' : "[]"
         [json_output, "", success_status]
       else
         ["", "", success_status]

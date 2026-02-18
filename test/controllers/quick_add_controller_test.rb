@@ -132,5 +132,4 @@ class QuickAddControllerTest < ActionDispatch::IntegrationTest
     assert_equal @user.id, task.user_id
     assert_includes @user.boards.pluck(:id), task.board_id
   end
-
 end

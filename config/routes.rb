@@ -188,6 +188,7 @@ Rails.application.routes.draw do
           post :run_debate
           post :complete_review
           post :recover_output
+          post :dispatch_zeroclaw
           get :file
           post :route_pipeline
           get :pipeline_info
@@ -631,7 +632,7 @@ Rails.application.routes.draw do
   post "marketing/publish", to: "marketing#publish_to_n8n", as: :marketing_publish
   get "marketing/*path", to: "marketing#show", as: :marketing_show, format: false
 
-  # File viewer (workspace files, no auth)
+  # File viewer (workspace files)
   get "view", to: "file_viewer#show"
   put "view", to: "file_viewer#update"
   get "files", to: "file_viewer#browse", as: :browse_files

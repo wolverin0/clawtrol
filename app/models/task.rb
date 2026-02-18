@@ -73,7 +73,7 @@ class Task < ApplicationRecord
   # Model options for agent LLM selection
   # NOTE: These values are the *ClawTrol* UI/task-level model choices.
   # They intentionally stay small and stable (opus/codex/gemini/glm/sonnet).
-  MODELS = %w[opus codex gemini glm sonnet].freeze
+  MODELS = %w[opus codex gemini glm sonnet groq grok ollama cerebras minimax flash].freeze
   DEFAULT_MODEL = "opus".freeze
 
   # Map ClawTrol task.model -> OpenClaw sessions_spawn model alias.
@@ -112,7 +112,7 @@ class Task < ApplicationRecord
   validates :priority, inclusion: { in: priorities.keys }
   validates :status, inclusion: { in: statuses.keys }
   validates :pipeline_stage, inclusion: { in: pipeline_stages.keys }
-  validates :model, inclusion: { in: MODELS }, allow_nil: true, allow_blank: true
+  validates :model, length: { maximum: 120 }, allow_nil: true, allow_blank: true
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
   validates :description, length: { maximum: 500_000 }, allow_nil: true
   validates :execution_plan, length: { maximum: 100_000 }, allow_nil: true

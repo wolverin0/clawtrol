@@ -114,5 +114,4 @@ class ViewFileSecurityTest < ActionDispatch::IntegrationTest
     get view_file_board_task_path(@board, @task)
     assert_response :bad_request
   end
-
 end

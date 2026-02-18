@@ -314,7 +314,7 @@ class ZerobitchController < ApplicationController
   end
 
   def batch_action
-    action = params[:action].presence || params[:action_type]
+    action = params[:batch_action].presence || params[:action_type]
     agent_ids = Array(params[:agent_ids])
     prompt = params[:prompt].to_s.strip
     results = []
@@ -352,6 +352,7 @@ class ZerobitchController < ApplicationController
     ok_count = results.count { |r| r[:success] }
     payload = {
       action: action,
+      batch_action: action,
       total: results.size,
       ok: ok_count,
       failed: results.size - ok_count,
@@ -462,13 +463,8 @@ class ZerobitchController < ApplicationController
   def set_spawn_defaults
     @default_emoji = "🤖"
     @allowed_commands = %w[curl cat grep ls find jq docker df free ps ping git awk]
-    @provider_models = {
-      "openrouter" => %w[meta-llama/llama-3.3-70b-instruct:free google/gemini-2.0-flash-exp:free anthropic/claude-3.5-sonnet],
-      "groq" => %w[llama-3.3-70b-versatile llama-4-scout-17b-16e-instruct],
-      "cerebras" => %w[llama-3.3-70b qwen-3-235b-a22b-instruct],
-      "mistral" => %w[mistral-small-latest mistral-medium-latest],
-      "ollama" => %w[llama3.2:3b qwen2.5:7b]
-    }
+    @provider_models = OpenclawModelsService.provider_models_map
+    @providers_for_select = OpenclawModelsService.providers_for_select
     @soul_templates = Zerobitch::FleetTemplates.all.map do |t|
       { id: t[:id], name: "#{t[:emoji]} #{t[:name]}", content: t[:soul_content] }
     end

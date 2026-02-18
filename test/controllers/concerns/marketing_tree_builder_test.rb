@@ -21,7 +21,7 @@ class MarketingTreeBuilderTest < ActiveSupport::TestCase
 
   test "returns empty tree for non-existent directory" do
     tree = @controller.build_tree("/nonexistent/path")
-    
+
     assert_equal "marketing", tree[:name]
     assert_equal :directory, tree[:type]
     assert_equal [], tree[:children]
@@ -37,12 +37,12 @@ class MarketingTreeBuilderTest < ActiveSupport::TestCase
     tree = @controller.build_tree(@temp_dir)
 
     assert_equal 2, tree[:children].length
-    
+
     dir1 = tree[:children].find { |c| c[:name] == "dir1" }
     assert dir1
     assert_equal :directory, dir1[:type]
     assert_equal 2, dir1[:children].length
-    
+
     dir2 = tree[:children].find { |c| c[:name] == "dir2" }
     assert dir2
     assert_equal :directory, dir2[:type]
@@ -60,7 +60,7 @@ class MarketingTreeBuilderTest < ActiveSupport::TestCase
     # Should only include folder1 which contains match.txt
     folder1 = tree[:children].find { |c| c[:name] == "folder1" }
     assert folder1, "Should find folder1 with match.txt"
-    
+
     folder2 = tree[:children].find { |c| c[:name] == "folder2" }
     assert_nil folder2, "Should not include folder2 without match"
   end

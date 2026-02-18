@@ -8,4 +8,7 @@ class Session < ApplicationRecord
 
   scope :for_user, ->(user) { where(user: user) }
   scope :recent, -> { order(created_at: :desc) }
+
+  validates :ip_address, length: { maximum: 255 }, allow_nil: true
+  validates :user_agent, length: { maximum: 500 }, allow_nil: true
 end

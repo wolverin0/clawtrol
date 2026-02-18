@@ -26,8 +26,8 @@
             data-action="change->filter#filterByModel"
             class="px-2 py-1 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-accent text-content cursor-pointer">
       <option value="">All models</option>
-      <% Task::MODELS.each do |model| %>
-        <option value="<%= model %>"><%= model.capitalize %></option>
+      <% model_select_options(current_user, include_default: false).each do |label, model| %>
+        <option value="<%= model %>"><%= label %></option>
       <% end %>
     </select>
 

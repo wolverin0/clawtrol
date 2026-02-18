@@ -109,6 +109,14 @@
             <% end %>
           <% end %>
 
+          <%# ZeroClaw Dispatch %>
+          <div class="border-t border-border my-1"></div>
+          <button type="button"
+                  onclick="zeroclawDispatch(<%= task.id %>)"
+                  class="block w-full text-left px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors">
+            🤖 Dispatch to ZeroClaw
+          </button>
+
           <div class="border-t border-border my-1"></div>
 
           <button type="button"
@@ -181,7 +189,7 @@
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-content-muted">Model</span>
                   <%= form.select :model,
-                      options_for_select([["Default", ""], ["Opus", "opus"], ["Codex", "codex"], ["Gemini", "gemini"], ["GLM", "glm"], ["Sonnet", "sonnet"]], task.model),
+                      options_for_select(model_select_options(current_user, include_default: true), task.model),
                       {},
                       class: "bg-bg-elevated border-none rounded-md text-sm text-content-secondary px-2 py-1.5 focus:ring-0 focus:outline-none",
                       data: { action: "change->task-modal#scheduleAutoSave" } %>
@@ -926,5 +934,30 @@
         </div>
       </div>
     </div>
-  </div>
+  <script>
+  function zeroclawDispatch(taskId) {
+    const btn = event.currentTarget;
+    btn.disabled = true;
+    btn.textContent = "⏳ Dispatching...";
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    fetch(`/api/v1/tasks/${taskId}/dispatch_zeroclaw`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        btn.textContent = "✅ Dispatched!";
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        btn.textContent = "❌ " + (data.error || "Failed");
+        setTimeout(() => { btn.disabled = false; btn.textContent = "🤖 Dispatch to ZeroClaw"; }, 3000);
+      }
+    })
+    .catch(() => {
+      btn.textContent = "❌ Error";
+      setTimeout(() => { btn.disabled = false; btn.textContent = "🤖 Dispatch to ZeroClaw"; }, 3000);
+    });
+  }
+  </script>
 </div>

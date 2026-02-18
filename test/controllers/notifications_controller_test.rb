@@ -87,5 +87,4 @@ class NotificationsControllerTest < ActionDispatch::IntegrationTest
     other_notif.reload
     assert_nil other_notif.read_at
   end
-
 end

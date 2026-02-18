@@ -20,11 +20,11 @@ class DailyCostSnapshotJobTest < ActiveJob::TestCase
   test "captures weekly snapshots on Mondays" do
     next_monday = if Time.current.monday?
                     Time.current + 1.week
-                  else
+    else
                     days_until_monday = (1 - Time.current.wday) % 7
                     days_until_monday = 7 if days_until_monday == 0
                     Time.current + days_until_monday.days
-                  end
+    end
 
     travel_to next_monday.beginning_of_day do
       assert_nothing_raised do

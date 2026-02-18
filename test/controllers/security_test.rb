@@ -93,5 +93,4 @@ class SecurityTest < ActionDispatch::IntegrationTest
   end
 
   private
-
 end

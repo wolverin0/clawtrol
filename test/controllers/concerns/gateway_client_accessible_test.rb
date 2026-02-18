@@ -53,5 +53,4 @@ class GatewayClientAccessibleTest < ActionDispatch::IntegrationTest
     data = JSON.parse(response.body)
     assert data.is_a?(Hash)
   end
-
 end

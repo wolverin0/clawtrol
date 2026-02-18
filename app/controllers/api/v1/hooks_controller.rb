@@ -246,7 +246,8 @@ module Api
 
         # Try to determine which model hit the limit
         model_name = task.model.presence || detect_model_from_text(findings)
-        return unless model_name.present? && Task::MODELS.include?(model_name)
+        model_name = model_name.to_s.strip
+        return if model_name.blank? || model_name.length > 120
 
         # Find the user who owns this task to register the limit
         # BUG FIX: never fall back to User.first — that would attribute limits to wrong user
@@ -264,12 +265,29 @@ module Api
       # and update the model recommendation. Returns true if advanced.
       # Reloads the task after attempt to ensure response reflects persisted state.
       def advance_pipeline_stage(task)
-        return false if task.pipeline_unstarted? || task.pipeline_pipeline_done?
+        return false unless task.pipeline_enabled?
 
-        router = ClawRouterService.new(task)
-        result = router.advance!
-        task.reload unless result # Ensure in-memory state matches DB on failure
-        result
+        target_stage = case task.status.to_s
+        when "in_progress" then "executing"
+        when "in_review" then "verifying"
+        when "done", "archived" then "completed"
+        else nil
+        end
+
+        return false if target_stage.blank? || task.pipeline_stage.to_s == target_stage
+
+        log = Array(task.pipeline_log)
+        log << {
+          stage: "pipeline_sync",
+          from: task.pipeline_stage,
+          to: target_stage,
+          source: "hooks#agent_complete",
+          at: Time.current.iso8601
+        }
+
+        task.update_columns(pipeline_stage: target_stage, pipeline_log: log, updated_at: Time.current)
+        task.reload
+        true
       rescue StandardError => e
         Rails.logger.warn("[HooksController] Pipeline advance failed for task ##{task.id}: #{e.message}")
         task.reload rescue nil

@@ -8,6 +8,7 @@ class User < ApplicationRecord
   strict_loading :n_plus_one
 
   THEMES = %w[default vaporwave].freeze
+  ORCHESTRATION_MODES = %w[openclaw_only pipeline_assist].freeze
 
   has_many :sessions, dependent: :destroy, inverse_of: :user
   has_many :boards, dependent: :destroy, inverse_of: :user
@@ -76,6 +77,7 @@ class User < ApplicationRecord
   validates :password, length: { minimum: 8 }, if: :password_required?
   validates :password, confirmation: true, if: :password_required?
   validates :theme, inclusion: { in: THEMES }
+  validates :orchestration_mode, inclusion: { in: ORCHESTRATION_MODES }
   validates :agent_name, length: { maximum: 100 }, allow_nil: true
   validates :agent_emoji, length: { maximum: 10 }, allow_nil: true
   validates :openclaw_gateway_url, length: { maximum: 2048 }, allow_nil: true
@@ -134,6 +136,14 @@ class User < ApplicationRecord
     avatar.attached? || avatar_url.present?
   end
 
+
+def openclaw_only_mode?
+  orchestration_mode.to_s != "pipeline_assist"
+end
+
+def pipeline_assist_mode?
+  orchestration_mode.to_s == "pipeline_assist"
+end
   # Check if user signed up via OAuth
   def oauth_user?
     provider.present?

@@ -1,5 +1,6 @@
 <%# Pipeline progress stepper - shows current pipeline stage and progress %>
 <%
+  return unless pipeline_ui_enabled?(task.user)
   return unless task.pipeline_enabled? && task.pipeline_stage.present? && Task::PIPELINE_STAGES.include?(task.pipeline_stage)
 
   stages = Task::PIPELINE_STAGES

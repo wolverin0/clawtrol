@@ -16,12 +16,26 @@
       <% end %>
     </div>
 
-    <%# Right section: Quick nav + Controls %>
+    <%# Right section: Search + Controls %>
     <div class="flex items-center gap-x-1 md:gap-x-2 flex-shrink-0">
       <%# Mobile hamburger menu %>
       <%= render "shared/mobile_nav" %>
-      <%# Quick Nav Icons %>
-      <%= render "shared/nav_icons" %>
+      
+      <%# Search bar (desktop) %>
+      <div data-controller="search" data-search-url-value="<%= search_path %>" class="relative hidden md:block">
+        <form action="<%= search_path %>" method="get" data-turbo-frame="_top">
+          <div class="relative">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-content-muted w-3.5 h-3.5">
+              <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd"/>
+            </svg>
+            <input type="text" name="q" value="<%= params[:q] %>"
+                   data-search-target="input"
+                   placeholder="Search..."
+                   class="w-36 lg:w-44 pl-8 pr-3 py-1.5 text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent focus:w-52 text-content placeholder-content-muted transition-all <%= controller_name == 'search' ? 'ring-1 ring-accent' : '' %>">
+          </div>
+        </form>
+      </div>
+
       <%# Theme Toggle %>
       <%= render "shared/theme_toggle" %>
 
@@ -174,19 +188,34 @@
           </div>
           <div class="py-1">
             <%= link_to dashboard_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-              📊 Dashboard
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path d="M15.5 2a1.5 1.5 0 0 0-1.5 1.5v13A1.5 1.5 0 0 0 15.5 18h1A1.5 1.5 0 0 0 18 16.5v-13A1.5 1.5 0 0 0 16.5 2h-1ZM9.5 6a1.5 1.5 0 0 0-1.5 1.5v9A1.5 1.5 0 0 0 9.5 18h1a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 10.5 6h-1ZM3.5 10a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 3.5 18h1A1.5 1.5 0 0 0 6 16.5v-5A1.5 1.5 0 0 0 4.5 10h-1Z"/>
+              </svg>
+              Dashboard
             <% end %>
             <%= link_to analytics_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-              📈 Analytics
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path fill-rule="evenodd" d="M1 2.75A.75.75 0 0 1 1.75 2h16.5a.75.75 0 0 1 0 1.5H18v8.75A2.75 2.75 0 0 1 15.25 15h-1.072l.798 3.06a.75.75 0 0 1-1.452.38L13.41 18H6.59l-.114.44a.75.75 0 0 1-1.452-.38L5.823 15H4.75A2.75 2.75 0 0 1 2 12.25V3.5h-.25A.75.75 0 0 1 1 2.75ZM7.373 15l-.391 1.5h6.037l-.392-1.5H7.373Z" clip-rule="evenodd"/>
+              </svg>
+              Analytics
             <% end %>
             <%= link_to agent_personas_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-              🧠 Agent Personas
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path d="M14 6a2.5 2.5 0 0 0-4-2 2.5 2.5 0 0 0-4 2 2.5 2.5 0 0 0-.126 4.963.75.75 0 0 0 .252-1.478A1 1 0 0 1 5.5 8.5 1 1 0 0 1 7 7.5a.75.75 0 0 0 1.5 0 1 1 0 0 1 2 0 .75.75 0 0 0 1.5 0 1 1 0 0 1 1.5 1 1 1 0 0 1-.626 1.485.75.75 0 0 0 .252 1.478A2.5 2.5 0 0 0 14 6Z"/>
+              </svg>
+              Agent Personas
             <% end %>
             <%= link_to roster_agent_personas_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-              📋 Roster
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path d="M5.127 3.502 5.25 3.5h9.5c.041 0 .082 0 .123.002A3.251 3.251 0 0 0 11.75 1h-3.5a3.251 3.251 0 0 0-3.123 2.502ZM1 10.25A2.25 2.25 0 0 1 3.25 8h13.5A2.25 2.25 0 0 1 19 10.25v5.5A2.25 2.25 0 0 1 16.75 18H3.25A2.25 2.25 0 0 1 1 15.75v-5.5ZM3.25 6.5c-.04 0-.082 0-.123.002A3.25 3.25 0 0 1 6.25 5h7.5a3.25 3.25 0 0 1 3.123 1.502A3.26 3.26 0 0 0 16.75 6.5H3.25Z"/>
+              </svg>
+              Roster
             <% end %>
             <%= link_to nightbeat_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
-              🌙 Morning Brief
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path fill-rule="evenodd" d="M7.455 2.004a.75.75 0 0 1 .26.77 7 7 0 0 0 9.958 7.967.75.75 0 0 1 1.067.853A8.5 8.5 0 1 1 6.647 1.921a.75.75 0 0 1 .808.083Z" clip-rule="evenodd"/>
+              </svg>
+              Morning Brief
             <% end %>
             <%= link_to settings_path, class: "flex items-center gap-2 px-3 py-2 text-xs text-content-secondary hover:bg-bg-elevated transition-colors" do %>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,4 +238,9 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <%# Icon strip: only on md+ %>
+  <div class="hidden md:flex items-center px-4 py-1 gap-0.5 overflow-x-auto border-t border-border/50 bg-bg-base scrollbar-hide">
+    <%= render "shared/nav_icons" %>
   </div>

@@ -74,7 +74,6 @@ class Api::TaskFilteringTest < ActionDispatch::IntegrationTest
 
     # Should have assigned_at ordering
     assert tasks.order_values.any?
-
   end
 
   test "filter_tasks orders by status and position by default" do
@@ -113,7 +112,6 @@ class Api::TaskFilteringTest < ActionDispatch::IntegrationTest
     tasks = controller.filter_tasks(Task.all, ActionController::Parameters.new(order_by: "created_at"))
 
     assert tasks.order_values.any?
-
   end
 
   test "pagination_headers returns correct headers" do

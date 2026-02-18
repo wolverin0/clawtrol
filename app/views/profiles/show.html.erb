@@ -325,6 +325,27 @@
 
   <!-- Integration Tab -->
   <div data-tabs-target="panel" data-tab="integration" class="hidden space-y-6">
+<div class="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+  <div class="flex items-center gap-2">
+    <span class="text-lg">🧭</span>
+    <h3 class="text-sm font-semibold text-content font-display">Orchestration Mode</h3>
+  </div>
+
+  <p class="text-xs text-content-secondary">
+    Choose whether OpenClaw fully orchestrates execution, or ClawTrol pre-routes tasks with the pipeline.
+  </p>
+
+  <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-3") do |form| %>
+    <%= form.select :orchestration_mode,
+        [["OpenClaw Only (recommended)", "openclaw_only"], ["Pipeline Assist", "pipeline_assist"]],
+        {},
+        class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+    <p class="text-xs text-content-muted">
+      OpenClaw Only: no ClawTrol pre-routing, cleaner Kanban truth. Pipeline Assist: triage/context/routing enabled in ClawTrol.
+    </p>
+    <%= form.submit "Save orchestration mode", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
+  <% end %>
+</div>
     <%= render "profiles/agent_install_prompt", api_token: @api_token %>
     <%= render "profiles/integration_wizard" %>
   </div>

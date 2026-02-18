@@ -9,7 +9,7 @@ class AgentPersona < ApplicationRecord
   has_many :tasks, dependent: :nullify, inverse_of: :agent_persona, counter_cache: :tasks_count
 
   # Model options (same as Task)
-  MODELS = %w[opus codex gemini glm sonnet].freeze
+  MODELS = Task::MODELS
   TIERS = %w[strategic-reasoning fast-coding research operations].freeze
 
   # Default tools available
@@ -18,8 +18,8 @@ class AgentPersona < ApplicationRecord
   # Validations
   validates :name, presence: true
   validates :name, uniqueness: { scope: :user_id, message: "already exists for this user" }
-  validates :model, inclusion: { in: MODELS, allow_blank: true }
-  validates :fallback_model, inclusion: { in: MODELS, allow_blank: true }
+  validates :model, length: { maximum: 120 }, allow_blank: true
+  validates :fallback_model, length: { maximum: 120 }, allow_blank: true
   validates :tier, inclusion: { in: TIERS, allow_blank: true }
 
   # Scopes

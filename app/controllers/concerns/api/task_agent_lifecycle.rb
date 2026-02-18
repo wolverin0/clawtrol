@@ -37,6 +37,7 @@ module Api
         updates = { agent_claimed_at: now, status: :in_progress }
         updates[:agent_session_id] = sid if sid.present?
         updates[:agent_session_key] = skey if skey.present?
+        updates[:pipeline_stage] = "executing" if @task.pipeline_enabled? && @task.pipeline_stage == "routed"
 
         @task.update!(updates)
       end
@@ -62,6 +63,12 @@ module Api
         @task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
         @task.update!(agent_claimed_at: nil, status: :up_next)
       end
+
+      if @task.pipeline_enabled?
+        target = (@task.routed_model.present? && @task.compiled_prompt.present?) ? "routed" : "unstarted"
+        sync_pipeline_stage_for_task!(@task, target_stage: target, source: "api#unclaim")
+      end
+
       broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
       render json: task_json(@task)
     end
@@ -80,6 +87,11 @@ module Api
           agent_session_id: nil,
           agent_session_key: nil
         )
+      end
+
+      if @task.pipeline_enabled?
+        target = (@task.routed_model.present? && @task.compiled_prompt.present?) ? "routed" : "unstarted"
+        sync_pipeline_stage_for_task!(@task, target_stage: target, source: "api#requeue")
       end
 
       broadcast_kanban_update(@task, old_status: old_status, new_status: @task.status)
@@ -194,6 +206,9 @@ module Api
         )
 
         @task.update!(status: :in_progress, agent_claimed_at: now)
+        if @task.pipeline_enabled? && @task.pipeline_stage == "routed"
+          sync_pipeline_stage_for_task!(@task, target_stage: "executing", source: "api#spawn_ready")
+        end
 
         Rails.logger.info(
           "[spawn_ready] task_id=#{@task.id} requested_model=#{requested_model.inspect} " \
@@ -228,6 +243,24 @@ module Api
       end
 
       user.boards.find_by(is_aggregator: false) || user.boards.order(position: :asc).first
+    end
+
+    def sync_pipeline_stage_for_task!(task, target_stage:, source:)
+      return if target_stage.blank? || task.pipeline_stage.to_s == target_stage
+
+      log = Array(task.pipeline_log)
+      log << {
+        stage: "pipeline_sync",
+        from: task.pipeline_stage,
+        to: target_stage,
+        source: source,
+        at: Time.current.iso8601
+      }
+
+      task.update_columns(pipeline_stage: target_stage, pipeline_log: log, updated_at: Time.current)
+      task.reload
+    rescue StandardError => e
+      Rails.logger.warn("[TaskAgentLifecycle] Pipeline stage sync failed task_id=#{task.id}: #{e.message}")
     end
 
     # Simulate context usage based on session age (mock for now)

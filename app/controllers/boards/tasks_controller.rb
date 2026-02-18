@@ -162,8 +162,14 @@ class Boards::TasksController < ApplicationController
   end
 
   def handoff
-    new_model = params[:model]
-    unless Task::MODELS.include?(new_model)
+    new_model = params[:model].to_s.strip
+    if new_model.blank? || new_model.length > 120
+      redirect_to board_path(@board), alert: "Invalid model selected"
+      return
+    end
+
+    available_models = ModelCatalogService.new(current_user).model_ids
+    unless available_models.include?(new_model)
       redirect_to board_path(@board), alert: "Invalid model selected"
       return
     end

@@ -210,6 +210,4 @@ class Boards::TasksControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
-
-
 end

@@ -70,6 +70,4 @@ class WorkflowsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
-
-
 end

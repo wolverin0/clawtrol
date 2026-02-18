@@ -132,6 +132,7 @@ class ConfigPagesControllerTest < ActionDispatch::IntegrationTest
     File.write(test_file, "<h1>Hello World</h1>")
 
     # The file viewer resolves from workspace — we test the controller logic
+    sign_in_as(@user)
     get "/view", params: { file: "test_preview.html" }
     # May return 200, 404, or 403 depending on path resolution
     assert_includes [200, 400, 403, 404], response.status

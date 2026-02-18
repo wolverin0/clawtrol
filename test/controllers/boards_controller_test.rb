@@ -154,5 +154,4 @@ class BoardsControllerTest < ActionDispatch::IntegrationTest
     get board_path(@board, tag: "bug")
     assert_response :success
   end
-
 end

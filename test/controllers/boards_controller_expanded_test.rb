@@ -79,5 +79,4 @@ class BoardsControllerExpandedTest < ActionDispatch::IntegrationTest
     # Also acceptable
     assert true
   end
-
 end

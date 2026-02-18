@@ -101,5 +101,4 @@ class MarketingControllerTest < ActionDispatch::IntegrationTest
     json = JSON.parse(response.body)
     assert_includes json["error"], "not supported"
   end
-
 end

@@ -18,5 +18,4 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "div.text-2xl.font-bold"  # Check for status cards
   end
-
 end

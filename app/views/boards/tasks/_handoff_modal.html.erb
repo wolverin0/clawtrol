@@ -74,11 +74,12 @@
           <!-- Model Selection -->
           <div>
             <label class="text-sm font-medium text-content-muted block mb-2">Hand off to model</label>
+            <% handoff_models = model_select_options(current_user, include_default: false).map(&:last) %>
             <div class="grid grid-cols-2 gap-2">
-              <% Task::MODELS.each do |model| %>
+              <% handoff_models.each do |model| %>
                 <label class="flex items-center gap-2 p-3 rounded-lg hover:bg-bg-elevated cursor-pointer border border-transparent has-[:checked]:border-accent/50 has-[:checked]:bg-accent/10 transition-colors <%= model == @task.model ? 'opacity-50' : '' %>">
                   <%= form.radio_button :model, model, 
-                      checked: model == (model == @task.model ? nil : Task::MODELS.first),
+                      checked: model == (model == @task.model ? nil : handoff_models.first),
                       disabled: model == @task.model,
                       class: "text-accent focus:ring-accent" %>
                   <div>

@@ -28,3 +28,16 @@ load Rails.root.join("db/seeds/nightshift_missions.rb")
 
 # Built-in factory agents
 load Rails.root.join("db/seeds/factory_agents.rb")
+
+# ZeroClaw agents (idempotent)
+[
+  { name: "builder-1", url: "http://localhost:18088", mode: "webhook", status: "active" },
+  { name: "builder-2", url: "http://localhost:18089", mode: "webhook", status: "active" },
+  { name: "mei-ling", url: "http://localhost:18082", mode: "webhook", status: "active" }
+].each do |attrs|
+  ZeroclawAgent.find_or_create_by!(name: attrs[:name]) do |a|
+    a.url = attrs[:url]
+    a.mode = attrs[:mode]
+    a.status = attrs[:status]
+  end
+end

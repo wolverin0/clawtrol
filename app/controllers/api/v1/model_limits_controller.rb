@@ -5,11 +5,12 @@ module Api
     class ModelLimitsController < BaseController
       # GET /api/v1/models/status - get status of all models for current user
       def status
-        # Clear any expired limits first
         ModelLimit.clear_expired_limits!
 
-        # Build status for each model
-        statuses = Task::MODELS.map do |model|
+        model_ids = ModelCatalogService.new(current_user).model_ids
+        model_ids |= current_user.model_limits.pluck(:name)
+
+        statuses = model_ids.map do |model|
           limit = current_user.model_limits.find_by(name: model)
 
           if limit&.active_limit?
@@ -35,7 +36,6 @@ module Api
           end
         end
 
-        # Include the priority order for reference
         render json: {
           models: statuses,
           priority_order: ModelLimit::MODEL_PRIORITY,
@@ -46,10 +46,10 @@ module Api
       # POST /api/v1/models/:model_name/limit - record a rate limit
       # Can pass resets_at explicitly or it will be parsed from error_message
       def record_limit
-        model_name = params[:model_name]
+        model_name = params[:model_name].to_s.strip
 
-        unless Task::MODELS.include?(model_name)
-          render json: { error: "Invalid model: #{model_name}" }, status: :unprocessable_entity
+        if invalid_model_name?(model_name)
+          render json: { error: "Invalid model: #{params[:model_name]}" }, status: :unprocessable_entity
           return
         end
 
@@ -79,10 +79,10 @@ module Api
 
       # DELETE /api/v1/models/:model_name/limit - clear a rate limit
       def clear_limit
-        model_name = params[:model_name]
+        model_name = params[:model_name].to_s.strip
 
-        unless Task::MODELS.include?(model_name)
-          render json: { error: "Invalid model: #{model_name}" }, status: :unprocessable_entity
+        if invalid_model_name?(model_name)
+          render json: { error: "Invalid model: #{params[:model_name]}" }, status: :unprocessable_entity
           return
         end
 
@@ -98,10 +98,10 @@ module Api
 
       # POST /api/v1/models/best - get best available model with fallback
       def best
-        requested_model = params[:requested_model]
+        requested_model = params[:requested_model].to_s.strip.presence
 
-        if requested_model.present? && !Task::MODELS.include?(requested_model)
-          render json: { error: "Invalid model: #{requested_model}" }, status: :unprocessable_entity
+        if requested_model.present? && invalid_model_name?(requested_model)
+          render json: { error: "Invalid model: #{params[:requested_model]}" }, status: :unprocessable_entity
           return
         end
 
@@ -113,6 +113,12 @@ module Api
           fallback_used: fallback_note.present?,
           fallback_note: fallback_note
         }
+      end
+
+      private
+
+      def invalid_model_name?(name)
+        name.blank? || name.length > 120
       end
     end
   end
