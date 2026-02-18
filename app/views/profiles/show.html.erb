@@ -337,7 +337,7 @@
 
   <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-3") do |form| %>
     <%= form.select :orchestration_mode,
-        [["OpenClaw Only (recommended)", "openclaw_only"], ["Pipeline Assist", "pipeline_assist"]],
+        [["OpenClaw Only (recommended)", "openclaw_only"]],
         {},
         class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
     <p class="text-xs text-content-muted">

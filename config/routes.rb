@@ -115,12 +115,6 @@ Rails.application.routes.draw do
         end
       end
 
-      # Pipeline API (ClawRouter 3-layer pipeline)
-      get "pipeline/status", to: "pipeline#status"
-      post "pipeline/enable_board/:board_id", to: "pipeline#enable_board"
-      post "pipeline/disable_board/:board_id", to: "pipeline#disable_board"
-      get "pipeline/task/:id/log", to: "pipeline#task_log"
-      post "pipeline/reprocess/:id", to: "pipeline#reprocess"
 
       # Factory API
       get "factory/loops", to: "factory_loops#index"
@@ -194,8 +188,6 @@ Rails.application.routes.draw do
           post :resume_lobster
           post :spawn_via_gateway
           get :file
-          post :route_pipeline
-          get :pipeline_info
           post :add_dependency
           delete :remove_dependency
           get :dependencies
@@ -273,7 +265,6 @@ Rails.application.routes.draw do
   resources :tokens, only: [:index]
 
   # Pipeline progress dashboard
-  get "pipeline", to: "pipeline_dashboard#show", as: :pipeline_dashboard
 
   # Workflows
   resources :workflows, only: [:index, :new, :create, :edit, :update] do
