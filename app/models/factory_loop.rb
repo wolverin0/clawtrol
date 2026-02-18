@@ -65,6 +65,43 @@ class FactoryLoop < ApplicationRecord
     factory_agents.joins(:factory_loop_agents).merge(FactoryLoopAgent.enabled)
   end
 
+  # --- GitHub Integration ---
+
+  def github_repo?
+    github_url.present?
+  end
+
+  def github_owner_repo
+    return nil unless github_url.present?
+
+    if github_url.include?("github.com")
+      match = github_url.match(%r{github\.com[:/]([^/]+)/([^/\.]+)(?:\.git)?})
+      return "#{match[1]}/#{match[2]}" if match
+    end
+
+    nil
+  end
+
+  def clone_github_repo!
+    FactoryGithubService.new(self).clone!
+  end
+
+  def sync_github_repo!
+    FactoryGithubService.new(self).sync!
+  end
+
+  def create_github_pr!(title: nil, body: nil)
+    FactoryGithubService.new(self).create_pr!(title: title, body: body)
+  end
+
+  def github_pr_ready?
+    FactoryGithubService.new(self).pr_ready?
+  end
+
+  def github_pr_exists?
+    FactoryGithubService.new(self).pr_exists?
+  end
+
   def setup_workspace!
     raise ArgumentError, "workspace_path is required" if workspace_path.blank?
 

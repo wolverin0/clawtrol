@@ -27,6 +27,15 @@ class FactoryRunnerV2Job < ApplicationJob
     loop_agent = pick_loop_agent(loop)
     return unless loop_agent
 
+    # Sync with GitHub before running (if configured)
+    if loop.github_repo?
+      sync_result = FactoryGithubService.new(loop).sync!
+      unless sync_result.success?
+        Rails.logger.warn("[FactoryRunnerV2Job] GitHub sync failed for loop ##{loop.id}: #{sync_result.message}")
+        # Continue anyway — the workspace might still be usable
+      end
+    end
+
     agent = loop_agent.factory_agent
     started_at = Time.current
 
@@ -159,6 +168,26 @@ class FactoryRunnerV2Job < ApplicationJob
     end
 
     update_loop_agent_last_run_at!(loop_agent, finished_at)
+
+    # Check if we should create a GitHub PR after successful run
+    maybe_create_github_pr!(loop) if verify_result[:success]
+  end
+
+  def maybe_create_github_pr!(loop)
+    return unless loop.github_repo?
+    return unless loop.github_pr_enabled?
+
+    service = FactoryGithubService.new(loop)
+    return unless service.pr_ready?
+
+    result = service.create_pr!
+    if result.success?
+      Rails.logger.info("[FactoryRunnerV2Job] Created PR for loop ##{loop.id}: #{result.data[:pr_url]}")
+    else
+      Rails.logger.warn("[FactoryRunnerV2Job] PR creation failed for loop ##{loop.id}: #{result.message}")
+    end
+  rescue StandardError => e
+    Rails.logger.error("[FactoryRunnerV2Job] PR creation error for loop ##{loop.id}: #{e.message}")
   end
 
   def command_for(agent, attr, fallback)

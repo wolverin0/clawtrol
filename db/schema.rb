@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_17_022000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_17_180748) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -181,6 +181,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_17_022000) do
   end
 
   create_table "boards", force: :cascade do |t|
+    t.boolean "agent_gen_enabled", default: true, null: false
     t.boolean "auto_claim_enabled", default: false, null: false
     t.string "auto_claim_prefix"
     t.string "auto_claim_tags", default: [], array: true
@@ -336,6 +337,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_17_022000) do
     t.text "description"
     t.string "fallback_model"
     t.string "findings_path", default: "FACTORY_FINDINGS.md"
+    t.string "github_default_branch", default: "main"
+    t.datetime "github_last_pr_at"
+    t.string "github_last_pr_url"
+    t.integer "github_pr_batch_size", default: 5
+    t.boolean "github_pr_enabled", default: false
+    t.string "github_url"
     t.string "icon", default: "🏭"
     t.string "idle_policy", default: "pause"
     t.integer "interval_ms", null: false
@@ -360,6 +367,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_17_022000) do
     t.bigint "user_id"
     t.string "work_branch", default: "factory/auto"
     t.string "workspace_path"
+    t.index ["github_url"], name: "index_factory_loops_on_github_url", where: "(github_url IS NOT NULL)"
     t.index ["openclaw_cron_id"], name: "index_factory_loops_on_openclaw_cron_id", unique: true, where: "(openclaw_cron_id IS NOT NULL)"
     t.index ["slug"], name: "index_factory_loops_on_slug", unique: true
     t.index ["status"], name: "index_factory_loops_on_status"
@@ -829,6 +837,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_17_022000) do
     t.string "routed_model"
     t.integer "run_count", default: 0, null: false
     t.boolean "showcase_winner", default: false, null: false
+    t.boolean "skip_agent_persona", default: false, null: false
     t.jsonb "state_data", default: {}, null: false
     t.integer "status", default: 0, null: false
     t.text "suggested_followup"

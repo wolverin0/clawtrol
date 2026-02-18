@@ -3,7 +3,7 @@
 module Api
   module V1
     class FactoryLoopsController < BaseController
-      before_action :set_loop, only: [ :show, :update, :destroy, :play, :pause, :stop, :metrics, :findings ]
+      before_action :set_loop, only: [ :show, :update, :destroy, :play, :pause, :stop, :metrics, :findings, :clone_repo, :sync_repo, :create_pr ]
 
       def index
         loops = current_user.factory_loops.by_status(params[:status]).ordered
@@ -12,7 +12,9 @@ module Api
             :id, :name, :slug, :description, :icon, :status, :interval_ms,
             :model, :fallback_model, :system_prompt, :workspace_path, :work_branch,
             :total_cycles, :total_errors, :avg_cycle_duration_ms, :last_cycle_at, :last_error_message,
-            :config
+            :config,
+            :github_url, :github_pr_enabled, :github_pr_batch_size, :github_default_branch,
+            :github_last_pr_at, :github_last_pr_url
           ])
         }
       end
@@ -77,6 +79,42 @@ module Api
         render json: @loop.factory_finding_patterns.order(updated_at: :desc).limit(100)
       end
 
+      def clone_repo
+        return render json: { error: "github_url not configured" }, status: :unprocessable_entity unless @loop.github_url.present?
+
+        result = FactoryGithubService.new(@loop).clone!
+        if result.success?
+          render json: { success: true, message: result.message, workspace_path: result.data[:workspace_path] }
+        else
+          render json: { success: false, error: result.message }, status: :unprocessable_entity
+        end
+      end
+
+      def sync_repo
+        return render json: { error: "github_url not configured" }, status: :unprocessable_entity unless @loop.github_url.present?
+
+        result = FactoryGithubService.new(@loop).sync!
+        if result.success?
+          render json: { success: true, message: result.message }
+        else
+          render json: { success: false, error: result.message }, status: :unprocessable_entity
+        end
+      end
+
+      def create_pr
+        return render json: { error: "github_url not configured" }, status: :unprocessable_entity unless @loop.github_url.present?
+
+        title = params[:title]
+        body = params[:body]
+
+        result = FactoryGithubService.new(@loop).create_pr!(title: title, body: body)
+        if result.success?
+          render json: { success: true, message: result.message, pr_url: result.data[:pr_url] }
+        else
+          render json: { success: false, error: result.message }, status: :unprocessable_entity
+        end
+      end
+
       private
 
       def set_loop
@@ -89,6 +127,7 @@ module Api
           :fallback_model, :system_prompt, :workspace_path, :work_branch,
           :openclaw_cron_id, :openclaw_session_key, :last_cycle_at, :last_error_at,
           :last_error_message, :total_cycles, :total_errors, :avg_cycle_duration_ms,
+          :github_url, :github_pr_enabled, :github_pr_batch_size, :github_default_branch,
           state: {}, config: {}, metrics: {}
         ]
 
