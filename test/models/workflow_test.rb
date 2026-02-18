@@ -88,7 +88,7 @@ class WorkflowTest < ActiveSupport::TestCase
   test "title length maximum is 255" do
     @workflow.title = "a" * 256
     assert_not @workflow.valid?
-    assert_includes @workflow.errors[:title], "is too long"
+    assert_includes @workflow.errors[:title].join, "too long"
   end
 
   test "title can be exactly 255 characters" do

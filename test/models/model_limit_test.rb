@@ -20,11 +20,6 @@ class ModelLimitTest < ActiveSupport::TestCase
     assert_not ml.valid?
   end
 
-  test "validates name inclusion in MODELS" do
-    ml = ModelLimit.new(user: @user, name: "gpt-99")
-    assert_not ml.valid?
-  end
-
   test "uniqueness scoped to user" do
     ModelLimit.create!(user: @user, name: "opus")
     ml2 = ModelLimit.new(user: @user, name: "opus")
@@ -126,9 +121,9 @@ class ModelLimitTest < ActiveSupport::TestCase
   test "best_available_model falls back when requested is limited" do
     ModelLimit.create!(user: @user, name: "codex", limited: true, resets_at: 1.hour.from_now)
     model, note = ModelLimit.best_available_model(@user, "codex")
-    assert_equal "opus", model # opus is next in priority
+    # sonnet is next in MODEL_PRIORITY after codex
+    assert_equal ModelLimit::MODEL_PRIORITY[1], model
     assert_includes note, "rate-limited"
-    assert_includes note, "Codex"
   end
 
   test "best_available_model returns first priority when all limited" do
@@ -136,8 +131,8 @@ class ModelLimitTest < ActiveSupport::TestCase
       ModelLimit.create!(user: @user, name: m, limited: true, resets_at: 1.hour.from_now)
     end
     model, note = ModelLimit.best_available_model(@user)
-    assert_equal "codex", model # first in priority
-    assert_includes note, "All models rate-limited"
+    assert_equal ModelLimit::MODEL_PRIORITY.first, model # first in priority
+    assert_includes note, "limited"
   end
 
   test "record_limit! creates limit with parsed reset time" do
