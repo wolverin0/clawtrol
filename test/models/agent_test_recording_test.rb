@@ -182,6 +182,8 @@ class AgentTestRecordingTest < ActiveSupport::TestCase
 
   # --- Additional scope tests ---
   test "for_task accepts task object" do
+    # Clear fixture recordings for @task to get a predictable count
+    AgentTestRecording.where(task: @task).delete_all
     @recording.save!
     results = AgentTestRecording.for_task(@task)
     assert_equal 1, results.count

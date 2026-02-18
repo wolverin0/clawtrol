@@ -68,11 +68,12 @@ class OpenclawMemorySearchHealthService
       )
     end
 
-    # 2) Probe memory_search via CLI (OpenClaw has no HTTP API for memory_search)
-    search = probe_memory_via_cli
+    # 2) Probe memory_search via HTTP
+    search = post_json("/api/memory/search", body: { query: "ping", top_k: 1 })
     unless search[:ok]
+      status = classify_memory_error(search[:http_code], search[:error])
       return persist!(
-        status: search[:status] || :degraded,
+        status: status,
         last_checked_at: now,
         error_message: "memory_search: #{search[:error]}",
         error_at: now
