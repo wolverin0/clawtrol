@@ -90,6 +90,7 @@ class BoardsController < ApplicationController
     @running_oldest_hb_at = active_leases.minimum(:last_heartbeat_at)
 
     @queue_count = @tasks.where(status: :up_next, assigned_to_agent: true, blocked: false).count
+    @roadmap = @board.roadmap unless @board.aggregator?
   end
 
   def archived

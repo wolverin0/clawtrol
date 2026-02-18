@@ -1,0 +1,31 @@
+<% return if @board.aggregator? %>
+
+<% roadmap = @board.roadmap || @board.build_roadmap %>
+
+<div class="px-4 sm:px-6 py-4 border-b border-border bg-bg-base">
+  <div class="rounded-xl border border-border bg-bg-surface p-4 sm:p-5 space-y-4">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h3 class="text-sm font-semibold text-content">🗺️ Roadmap</h3>
+        <p class="text-xs text-content-muted mt-1">Write markdown checklist items (<code>- [ ] Task</code>) and generate board tasks.</p>
+      </div>
+      <% if roadmap.last_generated_at.present? %>
+        <span class="text-[11px] text-content-muted">Last generated: <%= time_ago_in_words(roadmap.last_generated_at) %> ago</span>
+      <% end %>
+    </div>
+
+    <%= form_with model: roadmap, url: board_roadmap_path(@board), method: :patch, class: "space-y-3" do |form| %>
+      <%= form.text_area :body,
+          rows: 8,
+          placeholder: "- [ ] Ship roadmap MVP\n- [ ] Add controller tests",
+          class: "w-full rounded-lg border border-border bg-bg-base text-content px-3 py-2 text-sm font-mono" %>
+
+      <div class="flex items-center gap-2">
+        <%= form.submit "Save Roadmap", class: "px-3 py-2 text-xs font-medium rounded-lg border border-border bg-bg-elevated hover:bg-bg-hover text-content" %>
+      </div>
+    <% end %>
+
+    <%= button_to "Generate Tasks from Roadmap", generate_tasks_board_roadmap_path(@board), method: :post,
+      class: "px-3 py-2 text-xs font-medium rounded-lg bg-accent text-white hover:opacity-90" %>
+  </div>
+</div>

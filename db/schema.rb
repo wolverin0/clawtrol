@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_161710) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_182100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -180,6 +180,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_161710) do
     t.index ["audit_report_id"], name: "index_behavioral_interventions_on_audit_report_id"
     t.index ["user_id", "status"], name: "index_behavioral_interventions_on_user_id_and_status"
     t.index ["user_id"], name: "index_behavioral_interventions_on_user_id"
+  end
+
+  create_table "board_roadmap_task_links", force: :cascade do |t|
+    t.bigint "board_roadmap_id", null: false
+    t.datetime "created_at", null: false
+    t.string "item_key", null: false
+    t.text "item_text", null: false
+    t.bigint "task_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["board_roadmap_id", "item_key"], name: "idx_roadmap_task_links_unique_item", unique: true
+    t.index ["board_roadmap_id", "task_id"], name: "idx_roadmap_task_links_unique_task", unique: true
+    t.index ["board_roadmap_id"], name: "index_board_roadmap_task_links_on_board_roadmap_id"
+    t.index ["task_id"], name: "index_board_roadmap_task_links_on_task_id"
+  end
+
+  create_table "board_roadmaps", force: :cascade do |t|
+    t.bigint "board_id", null: false
+    t.text "body", default: "", null: false
+    t.datetime "created_at", null: false
+    t.datetime "last_generated_at"
+    t.integer "last_generated_count", default: 0, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "updated_at", null: false
+    t.index ["board_id"], name: "index_board_roadmaps_on_board_id", unique: true
   end
 
   create_table "boards", force: :cascade do |t|
@@ -997,6 +1021,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_161710) do
   add_foreign_key "audit_reports", "users"
   add_foreign_key "behavioral_interventions", "audit_reports"
   add_foreign_key "behavioral_interventions", "users"
+  add_foreign_key "board_roadmap_task_links", "board_roadmaps"
+  add_foreign_key "board_roadmap_task_links", "tasks"
+  add_foreign_key "board_roadmaps", "boards"
   add_foreign_key "boards", "users"
   add_foreign_key "cost_snapshots", "users"
   add_foreign_key "factory_agent_runs", "factory_agents"
