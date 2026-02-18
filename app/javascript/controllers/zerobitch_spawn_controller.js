@@ -7,8 +7,17 @@ export default class extends Controller {
   connect() {
     this.templates = this.readTemplates()
     this.fleetTemplates = this.readFleetTemplates()
-    this.providerChanged()
     this.apiModeChanged()
+    // providerModelsValueChanged fires automatically when value is ready
+    // but call providerChanged here too as fallback
+    if (Object.keys(this.providerModelsValue || {}).length > 0) {
+      this.providerChanged()
+    }
+  }
+
+  // Stimulus calls this automatically when providerModelsValue is set/updated
+  providerModelsValueChanged() {
+    this.providerChanged()
   }
 
   providerChanged() {

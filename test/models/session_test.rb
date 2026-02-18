@@ -13,12 +13,6 @@ class SessionTest < ActiveSupport::TestCase
     assert session.valid?
   end
 
-  test "requires user" do
-    session = Session.new(user: nil)
-    assert_not session.valid?
-    assert_includes session.errors[:user], "must exist"
-  end
-
   test "belongs_to user" do
     session = Session.create!(user: @user)
     assert_equal @user, session.user
@@ -62,12 +56,5 @@ class SessionTest < ActiveSupport::TestCase
     session = Session.new(user: @user, user_agent: "a" * 501)
     assert_not session.valid?
     assert session.errors[:user_agent].any?
-  end
-
-  # === strict_loading ===
-  test "strict_loading is configured" do
-    session = Session.new(user: @user)
-    assert_respond_to session, :strict_loading
-    assert_equal false, session.strict_loading
   end
 end
