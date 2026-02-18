@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- openclaw-only orchestration + pipeline stage consistency + dynamic model catalog + outcome reporting (`64cb65f`)
 - **factory:** cherry-pick GitHub integration — clone repos + create PRs (#95) (`f960ec1`)
 ### 🐛 Bug Fixes
 
@@ -18,6 +19,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`e81725e`)
 - update CHANGELOG.md [skip ci] (`4ab6384`)
 - update CHANGELOG.md [skip ci] (`326be86`)
 - update CHANGELOG.md [skip ci] (`1c5ff21`)
