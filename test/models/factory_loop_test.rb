@@ -249,6 +249,55 @@ class FactoryLoopTest < ActiveSupport::TestCase
     assert sandbox_sql.any? { |sql| sql.include?("GRANT SELECT, INSERT, UPDATE, DELETE") }
   end
 
+  # --- GitHub Integration ---
+
+  test "github_repo? returns true when github_url present" do
+    fl = build_loop(github_url: "https://github.com/owner/repo")
+    assert fl.github_repo?
+  end
+
+  test "github_repo? returns false when github_url blank" do
+    fl = build_loop(github_url: nil)
+    assert_not fl.github_repo?
+  end
+
+  test "github_owner_repo extracts owner/repo from https URL" do
+    fl = build_loop(github_url: "https://github.com/myorg/myrepo")
+    assert_equal "myorg/myrepo", fl.github_owner_repo
+  end
+
+  test "github_owner_repo extracts owner/repo from URL with .git" do
+    fl = build_loop(github_url: "https://github.com/myorg/myrepo.git")
+    assert_equal "myorg/myrepo", fl.github_owner_repo
+  end
+
+  test "github_owner_repo extracts owner/repo from SSH URL" do
+    fl = build_loop(github_url: "git@github.com:myorg/myrepo.git")
+    assert_equal "myorg/myrepo", fl.github_owner_repo
+  end
+
+  test "github_owner_repo returns nil for invalid URL" do
+    fl = build_loop(github_url: "not-a-url")
+    assert_nil fl.github_owner_repo
+  end
+
+  test "github_owner_repo returns nil when github_url blank" do
+    fl = build_loop(github_url: nil)
+    assert_nil fl.github_owner_repo
+  end
+
+  test "github fields have correct defaults" do
+    fl = build_loop
+    fl.save!
+
+    assert_equal false, fl.github_pr_enabled
+    assert_equal 5, fl.github_pr_batch_size
+    assert_equal "main", fl.github_default_branch
+    assert_nil fl.github_url
+    assert_nil fl.github_last_pr_at
+    assert_nil fl.github_last_pr_url
+  end
+
   private
 
   def with_stubbed_git(workspace_path, commands: [])

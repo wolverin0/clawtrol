@@ -191,7 +191,12 @@ class FactoryController < ApplicationController
   private
 
   def factory_loop_params
-    params.require(:factory_loop).permit(:name, :slug, :description, :icon, :interval_ms, :model, :fallback_model, :system_prompt, :workspace_path, :work_branch, config: {}, state: {})
+    params.require(:factory_loop).permit(
+      :name, :slug, :description, :icon, :interval_ms, :model, :fallback_model,
+      :system_prompt, :workspace_path, :work_branch,
+      :github_url, :github_pr_enabled, :github_pr_batch_size, :github_default_branch,
+      config: {}, state: {}
+    )
   end
 
   # Safe shell execution with timeout and error handling
