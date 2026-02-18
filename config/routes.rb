@@ -192,6 +192,7 @@ Rails.application.routes.draw do
           post :dispatch_zeroclaw
           post :run_lobster
           post :resume_lobster
+          post :spawn_via_gateway
           get :file
           post :route_pipeline
           get :pipeline_info
