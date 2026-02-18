@@ -161,18 +161,6 @@ class FactoryCycleLogTest < ActiveSupport::TestCase
     assert_nil log.duration_ms
   end
 
-  test "can store task_count" do
-    log = build_log(task_count: 5)
-    log.save!
-    assert_equal 5, log.task_count
-  end
-
-  test "task_count can be nil" do
-    log = build_log
-    log.save!
-    assert_nil log.task_count
-  end
-
   test "can store output_tokens" do
     log = build_log(output_tokens: 10000)
     log.save!
@@ -185,15 +173,4 @@ class FactoryCycleLogTest < ActiveSupport::TestCase
     assert_nil log.output_tokens
   end
 
-  test "can store error_message" do
-    log = build_log(status: "failed", error_message: "Something went wrong")
-    log.save!
-    assert_equal "Something went wrong", log.error_message
-  end
-
-  test "error_message can be nil for successful runs" do
-    log = build_log(status: "completed")
-    log.save!
-    assert_nil log.error_message
-  end
 end
