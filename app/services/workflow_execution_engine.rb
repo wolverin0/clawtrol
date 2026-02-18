@@ -134,9 +134,9 @@ class WorkflowExecutionEngine
       else
         mission = if mission_id.present?
                     NightshiftMission.find_by(id: mission_id)
-                  else
+        else
                     NightshiftMission.find_by(name: mission_name)
-                  end
+        end
 
         if mission.nil?
           logs << "nightshift: mission not found (name=#{mission_name}, id=#{mission_id})"

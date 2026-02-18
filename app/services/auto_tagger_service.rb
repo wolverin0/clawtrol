@@ -94,7 +94,7 @@ class AutoTaggerService
     "architecture" => %w[architecture],
     "design" => %w[architecture],
     "pattern" => %w[architecture],
-    "service" => %w[architecture],
+    "service" => %w[architecture]
   }.freeze
 
   # @param text [String] task title + optional description

@@ -119,7 +119,7 @@ class FactoryFindingProcessor
     return true if left.include?(right) || right.include?(left)
 
     distance = DidYouMean::Levenshtein.distance(left, right)
-    max_allowed_distance = [( [left.length, right.length].max * 0.2 ).floor, 1].max
+    max_allowed_distance = [([left.length, right.length].max * 0.2).floor, 1].max
     distance <= max_allowed_distance
   end
 
