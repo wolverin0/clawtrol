@@ -51,10 +51,10 @@ class CostSnapshot < ApplicationRecord
     return total_cost if period == "monthly"
 
     daily_rate = case period
-                 when "daily" then total_cost
-                 when "weekly" then total_cost / 7.0
-                 else total_cost
-                 end
+    when "daily" then total_cost
+    when "weekly" then total_cost / 7.0
+    else total_cost
+    end
 
     (daily_rate * 30).round(6)
   end

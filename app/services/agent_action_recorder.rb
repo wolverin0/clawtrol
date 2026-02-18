@@ -178,11 +178,11 @@ class AgentActionRecorder
     class_name = "AgentReplay#{task_name.camelize.truncate(40, omission: '')}Test"
 
     lines = [
-      '# frozen_string_literal: true',
-      '',
+      "# frozen_string_literal: true",
+      "",
       'require "test_helper"',
-      '',
-      "class #{class_name} < ActiveSupport::TestCase",
+      "",
+      "class #{class_name} < ActiveSupport::TestCase"
     ]
 
     assertions.each do |assertion|

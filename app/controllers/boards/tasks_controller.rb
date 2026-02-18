@@ -428,7 +428,6 @@ class Boards::TasksController < ApplicationController
   end
 
   def create_followup
-
     result = TaskFollowupService.new(@task).call(
       name: params[:followup_name],
       description: params[:followup_description],

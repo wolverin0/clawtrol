@@ -17,9 +17,9 @@ class ZerobitchController < ApplicationController
       stats = docker_info ? docker.container_stats(agent[:container_name]) : {}
       status = if docker_info
                  docker_info[:state] == "running" ? "running" : "stopped"
-               else
+      else
                  "stopped"
-               end
+      end
       agent.merge(
         status: status,
         docker_state: docker_info&.dig(:state),
@@ -417,7 +417,7 @@ class ZerobitchController < ApplicationController
     redirect_to zerobitch_rules_path, notice: msg
   end
 
-  # Assign task from ClawTrol
+    # Assign task from ClawTrol
     def assign_task
     agent_id = params[:agent_id]
     task_id = params[:task_id]
