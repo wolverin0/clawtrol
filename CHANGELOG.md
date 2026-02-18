@@ -11,6 +11,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **factory:** cherry-pick GitHub integration — clone repos + create PRs (#95) (`f960ec1`)
 ### 🐛 Bug Fixes
 
+- **ci:** fix remaining test failures (lint whitespace, title→name, validation assertions, skill scanner) (`daacc1f`)
 - **ci:** remove tests for non-existent FactoryCycleLog and SwarmIdea attributes (`f70bc43`)
 - **ci:** accumulated test fixes, service improvements, nightshift scheduled_hour migration (`c6fd4bd`)
 - **ci:** fix remaining unit/system test failures (`7ead166`)
@@ -24,6 +25,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`c694714`)
 - update CHANGELOG.md [skip ci] (`283c10f`)
 - update CHANGELOG.md [skip ci] (`ee6a5cc`)
 - update CHANGELOG.md [skip ci] (`0ed739c`)
