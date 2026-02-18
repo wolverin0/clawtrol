@@ -10,12 +10,14 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **factory:** cherry-pick GitHub integration — clone repos + create PRs (#95) (`f960ec1`)
 ### 🐛 Bug Fixes
 
+- **ci:** rubocop lint, test class conflict (AuditsControllerTest), preserve WIP in boards/tasks_controller (`fc0ff31`)
 - update Bullet API and faraday CVE-2026-25765 (`fb7916c`)
 - resolve CI failures - bullet gem group, rubocop lint, brakeman warnings (`45b86b0`)
 - **mobile:** bottom bar works on all pages, padding fix, Terminal graceful fallback (#120) (`310c452`)
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`326be86`)
 - update CHANGELOG.md [skip ci] (`1c5ff21`)
 - update CHANGELOG.md [skip ci] (`e5972ba`)
 - add complete feature diagnostic with intent analysis for 30 features (`e9e7a86`)
