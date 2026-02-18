@@ -9,7 +9,7 @@ module Api
       include Api::TaskPipelineManagement
       include Api::TaskAgentLifecycle
       include Api::TaskValidationManagement
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health, :run_lobster, :resume_lobster, :spawn_via_gateway ]
 
       # GET /api/v1/tasks/:id/agent_log - get agent transcript for this task
       # Returns parsed messages from the OpenClaw session transcript
@@ -44,50 +44,58 @@ module Api
       end
 
       # POST /api/v1/tasks/:id/run_lobster
-      # Runs a Lobster pipeline for this task. If the pipeline pauses at an
-      # approval gate, a resumeToken is stored on the task for later resume.
       def run_lobster
         pipeline = params[:pipeline].presence || "code-review"
-        args = params[:args]&.to_unsafe_h || {}
+        args = params[:args]&.permit!&.to_h || {}
         args["task_id"] = @task.id.to_s
 
-        result = LobsterRunner.run(pipeline, args)
+        result = LobsterRunner.run(pipeline, task: @task, args: args)
 
-        if result&.dig("resumeToken").present?
-          @task.update!(
-            resume_token: result["resumeToken"],
-            lobster_status: "waiting_approval",
-            lobster_pipeline: pipeline
-          )
-          render json: {
-            success: true,
-            status: "waiting_approval",
-            resume_token: result["resumeToken"],
-            pipeline: pipeline
-          }
-        elsif result&.dig("error").present?
-          render json: { error: result["error"] }, status: :unprocessable_entity
+        if result.waiting_approval
+          render json: { success: true, status: "waiting_approval", resume_token: result.resume_token, output: result.output }
+        elsif result.success
+          render json: { success: true, status: "completed", output: result.output }
         else
-          @task.update!(lobster_status: "completed", lobster_pipeline: pipeline)
-          render json: { success: true, status: "completed", result: result }
+          render json: { success: false, error: result.error, output: result.output }, status: :unprocessable_entity
         end
       rescue => e
         render json: { error: e.message }, status: :unprocessable_entity
       end
 
       # POST /api/v1/tasks/:id/resume_lobster
-      # Resumes a paused Lobster pipeline with approve: true|false.
       def resume_lobster
-        return render json: { error: "No resume token on this task" }, status: :bad_request unless @task.resume_token.present?
+        return render json: { error: "No resume token on task" }, status: :bad_request unless @task.resume_token.present?
 
-        approve = params[:approve].to_s != "false"
-        result = LobsterRunner.resume(@task.resume_token, approve: approve)
+        approve = params[:approve] != "false"
+        result = LobsterRunner.resume(@task, approve: approve)
 
-        @task.update!(
-          resume_token: nil,
-          lobster_status: approve ? "completed" : "rejected"
-        )
-        render json: { success: true, approved: approve, result: result }
+        if result.success
+          render json: { success: true, output: result.output, approved: approve }
+        else
+          render json: { success: false, error: result.error }, status: :unprocessable_entity
+        end
+      rescue => e
+        render json: { error: e.message }, status: :unprocessable_entity
+      end
+
+      # POST /api/v1/tasks/:id/spawn_via_gateway
+      def spawn_via_gateway
+        client = OpenclawGatewayClient.new(current_user)
+        prompt = @task.compiled_prompt.presence || @task.description.presence || @task.name
+        model = @task.model.presence || Task::DEFAULT_MODEL
+
+        result = client.spawn_session!(model: model, prompt: prompt)
+        child_key = result[:child_session_key]
+        session_id = result[:session_id]
+
+        if child_key.present?
+          updates = { agent_session_key: child_key, status: "in_progress", assigned_to_agent: true, assigned_at: Time.current }
+          updates[:agent_session_id] = session_id if session_id.present?
+          @task.update!(updates)
+          render json: { success: true, session_key: child_key, session_id: session_id }
+        else
+          render json: { error: "Spawn failed — no child_session_key returned", result: result }, status: :unprocessable_entity
+        end
       rescue => e
         render json: { error: e.message }, status: :unprocessable_entity
       end
