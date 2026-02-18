@@ -61,12 +61,14 @@
       <%# Mobile Bottom Navigation - only visible on mobile %>
       <nav class="fixed bottom-0 left-0 right-0 bg-bg-elevated border-t border-border flex justify-around py-2 md:hidden z-50 safe-area-bottom">
         <%= link_to dashboard_path,
+            data: { turbo_frame: "_top" },
             class: "flex flex-col items-center gap-0.5 text-xs px-3 py-1 rounded-lg transition-colors #{'text-content bg-bg-surface' if controller_name == 'dashboard'}  #{'text-content-muted hover:text-content' unless controller_name == 'dashboard'}" do %>
           <span class="text-lg">📊</span>
           <span>Dashboard</span>
         <% end %>
 
         <%= link_to (@board ? board_path(@board) : boards_path),
+            data: { turbo_frame: "_top" },
             class: "flex flex-col items-center gap-0.5 text-xs px-3 py-1 rounded-lg transition-colors #{'text-content bg-bg-surface' if controller_name == 'boards'}  #{'text-content-muted hover:text-content' unless controller_name == 'boards'}" do %>
           <span class="text-lg">📋</span>
           <span>Board</span>
@@ -80,6 +82,7 @@
         </button>
 
         <%= link_to settings_path,
+            data: { turbo_frame: "_top" },
             class: "flex flex-col items-center gap-0.5 text-xs px-3 py-1 rounded-lg transition-colors #{'text-content bg-bg-surface' if controller_name == 'profiles'}  #{'text-content-muted hover:text-content' unless controller_name == 'profiles'}" do %>
           <span class="text-lg">⚙️</span>
           <span>Settings</span>

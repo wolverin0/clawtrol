@@ -76,7 +76,15 @@ module Api
       end
 
       def findings
-        render json: @loop.factory_finding_patterns.order(updated_at: :desc).limit(100)
+        patterns = @loop.factory_finding_patterns.order(updated_at: :desc).limit(100)
+
+        render json: patterns.map { |pattern|
+          pattern.as_json(only: [ :id, :description, :category, :dismiss_count, :suppressed, :updated_at ]).merge(
+            confidence_score: pattern.confidence_score,
+            review_state: pattern.review_state,
+            accepted: pattern.respond_to?(:accepted) ? pattern.accepted : false
+          )
+        }
       end
 
       def clone_repo
