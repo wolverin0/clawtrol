@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_140002) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_142134) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -815,6 +815,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_140002) do
     t.datetime "last_outcome_at"
     t.string "last_recommended_action"
     t.uuid "last_run_id"
+    t.string "lobster_pipeline"
+    t.string "lobster_status"
     t.integer "lock_version", default: 0, null: false
     t.string "model"
     t.string "name"
@@ -835,6 +837,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_140002) do
     t.string "recurrence_rule"
     t.time "recurrence_time"
     t.boolean "recurring", default: false, null: false
+    t.string "resume_token"
     t.integer "retry_count", default: 0
     t.jsonb "review_config", default: {}
     t.jsonb "review_result", default: {}
