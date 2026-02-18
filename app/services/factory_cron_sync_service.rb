@@ -63,7 +63,9 @@ class FactoryCronSyncService
     private
 
     def cli_available?(binary = "openclaw")
-      system("which #{binary} > /dev/null 2>&1")
+      ENV.fetch("PATH", "").split(File::PATH_SEPARATOR).any? do |dir|
+        File.executable?(File.join(dir, binary))
+      end
     end
 
     def run_cli(*cmd)

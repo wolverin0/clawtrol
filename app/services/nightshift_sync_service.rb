@@ -30,6 +30,11 @@ class NightshiftSyncService
       synced += 1
 
       next unless mission.enabled? && mission.due_tonight?
+      # If mission has a scheduled_hour, only create selection once we're within 1h of that hour
+      if mission.scheduled_hour.present?
+        current_hour = Time.current.in_time_zone("America/Argentina/Buenos_Aires").hour
+        next unless current_hour == mission.scheduled_hour
+      end
       next if NightshiftSelection.for_tonight.exists?(nightshift_mission_id: mission.id)
 
       NightshiftSelection.create!(

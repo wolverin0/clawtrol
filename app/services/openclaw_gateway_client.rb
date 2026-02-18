@@ -6,8 +6,11 @@ require "json"
 
 # Minimal HTTP client for the OpenClaw Gateway API.
 #
-# Used by ClawDeck server-side auto-pull to spawn sessions directly
-# (instead of merely waking the agent via /hooks/wake).
+# The Gateway exposes everything through POST /tools/invoke.
+# There are NO direct REST endpoints like /api/sessions — those don't exist
+# and the gateway returns its SPA HTML as a catch-all fallback.
+#
+# All methods call POST /tools/invoke with the appropriate tool name and args.
 class OpenclawGatewayClient
   OPEN_TIMEOUT = 5
   READ_TIMEOUT = 30
@@ -23,12 +26,11 @@ class OpenclawGatewayClient
   # - :child_session_key (String)
   # - :session_id (String, best-effort; resolved via sessions_list)
   def spawn_session!(model:, prompt:)
-    res = post_json!("/api/sessions/spawn", body: {
-      model: model,
-      prompt: prompt
-    })
+    result = invoke_tool!("sessions_spawn", args: { model: model, task: prompt })
+    details = extract_details(result)
 
-    child_key = res["childSessionKey"] || res["child_session_key"] || res["sessionKey"] || res["session_key"]
+    child_key = details["childSessionKey"] || details["child_session_key"] ||
+                details["sessionKey"] || details["session_key"]
 
     return { child_session_key: child_key, session_id: nil } if child_key.blank?
 
@@ -39,13 +41,17 @@ class OpenclawGatewayClient
   end
 
   def sessions_list
-    get_json!("/api/sessions")
+    result = invoke_tool!("sessions_list", args: {})
+    extract_details(result) || { "sessions" => [] }
   rescue StandardError => e
     { "sessions" => [], "error" => e.message }
   end
 
   def session_detail(session_key)
-    get_json!("/api/sessions/#{session_key}")
+    list = sessions_list
+    sessions = Array(list["sessions"] || list[:sessions] || [])
+    found = sessions.find { |s| (s["key"] || s[:key]).to_s == session_key.to_s }
+    found || { "error" => "Session not found: #{session_key}" }
   rescue StandardError => e
     { "error" => e.message }
   end
@@ -53,7 +59,8 @@ class OpenclawGatewayClient
   # --- Gateway Status & Health ---
 
   def health
-    get_json!("/api/health")
+    result = invoke_tool!("session_status", args: {})
+    extract_details(result) || { "status" => "ok" }
   rescue StandardError => e
     { "status" => "unreachable", "error" => e.message }
   end
@@ -61,7 +68,12 @@ class OpenclawGatewayClient
   # --- Channel Status ---
 
   def channels_status
-    get_json!("/api/channels/status")
+    result = invoke_tool!("gateway", action: "config.get", args: {})
+    details = extract_details(result) || {}
+    # Extract channel info from config
+    config = details["config"] || details
+    channels = config.dig("channels") || []
+    { "channels" => Array(channels) }
   rescue StandardError => e
     { "channels" => [], "error" => e.message }
   end
@@ -69,7 +81,8 @@ class OpenclawGatewayClient
   # --- Usage & Cost ---
 
   def usage_cost
-    get_json!("/api/usage/cost")
+    result = invoke_tool!("session_status", args: {})
+    extract_details(result) || {}
   rescue StandardError => e
     { "error" => e.message }
   end
@@ -77,45 +90,56 @@ class OpenclawGatewayClient
   # --- Cron Management ---
 
   def cron_list
-    get_json!("/api/cron/list")
+    result = invoke_tool!("cron", action: "list", args: {})
+    extract_details(result) || { "jobs" => [] }
   rescue StandardError => e
     { "jobs" => [], "error" => e.message }
   end
 
   def cron_status
-    get_json!("/api/cron/status")
+    result = invoke_tool!("cron", action: "status", args: {})
+    extract_details(result) || {}
   rescue StandardError => e
     { "error" => e.message }
   end
 
   def cron_enable(id)
-    post_json!("/api/cron/enable", body: { id: id })
+    result = invoke_tool!("cron", action: "enable", args: { id: id })
+    extract_details(result) || {}
   end
 
   def cron_disable(id)
-    post_json!("/api/cron/disable", body: { id: id })
+    result = invoke_tool!("cron", action: "disable", args: { id: id })
+    extract_details(result) || {}
   end
 
   def cron_create(params)
-    post_json!("/api/cron/create", body: params)
+    result = invoke_tool!("cron", action: "add", args: params)
+    extract_details(result) || {}
   end
 
   def cron_delete(id)
-    post_json!("/api/cron/delete", body: { id: id })
+    result = invoke_tool!("cron", action: "remove", args: { jobId: id })
+    extract_details(result) || {}
   end
 
   def cron_update(id, params)
-    post_json!("/api/cron/update", body: { id: id }.merge(params))
+    result = invoke_tool!("cron", action: "update", args: { jobId: id }.merge(params))
+    extract_details(result) || {}
   end
 
   def cron_run(id)
-    post_json!("/api/cron/run", body: { id: id })
+    result = invoke_tool!("cron", action: "run", args: { jobId: id })
+    extract_details(result) || {}
   end
 
   # --- Models ---
 
   def models_list
-    get_json!("/api/models/list")
+    result = invoke_tool!("session_status", args: {})
+    details = extract_details(result) || {}
+    # session_status doesn't list all models; return what we have or empty
+    { "models" => Array(details["models"] || []) }
   rescue StandardError => e
     { "models" => [], "error" => e.message }
   end
@@ -123,7 +147,8 @@ class OpenclawGatewayClient
   # --- Agents ---
 
   def agents_list
-    get_json!("/api/agents/list")
+    result = invoke_tool!("agents_list", args: {})
+    extract_details(result) || { "agents" => [] }
   rescue StandardError => e
     { "agents" => [], "error" => e.message }
   end
@@ -131,26 +156,30 @@ class OpenclawGatewayClient
   # --- Nodes ---
 
   def nodes_status
-    get_json!("/api/nodes/status")
+    result = invoke_tool!("nodes", action: "status", args: {})
+    extract_details(result) || { "nodes" => [] }
   rescue StandardError => e
     { "nodes" => [], "error" => e.message }
   end
 
   def node_notify(node_id, title:, body:)
-    post_json!("/api/nodes/notify", body: { node: node_id, title: title, body: body })
+    result = invoke_tool!("nodes", action: "notify", args: { node: node_id, title: title, body: body })
+    extract_details(result) || {}
   end
 
   # --- Config (read-only, for plugin status) ---
 
   def config_get
-    get_json!("/api/config/get")
+    result = invoke_tool!("gateway", action: "config.get", args: {})
+    extract_details(result) || {}
   rescue StandardError => e
     { "error" => e.message }
   end
 
   # Returns the config JSON schema for validation.
   def config_schema
-    get_json!("/api/config/schema")
+    result = invoke_tool!("gateway", action: "config.schema", args: {})
+    extract_details(result) || {}
   rescue StandardError => e
     { "error" => e.message }
   end
@@ -159,9 +188,10 @@ class OpenclawGatewayClient
   # @param raw [String] raw YAML/JSON config string
   # @param reason [String] optional reason for the change
   def config_apply(raw:, reason: nil)
-    body = { raw: raw }
-    body[:reason] = reason if reason.present?
-    post_json!("/api/config/apply", body: body)
+    args = { raw: raw }
+    args[:reason] = reason if reason.present?
+    result = invoke_tool!("gateway", action: "config.apply", args: args)
+    extract_details(result) || {}
   rescue StandardError => e
     { "error" => e.message }
   end
@@ -170,9 +200,10 @@ class OpenclawGatewayClient
   # @param raw [String] raw YAML/JSON partial config to merge
   # @param reason [String] optional reason for the change
   def config_patch(raw:, reason: nil)
-    body = { raw: raw }
-    body[:reason] = reason if reason.present?
-    post_json!("/api/config/patch", body: body)
+    args = { raw: raw }
+    args[:reason] = reason if reason.present?
+    result = invoke_tool!("gateway", action: "config.patch", args: args)
+    extract_details(result) || {}
   rescue StandardError => e
     { "error" => e.message }
   end
@@ -180,51 +211,42 @@ class OpenclawGatewayClient
   # Restart the gateway (SIGUSR1).
   # @param reason [String] optional reason for the restart
   def gateway_restart(reason: nil)
-    body = {}
-    body[:reason] = reason if reason.present?
-    post_json!("/api/gateway/restart", body: body)
+    args = {}
+    args[:reason] = reason if reason.present?
+    result = invoke_tool!("gateway", action: "restart", args: args)
+    extract_details(result) || {}
   rescue StandardError => e
     { "error" => e.message }
   end
 
   # Push A2UI HTML content to a node's canvas.
-  # @param node [String] node id or name
-  # @param html [String] HTML content to render
-  # @param width [Integer, nil] optional width
-  # @param height [Integer, nil] optional height
-  # @return [Hash]
   def canvas_push(node:, html:, width: nil, height: nil)
-    validate_gateway_url!
-    body = { action: "a2ui_push", node: node, jsonl: html }
-    body[:width] = width if width
-    body[:height] = height if height
-    post_json!("/api/v1/canvas", body: body)
+    args = { action: "a2ui_push", node: node, jsonl: html }
+    args[:width] = width if width
+    args[:height] = height if height
+    result = invoke_tool!("canvas", action: "a2ui_push", args: args)
+    extract_details(result) || {}
   rescue StandardError => e
     { error: e.message }
   end
 
   # Take a snapshot of the canvas on a node.
-  # @param node [String] node id or name
-  # @return [Hash]
   def canvas_snapshot(node:)
-    validate_gateway_url!
-    post_json!("/api/v1/canvas", body: { action: "snapshot", node: node })
+    result = invoke_tool!("canvas", action: "snapshot", args: { node: node })
+    extract_details(result) || {}
   rescue StandardError => e
     { error: e.message }
   end
 
   # Hide the canvas on a node.
-  # @param node [String] node id or name
-  # @return [Hash]
   def canvas_hide(node:)
-    validate_gateway_url!
-    post_json!("/api/v1/canvas", body: { action: "hide", node: node })
+    result = invoke_tool!("canvas", action: "hide", args: { node: node })
+    extract_details(result) || {}
   rescue StandardError => e
     { error: e.message }
   end
 
   # Returns a structured list of plugins with their enabled/disabled state.
-  # Extracts plugin info from the gateway health and config endpoints.
   def plugins_status
     health_data = health
     config_data = config_get
@@ -256,7 +278,6 @@ class OpenclawGatewayClient
 
     raise "OpenClaw gateway URL missing host" if uri.host.blank?
 
-    # Reject localhost without an explicit port, to avoid accidental port 80/443.
     if uri.host == "localhost" && !raw.match?(/localhost:\d+/)
       raise "OpenClaw gateway URL must include an explicit port for localhost"
     end
@@ -278,6 +299,71 @@ class OpenclawGatewayClient
     http
   end
 
+  # Core method: POST /tools/invoke with tool + optional action + args.
+  # Returns the raw parsed JSON response.
+  def invoke_tool!(tool, action: nil, args: {}, session_key: "main")
+    raise "OpenClaw gateway not configured" unless configured?
+
+    uri = base_uri.dup
+    uri.path = "/tools/invoke"
+
+    body = { tool: tool, args: args, sessionKey: session_key }
+    body[:action] = action if action.present?
+
+    req = Net::HTTP::Post.new(uri)
+    req["Authorization"] = "Bearer #{@user.openclaw_gateway_token}"
+    req["Content-Type"] = "application/json"
+    req.body = body.to_json
+
+    res = http_for(uri).request(req)
+    code = res.code.to_i
+    raw  = res.body.to_s
+
+    # Detect HTML catch-all response (gateway SPA fallback)
+    if raw.lstrip.start_with?("<!") || raw.lstrip.start_with?("<html")
+      raise "OpenClaw gateway returned HTML instead of JSON — endpoint not found (tool=#{tool})"
+    end
+
+    parsed = JSON.parse(raw)
+
+    unless code >= 200 && code < 300
+      err = parsed["error"] || parsed["message"] || raw
+      raise "OpenClaw gateway HTTP #{code}: #{err}"
+    end
+
+    unless parsed["ok"]
+      raise "OpenClaw gateway tool error: #{parsed["error"] || parsed.inspect}"
+    end
+
+    parsed
+  end
+
+  # Extracts the details hash from a /tools/invoke response.
+  # The gateway puts the parsed result in result.details.
+  # Falls back to parsing result.content[0].text if details is missing.
+  def extract_details(response)
+    return nil unless response.is_a?(Hash)
+
+    result = response["result"]
+    return nil unless result.is_a?(Hash)
+
+    # Prefer the pre-parsed details field
+    details = result["details"]
+    return details if details.is_a?(Hash)
+
+    # Fall back to parsing the text content
+    content = result["content"]
+    if content.is_a?(Array)
+      text_item = content.find { |c| c.is_a?(Hash) && c["type"] == "text" }
+      if text_item
+        parsed = JSON.parse(text_item["text"]) rescue nil
+        return parsed if parsed.is_a?(Hash)
+      end
+    end
+
+    nil
+  end
+
   def resolve_session_id_from_key(child_key)
     list = sessions_list
     arr = list.is_a?(Hash) ? (list["sessions"] || list[:sessions]) : list
@@ -294,50 +380,9 @@ class OpenclawGatewayClient
     nil
   end
 
-  def get_json!(path)
-    raise "OpenClaw gateway not configured" unless configured?
-
-    uri = base_uri.dup
-    uri.path = path
-
-    req = Net::HTTP::Get.new(uri)
-    req["Authorization"] = "Bearer #{@user.openclaw_gateway_token}"
-
-    res = http_for(uri).request(req)
-
-    code = res.code.to_i
-    body = res.body.to_s
-
-    raise "OpenClaw gateway HTTP #{code}" unless code >= 200 && code < 300
-
-    JSON.parse(body)
-  end
-
-  def post_json!(path, body:)
-    raise "OpenClaw gateway not configured" unless configured?
-
-    uri = base_uri.dup
-    uri.path = path
-
-    req = Net::HTTP::Post.new(uri)
-    req["Authorization"] = "Bearer #{@user.openclaw_gateway_token}"
-    req["Content-Type"] = "application/json"
-    req.body = body.to_json
-
-    res = http_for(uri).request(req)
-
-    code = res.code.to_i
-    parsed = JSON.parse(res.body.to_s) rescue { "raw" => res.body.to_s }
-
-    raise "OpenClaw gateway HTTP #{code}: #{parsed}" unless code >= 200 && code < 300
-
-    parsed
-  end
-
   def extract_plugins(health_data, config_data)
     plugins = []
 
-    # Extract from health data (loadedPlugins / plugins array)
     loaded = health_data["loadedPlugins"] || health_data["plugins"] || []
     loaded = Array(loaded)
 
@@ -355,7 +400,6 @@ class OpenclawGatewayClient
       plugins << entry
     end
 
-    # If no plugins from health, try config
     if plugins.empty? && config_data.is_a?(Hash)
       config_plugins = config_data.dig("config", "plugins") || config_data["plugins"] || []
       Array(config_plugins).each do |p|

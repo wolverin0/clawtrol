@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_120001) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -440,6 +440,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120001) do
     t.string "model", default: "gemini"
     t.string "name", null: false
     t.integer "position", default: 0
+    t.integer "scheduled_hour"
     t.integer "selection_count", default: 0
     t.datetime "updated_at", null: false
     t.bigint "user_id"

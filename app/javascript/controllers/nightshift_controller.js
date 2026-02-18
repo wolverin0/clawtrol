@@ -5,7 +5,7 @@ export default class extends Controller {
     "card", "count", "time", "launchButton", "systemStatus", "grid", "modal",
     "editModal", "editForm", "editName", "editDescription", "editIcon", "editModel",
     "editMinutes", "editFrequency", "editCategory", "editEnabled", "editDayCheckbox",
-    "editDaysWrap", "createFrequency", "createDaysWrap"
+    "editDaysWrap", "editScheduledHour", "createFrequency", "createDaysWrap"
   ]
 
   connect() {
@@ -91,8 +91,8 @@ export default class extends Controller {
 
   openEditModal(event) {
     event.stopPropagation()
-    const card = event.currentTarget.closest(".ns-card")
-    if (!card) return
+    const card = event.currentTarget.closest(".ns-card") || event.currentTarget
+    if (!card || !card.dataset.missionId) return
 
     const missionId = card.dataset.missionId
     this.editFormTarget.action = `/nightshift/missions/${missionId}`
@@ -104,6 +104,9 @@ export default class extends Controller {
     this.editFrequencyTarget.value = card.dataset.missionFrequency || "always"
     this.editCategoryTarget.value = card.dataset.missionCategory || "general"
     this.editEnabledTarget.checked = card.dataset.missionEnabled === "true"
+    if (this.hasEditScheduledHourTarget) {
+      this.editScheduledHourTarget.value = card.dataset.missionScheduledHour || ""
+    }
 
     const selectedDays = (card.dataset.missionDays || "").split(",").filter(Boolean)
     this.editDayCheckboxTargets.forEach((checkbox) => {

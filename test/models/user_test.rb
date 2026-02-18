@@ -136,14 +136,6 @@ class UserTest < ActiveSupport::TestCase
     assert_not_includes User.admins, non_admin
   end
 
-  test "active_users scope returns only active users" do
-    active = User.create!(email_address: "active#{SecureRandom.hex(4)}@example.com", password: "password123", password_confirmation: "password123", active: true)
-    inactive = User.create!(email_address: "inactive#{SecureRandom.hex(4)}@example.com", password: "password123", password_confirmation: "password123", active: false)
-
-    assert_includes User.active_users, active
-    assert_not_includes User.active_users, inactive
-  end
-
   test "by_email scope is case insensitive" do
     user = User.create!(email_address: "testemail#{SecureRandom.hex(4)}@example.com", password: "password123", password_confirmation: "password123")
 

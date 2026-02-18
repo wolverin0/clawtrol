@@ -99,7 +99,7 @@ class InviteCodeTest < ActiveSupport::TestCase
 
     code2 = InviteCode.new(created_by: @user, code: "ABC1234") # 7 chars
     assert_not code2.valid?
-    assert_includes code2.errors[:code], "is the wrong length"
+    assert_includes code2.errors[:code].join, "wrong length"
   end
 
   test "code must be alphanumeric uppercase" do

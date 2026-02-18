@@ -47,10 +47,20 @@
           <% sessions.each do |session| %>
             <% key = session["key"] || session["sessionKey"] || "—" %>
             <% model = session["model"] || session["defaultModel"] || "—" %>
-            <% status = session["status"] || "unknown" %>
+            <%
+              status = if session["status"].present?
+                session["status"]
+              elsif session["abortedLastRun"]
+                "aborted"
+              else
+                updated_ms = session["updatedAt"].to_i
+                now_ms = (Time.now.to_f * 1000).to_i
+                (updated_ms > 0 && (now_ms - updated_ms) < 5 * 60 * 1000) ? "active" : "idle"
+              end
+            %>
             <% is_active = status.to_s.match?(/active|running|open/) %>
             <% last_activity = session["lastActivity"] || session["updatedAt"] %>
-            <% tokens_in = session["tokensIn"] || session["inputTokens"] || 0 %>
+            <% tokens_in = session["tokensIn"] || session["inputTokens"] || session["totalTokens"] || 0 %>
             <% tokens_out = session["tokensOut"] || session["outputTokens"] || 0 %>
             <% compactions = session["compactions"] || session["compactionCount"] || 0 %>
             <% task_link = @task_links[key] %>
@@ -78,7 +88,23 @@
                   <span title="Compactions">🗜️ <%= compactions %>x compacted</span>
                 <% end %>
                 <% if last_activity.present? %>
-                  <span title="Last activity">🕐 <%= last_activity.is_a?(String) ? last_activity : time_ago_in_words(Time.parse(last_activity.to_s)) + " ago" rescue last_activity %></span>
+                  <%
+                    formatted_time = begin
+                      raw = last_activity.to_s
+                      if raw.match?(/^\d{10,13}$/)
+                        ms = raw.to_i
+                        ts = ms > 9_999_999_999 ? ms / 1000.0 : ms.to_f
+                        time_ago_in_words(Time.at(ts)) + " ago"
+                      elsif last_activity.is_a?(String)
+                        time_ago_in_words(Time.parse(last_activity)) + " ago"
+                      else
+                        last_activity.to_s
+                      end
+                    rescue
+                      last_activity.to_s
+                    end
+                  %>
+                  <span title="Last activity">🕐 <%= formatted_time %></span>
                 <% end %>
               </div>
 

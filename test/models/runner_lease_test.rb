@@ -189,7 +189,7 @@ class RunnerLeaseTest < ActiveSupport::TestCase
       expires_at: @now + 15.minutes
     )
     assert_not lease.valid?
-    assert_includes lease.errors[:agent_name], "is too long"
+    assert_includes lease.errors[:agent_name].join, "too long"
   end
 
   test "agent_name can be nil" do
@@ -207,7 +207,7 @@ class RunnerLeaseTest < ActiveSupport::TestCase
       expires_at: @now + 15.minutes
     )
     assert_not lease.valid?
-    assert_includes lease.errors[:source], "is too long"
+    assert_includes lease.errors[:source].join, "too long"
   end
 
   test "source can be nil" do
@@ -230,12 +230,12 @@ class RunnerLeaseTest < ActiveSupport::TestCase
 
   private
 
-  def create_lease(task:, lease_token: SecureRandom.hex(8), started_at: @now, last_heartbeat_at: started_at, expires_at: nil, released_at: nil)
+  def create_lease(task:, lease_token: SecureRandom.hex(8), started_at: @now, last_heartbeat_at: started_at, expires_at: nil, released_at: nil, agent_name: "tester", source: "test")
     RunnerLease.create!(
       task: task,
       lease_token: lease_token,
-      agent_name: "tester",
-      source: "test",
+      agent_name: agent_name,
+      source: source,
       started_at: started_at,
       last_heartbeat_at: last_heartbeat_at,
       expires_at: expires_at || (started_at + 15.minutes),

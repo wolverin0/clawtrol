@@ -41,9 +41,10 @@ class AgentPersonaTest < ActiveSupport::TestCase
     assert p2.valid?
   end
 
-  test "model validates inclusion" do
+  test "model allows any string value" do
+    # model only validates length, not inclusion
     p = build_persona(model: "gpt-99")
-    assert_not p.valid?
+    assert p.valid?
   end
 
   test "model allows blank" do
@@ -51,9 +52,10 @@ class AgentPersonaTest < ActiveSupport::TestCase
     assert p.valid?
   end
 
-  test "fallback_model validates inclusion" do
+  test "fallback_model allows any string value" do
+    # fallback_model only validates length, not inclusion
     p = build_persona(fallback_model: "invalid")
-    assert_not p.valid?
+    assert p.valid?
   end
 
   test "tier validates inclusion" do

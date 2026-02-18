@@ -4,6 +4,9 @@ ENV["RAILS_ENV"] ||= "test"
 ENV["HOOKS_TOKEN"] ||= "test_hooks_token"
 require_relative "../config/environment"
 require "rails/test_help"
+require "minitest/mock"
+require "webmock/minitest"
+WebMock.disable_net_connect!(allow_localhost: true)
 require_relative "test_helpers/session_test_helper"
 
 # Ensure hooks_token is set in config (matches ENV, survives parallel forks)
