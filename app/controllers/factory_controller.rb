@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 class FactoryController < ApplicationController
-
   def index
     @loops = current_user.factory_loops.ordered
   end

@@ -27,9 +27,9 @@ class OmniauthCallbacksController < ApplicationController
     known_messages = %w[csrf_detected invalid_credentials no_authorization_code timeout]
     safe_message = if known_messages.include?(params[:message].to_s)
                      params[:message].to_s.humanize
-                   else
+    else
                      "Please try again"
-                   end
+    end
     redirect_to new_session_path, alert: "Authentication failed: #{safe_message}"
   end
 end

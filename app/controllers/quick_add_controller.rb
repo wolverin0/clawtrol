@@ -42,5 +42,4 @@ class QuickAddController < ApplicationController
       redirect_to quick_add_path, alert: "Failed: #{task.errors.full_messages.join(', ')}"
     end
   end
-
 end
