@@ -158,7 +158,7 @@ class TaskDiff < ApplicationRecord
     return "" if diff_content.blank?
 
     content = diff_content.strip
-    
+
     # If content already has diff headers, return as-is
     return content if content.start_with?("diff --git") || content.start_with?("--- ")
 

@@ -15,7 +15,7 @@ require "fileutils"
 #
 # TODO: When implementing real debate:
 # - Use debate skill: /debate [-r N] [-d STYLE] <question>
-# - Spawn multiple AI agents (gemini, claude, glm) in parallel  
+# - Spawn multiple AI agents (gemini, claude, glm) in parallel
 # - Have them debate the task's implementation quality
 # - Generate a real synthesis from their perspectives
 #
@@ -54,5 +54,4 @@ class RunDebateJob < ApplicationJob
     broadcast_task_update(task) if task
     raise
   end
-
 end
