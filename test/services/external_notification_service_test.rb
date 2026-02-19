@@ -69,6 +69,15 @@ class ExternalNotificationServiceTest < ActiveSupport::TestCase
     ENV.delete("CLAWTROL_TELEGRAM_BOT_TOKEN")
   end
 
+  test "telegram_thread_id prefers task origin_thread_id when present" do
+    if @task.respond_to?(:origin_thread_id)
+      @task.update_columns(origin_thread_id: 42, origin_chat_id: nil)
+      assert_equal 42, @service.send(:telegram_thread_id)
+    else
+      skip "Task does not have origin_thread_id column"
+    end
+  end
+
   # --- Webhook ---
 
   test "webhook_configured? returns false when user has no webhook_notification_url" do
@@ -104,6 +113,9 @@ class ExternalNotificationServiceTest < ActiveSupport::TestCase
 
   test "telegram send does not raise even with invalid token" do
     ENV["CLAWTROL_TELEGRAM_BOT_TOKEN"] = "fake_token_12345"
+    stub_request(:post, /api.telegram.org/)
+      .to_return(status: 401, body: "Unauthorized")
+
     if @task.class.column_names.include?("origin_chat_id")
       @task.update_columns(origin_chat_id: "12345")
       service = ExternalNotificationService.new(@task)

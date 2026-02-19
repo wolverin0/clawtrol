@@ -39,7 +39,7 @@ class ExternalNotificationService
   # Prefer origin topic; when using Mission Control fallback, explicitly target topic 1
   # (avoid Telegram "last topic" drift).
   def telegram_thread_id
-    return @task.origin_thread_id if @task.origin_chat_id.present? && @task.origin_thread_id.present?
+    return @task.origin_thread_id if @task.origin_thread_id.present?
 
     DEFAULT_MISSION_CONTROL_THREAD_ID if @task.origin_chat_id.blank? && default_telegram_chat_id.present?
   end

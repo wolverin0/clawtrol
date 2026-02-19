@@ -71,7 +71,33 @@ class TaskOutcomeService
   end
 
   def recommended_action
-    @recommended_action ||= @payload["recommended_action"].to_s.presence || "in_review"
+    @recommended_action ||= output_contract&.recommended_action || @payload["recommended_action"].to_s.presence || "in_review"
+  end
+
+  def summary
+    @summary ||= output_contract&.summary || @payload["summary"]
+  end
+
+  def contract_changes
+    @contract_changes ||= output_contract&.changes || normalize_list(@payload["changes"])
+  end
+
+  def contract_validation
+    @contract_validation ||= output_contract&.validation || @payload["validation"]
+  end
+
+  def contract_follow_up
+    @contract_follow_up ||= output_contract&.follow_up || normalize_list(@payload["follow_up"])
+  end
+
+  def output_contract
+    @output_contract ||= SubAgentOutputContract.from_params(@payload)
+  end
+
+  def normalized_payload
+    base = @payload.to_h
+    contract_payload = output_contract&.to_payload || {}
+    base.merge(contract_payload)
   end
 
   def validate_payload
@@ -119,7 +145,7 @@ class TaskOutcomeService
         ended_at: ended_at,
         needs_follow_up: needs_follow_up,
         recommended_action: recommended_action,
-        summary: @payload["summary"],
+        summary: summary,
         achieved: Array(@payload["achieved"]),
         evidence: Array(@payload["evidence"]),
         remaining: Array(@payload["remaining"]),
@@ -127,7 +153,7 @@ class TaskOutcomeService
         model_used: @payload["model_used"],
         openclaw_session_id: @payload["openclaw_session_id"],
         openclaw_session_key: @payload["openclaw_session_key"],
-        raw_payload: @payload
+        raw_payload: normalized_payload
       )
 
       # Release any runner lease: the run is over
@@ -151,6 +177,7 @@ class TaskOutcomeService
       sync_pipeline_stage_for_outcome!
       broadcast_update(old_status)
       notify_outcome_reported!(task_run, status_changed: status_changed)
+      publish_outcome_event!(task_run)
     end
 
     Result.new(success: true, idempotent: idempotent, task_run: task_run, task: @task)
@@ -195,7 +222,8 @@ class TaskOutcomeService
       user: @task.user,
       task: @task,
       event_type: "task_outcome_reported",
-      message: message
+      message: message,
+      event_id: "task_outcome_reported:#{run_id}"
     )
 
     # If status did not change (already in_review), create_for_status_change won't fire,
@@ -203,8 +231,44 @@ class TaskOutcomeService
     unless status_changed
       ExternalNotificationService.new(@task).notify_task_completion
     end
+
+    OriginDeliveryService.new(@task, task_run: task_run).deliver_outcome!
   rescue StandardError => e
     Rails.logger.warn("[TaskOutcomeService] Outcome notification failed task_id=#{@task.id}: #{e.message}")
+  end
+
+  def publish_outcome_event!(task_run)
+    OutcomeEventChannel.publish!({
+      event_id: run_id,
+      kind: "task_outcome",
+      task_id: @task.id,
+      task_run_id: task_run.id,
+      user_id: @task.user_id,
+      status: @task.status,
+      summary: task_run.summary,
+      changes: contract_changes,
+      validation: contract_validation,
+      follow_up: contract_follow_up,
+      recommended_action: task_run.recommended_action,
+      needs_follow_up: task_run.needs_follow_up?,
+      origin_chat_id: @task.origin_chat_id,
+      origin_thread_id: @task.origin_thread_id,
+      origin_session_id: @task.origin_session_id,
+      origin_session_key: @task.origin_session_key
+    })
+  rescue StandardError => e
+    Rails.logger.warn("[TaskOutcomeService] Outcome event publish failed task_id=#{@task.id}: #{e.message}")
+  end
+
+  def normalize_list(value)
+    case value
+    when Array
+      value.map(&:to_s).map(&:strip).reject(&:blank?)
+    when String
+      value.lines.map(&:strip).reject(&:blank?)
+    else
+      []
+    end
   end
 
   def broadcast_update(old_status)

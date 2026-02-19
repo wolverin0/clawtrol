@@ -103,6 +103,30 @@ class TaskOutcomeServiceTest < ActiveSupport::TestCase
     assert_equal ["test passes"], result.task_run.evidence
   end
 
+  test "stores standardized contract fields in raw_payload" do
+    payload = valid_payload.merge(
+      "changes" => ["Updated configs"],
+      "validation" => { "status" => "passed", "command" => "bin/rails test" },
+      "follow_up" => ["Monitor logs"]
+    )
+    result = TaskOutcomeService.call(@task, payload)
+    assert result.success?
+
+    run = result.task_run
+    assert_equal ["Updated configs"], run.changes
+    assert_equal({ "status" => "passed", "command" => "bin/rails test" }, run.validation)
+    assert_equal ["Monitor logs"], run.follow_up
+  end
+
+  test "uses output_contract summary when provided" do
+    payload = valid_payload.except("summary", "recommended_action").merge(
+      "output_contract" => { "summary" => "Contract summary", "recommended_action" => "in_review" }
+    )
+    result = TaskOutcomeService.call(@task, payload)
+    assert result.success?
+    assert_equal "Contract summary", result.task_run.summary
+  end
+
   # --- Idempotency ---
 
   test "idempotent on duplicate run_id" do

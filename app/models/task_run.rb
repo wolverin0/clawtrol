@@ -25,4 +25,31 @@ class TaskRun < ApplicationRecord
   scope :in_progress, -> { where(ended_at: nil) }
   scope :by_model, ->(model) { where(model_used: model) }
   scope :needs_follow_up, -> { where(needs_follow_up: true) }
+
+  # --- Output contract helpers ---
+
+  def changes
+    normalize_list(raw_payload["changes"] || raw_payload[:changes])
+  end
+
+  def validation
+    raw_payload["validation"] || raw_payload[:validation]
+  end
+
+  def follow_up
+    normalize_list(raw_payload["follow_up"] || raw_payload[:follow_up])
+  end
+
+  private
+
+  def normalize_list(value)
+    case value
+    when Array
+      value.map(&:to_s).map(&:strip).reject(&:blank?)
+    when String
+      value.lines.map(&:strip).reject(&:blank?)
+    else
+      []
+    end
+  end
 end

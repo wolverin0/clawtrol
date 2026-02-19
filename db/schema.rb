@@ -494,12 +494,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_182100) do
 
   create_table "notifications", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "event_id"
     t.string "event_type", null: false
     t.text "message", null: false
     t.datetime "read_at"
     t.bigint "task_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["event_id"], name: "index_notifications_on_event_id"
     t.index ["event_type"], name: "index_notifications_on_event_type"
     t.index ["task_id"], name: "index_notifications_on_task_id"
     t.index ["user_id", "created_at"], name: "index_notifications_on_user_id_and_created_at", order: { created_at: :desc }
@@ -848,6 +850,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_182100) do
     t.boolean "nightly", default: false, null: false
     t.integer "nightly_delay_hours"
     t.string "origin_chat_id"
+    t.string "origin_session_id"
+    t.string "origin_session_key"
     t.integer "origin_thread_id"
     t.text "original_description"
     t.jsonb "output_files", default: [], null: false

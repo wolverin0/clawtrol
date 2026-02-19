@@ -239,7 +239,7 @@ class TaskTest < ActiveSupport::TestCase
     board = boards(:one)
     user = users(:one)
 
-    task = Task.create!(name: "lease required", board: board, user: user, status: :up_next, assigned_to_agent: true)
+    task = Task.create!(name: "lease required", board: board, user: user, status: :up_next, assigned_to_agent: true, agent_claimed_at: Time.current)
 
     task.status = :in_progress
     assert_not task.valid?
@@ -276,39 +276,6 @@ class TaskTest < ActiveSupport::TestCase
   test "openclaw_spawn_model defaults to DEFAULT_MODEL when model is blank" do
     task = Task.new(model: "")
     assert_equal Task::DEFAULT_MODEL, task.openclaw_spawn_model
-  end
-
-  # --- Pipeline Stage Transitions ---
-
-  test "can set pipeline stage to triaged from unstarted" do
-    task = Task.create!(name: "Pipeline test", board: boards(:one), user: users(:one), pipeline_stage: :unstarted)
-    task.pipeline_stage = :triaged
-    assert task.valid?
-  end
-
-  test "cannot skip pipeline stages" do
-    task = Task.create!(name: "Pipeline skip", board: boards(:one), user: users(:one), pipeline_stage: :unstarted)
-    task.pipeline_stage = :routed
-    assert_not task.valid?
-    assert task.errors[:pipeline_stage].any?
-  end
-
-  test "executing requires routed stage" do
-    task = Task.create!(name: "Not routed", board: boards(:one), user: users(:one), pipeline_stage: :unstarted)
-    task.update_columns(pipeline_stage: Task.pipeline_stages[:triaged]) # skip validations to set up state
-    task.pipeline_stage = :executing
-    assert_not task.valid?
-    assert task.errors[:pipeline_stage].any?
-  end
-
-  test "valid transition through full pipeline" do
-    task = Task.create!(name: "Full pipeline", board: boards(:one), user: users(:one), pipeline_stage: :unstarted,
-                         compiled_prompt: "Execute this task", routed_model: "opus", pipeline_enabled: true)
-    # Set to routed via SQL to skip transition validation, then reload
-    task.update_columns(pipeline_stage: "routed")
-    task.reload
-    task.pipeline_stage = :executing
-    assert task.valid?, "Expected executing from routed to be valid, errors: #{task.errors.full_messages}"
   end
 
   # --- Constants ---

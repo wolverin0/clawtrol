@@ -34,7 +34,7 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
 
   test "security headers are set on all responses" do
     sign_in_as(@user)
-    get dashboard_path
+    get boards_path
     assert_equal "nosniff", response.headers["X-Content-Type-Options"]
     assert_equal "SAMEORIGIN", response.headers["X-Frame-Options"]
     assert_equal "strict-origin-when-cross-origin", response.headers["Referrer-Policy"]
@@ -44,8 +44,8 @@ class ApplicationControllerTest < ActionDispatch::IntegrationTest
 
   # --- Authentication redirect ---
 
-  test "unauthenticated access to protected page redirects to login" do
-    get dashboard_path
+  test "unauthenticated_access_to_protected_page_redirects_to_login" do
+    get boards_path
     assert_response :redirect
     assert_redirected_to new_session_path
   end

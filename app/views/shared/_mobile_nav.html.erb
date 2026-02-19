@@ -38,7 +38,7 @@
           <span class="text-lg w-7 text-center">📊</span> Analytics
         <% end %>
         <% if pipeline_ui_enabled? %>
-          <%= link_to pipeline_dashboard_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <%= link_to pipeline_board_path(1), class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
             <span class="text-lg w-7 text-center">🧪</span> Pipeline
           <% end %>
         <% end %>
@@ -51,7 +51,7 @@
         <%= link_to factory_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">🏭</span> Factory
         <% end %>
-        <%= link_to dashboard_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+        <%= link_to board_path(1), class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">🏠</span> Dashboard
         <% end %>
         <%= link_to agent_personas_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>

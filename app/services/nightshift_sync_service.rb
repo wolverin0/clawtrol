@@ -73,7 +73,7 @@ class NightshiftSyncService
 
   def fetch_nightshift_crons
     stdout, _stderr, status = Timeout.timeout(20) do
-      Open3.capture3("openclaw", "cron", "list", "--json")
+      Open3.capture3(openclaw_cli_env, "openclaw", "cron", "list", "--json")
     end
     return [] unless status&.exitstatus == 0
 
@@ -82,5 +82,36 @@ class NightshiftSyncService
   rescue StandardError => e
     Rails.logger.warn("[NightshiftSyncService] Failed to fetch crons: #{e.message}")
     []
+  end
+
+  def openclaw_cli_env
+    return @openclaw_cli_env if defined?(@openclaw_cli_env)
+
+    env = {}
+    env_path = File.expand_path("~/.openclaw/.env")
+
+    if File.file?(env_path)
+      File.foreach(env_path) do |line|
+        line = line.to_s.strip
+        next if line.blank? || line.start_with?("#")
+
+        line = line.sub(/\Aexport\s+/, "")
+        key, raw_value = line.split("=", 2)
+        next if key.blank? || raw_value.nil?
+
+        value = raw_value.strip
+        if (value.start_with?("\"") && value.end_with?("\"")) ||
+           (value.start_with?("'") && value.end_with?("'"))
+          value = value[1..-2]
+        end
+
+        env[key] = value
+      end
+    end
+
+    @openclaw_cli_env = env
+  rescue StandardError => e
+    Rails.logger.warn("[NightshiftSyncService] Failed to parse ~/.openclaw/.env: #{e.class}: #{e.message}")
+    @openclaw_cli_env = {}
   end
 end

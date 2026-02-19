@@ -11,7 +11,7 @@ class SecurityTest < ActionDispatch::IntegrationTest
 
   test "all major routes require authentication" do
     unauthenticated_routes = [
-      dashboard_path,
+      root_path,
       search_path,
       nightbeat_path,
       boards_path,

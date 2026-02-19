@@ -86,6 +86,7 @@ class TelegramMiniAppController < ActionController::Base
       model: AutoTaggerService.suggest_model(tags),
       origin_chat_id: @tg_user["id"].to_s
     )
+    OriginRoutingService.apply!(task, params: params, headers: request.headers)
 
     if task.save
       log_mini_app_action(user, "task_create", task)

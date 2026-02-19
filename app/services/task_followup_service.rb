@@ -58,7 +58,7 @@ class TaskFollowupService
       when "up_next"
         attrs.merge!(status: :up_next, assigned_to_agent: true, assigned_at: Time.current)
       when "in_progress"
-        attrs.merge!(status: :in_progress, assigned_to_agent: true, assigned_at: Time.current)
+        attrs.merge!(status: :in_progress, assigned_to_agent: true, assigned_at: Time.current, agent_claimed_at: Time.current)
       when "nightly"
         attrs.merge!(status: :up_next, nightly: true, assigned_to_agent: true, assigned_at: Time.current)
       end

@@ -21,7 +21,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
     )
   end
 
-  def create_selection(status: "pending", scheduled_date: Date.today, mission: nil)
+  def create_selection(status: "pending", scheduled_date: Date.current, mission: nil)
     NightshiftSelection.create!(
       nightshift_mission: mission || @mission,
       title: "Selection for #{scheduled_date}",
@@ -41,7 +41,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
   # Test: processes enabled pending selections for today
   test "processes enabled pending selections for today" do
     selection1 = create_selection(status: "pending")
-    selection2 = create_selection(status: "pending", scheduled_date: Date.tomorrow)
+    selection2 = create_selection(status: "pending", scheduled_date: 1.day.from_now.to_date)
 
     # Set up invalid gateway URL to trigger failure path
     @user.update!(openclaw_gateway_url: "http://invalid-host-that-does-not-exist.test:9999")
@@ -62,7 +62,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
       nightshift_mission: @mission,
       title: "Disabled",
       status: "pending",
-      scheduled_date: Date.tomorrow,  # Different date to avoid uniqueness constraint
+      scheduled_date: Date.current + 1.day,  # Different date to avoid uniqueness constraint
       enabled: false
     )
 
@@ -135,9 +135,9 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
       )
     end
 
-    sel1 = create_selection(status: "pending", scheduled_date: Date.today, mission: missions[0])
-    sel2 = create_selection(status: "pending", scheduled_date: Date.today, mission: missions[1])
-    sel3 = create_selection(status: "pending", scheduled_date: Date.today, mission: missions[2])
+    sel1 = create_selection(status: "pending", scheduled_date: Date.current, mission: missions[0])
+    sel2 = create_selection(status: "pending", scheduled_date: Date.current, mission: missions[1])
+    sel3 = create_selection(status: "pending", scheduled_date: Date.current, mission: missions[2])
 
     @user.update!(openclaw_gateway_url: "http://invalid-host.test:9999")
 
@@ -166,7 +166,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
       nightshift_mission: mission_no_user,
       title: "Orphan Selection",
       status: "pending",
-      scheduled_date: Date.today + 1.day,
+      scheduled_date: Date.current + 1.day,
       enabled: true
     )
 
@@ -216,8 +216,8 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
 
   # Test: time window validation - only processes today's selections
   test "only processes selections scheduled for today" do
-    today_sel = create_selection(status: "pending", scheduled_date: Date.today)
-    tomorrow_sel = create_selection(status: "pending", scheduled_date: Date.tomorrow)
+    today_sel = create_selection(status: "pending", scheduled_date: Date.current)
+    tomorrow_sel = create_selection(status: "pending", scheduled_date: Date.current + 1.day)
     yesterday_sel = create_selection(status: "pending", scheduled_date: Date.yesterday)
 
     NightshiftRunnerJob.perform_now
@@ -228,9 +228,9 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
 
     # Today's selection might be processed (depends on status), others should remain pending
     # The key is that today's selections are in scope
-    assert today_sel.scheduled_date <= Date.today
-    assert tomorrow_sel.scheduled_date > Date.today
-    assert yesterday_sel.scheduled_date < Date.today
+    assert today_sel.scheduled_date <= Date.current
+    assert tomorrow_sel.scheduled_date > Date.current
+    assert yesterday_sel.scheduled_date < Date.current
   end
 
   # Test: model assignment from mission
@@ -244,13 +244,13 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
 
   # Test: respects enabled flag on selection
   test "skips selections where enabled is false" do
-    create_selection(status: "pending", scheduled_date: Date.today)
+    create_selection(status: "pending", scheduled_date: Date.current)
     # Use different date to avoid uniqueness constraint
     disabled_sel = NightshiftSelection.create!(
       nightshift_mission: @mission,
       title: "Disabled Selection",
       status: "pending",
-      scheduled_date: Date.today + 1.day,
+      scheduled_date: Date.current + 1.day,
       enabled: false
     )
 
@@ -301,7 +301,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
         nightshift_mission: mission,
         title: "Selection for #{mission.name}",
         status: "pending",
-        scheduled_date: Date.today,
+        scheduled_date: Date.current,
         enabled: true
       )
     end
@@ -340,7 +340,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
       nightshift_mission: mission,
       title: "Selection",
       status: "pending",
-      scheduled_date: Date.today,
+      scheduled_date: Date.current,
       enabled: true
     )
     stub_request(:post, %r{/hooks/wake}).to_return(status: 200)
@@ -366,7 +366,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
       nightshift_mission: mission,
       title: "Selection",
       status: "pending",
-      scheduled_date: Date.today,
+      scheduled_date: Date.current,
       enabled: true
     )
     stub_request(:post, %r{/hooks/wake}).to_return(status: 200)
@@ -393,7 +393,7 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
       nightshift_mission: mission,
       title: "Selection",
       status: "pending",
-      scheduled_date: Date.today,
+      scheduled_date: Date.current,
       enabled: true
     )
     # Should use admin user as fallback

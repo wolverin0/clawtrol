@@ -3,7 +3,7 @@ import { Controller } from "@hotwired/stimulus"
 // Connects to data-controller="task-modal"
 // Handles both mobile slide-in panel and desktop full-screen modal
 export default class extends Controller {
-  static targets = ["modal", "backdrop", "form", "nameField", "descriptionField", "submitButton", "priorityField", "priorityButton", "priorityGroup", "dueDateField", "dueDateDisplay", "recurringCheckbox", "recurringOptions", "nightlyCheckbox", "nightlyOptions", "personaSelect", "personaPill", "personaClear"]
+  static targets = ["modal", "backdrop", "dragHandle", "form", "nameField", "descriptionField", "submitButton", "priorityField", "priorityButton", "priorityGroup", "dueDateField", "dueDateDisplay", "recurringCheckbox", "recurringOptions", "nightlyCheckbox", "nightlyOptions", "personaSelect", "personaPill", "personaClear"]
   static values = { taskId: Number }
 
   connect() {
@@ -24,6 +24,7 @@ export default class extends Controller {
       this.resizeDescription()
       this.updatePriorityUI()
       this.updatePersonaUI()
+      if (this.isDesktop) this.initDrag()
     }, 10)
   }
 
@@ -62,6 +63,49 @@ export default class extends Controller {
         this.modalTarget.classList.remove("translate-x-full")
       }
     }, 10)
+  }
+
+  initDrag() {
+    if (!this.hasDragHandleTarget) return
+    const win = this.dragHandleTarget
+    const modal = this.modalTarget
+    if (win._dragInit) return
+    win._dragInit = true
+
+    // Position window centered on first open
+    const w = Math.min(900, window.innerWidth * 0.88)
+    const h = Math.min(window.innerHeight * 0.88, 800)
+    const left = Math.max(0, (window.innerWidth - w) / 2)
+    const top  = Math.max(0, (window.innerHeight - h) / 2)
+    modal.style.cssText = `position:fixed; inset:auto; left:${left}px; top:${top}px; width:${w}px; height:${h}px; margin:0; padding:0;`
+    win.style.width  = '100%'
+    win.style.height = '100%'
+
+    // Drag from header (first child of win)
+    const handle = win.firstElementChild
+    if (!handle) return
+    handle.style.cursor = 'grab'
+
+    handle.addEventListener('mousedown', (e) => {
+      if (e.target.closest('button, a, select, input')) return
+      e.preventDefault()
+      handle.style.cursor = 'grabbing'
+      const startX = e.clientX, startY = e.clientY
+      const startL = parseInt(modal.style.left) || 0
+      const startT = parseInt(modal.style.top)  || 0
+
+      const onMove = (e) => {
+        modal.style.left = Math.max(0, Math.min(window.innerWidth  - 100, startL + e.clientX - startX)) + 'px'
+        modal.style.top  = Math.max(0, Math.min(window.innerHeight - 40,  startT + e.clientY - startY)) + 'px'
+      }
+      const onUp = () => {
+        handle.style.cursor = 'grab'
+        document.removeEventListener('mousemove', onMove)
+        document.removeEventListener('mouseup', onUp)
+      }
+      document.addEventListener('mousemove', onMove)
+      document.addEventListener('mouseup', onUp)
+    })
   }
 
   close() {

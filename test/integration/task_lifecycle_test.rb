@@ -74,7 +74,7 @@ class TaskLifecycleTest < ActionDispatch::IntegrationTest
   test "unauthenticated user cannot access any protected resource" do
     delete session_path
 
-    [dashboard_path, boards_path, search_path, nightbeat_path].each do |path|
+    [root_path, boards_path, search_path, nightbeat_path].each do |path|
       get path
       assert_response :redirect, "#{path} should redirect unauthenticated user"
     end

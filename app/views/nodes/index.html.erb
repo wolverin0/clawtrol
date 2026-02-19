@@ -31,11 +31,15 @@
   <% else %>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-nodes-dashboard-target="grid">
       <% @nodes.each do |node| %>
-        <% node_id = node["id"] || node["name"] || "unknown" %>
-        <% is_online = node["status"]&.match?(/online|connected|active/) %>
+        <% node_id = node["id"] || node["nodeId"] || node["name"] || "unknown" %>
+        <% is_online = if node.key?("connected")
+             !!node["connected"]
+           else
+             node["status"].to_s.match?(/online|connected|active/)
+           end %>
         <% platform = node["platform"] || node["os"] || "unknown" %>
-        <% device_name = node["name"] || node["deviceName"] || node_id %>
-        <% last_seen = node["lastSeen"] || node["lastHeartbeat"] %>
+        <% device_name = node["displayName"] || node["name"] || node["deviceName"] || node_id %>
+        <% last_seen = node["lastSeen"] || node["lastHeartbeat"] || node["connectedAtMs"] %>
 
         <div class="bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/50 transition-colors">
           <%# Header %>
@@ -75,15 +79,27 @@
               </div>
             <% end %>
             <% if last_seen %>
+              <% last_seen_label = begin
+                   raw = last_seen.to_s
+                   if raw.match?(/^\d{10,13}$/)
+                     ms = raw.to_i
+                     ts = ms > 9_999_999_999 ? ms / 1000.0 : ms.to_f
+                     "#{time_ago_in_words(Time.at(ts))} ago"
+                   else
+                     "#{time_ago_in_words(Time.parse(raw))} ago"
+                   end
+                 rescue StandardError
+                   raw
+                 end %>
               <div class="flex justify-between">
                 <span>Last seen</span>
-                <span class="text-content"><%= last_seen.is_a?(String) ? last_seen : time_ago_in_words(Time.parse(last_seen.to_s)) + " ago" rescue last_seen %></span>
+                <span class="text-content"><%= last_seen_label %></span>
               </div>
             <% end %>
           </div>
 
           <%# Capabilities badges %>
-          <% capabilities = Array(node["capabilities"] || []) %>
+          <% capabilities = Array(node["capabilities"] || node["caps"] || []) %>
           <% if capabilities.any? %>
             <div class="flex flex-wrap gap-1 mb-3">
               <% capabilities.each do |cap| %>

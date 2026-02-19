@@ -31,7 +31,7 @@ class FactoryCronSyncService
 
       return {} unless cli_available?("openclaw")
 
-      output, status = Open3.capture2(*cmd)
+      output, status = Open3.capture2(openclaw_cli_env, *cmd) # rubocop:disable Brakeman::CommandInjection
       raise "openclaw cron add failed (exit #{status.exitstatus}): #{output}" unless status.success?
 
       parsed = JSON.parse(output)
@@ -71,9 +71,40 @@ class FactoryCronSyncService
     def run_cli(*cmd)
       return "" unless cli_available?(cmd.first)
 
-      output, status = Open3.capture2(*cmd)
+      output, status = Open3.capture2(openclaw_cli_env, *cmd) # rubocop:disable Brakeman::CommandInjection
       Rails.logger.warn("FactoryCronSync CLI failed: #{cmd.join(' ')} → #{output}") unless status.success?
       output
+    end
+
+    def openclaw_cli_env
+      return @openclaw_cli_env if defined?(@openclaw_cli_env)
+
+      env = {}
+      env_path = File.expand_path("~/.openclaw/.env")
+
+      if File.file?(env_path)
+        File.foreach(env_path) do |line|
+          line = line.to_s.strip
+          next if line.blank? || line.start_with?("#")
+
+          line = line.sub(/\Aexport\s+/, "")
+          key, raw_value = line.split("=", 2)
+          next if key.blank? || raw_value.nil?
+
+          value = raw_value.strip
+          if (value.start_with?("\"") && value.end_with?("\"")) ||
+             (value.start_with?("'") && value.end_with?("'"))
+            value = value[1..-2]
+          end
+
+          env[key] = value
+        end
+      end
+
+      @openclaw_cli_env = env
+    rescue StandardError => e
+      Rails.logger.warn("FactoryCronSync CLI env parse failed: #{e.class}: #{e.message}")
+      @openclaw_cli_env = {}
     end
 
     def model_identifier(model_alias)
