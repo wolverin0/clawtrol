@@ -37,7 +37,8 @@ class NotificationTest < ActiveSupport::TestCase
 
   test "EVENT_TYPES includes expected types" do
     expected = %w[task_completed task_errored review_passed review_failed agent_claimed
-                  validation_passed validation_failed auto_runner auto_runner_error
+                  validation_passed validation_failed job_progress job_notify job_alert
+                  auto_runner auto_runner_error
                   auto_pull_claimed auto_pull_ready auto_pull_spawned auto_pull_error
                   zombie_task zombie_detected runner_lease_expired runner_lease_missing]
     expected.each do |type|
@@ -120,6 +121,45 @@ class NotificationTest < ActiveSupport::TestCase
   test "create_deduped! returns nil for nil user" do
     result = Notification.create_deduped!(user: nil, event_type: "task_completed", message: "test")
     assert_nil result
+  end
+
+  test "create_deduped! dedupes by event_id within ttl" do
+    travel_to Time.utc(2026, 2, 9, 12, 0, 0) do
+      first = Notification.create_deduped!(
+        user: @user,
+        task: @task,
+        event_type: "job_notify",
+        message: "job done",
+        event_id: "evt-123",
+        ttl: 30.minutes
+      )
+      assert first.present?
+
+      # Debug: check what notifications exist before creating second
+      puts "DEBUG: Before second create, notifications with evt-123: #{Notification.where(event_id: 'evt-123').count}"
+
+      second = Notification.create_deduped!(
+        user: @user,
+        task: @task,
+        event_type: "job_notify",
+        message: "job done again",
+        event_id: "evt-123",
+        ttl: 30.minutes
+      )
+      assert_nil second
+    end
+
+    travel_to Time.utc(2026, 2, 9, 12, 31, 0) do
+      third = Notification.create_deduped!(
+        user: @user,
+        task: @task,
+        event_type: "job_notify",
+        message: "job done later",
+        event_id: "evt-123",
+        ttl: 30.minutes
+      )
+      assert third.present?
+    end
   end
 
   # --- Scopes ---

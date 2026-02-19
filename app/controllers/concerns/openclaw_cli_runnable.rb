@@ -30,15 +30,16 @@ module OpenclawCliRunnable
   # @param args [Array<String>] CLI arguments (e.g. "sessions", "--active", "120", "--json")
   # @return [Hash] { stdout:, stderr:, exitstatus: }
   def run_openclaw_cli(*args)
-    # Clear gateway env vars so the CLI connects as an external client,
-    # not as an internal gateway subprocess (which causes WS auth issues).
-    clean_env = {
+    # Load ~/.openclaw/.env so CLI config substitutions (e.g. CLAWTROL_API_TOKEN)
+    # are available even when Puma/systemd wasn't started with that env file.
+    # Also clear gateway-internal markers to force external-client behavior.
+    cli_env = openclaw_cli_env_from_file.merge(
       "OPENCLAW_SERVICE_KIND" => nil,
       "OPENCLAW_SYSTEMD_UNIT" => nil
-    }
+    )
 
     stdout, stderr, status = ::Timeout.timeout(openclaw_timeout_seconds) do
-      Open3.capture3(clean_env, "openclaw", *args.map(&:to_s))
+      Open3.capture3(cli_env, "openclaw", *args.map(&:to_s))
     end
 
     { stdout: stdout, stderr: stderr, exitstatus: status&.exitstatus }
@@ -82,6 +83,39 @@ module OpenclawCliRunnable
     Time.at(ms.to_f / 1000.0)
   rescue StandardError
     nil
+  end
+
+  # Parse ~/.openclaw/.env into a Hash for child-process execution.
+  # Supports plain KEY=value and `export KEY=value` lines.
+  def openclaw_cli_env_from_file
+    return @openclaw_cli_env_from_file if defined?(@openclaw_cli_env_from_file)
+
+    env = {}
+    env_path = File.expand_path("~/.openclaw/.env")
+
+    if File.file?(env_path)
+      File.foreach(env_path) do |line|
+        line = line.to_s.strip
+        next if line.blank? || line.start_with?("#")
+
+        line = line.sub(/\Aexport\s+/, "")
+        key, raw_value = line.split("=", 2)
+        next if key.blank? || raw_value.nil?
+
+        value = raw_value.strip
+        if (value.start_with?("\"") && value.end_with?("\"")) ||
+           (value.start_with?("'") && value.end_with?("'"))
+          value = value[1..-2]
+        end
+
+        env[key] = value
+      end
+    end
+
+    @openclaw_cli_env_from_file = env
+  rescue StandardError => e
+    Rails.logger.warn("[OpenclawCliRunnable] Failed to parse ~/.openclaw/.env: #{e.class}: #{e.message}")
+    @openclaw_cli_env_from_file = {}
   end
 
   # Configurable timeout for CLI commands (seconds).

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "open3"
+
 # Reads providers + models directly from `openclaw models list --json`.
 # Always reflects what's actually configured — no hardcoded lists.
 # Cached for 5 minutes to avoid shelling out on every request.
@@ -40,8 +42,12 @@ class OpenclawModelsService
   end
 
   def self.fetch_from_cli
-    json = `openclaw models list --json 2>/dev/null`
-    data = JSON.parse(json)
+    stdout, stderr, status = Open3.capture3(openclaw_cli_env, "openclaw", "models", "list", "--json")
+    unless status.success?
+      raise "openclaw models list failed (exit #{status.exitstatus}): #{stderr.presence || stdout}"
+    end
+
+    data = JSON.parse(stdout)
 
     # Group by provider, only configured models
     by_provider = Hash.new { |h, k| h[k] = [] }
@@ -65,6 +71,37 @@ class OpenclawModelsService
   rescue => e
     Rails.logger.warn("[OpenclawModelsService] CLI failed: #{e.message}")
     fallback_providers
+  end
+
+  def self.openclaw_cli_env
+    return @openclaw_cli_env if defined?(@openclaw_cli_env)
+
+    env = {}
+    env_path = File.expand_path("~/.openclaw/.env")
+
+    if File.file?(env_path)
+      File.foreach(env_path) do |line|
+        line = line.to_s.strip
+        next if line.blank? || line.start_with?("#")
+
+        line = line.sub(/\Aexport\s+/, "")
+        key, raw_value = line.split("=", 2)
+        next if key.blank? || raw_value.nil?
+
+        value = raw_value.strip
+        if (value.start_with?("\"") && value.end_with?("\"")) ||
+           (value.start_with?("'") && value.end_with?("'"))
+          value = value[1..-2]
+        end
+
+        env[key] = value
+      end
+    end
+
+    @openclaw_cli_env = env
+  rescue StandardError => e
+    Rails.logger.warn("[OpenclawModelsService] Failed to parse ~/.openclaw/.env: #{e.class}: #{e.message}")
+    @openclaw_cli_env = {}
   end
 
   def self.fallback_providers

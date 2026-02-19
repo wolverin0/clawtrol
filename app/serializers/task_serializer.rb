@@ -23,7 +23,7 @@ class TaskSerializer
     recurrence_rule recurrence_time nightly_delay_hours
     due_date completed_at assigned_at
     suggested_followup
-    origin_chat_id origin_thread_id
+    origin_chat_id origin_thread_id origin_session_id origin_session_key
     created_at updated_at
   ].freeze
 

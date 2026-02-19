@@ -20,6 +20,9 @@ class Notification < ApplicationRecord
     agent_claimed
     validation_passed
     validation_failed
+    job_progress
+    job_notify
+    job_alert
     auto_runner
     auto_runner_error
     auto_pull_claimed
@@ -35,6 +38,7 @@ class Notification < ApplicationRecord
 
   validates :event_type, presence: true, inclusion: { in: EVENT_TYPES }
   validates :message, presence: true, length: { maximum: 10_000 }
+  validates :event_id, length: { maximum: 255 }, allow_nil: true
   validates :read_at, presence: true, if: -> { persisted? && read_at.present? }
 
   after_create :enforce_cap_for_user
@@ -75,6 +79,12 @@ class Notification < ApplicationRecord
       "🤖"
     when "auto_runner_error", "auto_pull_error"
       "❌"
+    when "job_progress"
+      "⏳"
+    when "job_notify"
+      "ℹ️"
+    when "job_alert"
+      "⚠️"
     when "zombie_task", "zombie_detected"
       "🧟"
     when "runner_lease_expired", "runner_lease_missing"
@@ -97,6 +107,12 @@ class Notification < ApplicationRecord
       "text-accent"
     when "auto_runner_error", "auto_pull_error"
       "text-status-error"
+    when "job_progress"
+      "text-status-info"
+    when "job_notify"
+      "text-content-secondary"
+    when "job_alert"
+      "text-status-warning"
     when "zombie_task", "zombie_detected"
       "text-status-error"
     when "runner_lease_expired", "runner_lease_missing"
@@ -170,15 +186,19 @@ class Notification < ApplicationRecord
 
   # Safe default for noisy event streams (auto-runner, background jobs).
   # Returns the notification or nil when deduped.
-  def self.create_deduped!(user:, event_type:, message:, task: nil)
+  def self.create_deduped!(user:, event_type:, message:, task: nil, event_id: nil, ttl: DEDUP_WINDOW)
     return nil unless user
 
-    scope = where(user_id: user.id, event_type: event_type)
-    scope = scope.where(task_id: task.id) if task
-    scope = scope.where("created_at >= ?", DEDUP_WINDOW.ago)
-    return nil if scope.exists?
+    if event_id.present?
+      return nil unless reserve_event_id?(event_id, ttl: ttl)
+    else
+      scope = where(user_id: user.id, event_type: event_type)
+      scope = scope.where(task_id: task.id) if task
+      scope = scope.where("created_at >= ?", ttl.ago)
+      return nil if scope.exists?
+    end
 
-    create!(user: user, task: task, event_type: event_type, message: message)
+    create!(user: user, task: task, event_type: event_type, message: message, event_id: event_id)
   end
 
   def self.enforce_cap_for_user_id!(user_id)
@@ -190,5 +210,23 @@ class Notification < ApplicationRecord
 
   def enforce_cap_for_user
     self.class.enforce_cap_for_user_id!(user_id)
+  end
+
+  def self.reserve_event_id?(event_id, ttl:)
+    return true if event_id.blank?
+
+    cache_key = "notifications:event_id:#{event_id}"
+    begin
+      written = Rails.cache.write(cache_key, true, expires_in: ttl, unless_exist: true)
+      return true if written
+    rescue StandardError
+      # fall back to DB check
+    end
+
+    recent = where(event_id: event_id).where("created_at >= ?", ttl.ago).exists?
+    return false if recent
+
+    Rails.cache.write(cache_key, true, expires_in: ttl)
+    true
   end
 end

@@ -7,6 +7,7 @@
 # - If command fails → move to up_next (truthful queue), create follow-up task
 class AutoValidationJob < ApplicationJob
   include TaskBroadcastable
+  include JobNotifiable
 
   queue_as :default
 
@@ -26,6 +27,12 @@ class AutoValidationJob < ApplicationJob
 
     # Set the validation command on the task
     task.update!(validation_command: command, validation_status: "pending")
+
+    job_progress(
+      task: task,
+      message: "Auto-validation started for ##{task.id}",
+      event_id: "auto_validation:start:task:#{task.id}"
+    )
 
     # Run the validation
     result = ValidationRunnerService.new(task, timeout: ValidationRunnerService::REVIEW_TIMEOUT).call
@@ -56,14 +63,12 @@ class AutoValidationJob < ApplicationJob
     )
 
     # Create success notification
-    if user
-      Notification.create!(
-        user: user,
-        task: task,
-        event_type: "validation_passed",
-        message: "✅ #{task.name.truncate(60)} passed auto-validation"
-      )
-    end
+    job_notify(
+      task: task,
+      event_type: "validation_passed",
+      message: "✅ #{task.name.truncate(60)} passed auto-validation",
+      event_id: "validation_passed:task:#{task.id}"
+    ) if user
 
     Rails.logger.info("[AutoValidationJob] Task ##{task.id}: Validation PASSED, moved to done")
   end
@@ -95,14 +100,12 @@ class AutoValidationJob < ApplicationJob
     task.update!(followup_task_id: follow_up.id)
 
     # Create failure notification
-    if user
-      Notification.create!(
-        user: user,
-        task: task,
-        event_type: "validation_failed",
-        message: "❌ #{task.name.truncate(60)} failed validation"
-      )
-    end
+    job_alert(
+      task: task,
+      event_type: "validation_failed",
+      message: "❌ #{task.name.truncate(60)} failed validation",
+      event_id: "validation_failed:task:#{task.id}"
+    ) if user
 
     Rails.logger.info("[AutoValidationJob] Task ##{task.id}: Validation FAILED, created follow-up ##{follow_up.id}")
 

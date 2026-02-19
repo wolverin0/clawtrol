@@ -2,30 +2,115 @@
 
 <% roadmap = @board.roadmap || @board.build_roadmap %>
 
-<div class="px-4 sm:px-6 py-4 border-b border-border bg-bg-base">
-  <div class="rounded-xl border border-border bg-bg-surface p-4 sm:p-5 space-y-4">
-    <div class="flex items-start justify-between gap-3">
-      <div>
-        <h3 class="text-sm font-semibold text-content">🗺️ Roadmap</h3>
-        <p class="text-xs text-content-muted mt-1">Write markdown checklist items (<code>- [ ] Task</code>) and generate board tasks.</p>
-      </div>
-      <% if roadmap.last_generated_at.present? %>
-        <span class="text-[11px] text-content-muted">Last generated: <%= time_ago_in_words(roadmap.last_generated_at) %> ago</span>
-      <% end %>
+<div class="px-4 sm:px-6 py-3 border-b border-border bg-bg-base">
+  <div class="rounded-xl border border-border bg-bg-surface px-4 py-3 flex items-center justify-between gap-3">
+    <div class="min-w-0">
+      <h3 class="text-sm font-semibold text-content">🗺️ Roadmap</h3>
+      <p class="text-xs text-content-muted truncate">Nota mental del board. Abrilo en modal para editar rápido.</p>
     </div>
-
-    <%= form_with model: roadmap, url: board_roadmap_path(@board), method: :patch, class: "space-y-3" do |form| %>
-      <%= form.text_area :body,
-          rows: 8,
-          placeholder: "- [ ] Ship roadmap MVP\n- [ ] Add controller tests",
-          class: "w-full rounded-lg border border-border bg-bg-base text-content px-3 py-2 text-sm font-mono" %>
-
-      <div class="flex items-center gap-2">
-        <%= form.submit "Save Roadmap", class: "px-3 py-2 text-xs font-medium rounded-lg border border-border bg-bg-elevated hover:bg-bg-hover text-content" %>
-      </div>
-    <% end %>
-
-    <%= button_to "Generate Tasks from Roadmap", generate_tasks_board_roadmap_path(@board), method: :post,
-      class: "px-3 py-2 text-xs font-medium rounded-lg bg-accent text-white hover:opacity-90" %>
+    <div class="flex items-center gap-2 shrink-0">
+      <% if roadmap.last_generated_at.present? %>
+        <span class="hidden sm:inline text-[11px] text-content-muted">Updated <%= time_ago_in_words(roadmap.last_generated_at) %> ago</span>
+      <% end %>
+      <button type="button"
+              onclick="openRoadmapModal('<%= @board.id %>')"
+              class="px-3 py-2 text-xs font-medium rounded-lg border border-border bg-bg-elevated hover:bg-bg-hover text-content">
+        Open Roadmap
+      </button>
+    </div>
   </div>
 </div>
+
+<dialog id="roadmap-modal-<%= @board.id %>"
+        class="rounded-xl border border-border bg-bg-surface text-content p-0 backdrop:bg-black/60"
+        style="margin:auto; position:fixed; inset:0; width:min(980px,92vw); min-width:320px; min-height:200px; resize:both; overflow:hidden;">
+
+  <%# Drag handle — header %>
+  <div id="roadmap-drag-<%= @board.id %>"
+       class="p-4 sm:p-5 border-b border-border flex items-start justify-between gap-3 cursor-grab select-none"
+       style="cursor:grab;">
+    <div>
+      <h3 class="text-sm font-semibold text-content">🗺️ Roadmap</h3>
+      <p class="text-xs text-content-muted mt-1">Markdown libre para referencia mental del board.</p>
+    </div>
+    <button type="button"
+            onclick="document.getElementById('roadmap-modal-<%= @board.id %>').close()"
+            class="px-2 py-1 text-xs rounded border border-border bg-bg-elevated hover:bg-bg-hover flex-shrink-0">
+      Close
+    </button>
+  </div>
+
+  <div class="p-4 sm:p-5 space-y-4 overflow-y-auto" style="height:calc(100% - 68px);">
+    <%= form_with model: roadmap, url: board_roadmap_path(@board), method: :patch, class: "space-y-3 h-full flex flex-col" do |form| %>
+      <%= form.text_area :body,
+          rows: 18,
+          placeholder: "Notas del roadmap...",
+          class: "w-full flex-1 rounded-lg border border-border bg-bg-base text-content px-3 py-2 text-sm font-mono resize-none" %>
+      <div class="flex items-center gap-2 flex-shrink-0">
+        <%= form.submit "Save Roadmap", class: "px-3 py-2 text-xs font-medium rounded-lg border border-border bg-bg-elevated hover:bg-bg-hover text-content" %>
+        <%= button_to "Generate Tasks from Roadmap", generate_tasks_board_roadmap_path(@board), method: :post,
+            class: "px-3 py-2 text-xs font-medium rounded-lg bg-accent text-white hover:opacity-90" %>
+      </div>
+    <% end %>
+  </div>
+</dialog>
+
+<script>
+(function() {
+  function openRoadmapModal(boardId) {
+    var dialog = document.getElementById('roadmap-modal-' + boardId);
+    // Reset position to center on open
+    dialog.style.left = '';
+    dialog.style.top = '';
+    dialog.style.margin = 'auto';
+    dialog.show();
+    initDrag(boardId);
+  }
+
+  function initDrag(boardId) {
+    var dialog = document.getElementById('roadmap-modal-' + boardId);
+    var handle = document.getElementById('roadmap-drag-' + boardId);
+    if (!handle || handle._dragInit) return;
+    handle._dragInit = true;
+
+    var startX, startY, startLeft, startTop;
+
+    handle.addEventListener('mousedown', function(e) {
+      if (e.target.tagName === 'BUTTON') return;
+      e.preventDefault();
+      handle.style.cursor = 'grabbing';
+
+      var rect = dialog.getBoundingClientRect();
+      // Fix position so margin:auto no longer interferes
+      dialog.style.margin = '0';
+      dialog.style.left = rect.left + 'px';
+      dialog.style.top  = rect.top  + 'px';
+
+      startX = e.clientX;
+      startY = e.clientY;
+      startLeft = rect.left;
+      startTop  = rect.top;
+
+      function onMove(e) {
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+        var newLeft = Math.max(0, Math.min(window.innerWidth  - dialog.offsetWidth,  startLeft + dx));
+        var newTop  = Math.max(0, Math.min(window.innerHeight - dialog.offsetHeight, startTop  + dy));
+        dialog.style.left = newLeft + 'px';
+        dialog.style.top  = newTop  + 'px';
+      }
+
+      function onUp() {
+        handle.style.cursor = 'grab';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup',   onUp);
+      }
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup',   onUp);
+    });
+  }
+
+  window.openRoadmapModal = openRoadmapModal;
+})();
+</script>

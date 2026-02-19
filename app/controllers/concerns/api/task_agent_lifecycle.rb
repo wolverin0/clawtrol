@@ -178,6 +178,7 @@ module Api
       @task.assigned_to_agent = true
       @task.board_id ||= detect_board_for_task(@task.name, current_user)&.id || current_user.boards.order(position: :asc).first&.id
       set_task_activity_info(@task)
+      OriginRoutingService.apply!(@task, params: params, headers: request.headers)
 
       @task.model ||= Task::DEFAULT_MODEL
       requested_model = @task.model
@@ -229,7 +230,7 @@ module Api
     private
 
     def spawn_ready_params
-      params.require(:task).permit(:name, :description, :model, :priority, :board_id, tags: [])
+      params.require(:task).permit(:name, :description, :model, :priority, :board_id, :origin_chat_id, :origin_thread_id, :origin_session_id, :origin_session_key, tags: [])
     end
 
     # Auto-detect which board a task belongs to based on its name

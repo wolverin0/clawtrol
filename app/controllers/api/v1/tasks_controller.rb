@@ -46,7 +46,7 @@ module Api
       # POST /api/v1/tasks/:id/run_lobster
       def run_lobster
         pipeline = params[:pipeline].presence || "code-review"
-        args = params[:args]&.permit!&.to_h || {}
+        args = params[:args]&.permit(:model, :branch, :context, :mode, :dry_run, :timeout)&.to_h || {}
         args["task_id"] = @task.id.to_s
 
         result = LobsterRunner.run(pipeline, task: @task, args: args)
@@ -241,6 +241,7 @@ module Api
         # Auto-detect board based on task name if not specified
         @task.board_id ||= detect_board_for_task(@task.name, current_user)&.id || current_user.boards.order(position: :asc).first&.id
         set_task_activity_info(@task)
+        OriginRoutingService.apply!(@task, params: params, headers: request.headers)
 
         # Auto-fallback: check if requested model is available, otherwise use fallback
         # Set default model if not specified
@@ -480,6 +481,7 @@ module Api
         @task = board.tasks.new(task_params)
         @task.user = current_user
         set_task_activity_info(@task)
+        OriginRoutingService.apply!(@task, params: params, headers: request.headers)
 
         # Apply template if specified
         if params.dig(:task, :template_slug).present?
@@ -912,13 +914,13 @@ module Api
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :pipeline_stage, :execution_plan, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, :origin_chat_id, :origin_thread_id, tags: [], output_files: [], review_config: {}, review_result: {})
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :pipeline_stage, :execution_plan, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, :origin_chat_id, :origin_thread_id, :origin_session_id, :origin_session_key, tags: [], output_files: [], review_config: {}, review_result: {})
       end
 
       # Validation command execution delegated to ValidationRunnerService
 
       def spawn_ready_params
-        params.require(:task).permit(:name, :description, :model, :priority, :board_id, tags: [])
+        params.require(:task).permit(:name, :description, :model, :priority, :board_id, :origin_chat_id, :origin_thread_id, :origin_session_id, :origin_session_key, tags: [])
       end
 
       # Auto-detect which board a task belongs to based on its name

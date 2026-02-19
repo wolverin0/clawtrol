@@ -203,7 +203,7 @@ Rails.application.routes.draw do
   end
 
   namespace :admin do
-    root to: "dashboard#index"
+    root to: redirect("/boards/1")
     resources :users, only: [ :index ]
     resources :invite_codes, only: [:index, :create, :destroy]
   end
@@ -235,7 +235,7 @@ Rails.application.routes.draw do
   end
 
   # Dashboard overview page
-  get "dashboard", to: "dashboard#show"
+  # dashboard removed — root redirects to /boards/1
 
   # Web Terminal
   get "terminal", to: "terminal#show"
@@ -643,5 +643,5 @@ Rails.application.routes.draw do
   resources :behavioral_interventions, only: [:create, :update, :destroy]
 
   # Defines the root path route ("/")
-  root "pages#home"
+  root to: redirect("/boards/1")
 end

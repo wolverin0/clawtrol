@@ -182,12 +182,15 @@ class AgentAutoRunnerService
         new_status: task.status
       )
 
-      Notification.create_deduped!(
-        user: user,
-        task: task,
-        event_type: "runner_lease_expired",
-        message: "Guardrail: demoted expired RUNNING task back to Up Next: #{task.name.truncate(60)}"
-      )
+      if HeartbeatAlertGuard.allow?(key: "task:#{task.id}:lease_expired", state: lease.last_heartbeat_at&.to_i)
+        Notification.create_deduped!(
+          user: user,
+          task: task,
+          event_type: "runner_lease_expired",
+          message: "Guardrail: demoted expired RUNNING task back to Up Next: #{task.name.truncate(60)}",
+          event_id: "runner_lease_expired:task:#{task.id}:lease:#{lease.id}"
+        )
+      end
 
       count += 1
       @logger.warn("[AgentAutoRunner] demoted expired lease task_id=#{task.id} lease_id=#{lease.id}")
@@ -220,12 +223,15 @@ class AgentAutoRunnerService
         new_status: task.status
       )
 
-      Notification.create_deduped!(
-        user: user,
-        task: task,
-        event_type: "runner_lease_missing",
-        message: "Guardrail: demoted task without lease back to Up Next: #{task.name.truncate(60)}"
-      )
+      if HeartbeatAlertGuard.allow?(key: "task:#{task.id}:lease_missing", state: task.agent_claimed_at&.to_i || task.updated_at.to_i)
+        Notification.create_deduped!(
+          user: user,
+          task: task,
+          event_type: "runner_lease_missing",
+          message: "Guardrail: demoted task without lease back to Up Next: #{task.name.truncate(60)}",
+          event_id: "runner_lease_missing:task:#{task.id}:#{task.updated_at.to_i}"
+        )
+      end
 
       count += 1
       @logger.warn("[AgentAutoRunner] demoted missing-lease task_id=#{task.id}")
@@ -250,10 +256,15 @@ class AgentAutoRunnerService
     cache_key = "agent_auto_runner:last_zombie_notify:user:#{user.id}"
     return zombie_count if @cache.read(cache_key).present?
 
+    guard_key = "user:#{user.id}:zombie_detected"
+    return zombie_count unless HeartbeatAlertGuard.allow?(key: guard_key, state: zombie_count, cache: @cache)
+
     Notification.create_deduped!(
       user: user,
       event_type: "zombie_detected",
-      message: "Zombie KPI: #{zombie_count} in-progress task(s) look stale (> #{ZOMBIE_STALE_AFTER.inspect} without updates)"
+      message: "Zombie KPI: #{zombie_count} in-progress task(s) look stale (> #{ZOMBIE_STALE_AFTER.inspect} without updates)",
+      event_id: "zombie_detected:user:#{user.id}:count:#{zombie_count}",
+      ttl: ZOMBIE_NOTIFY_COOLDOWN
     )
 
     @cache.write(cache_key, Time.current.to_i, expires_in: ZOMBIE_NOTIFY_COOLDOWN)

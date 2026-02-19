@@ -18,7 +18,9 @@ module Api
         task = find_task_from_params
         return render json: { error: "task not found" }, status: :not_found unless task
 
-        findings = params[:findings].presence || params[:output].presence
+        contract = SubAgentOutputContract.from_params(params)
+        findings = contract&.to_markdown
+        findings ||= params[:findings].presence || params[:output].presence
 
         # If no findings provided, try to extract from transcript
         transcript_files = []
@@ -163,8 +165,8 @@ module Api
         payload = params.permit(
           :version, :run_id, :ended_at, :needs_follow_up, :recommended_action,
           :next_prompt, :summary, :model_used, :openclaw_session_id,
-          :openclaw_session_key, :task_id,
-          achieved: [], evidence: [], remaining: []
+          :openclaw_session_key, :task_id, :changes, :validation, :follow_up,
+          achieved: [], evidence: [], remaining: [], changes: [], follow_up: [], validation: {}
         ).to_h
 
         result = TaskOutcomeService.call(task, payload)

@@ -13,20 +13,21 @@
 
 <div data-controller="task-modal file-viewer"
      data-task-modal-task-id-value="<%= task.id %>">
-  <!-- Backdrop -->
+  <!-- Backdrop: invisible, just kept for JS compatibility -->
   <div data-task-modal-target="backdrop"
-       data-action="click->task-modal#close"
-    class="hidden opacity-0 fixed inset-0 bg-black/60 transition-opacity duration-300 ease-out z-[60]">
+    class="hidden opacity-0 fixed inset-0 transition-opacity duration-300 ease-out z-[60] pointer-events-none">
   </div>
 
   <!-- Modal / Panel Container -->
-  <!-- Mobile: slide-in from right. Desktop (lg+): centered overlay modal -->
+  <!-- Mobile: slide-in from right. Desktop (lg+): draggable floating window -->
   <div data-task-modal-target="modal"
        class="hidden fixed z-[70] transition-all duration-300 ease-out
               inset-y-0 right-0 w-full max-w-md md:max-w-lg translate-x-full p-4
               lg:inset-0 lg:translate-x-0 lg:opacity-0 lg:scale-95 lg:p-6 lg:max-w-none lg:flex lg:items-center lg:justify-center">
-    <div class="h-full bg-bg-surface border border-border shadow-2xl flex flex-col rounded-xl overflow-hidden
-                lg:w-[90vw] lg:max-w-7xl lg:h-[90vh] lg:max-h-[90vh]">
+    <div data-task-modal-target="dragHandle"
+         class="h-full bg-bg-surface border border-border shadow-2xl flex flex-col rounded-xl overflow-hidden
+                lg:w-[90vw] lg:max-w-7xl lg:h-[90vh] lg:max-h-[90vh]"
+         style="resize:both; min-width:340px; min-height:300px;">
 
       <!-- Header: status, id, actions (supports right-click + long-press context menu) -->
       <div class="px-5 py-4 border-b border-border flex-shrink-0"

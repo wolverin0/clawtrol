@@ -93,6 +93,9 @@ class AgentCompletionService
   end
 
   def extract_output_text
+    contract = SubAgentOutputContract.from_params(@params)
+    return contract.to_markdown if contract
+
     OUTPUT_TEXT_PARAMS.each do |key|
       value = @params[key]
       return value if value.present?

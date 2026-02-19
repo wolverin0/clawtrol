@@ -123,6 +123,9 @@ class Task < ApplicationRecord
   validates :execution_plan, length: { maximum: 100_000 }, allow_nil: true
   validates :error_message, length: { maximum: 50_000 }, allow_nil: true
   validates :validation_command, length: { maximum: 1_000 }, allow_nil: true
+  validates :origin_chat_id, length: { maximum: 200 }, allow_nil: true
+  validates :origin_session_id, length: { maximum: 200 }, allow_nil: true
+  validates :origin_session_key, length: { maximum: 200 }, allow_nil: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
   validate :pipeline_stage_transition_is_valid, if: :will_save_change_to_pipeline_stage?
   validate :dispatched_requires_plan, if: :will_save_change_to_pipeline_stage?

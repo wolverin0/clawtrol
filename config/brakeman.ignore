@@ -230,6 +230,13 @@
       "file": "app/controllers/model_providers_controller.rb",
       "line": 71,
       "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
+    },
+    {
+      "warning_type": "Command Injection",
+      "fingerprint": "a1ed7b0dde2de4990e28a8c7de2a0c5deb6d664a14268739beefa0b35b6a392c",
+      "file": "app/services/factory_cron_sync_service.rb",
+      "line": 34,
+      "note": "False positive: Open3.capture2 with argv array, no shell interpolation"
     }
   ],
   "updated": "2026-02-18",
