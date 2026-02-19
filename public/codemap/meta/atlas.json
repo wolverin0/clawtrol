@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "files": {
+    "tileset": "MSX2 - Metal Gear - Miscellaneous - Tilesets.png",
+    "snake": "PlayStation 2 - Metal Gear Solid 3_ Subsistance - Metal Gear 2_ Solid Snake - Solid Snake.png",
+    "items": "PlayStation 2 - Metal Gear Solid 3_ Subsistance - Metal Gear 2_ Solid Snake - Items & Weapons.png",
+    "ui": "PlayStation 2 - Metal Gear Solid 3_ Subsistance - Metal Gear 2_ Solid Snake - UI Elements.png",
+    "codec": "PlayStation - Metal Gear Solid - Codec - Codec Portraits.png",
+    "metal_gear": "Game Boy _ GBC - Metal Gear_ Ghost Babel - Enemies - Metal Gear.png",
+    "transceiver": "MSX2 - Metal Gear - Miscellaneous - Transceiver.png"
+  },
+  "tile_sheet": {
+    "file": "MSX2 - Metal Gear - Miscellaneous - Tilesets.png",
+    "width": 946,
+    "height": 561,
+    "tile_w": 16,
+    "tile_h": 16
+  },
+  "sprite_sheet": {
+    "file": "PlayStation 2 - Metal Gear Solid 3_ Subsistance - Metal Gear 2_ Solid Snake - Solid Snake.png",
+    "width": 819,
+    "height": 402,
+    "tile_w": 32,
+    "tile_h": 48
+  },
+  "tile_regions": {
+    "default": { "file": "MSX2 - Metal Gear - Miscellaneous - Tilesets.png", "x": 0, "y": 9, "w": 16, "h": 16 },
+    "wall":    { "file": "MSX2 - Metal Gear - Miscellaneous - Tilesets.png", "x": 48, "y": 9, "w": 16, "h": 16 },
+    "floor":   { "file": "MSX2 - Metal Gear - Miscellaneous - Tilesets.png", "x": 144, "y": 25, "w": 16, "h": 16 }
+  },
+  "sprite_regions": {
+    "snake":    { "file": "PlayStation 2 - Metal Gear Solid 3_ Subsistance - Metal Gear 2_ Solid Snake - Solid Snake.png", "x": 273, "y": 8, "w": 32, "h": 48 },
+    "guard":    { "file": "Game Boy _ GBC - Metal Gear_ Ghost Babel - Enemies - Metal Gear.png", "x": 16, "y": 0, "w": 32, "h": 32 },
+    "item":     { "file": "PlayStation 2 - Metal Gear Solid 3_ Subsistance - Metal Gear 2_ Solid Snake - Items & Weapons.png", "x": 0, "y": 0, "w": 32, "h": 32 },
+    "portrait": { "file": "PlayStation - Metal Gear Solid - Codec - Codec Portraits.png", "x": 0, "y": 0, "w": 64, "h": 64 }
+  }
+}
