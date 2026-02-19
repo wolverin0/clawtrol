@@ -32,6 +32,7 @@ import CollapsibleController from "controllers/collapsible_controller"
 import MarketingTreeController from "controllers/marketing_tree_controller"
 import ShowcaseTabsController from "controllers/showcase_tabs_controller"
 import MobileNavController from "controllers/mobile_nav_controller"
+import NavDropdownController from "controllers/nav_dropdown_controller"
 import NightshiftController from "controllers/nightshift_controller"
 import FactoryController from "controllers/factory_controller"
 import SwarmRefreshController from "controllers/swarm_refresh_controller"
@@ -78,6 +79,7 @@ application.register("collapsible", CollapsibleController)
 application.register("marketing-tree", MarketingTreeController)
 application.register("showcase-tabs", ShowcaseTabsController)
 application.register("mobile-nav", MobileNavController)
+application.register("nav-dropdown", NavDropdownController)
 application.register("nightshift", NightshiftController)
 application.register("factory", FactoryController)
 application.register("swarm-refresh", SwarmRefreshController)

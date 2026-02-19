@@ -1,11 +1,28 @@
 <%# Navbar for non-board pages (settings, etc.) - simplified design %>
 <header class="flex-shrink-0 bg-bg-base border-b border-border">
-  <%# Main row: back + title | breadcrumb | health + user %>
-  <div class="flex items-center justify-between px-4 md:px-6 py-2.5">
+  <% if authenticated? %>
+    <% last_board = session[:last_board_id] && current_user.boards.order(position: :asc).find_by(id: session[:last_board_id]) %>
+    <% tasks_controllers = %w[boards workflows] %>
+    <% agents_controllers = %w[factory nightshift zerobitch sessions_explorer nodes skill_manager agent_personas agent_config] %>
+    <% data_controllers = %w[analytics tokens previews audits showcases] %>
+    <% tools_controllers = %w[command terminal saved_links webhook_mappings] %>
+    <% config_controllers = %w[gateway_config soul_editor] %>
+    <% category_base_class = "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated text-sm font-semibold transition-colors" %>
+    <% category_active_class = "text-accent bg-accent/10 border border-accent/20" %>
+    <% dropdown_panel_class = "absolute top-full left-0 mt-1.5 min-w-[200px] bg-bg-surface border border-border rounded-xl shadow-xl z-50 py-1.5" %>
+    <% menu_item_base_class = "flex items-center gap-2.5 px-3 py-2 text-sm transition-colors" %>
+    <% menu_item_active_class = "text-accent bg-accent/10" %>
+    <% menu_item_inactive_class = "text-content-secondary hover:bg-bg-elevated hover:text-content" %>
+    <% section_label_class = "px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-content-muted opacity-70" %>
+    <% separator_class = "border-t border-border my-1" %>
+    <% chevron_class = "text-xs transition-transform" %>
+  <% end %>
+
+  <%# Main row: back + title | nav | breadcrumb | health + user %>
+  <div class="flex items-center px-4 md:px-6 py-2.5 gap-3">
     <%# Left section: Logo + Back to board %>
     <div class="flex items-center gap-3">
       <% if authenticated? %>
-        <% last_board = session[:last_board_id] && current_user.boards.order(position: :asc).find_by(id: session[:last_board_id]) %>
         <%= link_to last_board ? board_path(last_board) : boards_path, class: "flex items-center gap-2 text-sm text-content-secondary hover:text-content transition-colors" do %>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
             <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
@@ -19,12 +36,220 @@
       <% end %>
     </div>
 
-    <%# Center section: Page title %>
-    <div class="flex items-center gap-2">
-      <% if content_for?(:breadcrumb_standalone) %>
+    <% if authenticated? %>
+      <nav class="hidden md:flex items-center gap-2" aria-label="Primary navigation">
+        <% tasks_active = tasks_controllers.include?(controller_name) %>
+        <div class="relative" data-controller="nav-dropdown">
+          <button type="button"
+                  data-nav-dropdown-target="button"
+                  data-nav-dropdown-active="<%= tasks_active %>"
+                  data-action="click->nav-dropdown#toggle"
+                  class="<%= "#{category_base_class} #{tasks_active ? category_active_class : ''}".strip %>"
+                  aria-expanded="false"
+                  aria-haspopup="true">
+            <span>📋</span>
+            <span>Tasks</span>
+            <span class="<%= chevron_class %>" data-nav-dropdown-target="chevron">▾</span>
+          </button>
+          <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
+            <%= link_to(last_board ? board_path(last_board) : boards_path,
+                class: "#{menu_item_base_class} #{controller_name == 'boards' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>📋</span>
+              <span>Board</span>
+            <% end %>
+            <%= link_to workflows_path,
+                class: "#{menu_item_base_class} #{controller_name == 'workflows' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>🔄</span>
+              <span>Workflows</span>
+            <% end %>
+          </div>
+        </div>
+
+        <% agents_active = agents_controllers.include?(controller_name) %>
+        <div class="relative" data-controller="nav-dropdown">
+          <button type="button"
+                  data-nav-dropdown-target="button"
+                  data-nav-dropdown-active="<%= agents_active %>"
+                  data-action="click->nav-dropdown#toggle"
+                  class="<%= "#{category_base_class} #{agents_active ? category_active_class : ''}".strip %>"
+                  aria-expanded="false"
+                  aria-haspopup="true">
+            <span>🤖</span>
+            <span>Agents</span>
+            <span class="<%= chevron_class %>" data-nav-dropdown-target="chevron">▾</span>
+          </button>
+          <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
+            <%= link_to factory_path,
+                class: "#{menu_item_base_class} #{controller_name == 'factory' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>🏭</span>
+              <span>Factory</span>
+            <% end %>
+            <%= link_to nightshift_path,
+                class: "#{menu_item_base_class} #{controller_name == 'nightshift' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>🌙</span>
+              <span>Nightshift</span>
+            <% end %>
+            <%= link_to zerobitch_path,
+                class: "#{menu_item_base_class} #{controller_name == 'zerobitch' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>🎯</span>
+              <span>ZeroBitch</span>
+            <% end %>
+            <%= link_to sessions_explorer_path,
+                class: "#{menu_item_base_class} #{controller_name == 'sessions_explorer' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>💬</span>
+              <span>Sessions</span>
+            <% end %>
+            <%= link_to nodes_path,
+                class: "#{menu_item_base_class} #{controller_name == 'nodes' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>📱</span>
+              <span>Nodes</span>
+            <% end %>
+            <%= link_to skill_manager_path,
+                class: "#{menu_item_base_class} #{controller_name == 'skill_manager' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>🧩</span>
+              <span>Skills</span>
+            <% end %>
+            <div class="<%= separator_class %>"></div>
+            <div class="<%= section_label_class %>">Personas</div>
+            <%= link_to agent_personas_path,
+                class: "#{menu_item_base_class} #{controller_name == 'agent_personas' && action_name != 'roster' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>🤖</span>
+              <span>Agent Personas</span>
+            <% end %>
+            <%= link_to roster_agent_personas_path,
+                class: "#{menu_item_base_class} #{controller_name == 'agent_personas' && action_name == 'roster' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>📋</span>
+              <span>Roster</span>
+            <% end %>
+            <%= link_to agent_config_path,
+                class: "#{menu_item_base_class} #{controller_name == 'agent_config' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>⚙️</span>
+              <span>Multi-Agent Config</span>
+            <% end %>
+          </div>
+        </div>
+
+        <% data_active = data_controllers.include?(controller_name) %>
+        <div class="relative" data-controller="nav-dropdown">
+          <button type="button"
+                  data-nav-dropdown-target="button"
+                  data-nav-dropdown-active="<%= data_active %>"
+                  data-action="click->nav-dropdown#toggle"
+                  class="<%= "#{category_base_class} #{data_active ? category_active_class : ''}".strip %>"
+                  aria-expanded="false"
+                  aria-haspopup="true">
+            <span>📊</span>
+            <span>Data</span>
+            <span class="<%= chevron_class %>" data-nav-dropdown-target="chevron">▾</span>
+          </button>
+          <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
+            <% dashboard_active = controller_name == 'boards' && params[:id].to_s == '1' %>
+            <%= link_to board_path(1),
+                class: "#{menu_item_base_class} #{dashboard_active ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>📊</span>
+              <span>Dashboard</span>
+            <% end %>
+            <%= link_to analytics_path,
+                class: "#{menu_item_base_class} #{controller_name == 'analytics' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>📈</span>
+              <span>Analytics</span>
+            <% end %>
+            <%= link_to tokens_path,
+                class: "#{menu_item_base_class} #{controller_name == 'tokens' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>💰</span>
+              <span>Tokens</span>
+            <% end %>
+            <%= link_to outputs_path,
+                class: "#{menu_item_base_class} #{controller_name == 'previews' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>👁️</span>
+              <span>Outputs</span>
+            <% end %>
+            <%= link_to audits_path,
+                class: "#{menu_item_base_class} #{controller_name == 'audits' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>🔍</span>
+              <span>Self-Audit</span>
+            <% end %>
+            <%= link_to showcases_path,
+                class: "#{menu_item_base_class} #{controller_name == 'showcases' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>✨</span>
+              <span>Showcase</span>
+            <% end %>
+          </div>
+        </div>
+
+        <% tools_active = tools_controllers.include?(controller_name) %>
+        <div class="relative" data-controller="nav-dropdown">
+          <button type="button"
+                  data-nav-dropdown-target="button"
+                  data-nav-dropdown-active="<%= tools_active %>"
+                  data-action="click->nav-dropdown#toggle"
+                  class="<%= "#{category_base_class} #{tools_active ? category_active_class : ''}".strip %>"
+                  aria-expanded="false"
+                  aria-haspopup="true">
+            <span>🛠️</span>
+            <span>Tools</span>
+            <span class="<%= chevron_class %>" data-nav-dropdown-target="chevron">▾</span>
+          </button>
+          <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
+            <%= link_to command_path,
+                class: "#{menu_item_base_class} #{controller_name == 'command' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>💻</span>
+              <span>Command</span>
+            <% end %>
+            <%= link_to terminal_path,
+                class: "#{menu_item_base_class} #{controller_name == 'terminal' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>🖥️</span>
+              <span>Terminal</span>
+            <% end %>
+            <%= link_to saved_links_path,
+                class: "#{menu_item_base_class} #{controller_name == 'saved_links' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>🔖</span>
+              <span>Saved Links</span>
+            <% end %>
+            <%= link_to webhook_mappings_path,
+                class: "#{menu_item_base_class} #{controller_name == 'webhook_mappings' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>🔁</span>
+              <span>Webhooks</span>
+            <% end %>
+          </div>
+        </div>
+
+        <% config_active = config_controllers.include?(controller_name) %>
+        <div class="relative" data-controller="nav-dropdown">
+          <button type="button"
+                  data-nav-dropdown-target="button"
+                  data-nav-dropdown-active="<%= config_active %>"
+                  data-action="click->nav-dropdown#toggle"
+                  class="<%= "#{category_base_class} #{config_active ? category_active_class : ''}".strip %>"
+                  aria-expanded="false"
+                  aria-haspopup="true">
+            <span>⚙️</span>
+            <span>Config</span>
+            <span class="<%= chevron_class %>" data-nav-dropdown-target="chevron">▾</span>
+          </button>
+          <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
+            <%= link_to gateway_config_path,
+                class: "#{menu_item_base_class} #{controller_name == 'gateway_config' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>⚙️</span>
+              <span>Gateway Config</span>
+            <% end %>
+            <%= link_to soul_editor_path,
+                class: "#{menu_item_base_class} #{controller_name == 'soul_editor' ? menu_item_active_class : menu_item_inactive_class}") do %>
+              <span>❤️</span>
+              <span>Soul Editor</span>
+            <% end %>
+          </div>
+        </div>
+      </nav>
+    <% end %>
+
+    <% if content_for?(:breadcrumb_standalone) %>
+      <div class="flex items-center gap-2">
         <span class="text-sm font-semibold text-content font-display"><%= yield :breadcrumb_standalone %></span>
-      <% end %>
-    </div>
+      </div>
+    <% end %>
+
+    <div class="flex-1"></div>
 
     <%# Right section: Search + Controls %>
     <div class="flex items-center gap-2">
@@ -161,10 +386,4 @@
     </div>
   </div>
 
-  <%# Icon strip: only on md+ %>
-  <% if authenticated? %>
-    <div class="hidden md:flex items-center px-4 py-1 gap-0.5 overflow-x-auto border-t border-border/50 bg-bg-base scrollbar-hide">
-      <%= render "shared/nav_icons" %>
-    </div>
-  <% end %>
 </header>
