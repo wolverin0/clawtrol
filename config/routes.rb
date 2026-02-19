@@ -240,6 +240,9 @@ Rails.application.routes.draw do
   # Web Terminal
   get "terminal", to: "terminal#show"
 
+  # Codemap Monitor
+  get "codemap", to: "codemap_monitor#index", as: :codemap_monitor
+
   # Notifications
   resources :notifications, only: [:index] do
     member do
