@@ -49,12 +49,14 @@
         </button>
         <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
           <%= link_to last_board ? board_path(last_board) : boards_path,
-              class: "#{menu_item_base_class} #{controller_name == 'boards' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'boards' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>📋</span>
             <span>Board</span>
           <% end %>
           <%= link_to workflows_path,
-              class: "#{menu_item_base_class} #{controller_name == 'workflows' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'workflows' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>🔄</span>
             <span>Workflows</span>
           <% end %>
@@ -76,49 +78,58 @@
         </button>
         <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
           <%= link_to factory_path,
-              class: "#{menu_item_base_class} #{controller_name == 'factory' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'factory' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>🏭</span>
             <span>Factory</span>
           <% end %>
           <%= link_to nightshift_path,
-              class: "#{menu_item_base_class} #{controller_name == 'nightshift' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'nightshift' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>🌙</span>
             <span>Nightshift</span>
           <% end %>
           <%= link_to zerobitch_path,
-              class: "#{menu_item_base_class} #{controller_name == 'zerobitch' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'zerobitch' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>🎯</span>
             <span>ZeroBitch</span>
           <% end %>
           <%= link_to sessions_explorer_path,
-              class: "#{menu_item_base_class} #{controller_name == 'sessions_explorer' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'sessions_explorer' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>💬</span>
             <span>Sessions</span>
           <% end %>
           <%= link_to nodes_path,
-              class: "#{menu_item_base_class} #{controller_name == 'nodes' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'nodes' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>📱</span>
             <span>Nodes</span>
           <% end %>
           <%= link_to skill_manager_path,
-              class: "#{menu_item_base_class} #{controller_name == 'skill_manager' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'skill_manager' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>🧩</span>
             <span>Skills</span>
           <% end %>
           <div class="<%= separator_class %>"></div>
           <div class="<%= section_label_class %>">Personas</div>
           <%= link_to agent_personas_path,
-              class: "#{menu_item_base_class} #{controller_name == 'agent_personas' && action_name != 'roster' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'agent_personas' && action_name != 'roster' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>🤖</span>
             <span>Agent Personas</span>
           <% end %>
           <%= link_to roster_agent_personas_path,
-              class: "#{menu_item_base_class} #{controller_name == 'agent_personas' && action_name == 'roster' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'agent_personas' && action_name == 'roster' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>📋</span>
             <span>Roster</span>
           <% end %>
           <%= link_to agent_config_path,
-              class: "#{menu_item_base_class} #{controller_name == 'agent_config' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'agent_config' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>⚙️</span>
             <span>Multi-Agent Config</span>
           <% end %>
@@ -141,32 +152,38 @@
         <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
           <% dashboard_active = controller_name == 'boards' && params[:id].to_s == '1' %>
           <%= link_to board_path(1),
-              class: "#{menu_item_base_class} #{dashboard_active ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{dashboard_active ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>📊</span>
             <span>Dashboard</span>
           <% end %>
           <%= link_to analytics_path,
-              class: "#{menu_item_base_class} #{controller_name == 'analytics' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'analytics' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>📈</span>
             <span>Analytics</span>
           <% end %>
           <%= link_to tokens_path,
-              class: "#{menu_item_base_class} #{controller_name == 'tokens' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'tokens' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>💰</span>
             <span>Tokens</span>
           <% end %>
           <%= link_to outputs_path,
-              class: "#{menu_item_base_class} #{controller_name == 'previews' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'previews' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>👁️</span>
             <span>Outputs</span>
           <% end %>
-          <%= link_to audits_path,
-              class: "#{menu_item_base_class} #{controller_name == 'audits' ? menu_item_active_class : menu_item_inactive_class}" do %>
+          <%= link_to dm_scope_audit_path,
+              class: "#{menu_item_base_class} #{controller_name == 'audits' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>🔍</span>
             <span>Self-Audit</span>
           <% end %>
           <%= link_to showcases_path,
-              class: "#{menu_item_base_class} #{controller_name == 'showcases' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'showcases' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>✨</span>
             <span>Showcase</span>
           <% end %>
@@ -188,22 +205,26 @@
         </button>
         <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
           <%= link_to command_path,
-              class: "#{menu_item_base_class} #{controller_name == 'command' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'command' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>💻</span>
             <span>Command</span>
           <% end %>
           <%= link_to terminal_path,
-              class: "#{menu_item_base_class} #{controller_name == 'terminal' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'terminal' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>🖥️</span>
             <span>Terminal</span>
           <% end %>
           <%= link_to saved_links_path,
-              class: "#{menu_item_base_class} #{controller_name == 'saved_links' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'saved_links' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>🔖</span>
             <span>Saved Links</span>
           <% end %>
           <%= link_to webhook_mappings_path,
-              class: "#{menu_item_base_class} #{controller_name == 'webhook_mappings' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'webhook_mappings' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>🔁</span>
             <span>Webhooks</span>
           <% end %>
@@ -225,12 +246,14 @@
         </button>
         <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
           <%= link_to gateway_config_path,
-              class: "#{menu_item_base_class} #{controller_name == 'gateway_config' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'gateway_config' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>⚙️</span>
             <span>Gateway Config</span>
           <% end %>
           <%= link_to soul_editor_path,
-              class: "#{menu_item_base_class} #{controller_name == 'soul_editor' ? menu_item_active_class : menu_item_inactive_class}" do %>
+              class: "#{menu_item_base_class} #{controller_name == 'soul_editor' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
             <span>❤️</span>
             <span>Soul Editor</span>
           <% end %>
