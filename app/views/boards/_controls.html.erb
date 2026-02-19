@@ -48,7 +48,7 @@
           <span class="<%= chevron_class %>" data-nav-dropdown-target="chevron">▾</span>
         </button>
         <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
-          <%= link_to(last_board ? board_path(last_board) : boards_path,
+          <%= link_to last_board ? board_path(last_board) : boards_path,
               class: "#{menu_item_base_class} #{controller_name == 'boards' ? menu_item_active_class : menu_item_inactive_class}" do %>
             <span>📋</span>
             <span>Board</span>
