@@ -47,7 +47,8 @@ class FileViewerController < ApplicationController
     end
 
     if resolved.size > MAX_FILE_SIZE
-      render inline: error_page("File too large (max #{MAX_FILE_SIZE / 1024}KB)"), status: :unprocessable_entity, content_type: "text/html"
+      body = "<h2>File too large (max #{MAX_FILE_SIZE / 1024}KB)</h2><p>Use Download to fetch the full file.</p>"
+      render inline: page_template(relative, body), status: :unprocessable_entity, content_type: "text/html"
       return
     end
 
