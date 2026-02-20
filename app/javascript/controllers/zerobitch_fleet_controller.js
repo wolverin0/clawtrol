@@ -331,6 +331,12 @@ export default class extends Controller {
       const hasDirtyTemplate = this.dirtyTemplates.has(agentId)
       const templateValue = hasDirtyTemplate ? this.dirtyTemplates.get(agentId) : (agent.template ?? "")
       const templateStatus = hasDirtyTemplate ? "Unsaved" : ""
+      const observability = agent.observability || {}
+      const obsBackend = observability.backend || "—"
+      const obsDetails = Object.entries(observability)
+        .filter(([key]) => key !== "backend")
+        .map(([key, value]) => `${key}=${value}`)
+        .join(" · ")
       return `
         <div class="group bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/40 transition-colors cursor-pointer"
              data-agent-id="${agentId}"
@@ -366,6 +372,8 @@ export default class extends Controller {
             </div>
             <p><span class="text-content-secondary">Uptime:</span> ${this.escapeHtml(agent.uptime || "—")}</p>
             <p><span class="text-content-secondary">Last Activity:</span> ${this.escapeHtml(agent.last_activity || "No tasks yet")}</p>
+            <p><span class="text-content-secondary">Observability:</span> ${this.escapeHtml(obsBackend)}</p>
+            ${obsDetails ? `<p class="text-[11px] text-content-muted">Obs: ${this.escapeHtml(obsDetails)}</p>` : ""}
           </div>
 
           <div class="mt-4 grid grid-cols-2 gap-2" data-action="click->zerobitch-fleet#consumeClick">
