@@ -39,7 +39,24 @@ class FileViewerController < ApplicationController
       return
     end
 
-    content = resolved.read(encoding: "utf-8")
+    # Explicit download mode for browser save-to-device
+    if params[:download].present?
+      send_file resolved.to_s, filename: resolved.basename.to_s, disposition: "attachment"
+      return
+    end
+
+    binary_exts = %w[.xlsx .xls .pdf .docx .doc .pptx .ppt .zip .tar .gz .png .jpg .jpeg .gif .webp .mp4 .mp3 .wav .bin .exe .sqlite .db]
+    if binary_exts.include?(resolved.extname.downcase)
+      send_file resolved.to_s, filename: resolved.basename.to_s, disposition: "attachment"
+      return
+    end
+
+    begin
+      content = resolved.read(encoding: "utf-8")
+    rescue ArgumentError, EncodingError
+      send_file resolved.to_s, filename: resolved.basename.to_s, disposition: "attachment"
+      return
+    end
 
     # Raw format: return plain text content (for editor fetch)
     if params[:format] == "raw"
@@ -285,12 +302,14 @@ class FileViewerController < ApplicationController
           .header h1{font-size:1.1rem;color:#58a6ff;font-weight:500;flex:1}
           .header .icon{font-size:1.3rem}
           .header-actions{display:flex;gap:0.5rem;align-items:center}
-          .edit-btn,.save-btn,.cancel-btn{padding:6px 14px;font-size:12px;border:none;border-radius:6px;cursor:pointer;font-weight:500}
+          .edit-btn,.save-btn,.download-btn,.cancel-btn{padding:6px 14px;font-size:12px;border:none;border-radius:6px;cursor:pointer;font-weight:500}
           .edit-btn{background:#6366f1;color:#fff}
           .edit-btn:hover{background:#5558e3}
           .edit-btn.dirty{background:#f59e0b}
           .save-btn{background:#22c55e;color:#fff}
           .save-btn:hover{background:#16a34a}
+          .download-btn{background:#0891b2;color:#fff}
+          .download-btn:hover{background:#0e7490}
           .cancel-btn{background:#4b5563;color:#fff}
           .cancel-btn:hover{background:#6b7280}
           .dirty-indicator{color:#f59e0b;font-size:14px;margin-left:4px}
@@ -325,7 +344,8 @@ class FileViewerController < ApplicationController
             <h1>#{escaped_title}<span class="dirty-indicator" id="dirty-dot" style="display:none">●</span></h1>
             <div class="header-actions">
               <button class="edit-btn" id="edit-btn" onclick="enterEditMode()">✏️ Edit</button>
-              <button class="save-btn" id="save-btn" onclick="saveFile()" style="display:none">💾 Save</button>
+              <button class="save-btn" id="save-btn" onclick="saveFile()" title="Save changes from browser" style="display:none">💾 Save</button>
+              <button class="download-btn" id="download-btn" onclick="downloadFile()" title="Download file to your device">⬇️ Download</button>
               <button class="cancel-btn" id="cancel-btn" onclick="cancelEdit()" style="display:none">❌ Cancel</button>
             </div>
           </div>
@@ -336,6 +356,7 @@ class FileViewerController < ApplicationController
         </div>
         <script>
           var isDirty = false;
+          var isEditing = false;
           var originalContent = '';
           var currentFile = #{title.to_json};
 
@@ -357,12 +378,7 @@ class FileViewerController < ApplicationController
                 textarea.value = content;
                 isDirty = false;
                 updateDirtyIndicator();
-
-                viewContent.style.display = 'none';
-                editorContainer.style.display = 'block';
-                editBtn.style.display = 'none';
-                saveBtn.style.display = 'inline-block';
-                cancelBtn.style.display = 'inline-block';
+                setEditingMode(true);
                 textarea.focus();
               })
               .catch(function(e) {
@@ -372,7 +388,13 @@ class FileViewerController < ApplicationController
               });
           }
 
+          function downloadFile() {
+            var url = window.location.pathname + '?file=' + encodeURIComponent(currentFile) + '&download=1';
+            window.location.href = url;
+          }
+
           function saveFile() {
+            if (!isEditing || !isDirty) return;
             var textarea = document.getElementById('editor-textarea');
             var saveBtn = document.getElementById('save-btn');
             saveBtn.textContent = '⏳ Saving...';
@@ -394,38 +416,66 @@ class FileViewerController < ApplicationController
                 alert('Save failed: ' + (data.error || 'Unknown error'));
                 saveBtn.textContent = '💾 Save';
                 saveBtn.disabled = false;
+                saveBtn.style.opacity = '1';
+                saveBtn.style.cursor = 'pointer';
               }
             })
             .catch(function(e) {
               alert('Save failed: ' + e.message);
               saveBtn.textContent = '💾 Save';
               saveBtn.disabled = false;
+              saveBtn.style.opacity = '1';
+              saveBtn.style.cursor = 'pointer';
             });
           }
 
           function cancelEdit() {
             if (isDirty && !confirm('Discard unsaved changes?')) return;
 
+            isDirty = false;
+            updateDirtyIndicator();
+            setEditingMode(false);
+          }
+
+          function updateDirtyIndicator() {
+            var dot = document.getElementById('dirty-dot');
+            dot.style.display = isDirty ? 'inline' : 'none';
+            updateSaveState();
+          }
+
+          function setEditingMode(active) {
             var editBtn = document.getElementById('edit-btn');
             var saveBtn = document.getElementById('save-btn');
             var cancelBtn = document.getElementById('cancel-btn');
             var viewContent = document.getElementById('view-content');
             var editorContainer = document.getElementById('editor-container');
 
-            viewContent.style.display = 'block';
-            editorContainer.style.display = 'none';
-            editBtn.style.display = 'inline-block';
-            editBtn.textContent = '✏️ Edit';
-            editBtn.disabled = false;
-            saveBtn.style.display = 'none';
-            cancelBtn.style.display = 'none';
-            isDirty = false;
-            updateDirtyIndicator();
+            isEditing = active;
+            if (active) {
+              viewContent.style.display = 'none';
+              editorContainer.style.display = 'block';
+              editBtn.style.display = 'none';
+              saveBtn.style.display = 'inline-block';
+              cancelBtn.style.display = 'inline-block';
+            } else {
+              viewContent.style.display = 'block';
+              editorContainer.style.display = 'none';
+              editBtn.style.display = 'inline-block';
+              editBtn.textContent = '✏️ Edit';
+              editBtn.disabled = false;
+              saveBtn.style.display = 'none';
+              cancelBtn.style.display = 'none';
+            }
+            updateSaveState();
           }
 
-          function updateDirtyIndicator() {
-            var dot = document.getElementById('dirty-dot');
-            dot.style.display = isDirty ? 'inline' : 'none';
+          function updateSaveState() {
+            if (!isEditing) return;
+            var saveBtn = document.getElementById('save-btn');
+            var enabled = isDirty;
+            saveBtn.disabled = !enabled;
+            saveBtn.style.opacity = enabled ? '1' : '0.6';
+            saveBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
           }
 
           document.getElementById('editor-textarea').addEventListener('input', function() {
