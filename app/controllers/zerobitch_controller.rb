@@ -4,7 +4,7 @@ class ZerobitchController < ApplicationController
   before_action :set_agent, only: %i[
     show_agent start_agent stop_agent restart_agent destroy_agent
     send_task task_history logs memory transfer_memory
-    save_soul save_agents
+    save_soul save_agents save_template
   ]
 
   def index
@@ -12,29 +12,18 @@ class ZerobitchController < ApplicationController
     docker = Zerobitch::DockerService
     docker_agents = docker.list_agents
 
+    histories = (Zerobitch::MetricsStore.all_histories(points: 60) rescue {})
     @agents = agents.map do |agent|
-      docker_info = docker_agents.find { |d| d[:name] == agent[:container_name] }
-      stats = docker_info ? docker.container_stats(agent[:container_name]) : {}
-      status = if docker_info
-                 docker_info[:state] == "running" ? "running" : "stopped"
-      else
-                 "stopped"
-      end
-      agent.merge(
-        status: status,
-        docker_state: docker_info&.dig(:state),
-        docker_status: docker_info&.dig(:status),
-        mem_usage: stats[:mem_usage],
-        cpu_percent: stats[:cpu_percent],
-        provider: agent[:provider] || agent.dig(:config, :provider) || "-",
-        model: agent[:model] || agent.dig(:config, :model) || "-"
-      )
+      build_agent_snapshot(agent, docker: docker, docker_agents: docker_agents, histories: histories)
     end
 
-    running = @agents.count { |a| a[:status] == "running" }
-    stopped = @agents.count { |a| a[:status] != "running" }
-    total_ram = @agents.filter_map { |a| a[:mem_usage] }.join(", ").presence || "-"
-    ram_values = @agents.filter_map { |a| a[:mem_usage]&.match(/(\d+\.?\d*)%/)&.[](1)&.to_f }
+    running_agents = @agents.select { |a| a[:status] == "running" }
+    running = running_agents.size
+    stopped = @agents.size - running
+    total_ram_mb = running_agents.filter_map { |a| a[:ram_usage] }
+      .sum { |value| Zerobitch::MetricsStore.send(:parse_mem_mb, value) }
+    total_ram = total_ram_mb.positive? ? "#{total_ram_mb.round(1)} MiB" : "-"
+    ram_values = running_agents.filter_map { |a| a[:ram_percent] }
     avg_ram = ram_values.any? ? "#{(ram_values.sum / ram_values.size).round(1)}%" : "-"
 
     @summary = {
@@ -46,12 +35,6 @@ class ZerobitchController < ApplicationController
       tasks_today: (Zerobitch::MetricsStore.tasks_today rescue 0)
     }
 
-    # Attach sparkline data
-    histories = (Zerobitch::MetricsStore.all_histories(points: 60) rescue {})
-    @agents.each do |agent|
-      h = histories[agent[:id]] || []
-      agent[:sparkline_mem] = h.map { |p| p["mem"] || p[:mem] || 0 }
-    end
   end
 
   def new_agent
@@ -256,9 +239,25 @@ class ZerobitchController < ApplicationController
     end
   end
 
-    def metrics
+  def save_template
+    template = params[:template].to_s
+    updated = Zerobitch::AgentRegistry.update(@agent[:id], template: template)
+    unless updated
+      render json: { ok: false, error: "Agent not found" }, status: :not_found
+      return
+    end
+
+    if request.format.json? || request.xhr?
+      render json: { ok: true, template: updated[:template] }
+    else
+      redirect_to zerobitch_path, notice: "Prompt template updated."
+    end
+  end
+
+  def metrics
     agents = Zerobitch::AgentRegistry.all
     docker = Zerobitch::DockerService
+    docker_agents = docker.list_agents
 
     # Collect fresh metrics
     Zerobitch::MetricsStore.collect_all rescue nil
@@ -270,32 +269,26 @@ class ZerobitchController < ApplicationController
     stopped = 0
 
     agent_data = agents.map do |agent|
-      stats = docker.container_stats(agent[:container_name]) rescue {}
-      status = docker.status(agent[:container_name]) rescue "stopped"
+      snapshot = build_agent_snapshot(
+        agent,
+        docker: docker,
+        docker_agents: docker_agents,
+        histories: histories,
+        include_task_count: true
+      )
 
-      if status == "running"
+      if snapshot[:status] == "running"
         running += 1
-        mem_mb = Zerobitch::MetricsStore.send(:parse_mem_mb, stats[:mem_usage])
-        total_ram += mem_mb
-        ram_percents << Zerobitch::MetricsStore.send(:parse_percent, stats[:cpu_percent])
+        if snapshot[:ram_usage].present?
+          mem_mb = Zerobitch::MetricsStore.send(:parse_mem_mb, snapshot[:ram_usage])
+          total_ram += mem_mb
+        end
+        ram_percents << snapshot[:ram_percent].to_f if snapshot[:ram_percent].present?
       else
         stopped += 1
       end
 
-      task_count = (Zerobitch::TaskHistory.all(agent[:id]) || []).size
-      history = histories[agent[:id]] || []
-
-      agent.merge(
-        status: status,
-        status_label: status&.capitalize,
-        ram_usage: stats[:mem_usage] || "—",
-        ram_percent: Zerobitch::MetricsStore.send(:parse_percent, stats[:cpu_percent]),
-        ram_limit: stats[:mem_limit],
-        detail_path: zerobitch_agent_path(agent[:id]),
-        sparkline_mem: history.map { |h| h["mem"] || h[:mem] },
-        sparkline_cpu: history.map { |h| h["cpu"] || h[:cpu] },
-        task_count: task_count
-      )
+      snapshot
     end
 
     avg_ram = ram_percents.any? ? (ram_percents.sum / ram_percents.size).round(1) : 0
@@ -418,8 +411,8 @@ class ZerobitchController < ApplicationController
     redirect_to zerobitch_rules_path, notice: msg
   end
 
-    # Assign task from ClawTrol
-    def assign_task
+  # Assign task from ClawTrol
+  def assign_task
     agent_id = params[:agent_id]
     task_id = params[:task_id]
     agent = Zerobitch::AgentRegistry.find(agent_id)
@@ -531,5 +524,151 @@ class ZerobitchController < ApplicationController
     JSON.parse(res.body)
   rescue
     nil
+  end
+
+  def parse_percent(value)
+    return nil if value.blank?
+
+    return value.to_f.round(1) if value.is_a?(Numeric)
+
+    m = value.to_s.match(/(\d+(?:\.\d+)?)%/)
+    return nil unless m
+
+    m[1].to_f.round(1)
+  end
+
+  def build_agent_snapshot(agent, docker:, docker_agents:, histories: {}, include_task_count: false)
+    docker_info = docker_agents.find { |d| d[:name] == agent[:container_name] }
+    stats = docker_info ? docker.container_stats(agent[:container_name]) : {}
+    state_info = docker_info ? docker.container_state(agent[:container_name]) : {}
+    status = docker_status_for(docker_info, state_info)
+    tasks = (Zerobitch::TaskHistory.all(agent[:id]) rescue [])
+    last_task = tasks.first
+    ram_percent = parse_percent(stats[:mem_percent])
+    cron_entries = status == "running" ? fetch_native_cron(agent[:container_name], docker) : []
+    cron_entries = cron_entries.presence || []
+    cron_display = cron_entries.presence || Array(agent[:cron_schedule].presence)
+
+    history = histories[agent[:id]] || []
+
+    agent.merge(
+      status: status,
+      status_label: status.to_s.capitalize,
+      docker_state: state_info[:status] || docker_info&.dig(:state),
+      docker_status: docker_info&.dig(:status),
+      restart_count: state_info[:restart_count],
+      mem_usage: stats[:mem_usage],
+      cpu_percent: stats[:cpu_percent],
+      ram_usage: stats[:mem_usage] || "—",
+      ram_percent: ram_percent,
+      ram_limit: stats[:mem_limit] || "—",
+      uptime: format_uptime(state_info[:started_at], status),
+      last_activity: format_timestamp(last_task&.dig("created_at")) || "No task yet",
+      cron_entries: cron_entries,
+      cron_display: cron_display,
+      cron_source: cron_entries.any? ? "native" : (agent[:cron_schedule].present? ? "registry" : nil),
+      detail_path: zerobitch_agent_path(agent[:id]),
+      provider: agent[:provider] || agent.dig(:config, :provider) || "-",
+      model: agent[:model] || agent.dig(:config, :model) || "-",
+      task_count: include_task_count ? tasks.size : nil,
+      sparkline_mem: history.map { |h| h["mem"] || h[:mem] || 0 },
+      sparkline_cpu: history.map { |h| h["cpu"] || h[:cpu] || 0 }
+    )
+  end
+
+  def docker_status_for(docker_info, state_info)
+    state = state_info[:status].to_s.downcase.presence || docker_info&.dig(:state).to_s.downcase.presence
+    return "unknown" if state.blank?
+
+    return "running" if state == "running"
+    return "paused" if state == "paused"
+    return "restarting" if state == "restarting"
+    return "dead" if state == "dead"
+    return "stopped" if %w[created exited].include?(state)
+
+    "unknown"
+  end
+
+  def format_uptime(started_at, status)
+    return "—" unless status == "running"
+    return "—" if started_at.blank?
+
+    started = Time.parse(started_at.to_s) rescue nil
+    return "—" unless started
+
+    seconds = Time.current - started
+    human_duration(seconds)
+  end
+
+  def human_duration(seconds)
+    return "0m" if seconds <= 0
+
+    minutes = (seconds / 60).floor
+    hours = minutes / 60
+    days = hours / 24
+    minutes = minutes % 60
+    hours = hours % 24
+
+    parts = []
+    parts << "#{days}d" if days.positive?
+    parts << "#{hours}h" if hours.positive?
+    parts << "#{minutes}m" if minutes.positive? || parts.empty?
+    parts.join(" ")
+  end
+
+  def format_timestamp(value)
+    return nil if value.blank?
+
+    time = value.is_a?(Time) ? value : Time.parse(value.to_s)
+    time.strftime("%Y-%m-%d %H:%M")
+  rescue ArgumentError, TypeError
+    nil
+  end
+
+  def fetch_native_cron(container_name, docker)
+    result = docker.cron_list(container_name, json: true)
+    entries = parse_cron_output(result[:output]) if result[:success]
+    return entries if entries.present?
+
+    result = docker.cron_list(container_name, json: false)
+    parse_cron_plain(result[:output])
+  rescue StandardError
+    []
+  end
+
+  def parse_cron_output(output)
+    parsed = JSON.parse(output.to_s)
+    entries = case parsed
+              when Array then parsed
+              when Hash
+                parsed["jobs"] || parsed["crons"] || parsed["entries"] || []
+              else
+                []
+              end
+    entries.map { |entry| format_cron_entry(entry) }.compact
+  rescue JSON::ParserError
+    []
+  end
+
+  def parse_cron_plain(output)
+    output.to_s.lines.map(&:strip).reject(&:blank?)
+  end
+
+  def format_cron_entry(entry)
+    return entry if entry.is_a?(String)
+    return entry.to_s unless entry.is_a?(Hash)
+
+    name = entry["name"] || entry["id"] || entry["job"] || entry["cron"]
+    schedule = entry["schedule"]
+    if schedule.is_a?(Hash)
+      schedule = schedule["expr"] || schedule["cron"] || schedule["every"] || schedule["at"] || schedule.to_s
+    end
+    schedule ||= entry["expr"] || entry["cron"]
+    enabled = entry.key?("enabled") ? (entry["enabled"] ? "enabled" : "disabled") : nil
+
+    line = [name, schedule].compact.join(": ")
+    return line if enabled.blank?
+
+    "#{line} (#{enabled})"
   end
 end

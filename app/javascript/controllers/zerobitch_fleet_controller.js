@@ -3,19 +3,28 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [
     "grid", "summary", "selectAll", "batchToolbar", "selectionCount", "resultPanel", "resultContent",
-    "broadcastModal", "broadcastPrompt", "agentCheckbox"
+    "broadcastModal", "broadcastPrompt", "agentCheckbox",
+    "logsModal", "logsTitle", "logsTail", "logsStatus", "logsOutput"
   ]
   static values = { refreshInterval: { type: Number, default: 15000 } }
 
   connect() {
     this.selected = new Set()
+    this.dirtyTemplates = new Map()
+    this.onTemplateInput = this.onTemplateInput.bind(this)
     this.refresh = this.refresh.bind(this)
     this.timer = setInterval(this.refresh, this.refreshIntervalValue)
     this.syncSelectionUi()
+    if (this.hasGridTarget) {
+      this.gridTarget.addEventListener("input", this.onTemplateInput)
+    }
   }
 
   disconnect() {
     if (this.timer) clearInterval(this.timer)
+    if (this.hasGridTarget) {
+      this.gridTarget.removeEventListener("input", this.onTemplateInput)
+    }
   }
 
   consumeClick(event) {
@@ -59,6 +68,7 @@ export default class extends Controller {
 
       const payload = await response.json()
       this.renderSummary(payload.summary || {})
+      if (this.isTemplateFocused()) return
       this.renderCards(payload.agents || [])
       this.restoreSelection()
     } catch (_error) {
@@ -109,6 +119,102 @@ export default class extends Controller {
   closeBroadcastModal() {
     this.broadcastModalTarget.classList.add("hidden")
     this.broadcastModalTarget.classList.remove("flex")
+  }
+
+  openLogs(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const button = event.currentTarget
+    const card = button.closest("[data-agent-id]")
+    const agentId = button.dataset.agentId || card?.dataset.agentId
+    if (!agentId) return
+
+    const agentName = button.dataset.agentName || card?.dataset.agentName || agentId
+    this.logsAgentId = agentId
+    this.logsAgentName = agentName
+
+    if (this.hasLogsTitleTarget) {
+      this.logsTitleTarget.textContent = `Logs · ${agentName}`
+    }
+
+    this.logsModalTarget.classList.remove("hidden")
+    this.logsModalTarget.classList.add("flex")
+    this.refreshLogs()
+  }
+
+  closeLogs() {
+    this.logsModalTarget.classList.add("hidden")
+    this.logsModalTarget.classList.remove("flex")
+    if (this.hasLogsStatusTarget) this.logsStatusTarget.textContent = ""
+  }
+
+  async refreshLogs() {
+    if (!this.logsAgentId) return
+
+    const tail = parseInt(this.logsTailTarget.value || "200", 10)
+    if (this.hasLogsStatusTarget) this.logsStatusTarget.textContent = "Loading..."
+
+    try {
+      const response = await fetch(`/zerobitch/agents/${encodeURIComponent(this.logsAgentId)}/logs?tail=${tail}`, {
+        headers: { Accept: "application/json" }
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      const payload = await response.json()
+      this.logsOutputTarget.textContent = payload.output || payload.error || "(no logs)"
+      if (this.hasLogsStatusTarget) {
+        this.logsStatusTarget.textContent = `Updated ${new Date().toLocaleTimeString()}`
+      }
+    } catch (error) {
+      this.logsOutputTarget.textContent = `Failed to load logs: ${error.message}`
+      if (this.hasLogsStatusTarget) this.logsStatusTarget.textContent = "Failed"
+    }
+  }
+
+  async saveTemplate(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const button = event.currentTarget
+    const card = button.closest("[data-agent-id]")
+    const agentId = button.dataset.agentId || card?.dataset.agentId
+    if (!agentId || !card) return
+
+    const textarea = card.querySelector("textarea[data-template-editor]")
+    const status = card.querySelector("[data-template-status]")
+    if (!textarea) return
+
+    if (status) status.textContent = "Saving..."
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.content
+    try {
+      const response = await fetch(`/zerobitch/agents/${encodeURIComponent(agentId)}/template`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": token,
+          Accept: "application/json"
+        },
+        body: JSON.stringify({ template: textarea.value })
+      })
+
+      if (!response.ok) {
+        const payload = await response.json()
+        throw new Error(payload.error || `HTTP ${response.status}`)
+      }
+
+      this.dirtyTemplates.delete(agentId)
+      if (status) {
+        status.textContent = "Saved"
+        window.setTimeout(() => {
+          if (status.textContent === "Saved") status.textContent = ""
+        }, 1500)
+      }
+    } catch (error) {
+      if (status) status.textContent = `Error: ${error.message}`
+    }
   }
 
   sendBroadcast() {
@@ -195,21 +301,53 @@ export default class extends Controller {
   renderCards(agents) {
     if (!this.hasGridTarget) return
 
+    const visibleIds = new Set(agents.map((agent) => String(agent.id)))
+    this.dirtyTemplates.forEach((_value, agentId) => {
+      if (!visibleIds.has(agentId)) this.dirtyTemplates.delete(agentId)
+    })
+
     this.gridTarget.innerHTML = agents.map((agent) => {
       const badge = this.statusBadgeClasses(agent.status)
+      const cronEntries = Array.isArray(agent.cron_display) ? agent.cron_display : (agent.cron_display ? [agent.cron_display] : [])
+      const cronLabel = agent.cron_source === "native" ? "native" : "registry"
+      const cronHtml = cronEntries.length
+        ? `
+          <div class="mt-1 text-[11px] text-emerald-300">
+            <div>⏱ Cron (${cronLabel}):</div>
+            ${cronEntries.map((entry) => `<div class="truncate">${this.escapeHtml(entry)}</div>`).join("")}
+          </div>`
+        : ""
+      const descriptionHtml = agent.description
+        ? `<p class="text-[11px] text-content-muted mt-1 line-clamp-2">${this.escapeHtml(agent.description)}</p>`
+        : ""
+      const skillforgeBadge = agent.skillforge
+        ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full border border-indigo-500/40 bg-indigo-500/10 text-indigo-200">Skillforge</span>`
+        : ""
+      const ramPercent = agent.ram_percent ?? null
+      const ramPercentLabel = ramPercent !== null && ramPercent !== undefined ? `${ramPercent}%` : "—"
+      const ramPercentWidth = ramPercent || 0
+      const restartCount = agent.restart_count ?? "—"
+      const agentId = String(agent.id)
+      const hasDirtyTemplate = this.dirtyTemplates.has(agentId)
+      const templateValue = hasDirtyTemplate ? this.dirtyTemplates.get(agentId) : (agent.template ?? "")
+      const templateStatus = hasDirtyTemplate ? "Unsaved" : ""
       return `
         <div class="group bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/40 transition-colors cursor-pointer"
-             data-agent-id="${agent.id}"
+             data-agent-id="${agentId}"
+             data-agent-name="${this.escapeHtml(agent.name || "Agent")}"
              data-action="click->zerobitch-fleet#openAgent">
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-start gap-2 min-w-0">
-              <input type="checkbox" class="mt-1 rounded border-border bg-bg-base" data-action="click->zerobitch-fleet#consumeClick change->zerobitch-fleet#toggleSelection" data-agent-id="${agent.id}">
+              <input type="checkbox" class="mt-1 rounded border-border bg-bg-base" data-action="click->zerobitch-fleet#consumeClick change->zerobitch-fleet#toggleSelection" data-agent-id="${agentId}">
               <div class="min-w-0">
                 <div class="flex items-center gap-2">
                   <span class="text-xl">${agent.emoji || "🤖"}</span>
                   <h3 class="text-sm font-semibold text-content truncate">${this.escapeHtml(agent.name || "Agent")}</h3>
+                  ${skillforgeBadge}
                 </div>
                 <p class="text-xs text-content-muted mt-1 truncate">${this.escapeHtml(agent.role || "")}</p>
+                ${descriptionHtml}
+                ${cronHtml}
               </div>
             </div>
             <span class="px-2 py-0.5 rounded-full text-xs font-medium border ${badge}">${this.escapeHtml(agent.status_label || "Stopped")}</span>
@@ -218,26 +356,36 @@ export default class extends Controller {
           <div class="mt-3 space-y-1 text-xs text-content-muted">
             <p><span class="text-content-secondary">Provider:</span> ${this.escapeHtml(agent.provider || "")}</p>
             <p class="truncate"><span class="text-content-secondary">Model:</span> ${this.escapeHtml(agent.model || "")}</p>
-            <p><span class="text-content-secondary">RAM:</span> ${this.escapeHtml(agent.ram_usage || "—")}</p>
+            <p><span class="text-content-secondary">Docker:</span> ${this.escapeHtml(agent.status_label || "Unknown")} · Restarts: ${this.escapeHtml(restartCount)}</p>
+            <p><span class="text-content-secondary">RAM:</span> ${this.escapeHtml(agent.ram_usage || "—")} / ${this.escapeHtml(agent.ram_limit || "—")} (${ramPercentLabel})</p>
             <div>
               <div class="w-full h-1.5 bg-bg-base rounded-full overflow-hidden border border-border/50">
-                <div class="h-full bg-accent" style="width: ${agent.ram_percent || 0}%"></div>
+                <div class="h-full bg-accent" style="width: ${ramPercentWidth}%"></div>
               </div>
-              <p class="mt-1 text-[11px]">Usage: ${agent.ram_percent || 0}% of ${this.escapeHtml(agent.ram_limit || "—")}</p>
+              <p class="mt-1 text-[11px]">Usage: ${ramPercentLabel} of ${this.escapeHtml(agent.ram_limit || "—")}</p>
             </div>
             <p><span class="text-content-secondary">Uptime:</span> ${this.escapeHtml(agent.uptime || "—")}</p>
             <p><span class="text-content-secondary">Last Activity:</span> ${this.escapeHtml(agent.last_activity || "No tasks yet")}</p>
           </div>
 
           <div class="mt-4 grid grid-cols-2 gap-2" data-action="click->zerobitch-fleet#consumeClick">
-            ${this.actionButton(agent.id, "start", "▶️ Start", "bg-green-600/80 hover:bg-green-500")}
-            ${this.actionButton(agent.id, "stop", "⏹ Stop", "bg-yellow-600/80 hover:bg-yellow-500")}
-            ${this.actionButton(agent.id, "restart", "🔄 Restart", "bg-orange-600/80 hover:bg-orange-500")}
-            ${this.actionButton(agent.id, "delete", "🗑 Delete", "bg-red-700/80 hover:bg-red-600")}
+            ${this.actionButton(agentId, "start", "▶️ Start", "bg-green-600/80 hover:bg-green-500")}
+            ${this.actionButton(agentId, "stop", "⏹ Stop", "bg-yellow-600/80 hover:bg-yellow-500")}
+            ${this.actionButton(agentId, "restart", "🔄 Restart", "bg-orange-600/80 hover:bg-orange-500")}
+            ${this.actionButton(agentId, "delete", "🗑 Delete", "bg-red-700/80 hover:bg-red-600")}
           </div>
 
           ${this.renderSparkline(agent.sparkline_mem || [])}
-          <a href="${agent.detail_path}" class="mt-3 inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium bg-accent hover:opacity-90 text-white" data-action="click->zerobitch-fleet#consumeClick">Send Task</a>
+          <details class="mt-3 rounded-md border border-border p-2" data-action="click->zerobitch-fleet#consumeClick">
+            <summary class="text-xs text-content-secondary cursor-pointer">🧠 Prompt template</summary>
+            <textarea class="mt-2 w-full rounded-md border border-border bg-bg-base px-2 py-1 text-[11px] text-content min-h-24 resize-y" data-template-editor placeholder="Add a default prompt template...">${this.escapeHtml(templateValue)}</textarea>
+            <div class="mt-2 flex items-center justify-between">
+              <button type="button" class="px-2 py-1 rounded-md text-[11px] bg-emerald-600/80 hover:bg-emerald-500 text-white" data-agent-id="${agentId}" data-action="click->zerobitch-fleet#saveTemplate click->zerobitch-fleet#consumeClick">Save template</button>
+              <span class="text-[10px] text-content-muted" data-template-status>${templateStatus}</span>
+            </div>
+          </details>
+          <button type="button" class="mt-3 inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium bg-bg-base border border-border text-content hover:border-accent/40" data-agent-id="${agentId}" data-agent-name="${this.escapeHtml(agent.name || "Agent")}" data-action="click->zerobitch-fleet#openLogs click->zerobitch-fleet#consumeClick">📜 Logs</button>
+          <a href="${agent.detail_path}" class="mt-2 inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium bg-accent hover:opacity-90 text-white" data-action="click->zerobitch-fleet#consumeClick">Send Task</a>
         </div>
       `
     }).join("")
@@ -276,8 +424,29 @@ export default class extends Controller {
 
   statusBadgeClasses(status) {
     if (status === "running") return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+    if (status === "stopped") return "bg-red-500/15 text-red-400 border-red-500/30"
+    if (status === "paused") return "bg-amber-500/15 text-amber-300 border-amber-500/30"
     if (status === "restarting") return "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
-    return "bg-red-500/15 text-red-400 border-red-500/30"
+    if (status === "dead") return "bg-rose-500/15 text-rose-300 border-rose-500/30"
+    return "bg-slate-500/15 text-slate-300 border-slate-500/30"
+  }
+
+  onTemplateInput(event) {
+    const textarea = event.target
+    if (!textarea?.matches?.("textarea[data-template-editor]")) return
+    const card = textarea.closest("[data-agent-id]")
+    const agentId = card?.dataset?.agentId
+    if (!agentId) return
+
+    this.dirtyTemplates.set(agentId, textarea.value)
+    const status = card.querySelector("[data-template-status]")
+    if (status) status.textContent = "Unsaved"
+  }
+
+  isTemplateFocused() {
+    const active = document.activeElement
+    if (!active || !active.matches) return false
+    return active.matches("textarea[data-template-editor]") && this.gridTarget.contains(active)
   }
 
   escapeHtml(value) {
