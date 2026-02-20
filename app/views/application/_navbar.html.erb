@@ -5,7 +5,7 @@
     <% tasks_controllers = %w[boards workflows] %>
     <% agents_controllers = %w[factory nightshift zerobitch sessions_explorer nodes skill_manager agent_personas agent_config] %>
     <% data_controllers = %w[analytics tokens previews audits showcases] %>
-    <% tools_controllers = %w[command terminal saved_links webhook_mappings] %>
+    <% tools_controllers = %w[command terminal saved_links learning_proposals webhook_mappings] %>
     <% config_controllers = %w[gateway_config soul_editor] %>
     <% category_base_class = "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated text-sm font-semibold transition-colors" %>
     <% category_active_class = "text-accent bg-accent/10 border border-accent/20" %>
@@ -93,11 +93,13 @@
               <span>🌙</span>
               <span>Nightshift</span>
             <% end %>
-            <%= link_to zerobitch_path,
-                class: "#{menu_item_base_class} #{controller_name == 'zerobitch' ? menu_item_active_class : menu_item_inactive_class}",
-              data: { turbo_frame: "_top" } do %>
-              <span>🎯</span>
-              <span>ZeroBitch</span>
+            <% if defined?(zerobitch_path) %>
+              <%= link_to zerobitch_path,
+                  class: "#{menu_item_base_class} #{controller_name == 'zerobitch' ? menu_item_active_class : menu_item_inactive_class}",
+                data: { turbo_frame: "_top" } do %>
+                <span>🎯</span>
+                <span>ZeroBitch</span>
+              <% end %>
             <% end %>
             <%= link_to sessions_explorer_path,
                 class: "#{menu_item_base_class} #{controller_name == 'sessions_explorer' ? menu_item_active_class : menu_item_inactive_class}",
@@ -226,6 +228,17 @@
               <span>🔖</span>
               <span>Saved Links</span>
             <% end %>
+            <%= link_to learning_proposals_path,
+                class: "#{menu_item_base_class} #{controller_name == 'learning_proposals' ? menu_item_active_class : menu_item_inactive_class}",
+              data: { turbo_frame: "_top" } do %>
+              <span>🧠</span>
+              <span>Learning Inbox</span>
+              <% if pending_learning_proposals_count.positive? %>
+                <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-accent">
+                  <%= pending_learning_proposals_count %>
+                </span>
+              <% end %>
+            <% end %>
             <%= link_to webhook_mappings_path,
                 class: "#{menu_item_base_class} #{controller_name == 'webhook_mappings' ? menu_item_active_class : menu_item_inactive_class}",
               data: { turbo_frame: "_top" } do %>
@@ -255,12 +268,7 @@
               <span>⚙️</span>
               <span>Gateway Config</span>
             <% end %>
-            <%= link_to soul_editor_path,
-                class: "#{menu_item_base_class} #{controller_name == 'soul_editor' ? menu_item_active_class : menu_item_inactive_class}",
-              data: { turbo_frame: "_top" } do %>
-              <span>❤️</span>
-              <span>Soul Editor</span>
-            <% end %>
+            <%# Soul Editor link temporarily hidden until route is available %>
           </div>
         </div>
       </nav>

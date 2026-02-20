@@ -81,14 +81,27 @@
         <%= link_to saved_links_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">📥</span> Saved Links
         <% end %>
+        <%= link_to learning_proposals_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+          <span class="text-lg w-7 text-center">🧠</span>
+          <span class="flex-1">Learning Inbox</span>
+          <% if pending_learning_proposals_count.positive? %>
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-accent">
+              <%= pending_learning_proposals_count %>
+            </span>
+          <% end %>
+        <% end %>
         <%= link_to marketing_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">📢</span> Marketing
         <% end %>
-        <%= link_to soul_editor_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🫀</span> Soul Editor
+        <% if defined?(soul_editor_path) %>
+          <%= link_to soul_editor_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+            <span class="text-lg w-7 text-center">🫀</span> Soul Editor
+          <% end %>
         <% end %>
-        <%= link_to zerobitch_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🐕</span> ZeroBitch
+        <% if defined?(zerobitch_path) %>
+          <%= link_to zerobitch_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
+            <span class="text-lg w-7 text-center">🐕</span> ZeroBitch
+          <% end %>
         <% end %>
 
         <div class="border-t border-border my-2"></div>
