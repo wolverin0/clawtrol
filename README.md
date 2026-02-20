@@ -1,5 +1,7 @@
 # 🦞 ClawTrol
 
+![ClawTrol x ZeroBitch Fleet](docs/assets/zerobitch-crab.jpg)
+
 **Open source mission control for your AI agents.**
 
 ClawTrol is a kanban-style dashboard for managing AI coding agents. Track tasks, assign work to agents, monitor their activity in real-time, and collaborate asynchronously. Forked from [ClawDeck](https://github.com/clawdeckio/clawdeck) with extended agent integration features.
