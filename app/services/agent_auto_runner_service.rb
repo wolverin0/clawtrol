@@ -37,10 +37,6 @@ class AgentAutoRunnerService
 
       next if agent_currently_working?(user)
 
-      # Optional pipeline pre-routing only in pipeline assist mode.
-      if pipeline_assist_enabled_for?(user)
-        stats[:pipeline_processed] += process_pipeline_tasks!(user)
-      end
 
       if wake_if_work_available!(user)
         stats[:users_woken] += 1
@@ -56,10 +52,6 @@ class AgentAutoRunnerService
   def openclaw_configured?(user)
     hooks_token = user.respond_to?(:openclaw_hooks_token) ? user.openclaw_hooks_token : nil
     user.openclaw_gateway_url.present? && (hooks_token.present? || user.openclaw_gateway_token.present?)
-  end
-
-  def pipeline_assist_enabled_for?(user)
-    user.respond_to?(:pipeline_assist_mode?) && user.pipeline_assist_mode?
   end
 
   def agent_currently_working?(user)
@@ -118,11 +110,7 @@ class AgentAutoRunnerService
     )
 
     begin
-      if pipeline_assist_enabled_for?(user) && task.pipeline_ready?
-        @openclaw_webhook_service.new(user).notify_auto_pull_ready_with_pipeline(task)
-      else
-        @openclaw_webhook_service.new(user).notify_auto_pull_ready(task)
-      end
+      @openclaw_webhook_service.new(user).notify_auto_pull_ready(task)
     rescue StandardError => e
       @logger.warn("[AgentAutoRunner] wake failed user_id=#{user.id} task_id=#{task.id} err=#{e.class}: #{e.message}")
     end

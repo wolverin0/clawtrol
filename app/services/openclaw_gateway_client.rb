@@ -169,6 +169,72 @@ class OpenclawGatewayClient
 
   # --- Config (read-only, for plugin status) ---
 
+  # --- Sessions Chat ---
+
+  # Send a message to an agent session via /hooks/agent.
+  # /api/sessions/send does NOT exist in OpenClaw — this is the correct endpoint.
+  def sessions_send(session_key, message)
+    hooks_token = @user.try(:openclaw_hooks_token).presence || @user.openclaw_gateway_token
+
+    uri = base_uri.dup
+    uri.path = "/hooks/agent"
+
+    req = Net::HTTP::Post.new(uri)
+    req["Authorization"] = "Bearer #{hooks_token}"
+    req["Content-Type"] = "application/json"
+    req.body = {
+      message: message,
+      sessionKey: session_key,
+      deliver: false,
+      name: "ClawTrol Chat"
+    }.to_json
+
+    res = http_for(uri).request(req)
+    JSON.parse(res.body)
+  rescue StandardError => e
+    { "ok" => false, "error" => e.message }
+  end
+
+  # Read session transcript from local JSONL file (no HTTP endpoint exists for this).
+  def sessions_history(session_key, limit: 20)
+    sessions_dir = File.expand_path("~/.openclaw/agents/main/sessions")
+    store_file = File.join(sessions_dir, "sessions.json")
+    return { "messages" => [], "error" => "sessions.json not found" } unless File.exist?(store_file)
+
+    store = JSON.parse(File.read(store_file))
+    entry = store[session_key]
+    return { "messages" => [], "error" => "session not found" } unless entry
+
+    session_id = entry["sessionId"]
+    transcript_file = File.join(sessions_dir, "#{session_id}.jsonl")
+    return { "messages" => [], "error" => "transcript not found" } unless File.exist?(transcript_file)
+
+    messages = []
+    File.readlines(transcript_file).last(limit * 3).each do |line|
+      begin
+        msg = JSON.parse(line.strip)
+        next unless %w[user assistant].include?(msg["role"])
+        content_text = if msg["content"].is_a?(Array)
+          msg["content"].select { |c| c["type"] == "text" }.map { |c| c["text"] }.join("\n")
+        else
+          msg["content"].to_s
+        end
+        next if content_text.blank?
+        messages << {
+          "role" => msg["role"],
+          "content" => content_text,
+          "timestamp" => msg["timestamp"]
+        }
+      rescue JSON::ParserError
+        next
+      end
+    end
+
+    { "messages" => messages.last(limit) }
+  rescue StandardError => e
+    { "messages" => [], "error" => e.message }
+  end
+
   def config_get
     result = invoke_tool!("gateway", action: "config.get", args: {})
     extract_details(result) || {}

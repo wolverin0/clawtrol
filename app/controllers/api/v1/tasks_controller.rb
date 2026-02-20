@@ -9,7 +9,7 @@ module Api
       include Api::TaskPipelineManagement
       include Api::TaskAgentLifecycle
       include Api::TaskValidationManagement
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health, :run_lobster, :resume_lobster, :spawn_via_gateway ]
 
       # GET /api/v1/tasks/:id/agent_log - get agent transcript for this task
       # Returns parsed messages from the OpenClaw session transcript
@@ -35,27 +35,69 @@ module Api
         agent = ZeroclawAgent.next_available
         return render json: { error: "No available ZeroClaw agents" }, status: :service_unavailable unless agent
 
-        message = @task.description.to_s.presence || @task.name.to_s
+        # Use job async to avoid request timeout (GLM-4.7 can take 30s+)
+        ZeroclawDispatchJob.perform_later(@task.id, agent.id)
 
-        result = agent.dispatch(message)
-        agent.update_column(:last_seen_at, Time.current)
-
-        dispatch_data = {
-          "agent_name" => agent.name,
-          "agent_url" => agent.url,
-          "model" => result["model"],
-          "response" => result["response"],
-          "dispatched_at" => Time.current.iso8601
-        }
-
-        new_state = @task.state_data.merge("zeroclaw_dispatch" => dispatch_data)
-        append = "\n\n---\n\n## ZeroClaw Response (#{agent.name})\n\n#{result['response']}"
-        new_desc = @task.description.to_s + append
-        @task.update_columns(state_data: new_state, description: new_desc)
-
-        render json: { success: true, task_id: @task.id }.merge(dispatch_data)
+        render json: { success: true, task_id: @task.id, agent_name: agent.name, queued: true }
       rescue => e
         render json: { error: "Dispatch failed: #{e.message}" }, status: :unprocessable_entity
+      end
+
+      # POST /api/v1/tasks/:id/run_lobster
+      def run_lobster
+        pipeline = params[:pipeline].presence || "code-review"
+        args = params[:args]&.permit!&.to_h || {}
+        args["task_id"] = @task.id.to_s
+
+        result = LobsterRunner.run(pipeline, task: @task, args: args)
+
+        if result.waiting_approval
+          render json: { success: true, status: "waiting_approval", resume_token: result.resume_token, output: result.output }
+        elsif result.success
+          render json: { success: true, status: "completed", output: result.output }
+        else
+          render json: { success: false, error: result.error, output: result.output }, status: :unprocessable_entity
+        end
+      rescue => e
+        render json: { error: e.message }, status: :unprocessable_entity
+      end
+
+      # POST /api/v1/tasks/:id/resume_lobster
+      def resume_lobster
+        return render json: { error: "No resume token on task" }, status: :bad_request unless @task.resume_token.present?
+
+        approve = params[:approve] != "false"
+        result = LobsterRunner.resume(@task, approve: approve)
+
+        if result.success
+          render json: { success: true, output: result.output, approved: approve }
+        else
+          render json: { success: false, error: result.error }, status: :unprocessable_entity
+        end
+      rescue => e
+        render json: { error: e.message }, status: :unprocessable_entity
+      end
+
+      # POST /api/v1/tasks/:id/spawn_via_gateway
+      def spawn_via_gateway
+        client = OpenclawGatewayClient.new(current_user)
+        prompt = @task.compiled_prompt.presence || @task.description.presence || @task.name
+        model = @task.model.presence || Task::DEFAULT_MODEL
+
+        result = client.spawn_session!(model: model, prompt: prompt)
+        child_key = result[:child_session_key]
+        session_id = result[:session_id]
+
+        if child_key.present?
+          updates = { agent_session_key: child_key, status: "in_progress", assigned_to_agent: true, assigned_at: Time.current }
+          updates[:agent_session_id] = session_id if session_id.present?
+          @task.update!(updates)
+          render json: { success: true, session_key: child_key, session_id: session_id }
+        else
+          render json: { error: "Spawn failed — no child_session_key returned", result: result }, status: :unprocessable_entity
+        end
+      rescue => e
+        render json: { error: e.message }, status: :unprocessable_entity
       end
 
       TASK_JSON_INCLUDES = {

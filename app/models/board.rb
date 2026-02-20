@@ -3,6 +3,7 @@
 class Board < ApplicationRecord
   belongs_to :user, inverse_of: :boards
   has_many :tasks, dependent: :destroy, inverse_of: :board
+  has_one :roadmap, class_name: "BoardRoadmap", dependent: :destroy, inverse_of: :board
   has_many :agent_personas, dependent: :nullify, inverse_of: :board
   has_many :swarm_ideas, dependent: :nullify, inverse_of: :board
 

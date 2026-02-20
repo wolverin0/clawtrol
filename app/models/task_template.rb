@@ -54,7 +54,7 @@ class TaskTemplate < ApplicationRecord
   validates :name, presence: true
   validates :slug, presence: true, format: { with: /\A[a-z0-9_-]+\z/, message: "only allows lowercase letters, numbers, hyphens, and underscores" }
   validates :slug, uniqueness: { scope: :user_id }, if: -> { user_id.present? }
-  validates :slug, uniqueness: true, if: -> { global? }
+  validates :slug, uniqueness: { conditions: -> { where(global: true) } }, if: -> { global? }
   validates :model, inclusion: { in: MODELS }, allow_nil: true, allow_blank: true
   validates :priority, inclusion: { in: 0..3 }, allow_nil: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }

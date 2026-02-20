@@ -54,8 +54,8 @@ module ApplicationHelper
     "#{app_base_url}/view?file=#{relative_path}"
   end
 
-  def pipeline_ui_enabled?(user = current_user)
-    user.present? && user.respond_to?(:pipeline_assist_mode?) && user.pipeline_assist_mode?
+  def pipeline_ui_enabled?(_user = current_user)
+    false
   end
 
   def model_select_options(user = current_user, include_default: true)

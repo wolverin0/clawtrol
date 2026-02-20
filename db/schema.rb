@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_18_182100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -136,12 +136,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
 
   create_table "api_tokens", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "expires_at"
     t.datetime "last_used_at"
     t.string "name"
     t.string "token_digest", null: false
     t.string "token_prefix", limit: 8
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["expires_at"], name: "index_api_tokens_on_expires_at"
     t.index ["token_digest"], name: "index_api_tokens_on_token_digest", unique: true
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
   end
@@ -178,6 +180,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
     t.index ["audit_report_id"], name: "index_behavioral_interventions_on_audit_report_id"
     t.index ["user_id", "status"], name: "index_behavioral_interventions_on_user_id_and_status"
     t.index ["user_id"], name: "index_behavioral_interventions_on_user_id"
+  end
+
+  create_table "board_roadmap_task_links", force: :cascade do |t|
+    t.bigint "board_roadmap_id", null: false
+    t.datetime "created_at", null: false
+    t.string "item_key", null: false
+    t.text "item_text", null: false
+    t.bigint "task_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["board_roadmap_id", "item_key"], name: "idx_roadmap_task_links_unique_item", unique: true
+    t.index ["board_roadmap_id", "task_id"], name: "idx_roadmap_task_links_unique_task", unique: true
+    t.index ["board_roadmap_id"], name: "index_board_roadmap_task_links_on_board_roadmap_id"
+    t.index ["task_id"], name: "index_board_roadmap_task_links_on_task_id"
+  end
+
+  create_table "board_roadmaps", force: :cascade do |t|
+    t.bigint "board_id", null: false
+    t.text "body", default: "", null: false
+    t.datetime "created_at", null: false
+    t.datetime "last_generated_at"
+    t.integer "last_generated_count", default: 0, null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "updated_at", null: false
+    t.index ["board_id"], name: "index_board_roadmaps_on_board_id", unique: true
   end
 
   create_table "boards", force: :cascade do |t|
@@ -275,7 +301,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
     t.integer "cycle_number", null: false
     t.integer "duration_ms"
     t.jsonb "errors", default: []
-    t.bigint "factory_loop_id", null: false
+    t.bigint "factory_loop_id"
     t.integer "files_changed", default: 0
     t.datetime "finished_at"
     t.integer "input_tokens"
@@ -501,7 +527,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
     t.datetime "last_heartbeat_at", null: false
     t.string "lease_token", null: false
     t.datetime "released_at"
-    t.string "source", default: "auto_runner", null: false
+    t.string "source", default: "auto_runner"
     t.datetime "started_at", null: false
     t.bigint "task_id", null: false
     t.datetime "updated_at", null: false
@@ -813,6 +839,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
     t.datetime "last_outcome_at"
     t.string "last_recommended_action"
     t.uuid "last_run_id"
+    t.string "lobster_pipeline"
+    t.string "lobster_status"
     t.integer "lock_version", default: 0, null: false
     t.string "model"
     t.string "name"
@@ -824,15 +852,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
     t.text "original_description"
     t.jsonb "output_files", default: [], null: false
     t.bigint "parent_task_id"
-    t.boolean "pipeline_enabled", default: false
-    t.jsonb "pipeline_log"
-    t.string "pipeline_stage", default: "unstarted", null: false
-    t.string "pipeline_type"
     t.integer "position"
     t.integer "priority", default: 0, null: false
     t.string "recurrence_rule"
     t.time "recurrence_time"
     t.boolean "recurring", default: false, null: false
+    t.string "resume_token"
     t.integer "retry_count", default: 0
     t.jsonb "review_config", default: {}
     t.jsonb "review_result", default: {}
@@ -860,7 +885,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
     t.index ["auto_pull_blocked"], name: "index_tasks_on_auto_pull_blocked"
     t.index ["blocked"], name: "index_tasks_on_blocked"
     t.index ["board_id", "archived_at"], name: "idx_tasks_board_archived"
-    t.index ["board_id", "pipeline_stage"], name: "index_tasks_on_board_pipeline"
     t.index ["board_id", "status", "position"], name: "index_tasks_on_board_status_position"
     t.index ["board_id"], name: "index_tasks_on_board_id"
     t.index ["description"], name: "index_tasks_on_description_trigram", opclass: :gin_trgm_ops, using: :gin
@@ -872,8 +896,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
     t.index ["next_recurrence_at"], name: "index_tasks_on_next_recurrence_at"
     t.index ["nightly"], name: "index_tasks_on_nightly"
     t.index ["parent_task_id"], name: "index_tasks_on_parent_task_id"
-    t.index ["pipeline_enabled"], name: "index_tasks_on_pipeline_enabled"
-    t.index ["pipeline_stage"], name: "index_tasks_on_pipeline_stage"
     t.index ["position"], name: "index_tasks_on_position"
     t.index ["recurring"], name: "index_tasks_on_recurring"
     t.index ["review_status"], name: "index_tasks_on_review_status", where: "(review_status IS NOT NULL)"
@@ -999,6 +1021,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_120002) do
   add_foreign_key "audit_reports", "users"
   add_foreign_key "behavioral_interventions", "audit_reports"
   add_foreign_key "behavioral_interventions", "users"
+  add_foreign_key "board_roadmap_task_links", "board_roadmaps"
+  add_foreign_key "board_roadmap_task_links", "tasks"
+  add_foreign_key "board_roadmaps", "boards"
   add_foreign_key "boards", "users"
   add_foreign_key "cost_snapshots", "users"
   add_foreign_key "factory_agent_runs", "factory_agents"

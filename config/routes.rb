@@ -115,12 +115,6 @@ Rails.application.routes.draw do
         end
       end
 
-      # Pipeline API (ClawRouter 3-layer pipeline)
-      get "pipeline/status", to: "pipeline#status"
-      post "pipeline/enable_board/:board_id", to: "pipeline#enable_board"
-      post "pipeline/disable_board/:board_id", to: "pipeline#disable_board"
-      get "pipeline/task/:id/log", to: "pipeline#task_log"
-      post "pipeline/reprocess/:id", to: "pipeline#reprocess"
 
       # Factory API
       get "factory/loops", to: "factory_loops#index"
@@ -155,6 +149,7 @@ Rails.application.routes.draw do
 
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
+      post "hooks/agent_done", to: "hooks#agent_done"
 
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
@@ -189,9 +184,10 @@ Rails.application.routes.draw do
           post :complete_review
           post :recover_output
           post :dispatch_zeroclaw
+          post :run_lobster
+          post :resume_lobster
+          post :spawn_via_gateway
           get :file
-          post :route_pipeline
-          get :pipeline_info
           post :add_dependency
           delete :remove_dependency
           get :dependencies
@@ -269,7 +265,6 @@ Rails.application.routes.draw do
   resources :tokens, only: [:index]
 
   # Pipeline progress dashboard
-  get "pipeline", to: "pipeline_dashboard#show", as: :pipeline_dashboard
 
   # Workflows
   resources :workflows, only: [:index, :new, :create, :edit, :update] do
@@ -557,6 +552,9 @@ Rails.application.routes.draw do
       get :column
       get :dependency_graph
       post :generate_persona
+    end
+    resource :roadmap, only: [:update], controller: "boards/roadmaps" do
+      post :generate_tasks, on: :member
     end
     resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "boards/tasks" do
       collection do

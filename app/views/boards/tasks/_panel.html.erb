@@ -117,6 +117,38 @@
             🤖 Dispatch to ZeroClaw
           </button>
 
+          <%# Lobster Pipeline & Spawn via Gateway %>
+          <div class="border-t border-border my-1"></div>
+          <% if task.resume_token.present? %>
+            <button type="button"
+                    onclick="lobsterResume(<%= task.id %>, true)"
+                    class="block w-full text-left px-3 py-2 text-sm text-green-400 hover:bg-bg-hover transition-colors">
+              ✅ Approve & Resume Pipeline
+            </button>
+            <button type="button"
+                    onclick="lobsterResume(<%= task.id %>, false)"
+                    class="block w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-bg-hover transition-colors">
+              ❌ Reject Pipeline
+            </button>
+          <% else %>
+            <button type="button"
+                    onclick="lobsterRun(<%= task.id %>, 'code-review')"
+                    class="block w-full text-left px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors">
+              🦞 Run Lobster (code-review)
+            </button>
+            <button type="button"
+                    onclick="lobsterRun(<%= task.id %>, 'deploy-check')"
+                    class="block w-full text-left px-3 py-2 text-sm text-content-secondary hover:bg-bg-hover transition-colors">
+              🚀 Deploy Check
+            </button>
+          <% end %>
+          <div class="border-t border-border my-1"></div>
+          <button type="button"
+                  onclick="spawnViaGateway(<%= task.id %>)"
+                  class="block w-full text-left px-3 py-2 text-sm text-blue-400 hover:bg-bg-hover transition-colors">
+            🔌 Spawn via OpenClaw
+          </button>
+
           <div class="border-t border-border my-1"></div>
 
           <button type="button"
@@ -783,7 +815,7 @@
         </div>
 
         <!-- Mobile: Agent Activity + Output Files (shown below left column on mobile) -->
-        <div class="lg:hidden px-5 py-4 pb-24 border-t border-border min-w-0 overflow-x-hidden">
+        <div class="lg:hidden px-5 py-4 border-t border-border pb-24 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden">
 
           <%# Mobile Output Files %>
           <% if has_output_files %>
@@ -958,6 +990,77 @@
       btn.textContent = "❌ Error";
       setTimeout(() => { btn.disabled = false; btn.textContent = "🤖 Dispatch to ZeroClaw"; }, 3000);
     });
+  }
+
+  function lobsterRun(taskId, pipeline) {
+    const btn = event.currentTarget;
+    btn.disabled = true;
+    btn.textContent = "⏳ Running...";
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    fetch(`/api/v1/tasks/${taskId}/run_lobster`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+      body: JSON.stringify({ pipeline: pipeline })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'waiting_approval') {
+        btn.textContent = "⏳ Awaiting Approval";
+        setTimeout(() => location.reload(), 1500);
+      } else if (data.success) {
+        btn.textContent = "✅ Done";
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        btn.textContent = "❌ " + (data.error || "Failed");
+        setTimeout(() => { btn.disabled = false; }, 3000);
+      }
+    })
+    .catch(() => { btn.textContent = "❌ Error"; setTimeout(() => { btn.disabled = false; }, 3000); });
+  }
+
+  function lobsterResume(taskId, approve) {
+    const btn = event.currentTarget;
+    btn.disabled = true;
+    btn.textContent = "⏳ Processing...";
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    fetch(`/api/v1/tasks/${taskId}/resume_lobster`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+      body: JSON.stringify({ approve: approve ? 'true' : 'false' })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        btn.textContent = approve ? "✅ Approved!" : "✅ Rejected";
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        btn.textContent = "❌ " + (data.error || "Failed");
+        setTimeout(() => { btn.disabled = false; }, 3000);
+      }
+    })
+    .catch(() => { btn.textContent = "❌ Error"; setTimeout(() => { btn.disabled = false; }, 3000); });
+  }
+
+  function spawnViaGateway(taskId) {
+    const btn = event.currentTarget;
+    btn.disabled = true;
+    btn.textContent = "⏳ Spawning...";
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    fetch(`/api/v1/tasks/${taskId}/spawn_via_gateway`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        btn.textContent = "✅ Spawned!";
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        btn.textContent = "❌ " + (data.error || "Failed");
+        setTimeout(() => { btn.disabled = false; btn.textContent = "🔌 Spawn via OpenClaw"; }, 3000);
+      }
+    })
+    .catch(() => { btn.textContent = "❌ Error"; setTimeout(() => { btn.disabled = false; btn.textContent = "🔌 Spawn via OpenClaw"; }, 3000); });
   }
   </script>
 </div>

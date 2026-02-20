@@ -11,6 +11,24 @@ class ProcessSavedLinkJobTest < ActiveJob::TestCase
       note: "Test link",
       status: "pending"
     )
+
+    # Stub external HTTP calls so tests run without real network access
+    stub_request(:get, /example\.com/).to_return(
+      status: 200,
+      body: "<html><body><h1>Test Page</h1><p>Sample content.</p></body></html>",
+      headers: { "Content-Type" => "text/html" }
+    )
+    stub_request(:get, /api\.fxtwitter\.com/).to_return(
+      status: 200,
+      body: { tweet: { text: "Test tweet content" } }.to_json,
+      headers: { "Content-Type" => "application/json" }
+    )
+
+    # Stub Gemini CLI call to avoid real LLM invocation in tests
+    @gemini_stub = "**Summary**: Test summary.\n**ClawTrol Relevance**: Low\n**Action Items**: None"
+    ProcessSavedLinkJob.prepend(Module.new {
+      define_method(:call_gemini_cli) { |_prompt| "**Summary**: Test summary.\n**ClawTrol Relevance**: Low\n**Action Items**: None" }
+    })
   end
 
   # Test: link not found
