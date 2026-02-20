@@ -240,7 +240,11 @@ class ZerobitchController < ApplicationController
   end
 
   def save_template
-    template = params[:template].to_s
+    template = params[:template] ||
+      params.dig(:agent, :template) ||
+      params.dig(:zerobitch, :template) ||
+      params.dig(:zerobitch_agent, :template)
+    template = template.to_s
     updated = Zerobitch::AgentRegistry.update(@agent[:id], template: template)
     unless updated
       render json: { ok: false, error: "Agent not found" }, status: :not_found
@@ -572,7 +576,8 @@ class ZerobitchController < ApplicationController
       model: agent[:model] || agent.dig(:config, :model) || "-",
       task_count: include_task_count ? tasks.size : nil,
       sparkline_mem: history.map { |h| h["mem"] || h[:mem] || 0 },
-      sparkline_cpu: history.map { |h| h["cpu"] || h[:cpu] || 0 }
+      sparkline_cpu: history.map { |h| h["cpu"] || h[:cpu] || 0 },
+      observability: load_observability_settings(agent)
     )
   end
 
@@ -670,5 +675,62 @@ class ZerobitchController < ApplicationController
     return line if enabled.blank?
 
     "#{line} (#{enabled})"
+  end
+
+  def load_observability_settings(agent)
+    path = resolve_agent_config_path(agent)
+    return {} unless path && File.exist?(path)
+
+    parse_observability_section(File.read(path))
+  rescue StandardError
+    {}
+  end
+
+  def resolve_agent_config_path(agent)
+    id = agent[:id].to_s
+    candidates = [
+      Zerobitch::ConfigGenerator::STORAGE_DIR.join("configs", id, "config.toml")
+    ]
+
+    fleet_dir = Pathname.new(File.expand_path("~/zeroclaw-fleet/agents"))
+    if fleet_dir.exist?
+      names = [id]
+      container = agent[:container_name].to_s.sub(/\Azeroclaw-/, "")
+      names << container if container.present?
+      names << id.split("-").first if id.include?("-")
+      names << container.split("-").first if container.include?("-")
+
+      names.uniq.each do |name|
+        candidates << fleet_dir.join(name, "config.toml")
+      end
+    end
+
+    candidates.find { |path| path && File.exist?(path) }
+  end
+
+  def parse_observability_section(content)
+    observability = {}
+    in_section = false
+
+    content.to_s.each_line do |line|
+      stripped = line.strip
+      next if stripped.empty? || stripped.start_with?("#")
+
+      if stripped.match?(/^\[.+\]$/)
+        in_section = stripped == "[observability]"
+        next
+      end
+
+      next unless in_section
+
+      key, value = stripped.split("=", 2)
+      next unless value
+
+      value = value.split("#", 2).first.to_s.strip
+      value = value.gsub(/\A\"|\"\z/, "")
+      observability[key.to_s.strip.to_sym] = value
+    end
+
+    observability
   end
 end

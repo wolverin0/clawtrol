@@ -34,11 +34,6 @@ class FileViewerController < ApplicationController
       return
     end
 
-    if resolved.size > MAX_FILE_SIZE
-      render inline: error_page("File too large (max #{MAX_FILE_SIZE / 1024}KB)"), status: :unprocessable_entity, content_type: "text/html"
-      return
-    end
-
     # Explicit download mode for browser save-to-device
     if params[:download].present?
       send_file resolved.to_s, filename: resolved.basename.to_s, disposition: "attachment"
@@ -48,6 +43,11 @@ class FileViewerController < ApplicationController
     binary_exts = %w[.xlsx .xls .pdf .docx .doc .pptx .ppt .zip .tar .gz .png .jpg .jpeg .gif .webp .mp4 .mp3 .wav .bin .exe .sqlite .db]
     if binary_exts.include?(resolved.extname.downcase)
       send_file resolved.to_s, filename: resolved.basename.to_s, disposition: "attachment"
+      return
+    end
+
+    if resolved.size > MAX_FILE_SIZE
+      render inline: error_page("File too large (max #{MAX_FILE_SIZE / 1024}KB)"), status: :unprocessable_entity, content_type: "text/html"
       return
     end
 

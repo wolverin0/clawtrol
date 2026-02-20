@@ -43,6 +43,10 @@
     <span class="px-2 py-0.5 rounded-full text-xs font-medium border <%= status_classes %>"><%= agent[:status_label] || agent[:status].to_s.capitalize %></span>
   </div>
 
+  <% observability = agent[:observability] || {} %>
+  <% obs_backend = observability[:backend] || observability["backend"] %>
+  <% obs_details = observability.except(:backend, "backend") %>
+
   <div class="mt-3 space-y-1 text-xs text-content-muted">
     <p><span class="text-content-secondary">Provider:</span> <%= agent[:provider] %></p>
     <p class="truncate"><span class="text-content-secondary">Model:</span> <%= agent[:model] %></p>
@@ -56,6 +60,10 @@
     </div>
     <p><span class="text-content-secondary">Uptime:</span> <%= agent[:uptime] %></p>
     <p><span class="text-content-secondary">Last Activity:</span> <%= agent[:last_activity] %></p>
+    <p><span class="text-content-secondary">Observability:</span> <%= obs_backend.presence || "—" %></p>
+    <% if obs_details.present? %>
+      <p class="text-[11px] text-content-muted">Obs: <%= obs_details.map { |key, value| "#{key}=#{value}" }.join(" · ") %></p>
+    <% end %>
   </div>
 
   <div class="mt-4 grid grid-cols-2 gap-2" data-action="click->zerobitch-fleet#consumeClick">
