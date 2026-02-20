@@ -25,6 +25,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- add ZeroBitch cover image to README (`bb59707`)
+- update CHANGELOG.md [skip ci] (`9891cf7`)
 - update CHANGELOG.md [skip ci] (`c694714`)
 - update CHANGELOG.md [skip ci] (`283c10f`)
 - update CHANGELOG.md [skip ci] (`ee6a5cc`)
