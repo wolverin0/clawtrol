@@ -64,6 +64,13 @@ Rails.application.routes.draw do
         end
       end
 
+      resources :learning_proposals, only: [:index, :create, :update] do
+        member do
+          post :approve
+          post :reject
+        end
+      end
+
       # Feed entries (n8n pushes RSS/feed items here)
       resources :feed_entries, only: [:index, :create, :update] do
         collection do
@@ -222,6 +229,13 @@ Rails.application.routes.draw do
   # Link Inbox
   resources :saved_links, only: [:index, :create, :update, :destroy] do
     post :process_all, on: :collection
+  end
+
+  resources :learning_proposals, only: [:index] do
+    member do
+      post :approve
+      post :reject
+    end
   end
 
   # Feed Monitor Dashboard

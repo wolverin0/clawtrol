@@ -1,0 +1,46 @@
+<% content_for :title, "Learning Inbox - ClawTrol" %>
+<% content_for :breadcrumb_standalone, "🧠 Learning Inbox" %>
+
+<div class="py-6 space-y-6">
+  <div class="flex items-center justify-between gap-4 flex-wrap">
+    <div>
+      <h1 class="text-xl font-semibold text-content font-display">🧠 Learning Inbox</h1>
+      <p class="text-sm text-content-muted">Review self-audit proposals before they land in the workspace.</p>
+    </div>
+  </div>
+
+  <% all_count = @status_counts.values.sum %>
+  <% pending_count = @status_counts["pending"] || 0 %>
+  <% approved_count = @status_counts["approved"] || 0 %>
+  <% rejected_count = @status_counts["rejected"] || 0 %>
+
+  <div class="flex items-center gap-2 text-sm flex-wrap">
+    <%= link_to learning_proposals_path,
+        class: "px-3 py-1.5 rounded-lg border transition-colors #{params[:status].blank? ? 'border-accent text-accent bg-accent/10' : 'border-border text-content-muted hover:text-content hover:border-accent/50'}" do %>
+      All <span class="text-xs text-content-muted"><%= all_count %></span>
+    <% end %>
+    <%= link_to learning_proposals_path(status: "pending"),
+        class: "px-3 py-1.5 rounded-lg border transition-colors #{params[:status] == 'pending' ? 'border-accent text-accent bg-accent/10' : 'border-border text-content-muted hover:text-content hover:border-accent/50'}" do %>
+      Pending <span class="text-xs text-content-muted"><%= pending_count %></span>
+    <% end %>
+    <%= link_to learning_proposals_path(status: "approved"),
+        class: "px-3 py-1.5 rounded-lg border transition-colors #{params[:status] == 'approved' ? 'border-accent text-accent bg-accent/10' : 'border-border text-content-muted hover:text-content hover:border-accent/50'}" do %>
+      Approved <span class="text-xs text-content-muted"><%= approved_count %></span>
+    <% end %>
+    <%= link_to learning_proposals_path(status: "rejected"),
+        class: "px-3 py-1.5 rounded-lg border transition-colors #{params[:status] == 'rejected' ? 'border-accent text-accent bg-accent/10' : 'border-border text-content-muted hover:text-content hover:border-accent/50'}" do %>
+      Rejected <span class="text-xs text-content-muted"><%= rejected_count %></span>
+    <% end %>
+  </div>
+
+  <% if @learning_proposals.any? %>
+    <div class="space-y-3">
+      <%= render partial: "learning_proposals/proposal", collection: @learning_proposals, as: :proposal %>
+    </div>
+  <% else %>
+    <%= render "shared/empty_state",
+      icon: "🧠",
+      title: "No learning proposals yet",
+      description: "Self-audit suggestions will show up here for review." %>
+  <% end %>
+</div>

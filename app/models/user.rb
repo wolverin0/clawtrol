@@ -16,6 +16,7 @@ class User < ApplicationRecord
   has_many :task_templates, dependent: :destroy, inverse_of: :user
   has_many :api_tokens, dependent: :destroy, inverse_of: :user
   has_many :saved_links, dependent: :destroy, inverse_of: :user
+  has_many :learning_proposals, dependent: :destroy, inverse_of: :user
   has_many :feed_entries, dependent: :destroy, inverse_of: :user
   has_many :model_limits, dependent: :destroy, inverse_of: :user
   has_many :notifications, dependent: :destroy, inverse_of: :user

@@ -19,12 +19,18 @@ class ApplicationController < ActionController::Base
   # These apply even when accessing Puma directly (dev/staging).
   after_action :set_security_headers
 
-  helper_method :openclaw_memory_health
+  helper_method :openclaw_memory_health, :pending_learning_proposals_count
 
   def openclaw_memory_health
     return nil unless current_user
 
     @openclaw_memory_health ||= OpenclawMemorySearchHealthService.new(current_user).call
+  end
+
+  def pending_learning_proposals_count
+    return 0 unless current_user
+
+    @pending_learning_proposals_count ||= current_user.learning_proposals.pending.count
   end
 
   private
