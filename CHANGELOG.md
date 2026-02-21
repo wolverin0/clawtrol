@@ -7,13 +7,30 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
-- codemap monitor MVP (`/codemap_monitor`) with hotel/tech canvases, shared widget, and realtime status motion via ActionCable
-- persist agent activity telemetry via `agent_activity_events` (`agent_events` ingestion, rake import task, API + channel integration)
-- zerobitch observability UX upgrades (agent card telemetry, richer modal/task context, improved fleet detail actions)
+- ship codemap monitor + durable agent activity telemetry release (`2d88d14`)
+- zerobitch observability + viewer download (#225) (`a1df05d`)
+- add Learning Inbox for self-audit proposals (#215) (`5eda049`)
+- replace icon-only nav with grouped dropdown categories (`e28af79`)
+- board roadmap v1 task generation (#142) (`51ceb17`)
+- add run_lobster, resume_lobster, spawn_via_gateway actions + routes + UI (#127) (`dee85a4`)
+- add LobsterRunner service + deploy-check pipeline (#127) (`07b8d8a`)
+- **webhooks:** add agent_done hook endpoint for Factory cron webhook delivery (Item 3) (`13db7dc`)
+- **lobster:** add LobsterRunner service, run/resume controller actions and routes (Item 1) (`385b33c`)
+- **lobster:** add resume_token migration and pipeline files (Lobster integration step 1) (`cd420e0`)
 - openclaw-only orchestration + pipeline stage consistency + dynamic model catalog + outcome reporting (`64cb65f`)
 - **factory:** cherry-pick GitHub integration — clone repos + create PRs (#95) (`f960ec1`)
 ### 🐛 Bug Fixes
 
+- keep /view downloads working for large files (#225) (`a60f4c5`)
+- improve zerobitch fleet UX and view save (`8dfe43e`)
+- restore zerobitch routes + add codemap_monitor route (both were uncommitted) (`7f7dc63`)
+- **codemap:** fix atlas sprite coordinates - replace 0,0,16,16 placeholders with real pixel coords (`e4533e9`)
+- add turbo-frame=_top to all nav dropdown links, fix audits_path (`98de97b`)
+- precompile assets to include nav_dropdown_controller in importmap (`a16eb6b`)
+- remove invalid ( in link_to block calls in nav dropdowns (`6ab0ff8`)
+- resolve merge conflict in nav_icons - keep grouped dropdown version (`339f74f`)
+- remove extra ) in link_to ERB calls in nav dropdowns (`b8d4955`)
+- **ci:** fix all remaining test failures in clawtrol/main (`d7990f3`)
 - **ci:** fix remaining test failures (lint whitespace, title→name, validation assertions, skill scanner) (`daacc1f`)
 - **ci:** remove tests for non-existent FactoryCycleLog and SwarmIdea attributes (`f70bc43`)
 - **ci:** accumulated test fixes, service improvements, nightshift scheduled_hour migration (`c6fd4bd`)
@@ -28,11 +45,10 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`fa7a2a8`)
 - add ZeroBitch cover image to README (`bb59707`)
 - update CHANGELOG.md [skip ci] (`9891cf7`)
 - update CHANGELOG.md [skip ci] (`c694714`)
-- refresh README feature matrix (durable activity events + codemap monitor) and self-hosting install notes
-- add codemap MVP design/research docs and agent activity persistence validation notes
 - update CHANGELOG.md [skip ci] (`283c10f`)
 - update CHANGELOG.md [skip ci] (`ee6a5cc`)
 - update CHANGELOG.md [skip ci] (`0ed739c`)
@@ -48,12 +64,12 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - update CHANGELOG.md [skip ci] (`2d984fb`)
 ### ♻️  Refactoring
 
+- remove pipeline_assist mode — openclaw_only is the sole orchestration path (`d6b994e`)
 ### ⚡ Performance
 
 ### 🧪 Tests
 
-- broaden controller/service/system coverage for codemap monitor, agent activity ingestion/persistence, file viewer security, and zerobitch/controller regressions
-
+- stabilize board system login setup for deterministic selenium runs (`58f3140`)
 ### 👷 CI
 
 ### 💄 Style
