@@ -45,6 +45,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`dffb290`)
 - **report:** add 2026-02-20 big release commit/push report (`d338678`)
 - update CHANGELOG.md [skip ci] (`9870add`)
 - update CHANGELOG.md [skip ci] (`fa7a2a8`)
@@ -80,6 +81,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🔧 Chores
 
+- remove unused large binary artifacts from repo (`84e9a1c`)
 
 ## [v0.9.0] — 2026-02-17
 
