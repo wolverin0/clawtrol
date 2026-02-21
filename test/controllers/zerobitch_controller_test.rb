@@ -63,6 +63,8 @@ class ZerobitchControllerTest < ActionDispatch::IntegrationTest
     assert_equal "log", first.dig("observability", "backend")
     assert_equal "http://otel-collector:4318/v1/traces", first.dig("observability", "otel_endpoint")
     assert_equal 2, first["restart_count"]
+    assert_equal "sin template", first["template_label"]
+    assert_match(/\A\d{4}-\d{2}-\d{2} \d{2}:\d{2}\z/, first["last_activity"])
   end
 
   test "save_template updates template via json" do
@@ -82,7 +84,7 @@ class ZerobitchControllerTest < ActionDispatch::IntegrationTest
 
   private
 
-  def sample_agent(id:, template: "You are a focused operator")
+  def sample_agent(id:, template: "")
     {
       id: id,
       name: "Rex",
@@ -112,7 +114,7 @@ class ZerobitchControllerTest < ActionDispatch::IntegrationTest
               Zerobitch::MetricsStore.stub(:collect_all, true) do
                 Zerobitch::MetricsStore.stub(:all_histories, { agent[:id] => [{ "mem" => 10 }, { "mem" => 12 }] }) do
                   Zerobitch::MetricsStore.stub(:tasks_today, 7) do
-                    Zerobitch::TaskHistory.stub(:all, []) do
+                    Zerobitch::TaskHistory.stub(:all, [{ "timestamp" => 5.minutes.ago.iso8601 }]) do
                       yield
                     end
                   end

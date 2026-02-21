@@ -547,14 +547,13 @@ class ZerobitchController < ApplicationController
     state_info = docker_info ? docker.container_state(agent[:container_name]) : {}
     status = docker_status_for(docker_info, state_info)
     tasks = (Zerobitch::TaskHistory.all(agent[:id]) rescue [])
+    history = histories[agent[:id]] || []
     last_task = tasks.last
-    last_activity_value = last_task&.dig("timestamp") || last_task&.dig("created_at")
+    last_activity_value = latest_activity_timestamp(last_task: last_task, history: history, state_info: state_info)
     ram_percent = parse_percent(stats[:mem_percent])
     cron_entries = status == "running" ? fetch_native_cron(agent[:container_name], docker) : []
     cron_entries = cron_entries.presence || []
     cron_display = cron_entries.presence || Array(agent[:cron_schedule].presence)
-
-    history = histories[agent[:id]] || []
 
     agent.merge(
       status: status,
@@ -568,7 +567,8 @@ class ZerobitchController < ApplicationController
       ram_percent: ram_percent,
       ram_limit: stats[:mem_limit] || "—",
       uptime: format_uptime(state_info[:started_at], status),
-      last_activity: format_timestamp(last_activity_value) || "No task yet",
+      last_activity: format_timestamp(last_activity_value) || "Sin actividad registrada",
+      template_label: agent[:template].to_s.strip.presence || "sin template",
       cron_entries: cron_entries,
       cron_display: cron_display,
       cron_source: cron_entries.any? ? "native" : (agent[:cron_schedule].present? ? "registry" : nil),
@@ -580,6 +580,26 @@ class ZerobitchController < ApplicationController
       sparkline_cpu: history.map { |h| h["cpu"] || h[:cpu] || 0 },
       observability: load_observability_settings(agent)
     )
+  end
+
+
+  def latest_activity_timestamp(last_task:, history:, state_info:)
+    task_time = last_task&.dig("timestamp") || last_task&.dig("created_at")
+    history_time = Array(history).last&.dig("at") || Array(history).last&.dig(:at)
+    heartbeat_time = state_info[:started_at]
+
+    [task_time, history_time, heartbeat_time]
+      .compact
+      .filter_map { |value| parse_time(value) }
+      .max
+  end
+
+  def parse_time(value)
+    return value if value.is_a?(Time)
+
+    Time.parse(value.to_s)
+  rescue ArgumentError, TypeError
+    nil
   end
 
   def docker_status_for(docker_info, state_info)

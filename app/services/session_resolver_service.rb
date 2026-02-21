@@ -25,17 +25,19 @@ class SessionResolverService
   def self.resolve_from_key(session_key, task_id:)
     return nil if session_key.blank? || task_id.blank?
 
-    sessions_dir = TranscriptParser::SESSIONS_DIR
+    sessions_dir = TranscriptParser.sessions_dir
     return nil unless Dir.exist?(sessions_dir)
 
-    task_pattern = "Task ##{task_id}:"
+    task_patterns = ["Task ##{task_id}:", "## Task ##{task_id}:"]
+    session_key_patterns = [session_key.to_s, "\"session_key\":\"#{session_key}\""]
     cutoff_time = SEARCH_LOOKBACK.ago
 
     # Search active .jsonl files (most recent first for faster hits)
     session_id = search_files(
       Dir.glob(File.join(sessions_dir, "*.jsonl")),
-      task_pattern,
-      cutoff_time
+      cutoff_time,
+      task_patterns: task_patterns,
+      session_key_patterns: session_key_patterns
     ) { |file| File.basename(file, ".jsonl") }
 
     return session_id if session_id
@@ -43,8 +45,9 @@ class SessionResolverService
     # Also check archived files (.deleted. suffix) if not found
     search_files(
       Dir.glob(File.join(sessions_dir, "*.jsonl.deleted.*")),
-      task_pattern,
-      cutoff_time
+      cutoff_time,
+      task_patterns: task_patterns,
+      session_key_patterns: session_key_patterns
     ) { |file| File.basename(file).sub(/\.jsonl\.deleted\..+$/, "") }
   rescue StandardError => e
     Rails.logger.warn("[SessionResolverService] resolve_from_key error: #{e.message}")
@@ -61,7 +64,7 @@ class SessionResolverService
   def self.scan_for_task(task_id)
     return nil if task_id.blank?
 
-    sessions_dir = TranscriptParser::SESSIONS_DIR
+    sessions_dir = TranscriptParser.sessions_dir
     return nil unless Dir.exist?(sessions_dir)
 
     files = Dir.glob(File.join(sessions_dir, "*.jsonl"))
@@ -69,14 +72,18 @@ class SessionResolverService
       .first(RECENT_FILE_LIMIT)
 
     patterns = [
-      "tasks/#{task_id}",
       "Task ##{task_id}",
-      "task_id.*#{task_id}",
+      "## Task ##{task_id}:",
+      "task_id\":#{task_id}",
       "Task ID: #{task_id}"
     ]
 
     files.each do |file|
       sample = File.read(file, SAMPLE_READ_SIZE) rescue next
+
+      # Guardrail: ignore interactive Telegram/chat transcripts to avoid
+      # mis-linking the orchestrator conversation as task agent activity.
+      next if sample.include?("Mission Control") || sample.include?("telegram:group")
 
       if patterns.any? { |p| sample.include?(p) }
         session_id = File.basename(file, ".jsonl")
@@ -96,28 +103,40 @@ class SessionResolverService
 
   # Private class methods
 
-  def self.search_files(file_paths, pattern, cutoff_time, &id_extractor)
+  def self.search_files(file_paths, cutoff_time, task_patterns:, session_key_patterns:, &id_extractor)
     sorted = file_paths.sort_by { |f| -File.mtime(f).to_i }
 
     sorted.each do |file|
       next if File.mtime(file) < cutoff_time
 
-      # Read first 10 lines — task prompt is in the first user message
+      # Read first 15 lines — task prompt/session context are in initial user message.
       first_lines = []
       File.foreach(file).with_index do |line, idx|
-        break if idx >= 10
+        break if idx >= 15
         first_lines << line
       end
       content_sample = first_lines.join
+      next if interactive_chat_sample?(content_sample)
 
-      if content_sample.include?(pattern)
-        session_id = id_extractor.call(file)
-        Rails.logger.info("[SessionResolverService] Found session_id=#{session_id} matching '#{pattern}' in #{File.basename(file)}")
-        return session_id
-      end
+      has_session_key = session_key_patterns.any? { |p| p.present? && content_sample.include?(p) }
+      has_task_marker = task_patterns.any? { |p| p.present? && content_sample.include?(p) }
+      next unless has_session_key || has_task_marker
+
+      session_id = id_extractor.call(file)
+      Rails.logger.info("[SessionResolverService] Found session_id=#{session_id} (session_key=#{has_session_key} task_marker=#{has_task_marker}) in #{File.basename(file)}")
+      return session_id
     end
 
     nil
   end
-  private_class_method :search_files
+
+  def self.interactive_chat_sample?(sample)
+    return true if sample.include?("Mission Control")
+    return true if sample.include?("telegram:group")
+    return true if sample.include?("requester channel: telegram")
+
+    false
+  end
+
+  private_class_method :search_files, :interactive_chat_sample?
 end
