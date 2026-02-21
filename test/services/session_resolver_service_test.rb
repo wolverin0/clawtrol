@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "tmpdir"
+require "fileutils"
 
 class SessionResolverServiceTest < ActiveSupport::TestCase
   test "resolve_from_key returns nil for blank session_key" do
@@ -13,21 +15,41 @@ class SessionResolverServiceTest < ActiveSupport::TestCase
     assert_nil SessionResolverService.resolve_from_key("abc-123", task_id: "")
   end
 
-  test "resolve_from_key returns nil when sessions directory does not exist" do
-    # TranscriptParser::SESSIONS_DIR likely doesn't exist in test env
-    # so this should return nil naturally
-    result = SessionResolverService.resolve_from_key("abc-123", task_id: 42)
-    assert_nil result
+  test "resolve_from_key matches using session key marker and task marker" do
+    Dir.mktmpdir do |dir|
+      good_session_id = "good-session-1"
+      bad_session_id = "bad-session-1"
+
+      File.write(File.join(dir, "#{bad_session_id}.jsonl"), <<~JSONL)
+        {"type":"message","message":{"role":"user","content":[{"type":"text","text":"Task #258 only"}]}}
+      JSONL
+
+      File.write(File.join(dir, "#{good_session_id}.jsonl"), <<~JSONL)
+        {"type":"message","message":{"role":"user","content":[{"type":"text","text":"Your session: agent:main:subagent:abc-123\n## Task #258: Fix telemetry"}]}}
+      JSONL
+
+      TranscriptParser.stub(:sessions_dir, dir) do
+        result = SessionResolverService.resolve_from_key("agent:main:subagent:abc-123", task_id: 258)
+        assert_equal good_session_id, result
+      end
+    end
+  end
+
+  test "resolve_from_key ignores interactive telegram transcripts" do
+    Dir.mktmpdir do |dir|
+      File.write(File.join(dir, "chat-session.jsonl"), <<~JSONL)
+        {"type":"message","message":{"role":"user","content":[{"type":"text","text":"requester channel: telegram\nTask #258\nagent:main:subagent:abc-123"}]}}
+      JSONL
+
+      TranscriptParser.stub(:sessions_dir, dir) do
+        assert_nil SessionResolverService.resolve_from_key("agent:main:subagent:abc-123", task_id: 258)
+      end
+    end
   end
 
   test "scan_for_task returns nil for blank task_id" do
     assert_nil SessionResolverService.scan_for_task(nil)
     assert_nil SessionResolverService.scan_for_task("")
-  end
-
-  test "scan_for_task returns nil when sessions directory does not exist" do
-    result = SessionResolverService.scan_for_task(42)
-    assert_nil result
   end
 
   test "constants are defined" do

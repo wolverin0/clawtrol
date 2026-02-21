@@ -570,7 +570,6 @@
                     <div data-agent-activity-target="timeline" class="flex items-center gap-1 overflow-x-auto scrollbar-hide py-1 px-1 bg-bg-elevated/50 rounded-lg"></div>
                   </div>
 
-                  <%= render "shared/codemap_widget", task: task %>
 
                   <div data-agent-activity-target="loadingState" class="flex items-center justify-center py-8">
                     <div class="flex items-center gap-2 text-content-muted">
@@ -595,7 +594,6 @@
                 </div>
               <% else %>
                 <div class="h-full overflow-hidden flex flex-col px-5 py-4">
-                  <%= render "shared/codemap_widget", task: task, wrapper_class: "mb-4" %>
                   <div class="flex-1 flex items-center justify-center text-content-muted">
                     <div class="text-center">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-10 h-10 mx-auto mb-3 opacity-30">

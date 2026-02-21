@@ -25,6 +25,7 @@
 
   restart_count = agent[:restart_count].nil? ? "—" : agent[:restart_count]
   template_value = agent[:template].to_s
+  template_label = agent[:template_label].presence || template_value.strip.presence || "sin template"
 
   obs = agent[:observability].is_a?(Hash) ? agent[:observability] : {}
   obs_backend = obs[:backend].presence || obs["backend"].presence || "—"
@@ -101,7 +102,8 @@
       <p class="mt-1 text-[11px]">Usage: <%= ram_percent_label %> of <%= agent[:ram_limit].presence || "—" %></p>
     </div>
     <p><span class="text-content-secondary">Uptime:</span> <%= agent[:uptime].presence || "—" %></p>
-    <p><span class="text-content-secondary">Last Activity:</span> <%= agent[:last_activity].presence || "No tasks yet" %></p>
+    <p><span class="text-content-secondary">Last Activity:</span> <%= agent[:last_activity].presence || "Sin actividad registrada" %></p>
+    <p class="truncate"><span class="text-content-secondary">Prompt template:</span> <%= template_label %></p>
     <p><span class="text-content-secondary">Observability:</span> <%= obs_backend %></p>
     <% if obs_details.any? %>
       <p class="text-[11px] text-content-muted">Obs: <%= obs_details.join(" · ") %></p>

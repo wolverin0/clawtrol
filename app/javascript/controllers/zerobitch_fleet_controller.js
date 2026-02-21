@@ -330,6 +330,7 @@ export default class extends Controller {
       const agentId = String(agent.id)
       const hasDirtyTemplate = this.dirtyTemplates.has(agentId)
       const templateValue = hasDirtyTemplate ? this.dirtyTemplates.get(agentId) : (agent.template ?? "")
+      const templateLabel = agent.template_label || (String(templateValue || "").trim() || "sin template")
       const templateStatus = hasDirtyTemplate ? "Unsaved" : ""
       const observability = agent.observability || {}
       const obsBackend = observability.backend || "—"
@@ -371,7 +372,8 @@ export default class extends Controller {
               <p class="mt-1 text-[11px]">Usage: ${ramPercentLabel} of ${this.escapeHtml(agent.ram_limit || "—")}</p>
             </div>
             <p><span class="text-content-secondary">Uptime:</span> ${this.escapeHtml(agent.uptime || "—")}</p>
-            <p><span class="text-content-secondary">Last Activity:</span> ${this.escapeHtml(agent.last_activity || "No tasks yet")}</p>
+            <p><span class="text-content-secondary">Last Activity:</span> ${this.escapeHtml(agent.last_activity || "Sin actividad registrada")}</p>
+            <p class="truncate"><span class="text-content-secondary">Prompt template:</span> ${this.escapeHtml(templateLabel)}</p>
             <p><span class="text-content-secondary">Observability:</span> ${this.escapeHtml(obsBackend)}</p>
             ${obsDetails ? `<p class="text-[11px] text-content-muted">Obs: ${this.escapeHtml(obsDetails)}</p>` : ""}
           </div>
