@@ -29,6 +29,7 @@ ClawDeck now includes a lightweight server-side auto-runner + guardrails.
 
 What it does:
 - Every run, it **wakes OpenClaw** if there is an `up_next` task that is `assigned_to_agent=true` and not blocked.
+- Applies **in-progress guardrails**: base cap is **4** `in_progress` tasks per user; a temporary burst cap of **8** is only allowed when backlog pressure is high (>=3 runnable queued tasks), with no recent auto-pull errors, and no active model rate-limit.
 - Enforces **no-fake-in-progress**: if a task is `in_progress` but has **no session** (`agent_session_id/key`) and was **never claimed** (`agent_claimed_at`), it will be auto-demoted back to `up_next` after **10 minutes**.
 - Computes a **Zombie KPI**: `in_progress` tasks that were claimed but haven't changed for **30 minutes**. It creates a Notification (rate-limited) so you can spot stalls.
 

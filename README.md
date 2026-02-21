@@ -267,7 +267,7 @@ Set a webhook URL in Settings → Notifications. ClawTrol will POST JSON on task
 
 1. You create tasks and organize them on boards.
 2. You move work to `up_next` and assign it to the agent queue.
-3. ClawTrol auto-runner claims runnable tasks (respecting nightly gating for nightly work).
+3. ClawTrol auto-runner wakes runnable work with nightly gating and in-progress guardrails (base cap 4, burst cap 8 only when queue pressure is high and no recent errors/rate-limits).
 4. OpenClaw is the orchestrator: it picks claimed work, routes model/persona, and executes.
 5. OpenClaw must always report structured outcome via `POST /api/v1/hooks/task_outcome`.
 6. OpenClaw must always persist execution output via `POST /api/v1/hooks/agent_complete`.
