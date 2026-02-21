@@ -227,6 +227,7 @@ end
 class BoardKanbanTest < ApplicationSystemTestCase
   setup do
     @user = users(:one)
+    @user.update!(password: "password123", password_confirmation: "password123") if @user.respond_to?(:password=)
     @board = boards(:one)
     @task = tasks(:one)
     @task.update!(user: @user, board: @board)
