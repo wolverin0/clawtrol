@@ -1,85 +1,125 @@
-<% status_classes = case agent[:status]
-                  when "running" then "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                  when "stopped" then "bg-red-500/15 text-red-400 border-red-500/30"
-                  when "paused" then "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                  when "restarting" then "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
-                  when "dead" then "bg-rose-500/15 text-rose-300 border-rose-500/30"
-                  else "bg-slate-500/15 text-slate-300 border-slate-500/30"
-                  end %>
+<%
+  agent_id = agent[:id].to_s
+  agent_name = agent[:name].presence || "Agent"
+  status = agent[:status].to_s
+  status_label = agent[:status_label].presence || status.capitalize.presence || "Stopped"
+
+  badge_classes = case status
+  when "running" then "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+  when "stopped" then "bg-red-500/15 text-red-400 border-red-500/30"
+  when "paused" then "bg-amber-500/15 text-amber-300 border-amber-500/30"
+  when "restarting" then "bg-yellow-500/15 text-yellow-300 border-yellow-500/30"
+  when "dead" then "bg-rose-500/15 text-rose-300 border-rose-500/30"
+  else "bg-slate-500/15 text-slate-300 border-slate-500/30"
+  end
+
+  cron_entries = Array(agent[:cron_display]).compact
+  cron_label = agent[:cron_source] == "native" ? "native" : "registry"
+
+  ram_percent = agent[:ram_percent]
+  ram_percent = ram_percent.to_s.gsub("%", "").to_f if ram_percent.is_a?(String)
+  ram_percent = nil unless ram_percent.is_a?(Numeric)
+  ram_percent = ram_percent&.round(1)
+  ram_percent_label = ram_percent ? "#{ram_percent}%" : "—"
+  ram_width = [[ram_percent.to_f, 0.0].max, 100.0].min
+
+  restart_count = agent[:restart_count].nil? ? "—" : agent[:restart_count]
+  template_value = agent[:template].to_s
+
+  obs = agent[:observability].is_a?(Hash) ? agent[:observability] : {}
+  obs_backend = obs[:backend].presence || obs["backend"].presence || "—"
+  obs_details = obs.each_with_object([]) do |(key, value), arr|
+    k = key.to_s
+    next if k == "backend"
+    next if value.blank?
+    arr << "#{k}=#{value}"
+  end
+
+  sparkline = Array(agent[:sparkline_mem]).map { |v| v.to_f }
+  sparkline_points = if sparkline.length > 1
+    max = [sparkline.max.to_f, 1.0].max
+    sparkline.each_with_index.map do |value, idx|
+      x = ((idx.to_f / (sparkline.length - 1)) * 120).round(1)
+      y = (24 - (value / max) * 22).round(1)
+      "#{x},#{y}"
+    end.join(" ")
+  end
+
+  detail_path = agent[:detail_path].presence || zerobitch_agent_path(agent_id)
+%>
 
 <div class="group bg-bg-elevated border border-border rounded-xl p-4 hover:border-accent/40 transition-colors cursor-pointer"
-     data-agent-id="<%= agent[:id] %>"
-     data-agent-name="<%= agent[:name] %>"
+     data-agent-id="<%= agent_id %>"
+     data-agent-name="<%= agent_name %>"
      data-action="click->zerobitch-fleet#openAgent">
   <div class="flex items-start justify-between gap-3">
     <div class="flex items-start gap-2 min-w-0">
       <input type="checkbox"
              class="mt-1 rounded border-border bg-bg-base"
-             data-action="click->zerobitch-fleet#consumeClick change->zerobitch-fleet#toggleSelection"
-             data-agent-id="<%= agent[:id] %>"
-             data-zerobitch-fleet-target="agentCheckbox">
+             data-zerobitch-fleet-target="agentCheckbox"
+             data-agent-id="<%= agent_id %>"
+             data-action="click->zerobitch-fleet#consumeClick change->zerobitch-fleet#toggleSelection">
+
       <div class="min-w-0">
         <div class="flex items-center gap-2">
-          <span class="text-xl"><%= agent[:emoji] %></span>
-          <h3 class="text-sm font-semibold text-content truncate"><%= agent[:name] %></h3>
+          <span class="text-xl"><%= agent[:emoji].presence || "🤖" %></span>
+          <h3 class="text-sm font-semibold text-content truncate"><%= agent_name %></h3>
           <% if agent[:skillforge] %>
             <span class="text-[10px] px-1.5 py-0.5 rounded-full border border-indigo-500/40 bg-indigo-500/10 text-indigo-200">Skillforge</span>
           <% end %>
         </div>
-        <p class="text-xs text-content-muted mt-1 truncate"><%= agent[:role] %></p>
+
+        <p class="text-xs text-content-muted mt-1 truncate"><%= agent[:role].presence || "—" %></p>
+
         <% if agent[:description].present? %>
           <p class="text-[11px] text-content-muted mt-1 line-clamp-2"><%= agent[:description] %></p>
         <% end %>
-        <% if agent[:cron_display].present? %>
+
+        <% if cron_entries.any? %>
           <div class="mt-1 text-[11px] text-emerald-300">
-            <div>⏱ Cron <%= agent[:cron_source] == "native" ? "(native)" : "(registry)" %>:</div>
-            <% Array(agent[:cron_display]).each do |entry| %>
+            <div>⏱ Cron (<%= cron_label %>):</div>
+            <% cron_entries.each do |entry| %>
               <div class="truncate"><%= entry %></div>
             <% end %>
           </div>
         <% end %>
       </div>
     </div>
-    <span class="px-2 py-0.5 rounded-full text-xs font-medium border <%= status_classes %>"><%= agent[:status_label] || agent[:status].to_s.capitalize %></span>
+
+    <span class="px-2 py-0.5 rounded-full text-xs font-medium border <%= badge_classes %>"><%= status_label %></span>
   </div>
 
-  <% observability = agent[:observability] || {} %>
-  <% obs_backend = observability[:backend] || observability["backend"] %>
-  <% obs_details = observability.except(:backend, "backend") %>
-
   <div class="mt-3 space-y-1 text-xs text-content-muted">
-    <p><span class="text-content-secondary">Provider:</span> <%= agent[:provider] %></p>
-    <p class="truncate"><span class="text-content-secondary">Model:</span> <%= agent[:model] %></p>
-    <p><span class="text-content-secondary">Docker:</span> <%= agent[:status_label] %> · Restarts: <%= agent[:restart_count].presence || "—" %></p>
-    <p><span class="text-content-secondary">RAM:</span> <%= agent[:ram_usage] || "—" %> / <%= agent[:ram_limit] || "—" %> (<%= agent[:ram_percent] ? "#{agent[:ram_percent]}%" : "—" %>)</p>
+    <p><span class="text-content-secondary">Provider:</span> <%= agent[:provider].presence || "—" %></p>
+    <p class="truncate"><span class="text-content-secondary">Model:</span> <%= agent[:model].presence || "—" %></p>
+    <p><span class="text-content-secondary">Docker:</span> <%= status_label %> · Restarts: <%= restart_count %></p>
+    <p><span class="text-content-secondary">RAM:</span> <%= agent[:ram_usage].presence || "—" %> / <%= agent[:ram_limit].presence || "—" %> (<%= ram_percent_label %>)</p>
     <div>
       <div class="w-full h-1.5 bg-bg-base rounded-full overflow-hidden border border-border/50">
-        <div class="h-full bg-accent" style="width: <%= agent[:ram_percent] || 0 %>%"></div>
+        <div class="h-full bg-accent" style="width: <%= ram_width %>%"></div>
       </div>
-      <p class="mt-1 text-[11px]">Usage: <%= agent[:ram_percent] ? "#{agent[:ram_percent]}%" : "—" %> of <%= agent[:ram_limit] || "—" %></p>
+      <p class="mt-1 text-[11px]">Usage: <%= ram_percent_label %> of <%= agent[:ram_limit].presence || "—" %></p>
     </div>
-    <p><span class="text-content-secondary">Uptime:</span> <%= agent[:uptime] %></p>
-    <p><span class="text-content-secondary">Last Activity:</span> <%= agent[:last_activity] %></p>
-    <p><span class="text-content-secondary">Observability:</span> <%= obs_backend.presence || "—" %></p>
-    <% if obs_details.present? %>
-      <p class="text-[11px] text-content-muted">Obs: <%= obs_details.map { |key, value| "#{key}=#{value}" }.join(" · ") %></p>
+    <p><span class="text-content-secondary">Uptime:</span> <%= agent[:uptime].presence || "—" %></p>
+    <p><span class="text-content-secondary">Last Activity:</span> <%= agent[:last_activity].presence || "No tasks yet" %></p>
+    <p><span class="text-content-secondary">Observability:</span> <%= obs_backend %></p>
+    <% if obs_details.any? %>
+      <p class="text-[11px] text-content-muted">Obs: <%= obs_details.join(" · ") %></p>
     <% end %>
   </div>
 
   <div class="mt-4 grid grid-cols-2 gap-2" data-action="click->zerobitch-fleet#consumeClick">
-    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-green-600/80 hover:bg-green-500 text-white" data-command="start" data-agent-id="<%= agent[:id] %>" data-action="click->zerobitch-fleet#invokeAction">▶️ Start</button>
-    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-yellow-600/80 hover:bg-yellow-500 text-white" data-command="stop" data-agent-id="<%= agent[:id] %>" data-action="click->zerobitch-fleet#invokeAction">⏹ Stop</button>
-    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-orange-600/80 hover:bg-orange-500 text-white" data-command="restart" data-agent-id="<%= agent[:id] %>" data-action="click->zerobitch-fleet#invokeAction">🔄 Restart</button>
-    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-red-700/80 hover:bg-red-600 text-white" data-command="delete" data-agent-id="<%= agent[:id] %>" data-action="click->zerobitch-fleet#invokeAction">🗑 Delete</button>
+    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-green-600/80 hover:bg-green-500 text-white" data-command="start" data-agent-id="<%= agent_id %>" data-action="click->zerobitch-fleet#invokeAction click->zerobitch-fleet#consumeClick">▶️ Start</button>
+    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-yellow-600/80 hover:bg-yellow-500 text-white" data-command="stop" data-agent-id="<%= agent_id %>" data-action="click->zerobitch-fleet#invokeAction click->zerobitch-fleet#consumeClick">⏹ Stop</button>
+    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-orange-600/80 hover:bg-orange-500 text-white" data-command="restart" data-agent-id="<%= agent_id %>" data-action="click->zerobitch-fleet#invokeAction click->zerobitch-fleet#consumeClick">🔄 Restart</button>
+    <button type="button" class="px-2 py-1.5 rounded-md text-xs bg-red-700/80 hover:bg-red-600 text-white" data-command="delete" data-agent-id="<%= agent_id %>" data-action="click->zerobitch-fleet#invokeAction click->zerobitch-fleet#consumeClick">🗑 Delete</button>
   </div>
 
-  <% if agent[:sparkline_mem]&.any? %>
+  <% if sparkline_points.present? %>
     <div class="mt-3 space-y-1" data-action="click->zerobitch-fleet#consumeClick">
       <div class="text-[10px] text-content-muted">Memory (1h)</div>
       <svg viewBox="0 0 120 24" class="w-full h-6 text-accent" preserveAspectRatio="none">
-        <% points = agent[:sparkline_mem]; max_v = [points.max || 1, 1].max %>
-        <polyline fill="none" stroke="currentColor" stroke-width="1.5"
-                  points="<%= points.each_with_index.map { |v, i| "#{(i.to_f / [points.size - 1, 1].max * 120).round(1)},#{(24 - v.to_f / max_v * 22).round(1)}" }.join(' ') %>" />
+        <polyline fill="none" stroke="currentColor" stroke-width="1.5" points="<%= sparkline_points %>" />
       </svg>
     </div>
   <% end %>
@@ -88,11 +128,11 @@
     <summary class="text-xs text-content-secondary cursor-pointer">🧠 Prompt template</summary>
     <textarea class="mt-2 w-full rounded-md border border-border bg-bg-base px-2 py-1 text-[11px] text-content min-h-24 resize-y"
               data-template-editor
-              placeholder="Add a default prompt template..."><%= agent[:template].to_s %></textarea>
+              placeholder="Add a default prompt template..."><%= template_value %></textarea>
     <div class="mt-2 flex items-center justify-between">
       <button type="button"
               class="px-2 py-1 rounded-md text-[11px] bg-emerald-600/80 hover:bg-emerald-500 text-white"
-              data-agent-id="<%= agent[:id] %>"
+              data-agent-id="<%= agent_id %>"
               data-action="click->zerobitch-fleet#saveTemplate click->zerobitch-fleet#consumeClick">Save template</button>
       <span class="text-[10px] text-content-muted" data-template-status></span>
     </div>
@@ -100,13 +140,11 @@
 
   <button type="button"
           class="mt-3 inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium bg-bg-base border border-border text-content hover:border-accent/40"
-          data-agent-id="<%= agent[:id] %>"
-          data-agent-name="<%= agent[:name] %>"
-          data-action="click->zerobitch-fleet#openLogs click->zerobitch-fleet#consumeClick">
-    📜 Logs
-  </button>
+          data-agent-id="<%= agent_id %>"
+          data-agent-name="<%= agent_name %>"
+          data-action="click->zerobitch-fleet#openLogs click->zerobitch-fleet#consumeClick">📜 Logs</button>
 
-  <a href="<%= agent[:detail_path] %>" class="mt-2 inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium bg-accent hover:opacity-90 text-white" data-action="click->zerobitch-fleet#consumeClick">
-    Send Task
-  </a>
+  <%= link_to "Send Task", detail_path,
+      class: "mt-2 inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium bg-accent hover:opacity-90 text-white",
+      data: { action: "click->zerobitch-fleet#consumeClick" } %>
 </div>

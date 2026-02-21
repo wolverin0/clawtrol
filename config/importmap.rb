@@ -5,7 +5,9 @@ pin "@hotwired/turbo-rails", to: "turbo.min.js"
 pin "@hotwired/stimulus", to: "stimulus.min.js"
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
+pin "controllers/visualizer_controller", to: "controllers/visualizer_controller.js"
 pin_all_from "app/javascript/helpers", under: "helpers"
+pin_all_from "app/javascript/codemap", under: "codemap"
 pin "sortablejs" # @1.15.6
 
 # diff2html - GitHub-style diff viewer (UMD bundle, loaded as global via script tag)

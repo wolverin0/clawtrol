@@ -73,6 +73,7 @@ class AgentAutoRunnerService
   # Pipeline: process tasks that need pipeline advancement
   # Simplified: skip triage, go straight to context compilation + routing
   def process_pipeline_tasks!(user)
+    return 0 # pipeline removed
     count = 0
     tasks = user.tasks.where(pipeline_enabled: true, status: :up_next)
                       .where(pipeline_stage: [nil, "", "unstarted", "triaged", "context_ready"])

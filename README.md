@@ -244,6 +244,12 @@ Set a webhook URL in Settings → Notifications. ClawTrol will POST JSON on task
 - **Session Fallbacks** — Shows activity even without `session_id` using description markers
 - **Lifecycle Timeline** — `assigned → claimed → output posted → current status`
 - **Transcript Access** — Shows transcript link when transcript file exists
+- **Durable Activity Events** — Optional `agent_events` ingestion persists heartbeat/tool/final events in DB and rehydrates the live log stream
+
+### 🗺️ Codemap Monitor (MVP)
+- **Live Monitor Page** — `/codemap_monitor` with hotel + tech views for active agent tasks
+- **Realtime Task Motion** — Uses ActionCable task updates to move cards/rooms by status
+- **Task-Level Widget** — Shared codemap widget partial for board and monitor surfaces
 
 ### 🪝 Webhook Integration
 - **OpenClaw Gateway** — Instant wake via webhook when tasks are assigned
@@ -326,6 +332,8 @@ cd clawtrol
 chmod +x install.sh
 ./install.sh
 ```
+
+> `install.sh` is safe to re-run and appends `SECRET_KEY_BASE` to `.env.production` only when missing.
 
 Visit `http://localhost:4001`
 

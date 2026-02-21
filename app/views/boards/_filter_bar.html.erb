@@ -1,7 +1,66 @@
-<%# Row 2: Expanded Filters Bar (always visible) %>
-  <div data-controller="filter" 
+<%# Row 2: Expanded Filters Bar (always visible) — includes Agents section %>
+  <div data-controller="filter agent-categories" 
        data-filter-board-id-value="<%= @board.id %>"
        class="hidden md:flex items-center gap-3 px-4 md:px-6 py-2 bg-bg-surface/50 border-t border-border/50 flex-wrap">
+
+    <%# ── Agents section (merged from personas_sidebar) ──────────────── %>
+    <% if @agent_personas.present? %>
+      <% agent_categories = grouped_agent_personas(@agent_personas) %>
+      <span class="text-xs text-content-muted font-medium flex-shrink-0">🤖 Agents:</span>
+
+      <% agent_categories.each do |cat_key, cat_data| %>
+        <div class="relative">
+          <button type="button"
+                  data-agent-categories-target="category"
+                  data-category="<%= cat_key %>"
+                  data-action="click->agent-categories#toggleCategory"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs bg-bg-elevated hover:bg-bg-hover text-content-secondary transition-colors cursor-pointer"
+                  aria-expanded="false">
+            <span><%= cat_data[:icon] %></span>
+            <span><%= cat_data[:label] %></span>
+            <span class="text-content-muted text-[10px]">(<%= cat_data[:personas].count %>)</span>
+            <svg data-chevron xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3 h-3 transition-transform">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+
+          <div data-agent-categories-target="dropdown"
+               data-category="<%= cat_key %>"
+               class="hidden absolute left-0 top-full mt-1 bg-bg-surface border border-border rounded-lg shadow-xl z-50 min-w-[200px] max-w-[320px]">
+            <div class="p-2 flex flex-wrap gap-1.5">
+              <% cat_data[:personas].each do |persona| %>
+                <div draggable="true"
+                     data-drag-assign-target="badge"
+                     data-persona-id="<%= persona.id %>"
+                     data-persona-name="<%= persona.name %>"
+                     data-persona-emoji="<%= persona.emoji || '🤖' %>"
+                     data-action="dragstart->drag-assign#dragStart dragend->drag-assign#dragEnd"
+                     class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium whitespace-nowrap
+                            bg-<%= persona.model_color %>-500/15 text-<%= persona.model_color %>-400 
+                            border border-<%= persona.model_color %>-500/25
+                            cursor-grab active:cursor-grabbing hover:scale-105 transition-transform select-none"
+                     title="<%= persona.name %> (<%= persona.model_chain %>) — Drag onto a task to assign">
+                  <span><%= persona.emoji || '🤖' %></span>
+                  <span class="max-w-[100px] truncate"><%= persona.name %></span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%= link_to agent_personas_path,
+          class: "inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs text-content-muted hover:text-content hover:bg-bg-elevated transition-colors",
+          title: "Manage all agents" do %>
+        <span>📊</span>
+        <span>All (<%= @agent_personas.count %>)</span>
+      <% end %>
+
+      <%# Divider before filters %>
+      <span class="border-l border-border/60 h-4 flex-shrink-0"></span>
+    <% end %>
+
+    <%# ── Filters section ────────────────────────────────────────────── %>
     <span class="text-xs text-content-muted font-medium flex-shrink-0">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5 inline mr-1">
         <path fill-rule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 0 1 .628.74v2.288a2.25 2.25 0 0 1-.659 1.59l-4.682 4.683a2.25 2.25 0 0 0-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 0 1 8 18.25v-5.757a2.25 2.25 0 0 0-.659-1.591L2.659 6.22A2.25 2.25 0 0 1 2 4.629V2.34a.75.75 0 0 1 .628-.74Z" clip-rule="evenodd" />

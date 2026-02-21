@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_18_182100) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_20_033901) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -42,6 +42,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_182100) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "agent_activity_events", force: :cascade do |t|
+    t.datetime "created_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "event_type", null: false
+    t.string "level", default: "info", null: false
+    t.text "message"
+    t.jsonb "payload", default: {}, null: false
+    t.string "run_id", null: false
+    t.bigint "seq", null: false
+    t.string "source", default: "orchestrator", null: false
+    t.bigint "task_id", null: false
+    t.index ["run_id", "seq"], name: "idx_agent_activity_events_run_seq", unique: true
+    t.index ["task_id", "created_at"], name: "idx_agent_activity_events_task_created"
+    t.index ["task_id"], name: "index_agent_activity_events_on_task_id"
   end
 
   create_table "agent_messages", force: :cascade do |t|
@@ -436,6 +451,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_182100) do
     t.datetime "used_at"
     t.index ["code"], name: "index_invite_codes_on_code", unique: true
     t.index ["created_by_id"], name: "index_invite_codes_on_created_by_id"
+  end
+
+  create_table "learning_proposals", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "current_content"
+    t.text "diff_preview"
+    t.string "proposed_by", default: "self-audit"
+    t.text "proposed_content", null: false
+    t.string "reason"
+    t.integer "status", default: 0
+    t.string "target_file", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["user_id"], name: "index_learning_proposals_on_user_id"
   end
 
   create_table "model_limits", force: :cascade do |t|
@@ -1013,6 +1043,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_18_182100) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "agent_activity_events", "tasks"
   add_foreign_key "agent_messages", "tasks", column: "source_task_id", on_delete: :nullify
   add_foreign_key "agent_messages", "tasks", on_delete: :cascade
   add_foreign_key "agent_personas", "boards"

@@ -138,9 +138,55 @@ class TranscriptWatcher
       total_lines: total_lines
     })
 
+    persist_events(task_id, messages)
+
     Rails.logger.debug "[TranscriptWatcher] Broadcast #{messages.size} messages to task #{task_id}"
   rescue StandardError => e
     Rails.logger.error "[TranscriptWatcher] Broadcast failed for task #{task_id}: #{e.message}"
+  end
+
+  def persist_events(task_id, messages)
+    task = Task.find_by(id: task_id)
+    return unless task
+
+    run_id = task.last_run_id.presence || task.agent_session_id.presence || "task-#{task.id}"
+
+    events = messages.map do |msg|
+      {
+        run_id: run_id,
+        source: "transcript_watcher",
+        level: "info",
+        event_type: event_type_for_message(msg),
+        message: extract_message_text(msg),
+        seq: msg[:line].to_i,
+        created_at: msg[:timestamp],
+        payload: {
+          role: msg[:role],
+          raw: msg
+        }
+      }
+    end
+
+    AgentActivityIngestionService.call(task: task, events: events)
+  rescue StandardError => e
+    Rails.logger.warn "[TranscriptWatcher] Failed to persist events task=#{task_id}: #{e.message}"
+  end
+
+  def event_type_for_message(msg)
+    role = msg[:role].to_s
+    return "tool_result" if role == "toolResult"
+
+    if msg[:content].is_a?(Array) && msg[:content].any? { |c| c[:type].to_s == "tool_call" }
+      return "tool_call"
+    end
+
+    "message"
+  end
+
+  def extract_message_text(msg)
+    return "" unless msg[:content].is_a?(Array)
+
+    msg[:content].map { |c| c[:text].to_s if c[:text].present? }.compact.join("\n").slice(0, 5000)
   end
 
   # Reset offset for a session (useful for testing or when file is truncated)

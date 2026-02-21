@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class SecurityTest < ActionDispatch::IntegrationTest
+class SecurityIntegrationTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
     @board = boards(:one)

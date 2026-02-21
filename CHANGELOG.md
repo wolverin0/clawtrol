@@ -7,6 +7,9 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- codemap monitor MVP (`/codemap_monitor`) with hotel/tech canvases, shared widget, and realtime status motion via ActionCable
+- persist agent activity telemetry via `agent_activity_events` (`agent_events` ingestion, rake import task, API + channel integration)
+- zerobitch observability UX upgrades (agent card telemetry, richer modal/task context, improved fleet detail actions)
 - openclaw-only orchestration + pipeline stage consistency + dynamic model catalog + outcome reporting (`64cb65f`)
 - **factory:** cherry-pick GitHub integration — clone repos + create PRs (#95) (`f960ec1`)
 ### 🐛 Bug Fixes
@@ -28,6 +31,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add ZeroBitch cover image to README (`bb59707`)
 - update CHANGELOG.md [skip ci] (`9891cf7`)
 - update CHANGELOG.md [skip ci] (`c694714`)
+- refresh README feature matrix (durable activity events + codemap monitor) and self-hosting install notes
+- add codemap MVP design/research docs and agent activity persistence validation notes
 - update CHANGELOG.md [skip ci] (`283c10f`)
 - update CHANGELOG.md [skip ci] (`ee6a5cc`)
 - update CHANGELOG.md [skip ci] (`0ed739c`)
@@ -46,6 +51,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 ### ⚡ Performance
 
 ### 🧪 Tests
+
+- broaden controller/service/system coverage for codemap monitor, agent activity ingestion/persistence, file viewer security, and zerobitch/controller regressions
 
 ### 👷 CI
 

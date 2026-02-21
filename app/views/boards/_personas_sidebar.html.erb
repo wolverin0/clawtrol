@@ -2,43 +2,13 @@
 <%# Required: @agent_personas %>
 <% if @agent_personas.present? %>
   <%
-    # Group personas by category (using tier when available, or inferring from name)
-    def categorize_persona(persona)
-      # First check explicit tier
-      case persona.tier
-      when 'strategic-reasoning' then 'review'
-      when 'fast-coding' then 'dev'
-      when 'research' then 'research'
-      when 'operations' then 'ops'
-      end || 
-      # Then infer from name
-      case persona.name.downcase
-      when /dev|frontend|backend|architect|dashboard|whatsapp/ then 'dev'
-      when /review|verifier|security|checker|tdd/ then 'review'
-      when /research|roadmap|synthesizer|mapper/ then 'research'
-      when /executor|runner|ops|updater|build|error|refactor|doc|clean/ then 'ops'
-      when /plan|debug|summar/ then 'ops'
-      else 'ops' # Default
-      end
-    end
-
-    categories = {
-      'dev' => { icon: '💻', label: 'Dev', color: 'blue', personas: [] },
-      'ops' => { icon: '🔧', label: 'Ops', color: 'orange', personas: [] },
-      'research' => { icon: '🔍', label: 'Research', color: 'emerald', personas: [] },
-      'review' => { icon: '✅', label: 'Review', color: 'purple', personas: [] }
-    }
-
-    @agent_personas.each do |persona|
-      cat = categorize_persona(persona)
-      categories[cat][:personas] << persona if categories[cat]
-    end
-
-    # Remove empty categories
-    categories.reject! { |_, v| v[:personas].empty? }
+    # Group personas using the ApplicationHelper method
+    categories = grouped_agent_personas(@agent_personas)
   %>
 
-  <div class="flex items-center gap-2 px-4 md:px-6 py-2 bg-bg-surface border-b border-border"
+  <%# Desktop: agents are now merged into the filter bar row above. %>
+  <%# This block renders only on mobile (md:hidden). %>
+  <div class="flex md:hidden items-center gap-2 px-4 px-6 py-2 bg-bg-surface border-b border-border"
        data-controller="agent-categories">
 
     <%# Mobile: Single dropdown for all agents %>
@@ -91,8 +61,8 @@
       </div>
     </div>
 
-    <%# Desktop: Category dropdowns %>
-    <div class="hidden md:flex items-center gap-2 flex-1 min-w-0">
+    <%# Desktop: Category dropdowns (hidden — content is now in the filter bar) %>
+    <div class="hidden items-center gap-2 flex-1 min-w-0">
       <span class="text-xs text-content-muted font-medium flex-shrink-0">🤖 Agents:</span>
       
       <% categories.each do |cat_key, cat_data| %>

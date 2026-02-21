@@ -90,4 +90,47 @@ class OpenclawMemorySearchHealthServiceTest < ActiveSupport::TestCase
       assert_equal :down, result.status
     end
   end
+
+  test "falls back to CLI probe when memory search endpoint returns 405" do
+    user = users(:one)
+    user.update!(openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    responses = {
+      ["GET", "/health"] => FakeResponse.new(code: "200", body: "{\"ok\":true}"),
+      ["POST", "/api/memory/search"] => FakeResponse.new(code: "405", body: "{\"error\":\"Method Not Allowed\"}")
+    }
+
+    with_stubbed_net_http_new(FakeHTTP.new(responses)) do
+      service = OpenclawMemorySearchHealthService.new(user, cache: ActiveSupport::Cache::MemoryStore.new)
+      service.stub(:probe_memory_via_cli, { ok: true }) do
+        result = service.call
+        assert_equal :ok, result.status
+      end
+    end
+  end
+
+  test "clears stale last error when probe recovers to ok" do
+    user = users(:one)
+    user.update!(openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+    rec = user.openclaw_integration_status || user.build_openclaw_integration_status
+    rec.update!(
+      memory_search_status: :degraded,
+      memory_search_last_error: "old error",
+      memory_search_last_error_at: 2.minutes.ago
+    )
+
+    responses = {
+      ["GET", "/health"] => FakeResponse.new(code: "200", body: "{\"ok\":true}"),
+      ["POST", "/api/memory/search"] => FakeResponse.new(code: "200", body: "{\"results\":[]}")
+    }
+
+    with_stubbed_net_http_new(FakeHTTP.new(responses)) do
+      result = OpenclawMemorySearchHealthService.new(user, cache: ActiveSupport::Cache::MemoryStore.new).call
+      assert_equal :ok, result.status
+
+      rec = user.reload.openclaw_integration_status
+      assert_nil rec.memory_search_last_error
+      assert_nil rec.memory_search_last_error_at
+    end
+  end
 end

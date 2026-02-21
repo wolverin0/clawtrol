@@ -4,6 +4,8 @@ require "test_helper"
 
 module Zerobitch
   class AgentRegistryTest < ActiveSupport::TestCase
+    parallelize(workers: 1)
+
     def setup
       @registry_path = AgentRegistry::REGISTRY_PATH
       @backup = File.exist?(@registry_path) ? File.read(@registry_path) : nil

@@ -135,9 +135,6 @@ class NotificationTest < ActiveSupport::TestCase
       )
       assert first.present?
 
-      # Debug: check what notifications exist before creating second
-      puts "DEBUG: Before second create, notifications with evt-123: #{Notification.where(event_id: 'evt-123').count}"
-
       second = Notification.create_deduped!(
         user: @user,
         task: @task,

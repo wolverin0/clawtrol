@@ -38,10 +38,30 @@ module Zerobitch
         return {} unless status.success?
 
         row = JSON.parse(stdout.lines.first || "{}")
+        mem_usage_raw = row["MemUsage"].to_s
+        mem_usage, mem_limit = parse_mem_usage(mem_usage_raw, row["MemLimit"])
         {
-          mem_usage: row["MemUsage"],
+          mem_usage: mem_usage,
           cpu_percent: row["CPUPerc"],
-          mem_limit: row["MemLimit"]
+          mem_limit: mem_limit,
+          mem_percent: row["MemPerc"]
+        }
+      rescue JSON::ParserError
+        {}
+      end
+
+      def container_state(name)
+        container = container_name(name)
+        stdout, _stderr, status = capture_docker("inspect", container)
+        return {} unless status.success?
+
+        row = JSON.parse(stdout).first || {}
+        state = row["State"] || {}
+        {
+          status: state["Status"],
+          restart_count: state["RestartCount"],
+          started_at: state["StartedAt"],
+          finished_at: state["FinishedAt"]
         }
       rescue JSON::ParserError
         {}
@@ -74,6 +94,19 @@ module Zerobitch
 
       def logs(name, tail: 100)
         stdout, stderr, status = capture_docker("logs", "--tail", tail.to_i.to_s, container_name(name))
+        {
+          success: status.success?,
+          output: stdout,
+          error: stderr,
+          exit_code: status.exitstatus
+        }
+      end
+
+      def cron_list(name, json: true)
+        container = container_name(name)
+        args = ["exec", container, "zeroclaw", "cron", "list"]
+        args << "--json" if json
+        stdout, stderr, status = capture_docker(*args, timeout_seconds: 15)
         {
           success: status.success?,
           output: stdout,
@@ -168,6 +201,17 @@ module Zerobitch
         end
       rescue Timeout::Error
         ["", "Command timed out after #{timeout_seconds}s", timeout_status]
+      end
+
+      def parse_mem_usage(mem_usage_raw, mem_limit_raw)
+        usage = mem_usage_raw.to_s
+        limit = mem_limit_raw
+        if usage.include?("/")
+          parts = usage.split("/", 2).map(&:strip)
+          usage = parts[0]
+          limit = parts[1] if parts[1].present?
+        end
+        [usage.presence || mem_usage_raw, limit.presence]
       end
 
       def timeout_status
