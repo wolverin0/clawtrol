@@ -15,14 +15,28 @@ class SessionResolverServiceTest < ActiveSupport::TestCase
     assert_nil SessionResolverService.resolve_from_key("abc-123", task_id: "")
   end
 
-  test "resolve_from_key matches using session key marker and task marker" do
+  test "resolve_from_key requires both session key marker and task marker" do
+    Dir.mktmpdir do |dir|
+      only_task = "only-task"
+      only_session = "only-session"
+
+      File.write(File.join(dir, "#{only_task}.jsonl"), <<~JSONL)
+        {"type":"message","message":{"role":"user","content":[{"type":"text","text":"## Task #258: Fix telemetry"}]}}
+      JSONL
+
+      File.write(File.join(dir, "#{only_session}.jsonl"), <<~JSONL)
+        {"type":"message","message":{"role":"user","content":[{"type":"text","text":"Your session: agent:main:subagent:abc-123"}]}}
+      JSONL
+
+      TranscriptParser.stub(:sessions_dir, dir) do
+        assert_nil SessionResolverService.resolve_from_key("agent:main:subagent:abc-123", task_id: 258)
+      end
+    end
+  end
+
+  test "resolve_from_key matches only transcript containing both markers" do
     Dir.mktmpdir do |dir|
       good_session_id = "good-session-1"
-      bad_session_id = "bad-session-1"
-
-      File.write(File.join(dir, "#{bad_session_id}.jsonl"), <<~JSONL)
-        {"type":"message","message":{"role":"user","content":[{"type":"text","text":"Task #258 only"}]}}
-      JSONL
 
       File.write(File.join(dir, "#{good_session_id}.jsonl"), <<~JSONL)
         {"type":"message","message":{"role":"user","content":[{"type":"text","text":"Your session: agent:main:subagent:abc-123\n## Task #258: Fix telemetry"}]}}
@@ -38,7 +52,7 @@ class SessionResolverServiceTest < ActiveSupport::TestCase
   test "resolve_from_key ignores interactive telegram transcripts" do
     Dir.mktmpdir do |dir|
       File.write(File.join(dir, "chat-session.jsonl"), <<~JSONL)
-        {"type":"message","message":{"role":"user","content":[{"type":"text","text":"requester channel: telegram\nTask #258\nagent:main:subagent:abc-123"}]}}
+        {"type":"message","message":{"role":"user","content":[{"type":"text","text":"requester channel: telegram\n## Task #258: Fix telemetry\nagent:main:subagent:abc-123"}]}}
       JSONL
 
       TranscriptParser.stub(:sessions_dir, dir) do

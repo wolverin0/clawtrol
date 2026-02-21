@@ -36,6 +36,7 @@ class SessionResolverService
     session_id = search_files(
       Dir.glob(File.join(sessions_dir, "*.jsonl")),
       cutoff_time,
+      task_id: task_id,
       task_patterns: task_patterns,
       session_key_patterns: session_key_patterns
     ) { |file| File.basename(file, ".jsonl") }
@@ -46,6 +47,7 @@ class SessionResolverService
     search_files(
       Dir.glob(File.join(sessions_dir, "*.jsonl.deleted.*")),
       cutoff_time,
+      task_id: task_id,
       task_patterns: task_patterns,
       session_key_patterns: session_key_patterns
     ) { |file| File.basename(file).sub(/\.jsonl\.deleted\..+$/, "") }
@@ -103,7 +105,7 @@ class SessionResolverService
 
   # Private class methods
 
-  def self.search_files(file_paths, cutoff_time, task_patterns:, session_key_patterns:, &id_extractor)
+  def self.search_files(file_paths, cutoff_time, task_id:, task_patterns:, session_key_patterns:, &id_extractor)
     sorted = file_paths.sort_by { |f| -File.mtime(f).to_i }
 
     sorted.each do |file|
@@ -120,9 +122,11 @@ class SessionResolverService
 
       has_session_key = session_key_patterns.any? { |p| p.present? && content_sample.include?(p) }
       has_task_marker = task_patterns.any? { |p| p.present? && content_sample.include?(p) }
-      next unless has_session_key || has_task_marker
+      next unless has_session_key && has_task_marker
 
       session_id = id_extractor.call(file)
+      next if Task.where(agent_session_id: session_id).where.not(id: task_id).exists?
+
       Rails.logger.info("[SessionResolverService] Found session_id=#{session_id} (session_key=#{has_session_key} task_marker=#{has_task_marker}) in #{File.basename(file)}")
       return session_id
     end

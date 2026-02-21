@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "tmpdir"
 
 class AgentLogServiceTest < ActiveSupport::TestCase
   setup do
@@ -19,38 +20,23 @@ class AgentLogServiceTest < ActiveSupport::TestCase
     assert_nil result.error
   end
 
-  test "returns fallback from description when Agent Output section exists" do
+  test "does not fallback to description or output_files when no session" do
     task = Task.create!(
-      name: "With output",
+      name: "No session fallback",
       board: @board,
       user: @user,
-      description: "Some context\n\n## Agent Output\nHere is the result of my work.\nLine 2."
+      description: "## Agent Output\nThis must not be returned",
+      output_files: ["docs/report.md"]
     )
 
     result = AgentLogService.new(task).call
 
-    assert_equal 1, result.messages.length
-    assert_equal true, result.fallback
-    assert_includes result.messages.first[:content].first[:text], "Here is the result"
+    assert_equal [], result.messages
+    assert_equal false, result.has_session
+    assert_nil result.fallback
   end
 
-  test "returns fallback from output_files when no description" do
-    task = Task.create!(
-      name: "With files",
-      board: @board,
-      user: @user,
-      output_files: ["docs/report.md", "app/views/index.html"]
-    )
-
-    result = AgentLogService.new(task).call
-
-    assert_equal 1, result.messages.length
-    assert_equal true, result.fallback
-    assert_includes result.messages.first[:content].first[:text], "2 file(s)"
-    assert_includes result.messages.first[:content].first[:text], "report.md"
-  end
-
-  test "returns error for invalid session ID format" do
+  test "returns no_session for invalid session ID format" do
     task = Task.create!(name: "Bad ID", board: @board, user: @user)
     task.update_columns(agent_session_id: "../../../etc/passwd")
 
@@ -58,50 +44,49 @@ class AgentLogServiceTest < ActiveSupport::TestCase
 
     assert_equal [], result.messages
     assert_equal false, result.has_session
-    assert_equal "Invalid session ID format", result.error
+    assert_nil result.error
   end
 
-  test "returns transcript not found when session ID is valid but file missing" do
+  test "returns no_session when session ID is valid but transcript file missing" do
     task = Task.create!(name: "Missing transcript", board: @board, user: @user)
     task.update_columns(agent_session_id: "nonexistent-session-12345")
 
     result = AgentLogService.new(task).call
 
     assert_equal [], result.messages
-    assert_equal true, result.has_session
-    assert_equal "Transcript file not found", result.error
+    assert_equal false, result.has_session
+    assert_nil result.error
   end
 
   test "lazy resolves session_id from session_key using resolver" do
     task = Task.create!(name: "Lazy resolve", board: @board, user: @user)
     task.update_columns(agent_session_key: "some-key-123")
 
-    # Resolver returns a fake session ID
-    resolver = ->(key, _task) { "resolved-session-id" }
+    resolver = ->(_key, _task) { "resolved-session-id" }
 
-    # The task has no transcript file, so it will fall back to no-session
-    # But it should have tried to resolve
     AgentLogService.new(task, session_resolver: resolver).call
 
     task.reload
     assert_equal "resolved-session-id", task.agent_session_id
   end
 
-  test "prefers description fallback when transcript file not found" do
-    task = Task.create!(
-      name: "Fallback chain",
-      board: @board,
-      user: @user,
-      description: "## Agent Output\nFallback content here",
-      output_files: ["some/file.html"]
-    )
-    task.update_columns(agent_session_id: "nonexistent-session-99999")
+  test "returns no_session when mapped transcript does not match task scope" do
+    task = Task.create!(name: "Scope mismatch", board: @board, user: @user)
+    task.update_columns(agent_session_id: "session-123", agent_session_key: "agent:main:subagent:xyz")
 
-    result = AgentLogService.new(task).call
+    Dir.mktmpdir do |dir|
+      transcript = File.join(dir, "session-123.jsonl")
+      File.write(transcript, <<~JSONL)
+        {"type":"message","message":{"role":"user","content":[{"type":"text","text":"http://192.168.100.186:4001/zerobitch is broken now"}]}}
+      JSONL
 
-    # Should use description fallback, not output_files fallback
-    assert_equal true, result.fallback
-    assert_includes result.messages.first[:content].first[:text], "Fallback content"
+      TranscriptParser.stub(:transcript_path, transcript) do
+        result = AgentLogService.new(task).call
+
+        assert_equal [], result.messages
+        assert_equal false, result.has_session
+      end
+    end
   end
 
   test "Result struct has all expected fields" do
@@ -122,30 +107,5 @@ class AgentLogServiceTest < ActiveSupport::TestCase
     assert_respond_to result, :error
     assert_respond_to result, :task_status
     assert_respond_to result, :since
-  end
-
-  test "since parameter is passed through" do
-    task = Task.create!(name: "With since", board: @board, user: @user)
-
-    result = AgentLogService.new(task, since: 42).call
-
-    # No session, so since isn't in the result for this path
-    # but the service should not crash
-    assert_not_nil result
-  end
-
-  test "empty description with Agent Output header returns nil fallback" do
-    task = Task.create!(
-      name: "Empty output",
-      board: @board,
-      user: @user,
-      description: "## Agent Output\n   "
-    )
-
-    result = AgentLogService.new(task).call
-
-    # Empty output after stripping → fallback_from_description returns nil → no_session
-    assert_equal false, result.has_session
-    assert_equal 0, result.total_lines
   end
 end
