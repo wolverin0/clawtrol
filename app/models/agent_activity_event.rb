@@ -12,7 +12,7 @@ class AgentActivityEvent < ApplicationRecord
   validates :seq, numericality: { only_integer: true, greater_than: 0 }
   validates :run_id, uniqueness: { scope: :seq }
 
-  scope :for_task, ->(task_id) { where(task_id: task_id) }
+  scope :for_task, ->(task_or_id) { where(task_id: task_or_id.is_a?(Task) ? task_or_id.id : task_or_id) }
   scope :ordered, -> { order(:created_at, :seq, :id) }
 
   def as_agent_log_message

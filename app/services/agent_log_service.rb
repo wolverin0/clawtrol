@@ -5,7 +5,8 @@
 # Strict behavior:
 # - Never fallback to task description/output files.
 # - Never fallback to unrelated sessions.
-# - If no valid mapped session/transcript exists, return empty with has_session=false.
+# - If no valid mapped session/transcript exists, return persisted task-scoped
+#   sidecar events (if any) and has_session=false.
 class AgentLogService
   SESSION_ID_FORMAT = /\A[a-zA-Z0-9_\-]+\z/
   TASK_MARKER_LINES = 20
@@ -20,23 +21,29 @@ class AgentLogService
 
   def call
     lazy_resolve_session_id!
-    return no_session_result unless @task.agent_session_id.present?
+
+    persisted_scope = @task.agent_activity_events.ordered
+    persisted_count = persisted_scope.count
+
+    return persisted_only_result(persisted_scope, persisted_count) unless @task.agent_session_id.present?
 
     session_id = @task.agent_session_id.to_s
-    return no_session_result unless session_id.match?(SESSION_ID_FORMAT)
+    return persisted_only_result(persisted_scope, persisted_count) unless session_id.match?(SESSION_ID_FORMAT)
 
     transcript_path = TranscriptParser.transcript_path(session_id)
-    return no_session_result unless transcript_path
-    return no_session_result unless transcript_matches_task_scope?(transcript_path)
+    return persisted_only_result(persisted_scope, persisted_count) unless transcript_path
+    return persisted_only_result(persisted_scope, persisted_count) unless transcript_matches_task_scope?(transcript_path)
 
     parsed = TranscriptParser.parse_messages(transcript_path, since: @since)
+    ingest_transcript_messages(parsed[:messages], session_id)
 
     Result.new(
       messages: parsed[:messages],
       total_lines: parsed[:total_lines],
       since: @since,
       has_session: true,
-      task_status: @task.status
+      task_status: @task.status,
+      persisted_count: persisted_count
     )
   end
 
@@ -73,7 +80,64 @@ class AgentLogService
     false
   end
 
-  def no_session_result
-    Result.new(messages: [], total_lines: 0, has_session: false, task_status: @task.status, persisted_count: 0)
+  def persisted_only_result(persisted_scope, persisted_count)
+    events = persisted_scope.where("seq > ?", @since).to_a
+    messages = events.map(&:as_agent_log_message)
+    total_lines = persisted_scope.maximum(:seq).to_i
+
+    Result.new(
+      messages: messages,
+      total_lines: total_lines,
+      has_session: false,
+      task_status: @task.status,
+      persisted_count: persisted_count,
+      since: @since
+    )
+  end
+
+  def ingest_transcript_messages(messages, session_id)
+    return if messages.blank?
+
+    run_id = @task.last_run_id.presence || session_id.presence || "task-#{@task.id}"
+
+    events = messages.filter_map do |msg|
+      seq = msg[:line].to_i
+      next if seq <= 0
+
+      {
+        run_id: run_id,
+        source: "agent_log",
+        level: "info",
+        event_type: event_type_for_message(msg),
+        message: extract_message_text(msg),
+        seq: seq,
+        created_at: msg[:timestamp],
+        payload: {
+          role: msg[:role],
+          raw: msg
+        }
+      }
+    end
+
+    AgentActivityIngestionService.call(task: @task, events: events) if events.any?
+  rescue StandardError => e
+    Rails.logger.warn("[AgentLogService] sidecar ingest failed for task=#{@task.id}: #{e.message}")
+  end
+
+  def event_type_for_message(msg)
+    role = msg[:role].to_s
+    return "tool_result" if role == "toolResult"
+
+    if msg[:content].is_a?(Array) && msg[:content].any? { |c| c[:type].to_s == "tool_call" }
+      return "tool_call"
+    end
+
+    "message"
+  end
+
+  def extract_message_text(msg)
+    return "" unless msg[:content].is_a?(Array)
+
+    msg[:content].map { |c| c[:text].to_s if c[:text].present? }.compact.join("\n").slice(0, 5000)
   end
 end
