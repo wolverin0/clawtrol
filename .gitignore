@@ -48,3 +48,7 @@ tpush/
 
 # Ignore bundled gems
 /vendor/bundle
+
+# Large local artifacts (do not commit)
+public/*.apk
+app/assets/images/*.mp4
