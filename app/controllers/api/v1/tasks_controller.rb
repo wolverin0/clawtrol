@@ -23,6 +23,7 @@ module Api
           total_lines: result.total_lines,
           since: result.since,
           has_session: result.has_session,
+          persisted_count: result.persisted_count,
           fallback: result.fallback,
           error: result.error,
           task_status: result.task_status
