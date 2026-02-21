@@ -21,6 +21,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **factory:** cherry-pick GitHub integration — clone repos + create PRs (#95) (`f960ec1`)
 ### 🐛 Bug Fixes
 
+- enforce strict task-scoped `agent_log` session resolution (`5cfa80d`)
+- auto-runner: add dynamic `in_progress` guardrail (base 4, burst 8 under safe backlog pressure)
 - keep /view downloads working for large files (#225) (`a60f4c5`)
 - improve zerobitch fleet UX and view save (`8dfe43e`)
 - restore zerobitch routes + add codemap_monitor route (both were uncommitted) (`7f7dc63`)

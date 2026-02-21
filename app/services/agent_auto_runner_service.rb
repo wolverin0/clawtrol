@@ -8,6 +8,10 @@ class AgentAutoRunnerService
   ZOMBIE_NOTIFY_COOLDOWN = 60.minutes
   FAILURE_COOLDOWN = 5.minutes
   FAILURE_LIMIT = 3
+  BASE_IN_PROGRESS_TASKS = 4
+  BURST_IN_PROGRESS_TASKS = 8
+  BURST_QUEUE_THRESHOLD = 3
+  BURST_ERROR_COOLDOWN = 10.minutes
 
   NIGHT_TZ = "America/Argentina/Buenos_Aires"
 
@@ -35,8 +39,8 @@ class AgentAutoRunnerService
       stats[:tasks_demoted] += demote_expired_or_missing_leases!(user)
       stats[:zombie_tasks] += notify_zombies_if_any!(user)
 
+      next if max_in_progress_reached?(user)
       next if agent_currently_working?(user)
-
 
       if wake_if_work_available!(user)
         stats[:users_woken] += 1
@@ -56,6 +60,37 @@ class AgentAutoRunnerService
 
   def agent_currently_working?(user)
     RunnerLease.active.joins(:task).where(tasks: { user_id: user.id, status: Task.statuses[:in_progress] }).exists?
+  end
+
+  def max_in_progress_reached?(user)
+    in_progress_count = user.tasks.where(status: :in_progress).count
+    in_progress_count >= dynamic_in_progress_limit_for(user)
+  end
+
+  def dynamic_in_progress_limit_for(user)
+    return BASE_IN_PROGRESS_TASKS unless burst_allowed?(user)
+
+    BURST_IN_PROGRESS_TASKS
+  end
+
+  def burst_allowed?(user)
+    queued = user.tasks
+      .where(status: :up_next, blocked: false, assigned_to_agent: true)
+      .where(auto_pull_blocked: false)
+      .count
+
+    return false if queued < BURST_QUEUE_THRESHOLD
+
+    recent_task_errors = user.tasks
+      .where.not(auto_pull_last_error_at: nil)
+      .where("auto_pull_last_error_at >= ?", Time.current - BURST_ERROR_COOLDOWN)
+      .exists?
+
+    return false if recent_task_errors
+
+    return false if ModelLimit.active_limits.where(user: user).exists?
+
+    true
   end
 
   def runnable_up_next_task_for(user)
