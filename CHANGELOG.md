@@ -21,8 +21,9 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **factory:** cherry-pick GitHub integration — clone repos + create PRs (#95) (`f960ec1`)
 ### 🐛 Bug Fixes
 
-- enforce strict task-scoped `agent_log` session resolution (`5cfa80d`)
-- auto-runner: add dynamic `in_progress` guardrail (base 4, burst 8 under safe backlog pressure)
+- **auto-runner:** add safe burst headroom and document runtime hardening release (`07ef993`)
+- **api:** enforce strict task-scoped agent_log session resolution (`28c7216`)
+- **zerobitch:** scope activity to real task sessions and remove codemap panel (`9c38856`)
 - keep /view downloads working for large files (#225) (`a60f4c5`)
 - improve zerobitch fleet UX and view save (`8dfe43e`)
 - restore zerobitch routes + add codemap_monitor route (both were uncommitted) (`7f7dc63`)
@@ -47,6 +48,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`553b5ec`)
 - update CHANGELOG.md [skip ci] (`dffb290`)
 - **report:** add 2026-02-20 big release commit/push report (`d338678`)
 - update CHANGELOG.md [skip ci] (`9870add`)
