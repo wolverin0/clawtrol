@@ -1,19 +1,17 @@
 # frozen_string_literal: true
 
-# Retrieves agent transcript/log for a task.
+# Retrieves task-scoped agent transcript/log for a task.
 #
-# Handles: lazy session_id resolution, fallback to Agent Output in description,
-# fallback to output_files summary, transcript file parsing with pagination.
-#
-# Extracted from Api::V1::TasksController#agent_log to keep the controller thin.
+# Strict behavior:
+# - Never fallback to task description/output files.
+# - Never fallback to unrelated sessions.
+# - If no valid mapped session/transcript exists, return empty with has_session=false.
 class AgentLogService
   SESSION_ID_FORMAT = /\A[a-zA-Z0-9_\-]+\z/
+  TASK_MARKER_LINES = 20
 
   Result = Struct.new(:messages, :total_lines, :has_session, :fallback, :error, :task_status, :since, :persisted_count, keyword_init: true)
 
-  # @param task [Task] the task to get agent log for
-  # @param since [Integer] line offset for pagination (0-based)
-  # @param session_resolver [#call] proc that resolves session_key → session_id (optional)
   def initialize(task, since: 0, session_resolver: nil)
     @task = task
     @since = since.to_i
@@ -22,32 +20,14 @@ class AgentLogService
 
   def call
     lazy_resolve_session_id!
-
-    persisted = persisted_messages
-    if persisted[:messages].any?
-      return Result.new(
-        messages: persisted[:messages],
-        total_lines: persisted[:total_lines],
-        since: @since,
-        has_session: @task.agent_session_id.present?,
-        task_status: @task.status,
-        persisted_count: persisted[:total_lines]
-      )
-    end
-
-    unless @task.agent_session_id.present?
-      return fallback_from_description || fallback_from_output_files || no_session_result
-    end
+    return no_session_result unless @task.agent_session_id.present?
 
     session_id = @task.agent_session_id.to_s
-    unless session_id.match?(SESSION_ID_FORMAT)
-      return Result.new(messages: [], total_lines: 0, has_session: false, error: "Invalid session ID format", task_status: @task.status)
-    end
+    return no_session_result unless session_id.match?(SESSION_ID_FORMAT)
 
     transcript_path = TranscriptParser.transcript_path(session_id)
-    unless transcript_path
-      return fallback_from_description(has_session: true) || transcript_not_found_result
-    end
+    return no_session_result unless transcript_path
+    return no_session_result unless transcript_matches_task_scope?(transcript_path)
 
     parsed = TranscriptParser.parse_messages(transcript_path, since: @since)
 
@@ -74,54 +54,26 @@ class AgentLogService
     end
   end
 
-  def fallback_from_description(has_session: true)
-    return nil unless @task.description.present?
-    return nil unless @task.description.include?("## Agent Output")
+  def transcript_matches_task_scope?(transcript_path)
+    sample_lines = []
+    File.foreach(transcript_path).with_index do |line, idx|
+      break if idx >= TASK_MARKER_LINES
+      sample_lines << line
+    end
 
-    output_match = @task.description.match(/## Agent Output.*?\n(.*)/m)
-    return nil unless output_match
+    sample = sample_lines.join
+    task_patterns = ["Task ##{@task.id}:", "## Task ##{@task.id}:", "Task ##{@task.id}"]
+    has_task_marker = task_patterns.any? { |pattern| sample.include?(pattern) }
+    return false unless has_task_marker
 
-    extracted = output_match[1].strip
-    return nil if extracted.blank?
+    return true if @task.agent_session_key.blank?
 
-    Result.new(
-      messages: [{ role: "assistant", content: [{ type: "text", text: extracted }] }],
-      total_lines: 1,
-      has_session: has_session,
-      fallback: true,
-      task_status: @task.status
-    )
-  end
-
-  def fallback_from_output_files
-    return nil unless @task.output_files.present? && @task.output_files.any?
-
-    file_list = @task.output_files.map { |f| "📄 #{f}" }.join("\n")
-    Result.new(
-      messages: [{ role: "assistant", content: [{ type: "text", text: "Agent produced #{@task.output_files.size} file(s):\n#{file_list}" }] }],
-      total_lines: 1,
-      has_session: true,
-      fallback: true,
-      task_status: @task.status
-    )
-  end
-
-  def persisted_messages
-    events = @task.agent_activity_events.ordered
-    total = events.count
-    sliced = events.offset(@since)
-
-    {
-      messages: sliced.map(&:as_agent_log_message),
-      total_lines: total
-    }
+    sample.include?(@task.agent_session_key.to_s) || sample.include?("\"session_key\":\"#{@task.agent_session_key}\"")
+  rescue StandardError
+    false
   end
 
   def no_session_result
     Result.new(messages: [], total_lines: 0, has_session: false, task_status: @task.status, persisted_count: 0)
-  end
-
-  def transcript_not_found_result
-    Result.new(messages: [], total_lines: 0, has_session: true, error: "Transcript file not found", task_status: @task.status)
   end
 end
