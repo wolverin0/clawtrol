@@ -7,6 +7,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- **navbar:** add Docs Hub link to desktop and mobile navigation (`0847142`)
+- **agent-log:** durable sidecar ingest, backfill, and persisted timeline (`3b34b31`)
 - ship codemap monitor + durable agent activity telemetry release (`2d88d14`)
 - zerobitch observability + viewer download (#225) (`a1df05d`)
 - add Learning Inbox for self-audit proposals (#215) (`5eda049`)
@@ -48,6 +50,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`b67f70a`)
 - update CHANGELOG.md [skip ci] (`553b5ec`)
 - update CHANGELOG.md [skip ci] (`dffb290`)
 - **report:** add 2026-02-20 big release commit/push report (`d338678`)
