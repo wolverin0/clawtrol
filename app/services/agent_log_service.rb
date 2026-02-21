@@ -9,7 +9,7 @@
 class AgentLogService
   SESSION_ID_FORMAT = /\A[a-zA-Z0-9_\-]+\z/
 
-  Result = Struct.new(:messages, :total_lines, :has_session, :fallback, :error, :task_status, :since, keyword_init: true)
+  Result = Struct.new(:messages, :total_lines, :has_session, :fallback, :error, :task_status, :since, :persisted_count, keyword_init: true)
 
   # @param task [Task] the task to get agent log for
   # @param since [Integer] line offset for pagination (0-based)
@@ -22,6 +22,18 @@ class AgentLogService
 
   def call
     lazy_resolve_session_id!
+
+    persisted = persisted_messages
+    if persisted[:messages].any?
+      return Result.new(
+        messages: persisted[:messages],
+        total_lines: persisted[:total_lines],
+        since: @since,
+        has_session: @task.agent_session_id.present?,
+        task_status: @task.status,
+        persisted_count: persisted[:total_lines]
+      )
+    end
 
     unless @task.agent_session_id.present?
       return fallback_from_description || fallback_from_output_files || no_session_result
@@ -94,8 +106,19 @@ class AgentLogService
     )
   end
 
+  def persisted_messages
+    events = @task.agent_activity_events.ordered
+    total = events.count
+    sliced = events.offset(@since)
+
+    {
+      messages: sliced.map(&:as_agent_log_message),
+      total_lines: total
+    }
+  end
+
   def no_session_result
-    Result.new(messages: [], total_lines: 0, has_session: false, task_status: @task.status)
+    Result.new(messages: [], total_lines: 0, has_session: false, task_status: @task.status, persisted_count: 0)
   end
 
   def transcript_not_found_result

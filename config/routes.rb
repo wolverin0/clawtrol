@@ -349,6 +349,7 @@ Rails.application.routes.draw do
     delete "/rules/:rule_id", to: "zerobitch#destroy_rule", as: :destroy_zerobitch_rule
     patch "/agents/:id/soul", to: "zerobitch#save_soul", as: :zerobitch_agent_soul
     patch "/agents/:id/agents_file", to: "zerobitch#save_agents", as: :zerobitch_agent_agents_file
+    patch "/agents/:id/template", to: "zerobitch#save_template", as: :zerobitch_agent_template
   end
 
   # Send policy & access groups

@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class SecurityTest < ActionDispatch::IntegrationTest
+class SecurityControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = users(:one)
   end

@@ -1,0 +1,37 @@
+<%
+  title = local_assigns.fetch(:title, "Codemap MVP")
+  wrapper_class = local_assigns.fetch(:wrapper_class, "mb-3")
+  height_class = local_assigns.fetch(:height_class, "h-44")
+  show_monitor_link = local_assigns.fetch(:show_monitor_link, true)
+  show_assets_hint = local_assigns.fetch(:show_assets_hint, true)
+  map_id = local_assigns.fetch(:map_id, "task_#{task.id}")
+%>
+
+<div class="<%= ["rounded-lg border border-border bg-bg-elevated/40 p-3", wrapper_class].compact.join(" ") %>"
+     data-controller="visualizer"
+     data-visualizer-task-id-value="<%= task.id %>"
+     data-visualizer-map-id-value="<%= map_id %>">
+  <div class="flex items-center justify-between mb-2">
+    <div class="text-xs font-semibold text-content"><%= title %></div>
+    <div class="flex items-center gap-2">
+      <span data-visualizer-target="status" class="text-[10px] text-content-muted">Connecting...</span>
+      <% if show_monitor_link && defined?(codemap_monitor_path) %>
+        <%= link_to "Open Monitor", codemap_monitor_path(task_id: task.id), class: "text-[10px] text-accent hover:underline" %>
+      <% end %>
+      <button type="button" data-action="click->visualizer#toggleDebug"
+              class="px-2 py-1 rounded text-[10px] bg-bg-surface text-content-muted hover:text-content">
+        Debug
+      </button>
+      <button type="button" data-action="click->visualizer#resetCamera"
+              class="px-2 py-1 rounded text-[10px] bg-bg-surface text-content-muted hover:text-content">
+        Reset Camera
+      </button>
+    </div>
+  </div>
+  <div class="w-full <%= height_class %> rounded border border-border bg-slate-950/50 overflow-hidden">
+    <canvas data-visualizer-target="canvas" class="w-full h-full block"></canvas>
+  </div>
+  <% if show_assets_hint %>
+    <p class="mt-2 text-[10px] text-content-muted">Assets path: /public/codemap/{tiles,sprites,maps,meta} (fallback placeholders enabled)</p>
+  <% end %>
+</div>

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🦞 Installing ClawDeck..."
+echo "🦞 Installing ClawTrol..."
 echo ""
 
 # Check for Docker
@@ -16,15 +16,16 @@ if ! docker compose version &> /dev/null; then
     exit 1
 fi
 
-# Generate secret key if not set
-if [ -z "$SECRET_KEY_BASE" ]; then
+# Generate secret key if not set in env or .env.production
+if [ -z "$SECRET_KEY_BASE" ] && [ ! -f .env.production -o -z "$(grep -E '^SECRET_KEY_BASE=' .env.production 2>/dev/null)" ]; then
     echo "🔑 Generating SECRET_KEY_BASE..."
     export SECRET_KEY_BASE=$(openssl rand -hex 64)
     echo "   Generated: ${SECRET_KEY_BASE:0:16}..."
-    
-    # Save to .env file for persistence
-    echo "SECRET_KEY_BASE=$SECRET_KEY_BASE" > .env.production
-    echo "   Saved to .env.production"
+
+    # Save to .env.production without overwriting other keys
+    touch .env.production
+    printf "\nSECRET_KEY_BASE=%s\n" "$SECRET_KEY_BASE" >> .env.production
+    echo "   Appended to .env.production"
 fi
 
 # Build and start containers
@@ -60,7 +61,7 @@ docker compose exec -T clawdeck bundle exec rails db:prepare
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "🎉 ClawDeck is running!"
+echo "🎉 ClawTrol is running!"
 echo ""
 echo "   URL: http://localhost:4001"
 echo "   Status: docker compose ps"

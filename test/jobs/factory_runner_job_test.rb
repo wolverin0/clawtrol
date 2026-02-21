@@ -23,7 +23,9 @@ class FactoryRunnerJobTest < ActiveJob::TestCase
 
   teardown do
     WebMock.reset!
-    WebMock.disable_net_connect!
+    # Restore the global default from test_helper to avoid leaking strict mode
+    # into unrelated tests that expect localhost gateway calls to be permitted.
+    WebMock.disable_net_connect!(allow_localhost: true)
   end
 
   # Test: loop not found

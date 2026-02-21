@@ -71,6 +71,18 @@ class OpenclawMemorySearchHealthService
     # 2) Probe memory_search via HTTP
     search = post_json("/api/memory/search", body: { query: "ping", top_k: 1 })
     unless search[:ok]
+      if search[:http_code].to_i == 405
+        cli_probe = probe_memory_via_cli
+        return persist!(status: :ok, last_checked_at: now, error_message: nil, error_at: nil) if cli_probe[:ok]
+
+        return persist!(
+          status: cli_probe[:status] || :degraded,
+          last_checked_at: now,
+          error_message: "memory_search: HTTP 405 + CLI probe failed: #{cli_probe[:error]}",
+          error_at: now
+        )
+      end
+
       status = classify_memory_error(search[:http_code], search[:error])
       return persist!(
         status: status,
@@ -209,9 +221,11 @@ class OpenclawMemorySearchHealthService
     if error_message.present?
       rec.memory_search_last_error = error_message.to_s.truncate(2000)
       rec.memory_search_last_error_at = error_at
+    elsif status.to_s == "ok"
+      rec.memory_search_last_error = nil
+      rec.memory_search_last_error_at = nil
     end
 
-    # Don't erase last error evidence on success; it can be useful for operator.
     rec.save!
 
     Result.new(

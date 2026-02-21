@@ -9,14 +9,13 @@ import { Controller } from "@hotwired/stimulus"
  * - Accessible: focus trap, ESC key, aria-modal
  */
 export default class extends Controller {
-  static targets = ["modal", "log", "statusBadge", "frame"]
+  static targets = ["modal", "log", "statusBadge"]
   static values = {
     taskId: Number,
     boardId: Number,
     sessionId: String,
     taskStatus: String,
     boardIcon: { type: String, default: '📋' },
-    modalUrl: String,
     pollInterval: { type: Number, default: 5000 }
   }
 
@@ -35,20 +34,28 @@ export default class extends Controller {
     document.removeEventListener("keydown", this.boundKeyHandler)
   }
 
-  async open(event) {
+  open(event) {
     event?.preventDefault()
     event?.stopPropagation()
-
+    
     if (this.isOpen) return
-
-    await this.ensureModalLoaded()
-    if (!this.hasModalTarget) return
-
     this.isOpen = true
-    this.modalTarget.classList.remove("hidden")
+    
+    // Show modal (simple show/hide like followup_modal)
+    if (this.hasModalTarget) {
+      this.modalTarget.classList.remove("hidden")
+    }
+    
+    // Prevent body scroll
     document.body.style.overflow = "hidden"
+    
+    // Add ESC key listener
     document.addEventListener("keydown", this.boundKeyHandler)
+    
+    // Focus trap - focus first focusable element
     this.trapFocus()
+    
+    // Start polling for content
     this.startPolling()
   }
 
@@ -155,7 +162,10 @@ export default class extends Controller {
         this.lastLine = data.total_lines
         this.scrollToBottom()
       } else if (this.lastLine === 0 && this.hasLogTarget) {
-        this.logTarget.innerHTML = '<div class="text-center py-4 text-content-muted text-sm">Waiting for agent activity...</div>'
+        const hasPersisted = Number(data.persisted_count || 0) > 0
+        this.logTarget.innerHTML = hasPersisted
+          ? '<div class="text-center py-4 text-content-muted text-sm">Reconnecting to live stream… showing saved activity.</div>'
+          : '<div class="text-center py-4 text-content-muted text-sm">No activity recorded yet.</div>'
       }
 
       // Continue polling if still in progress
@@ -273,30 +283,16 @@ export default class extends Controller {
     const taskId = btn.dataset.taskId || this.taskIdValue
     const taskName = btn.dataset.taskName || `Task #${taskId}`
     const boardIcon = btn.dataset.boardIcon || this.boardIconValue || '📋'
-
+    
+    // Dispatch custom event for terminal panel to catch
     document.dispatchEvent(new CustomEvent('agent-terminal:pin', {
       detail: { taskId, taskName, boardIcon }
     }))
-
+    
+    // Visual feedback
     btn.textContent = '✅ Pinned!'
     setTimeout(() => {
       btn.textContent = '📌 Pin to Terminal'
     }, 1500)
-  }
-
-  async ensureModalLoaded() {
-    if (this.hasModalTarget || !this.hasFrameTarget || !this.hasModalUrlValue) return
-
-    const frame = this.frameTarget
-    await new Promise((resolve) => {
-      const done = () => {
-        frame.removeEventListener('turbo:frame-load', done)
-        resolve()
-      }
-      frame.addEventListener('turbo:frame-load', done, { once: true })
-      if (!frame.getAttribute('src')) {
-        frame.setAttribute('src', this.modalUrlValue)
-      }
-    })
   }
 }

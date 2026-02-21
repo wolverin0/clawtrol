@@ -67,6 +67,37 @@ module ApplicationHelper
     include_default ? [["Default", ""]] + fallback : fallback
   end
 
+  def categorize_persona(persona)
+    case persona.tier
+    when 'strategic-reasoning' then 'review'
+    when 'fast-coding' then 'dev'
+    when 'research' then 'research'
+    when 'operations' then 'ops'
+    end ||
+    case persona.name.downcase
+    when /dev|frontend|backend|architect|dashboard|whatsapp/ then 'dev'
+    when /review|verifier|security|checker|tdd/ then 'review'
+    when /research|roadmap|synthesizer|mapper/ then 'research'
+    when /executor|runner|ops|updater|build|error|refactor|doc|clean/ then 'ops'
+    when /plan|debug|summar/ then 'ops'
+    else 'ops'
+    end
+  end
+
+  def grouped_agent_personas(personas)
+    categories = {
+      'dev'      => { icon: '💻', label: 'Dev',      color: 'blue',    personas: [] },
+      'ops'      => { icon: '🔧', label: 'Ops',      color: 'orange',  personas: [] },
+      'research' => { icon: '🔍', label: 'Research', color: 'emerald', personas: [] },
+      'review'   => { icon: '✅', label: 'Review',   color: 'purple',  personas: [] }
+    }
+    personas.each do |persona|
+      cat = categorize_persona(persona)
+      categories[cat][:personas] << persona if categories[cat]
+    end
+    categories.reject { |_, v| v[:personas].empty? }
+  end
+
   def model_display_name(model_id)
     id = model_id.to_s
     return id if id.blank?

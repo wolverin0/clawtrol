@@ -215,18 +215,19 @@ class Notification < ApplicationRecord
   def self.reserve_event_id?(event_id, ttl:)
     return true if event_id.blank?
 
-    cache_key = "notifications:event_id:#{event_id}"
-    begin
-      written = Rails.cache.write(cache_key, true, expires_in: ttl, unless_exist: true)
-      return true if written
-    rescue StandardError
-      # fall back to DB check
-    end
-
+    # DB check is the source of truth for correctness across cache adapters.
+    # Some adapters ignore `unless_exist`, which can otherwise let duplicates through.
     recent = where(event_id: event_id).where("created_at >= ?", ttl.ago).exists?
     return false if recent
 
-    Rails.cache.write(cache_key, true, expires_in: ttl)
+    cache_key = "notifications:event_id:#{event_id}"
+    begin
+      return false if Rails.cache.read(cache_key)
+      Rails.cache.write(cache_key, true, expires_in: ttl)
+    rescue StandardError
+      # Cache is best-effort only; DB guard above already protects correctness.
+    end
+
     true
   end
 end

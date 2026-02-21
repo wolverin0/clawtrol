@@ -9,7 +9,7 @@ module Api
       include Api::TaskPipelineManagement
       include Api::TaskAgentLifecycle
       include Api::TaskValidationManagement
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health, :run_lobster, :resume_lobster, :spawn_via_gateway ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :requeue, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health, :run_lobster, :resume_lobster, :spawn_via_gateway ]
 
       # GET /api/v1/tasks/:id/agent_log - get agent transcript for this task
       # Returns parsed messages from the OpenClaw session transcript

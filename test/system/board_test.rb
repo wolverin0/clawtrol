@@ -2,7 +2,7 @@
 
 require "application_system_test_case"
 
-class BoardTest < ApplicationSystemTestCase
+class BoardSystemTest < ApplicationSystemTestCase
   setup do
     @user = users(:one)
     @board = boards(:one)
@@ -159,7 +159,7 @@ class BoardTest < ApplicationSystemTestCase
     assert_text @board.name
 
     # Should have some action buttons (settings, add task, etc.)
-    assert_selector "a[href*='settings'], button[class*='dropdown'], button[data-dropdown-target='button']", minimum: 1
+    assert_selector "a[href*='settings'], button[class*='dropdown'], button[data-dropdown-target='button'], button[data-nav-dropdown-target='button']", minimum: 1
   end
 end
 

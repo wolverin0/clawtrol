@@ -27,6 +27,7 @@ class Task < ApplicationRecord
   has_many :agent_transcripts, dependent: :nullify, inverse_of: :task
   has_many :runner_leases, dependent: :destroy, inverse_of: :task
   has_many :agent_messages, dependent: :destroy, inverse_of: :task
+  has_many :agent_activity_events, dependent: :destroy, inverse_of: :task
 
   # Enforce eager loading to prevent N+1 queries
   strict_loading :n_plus_one
@@ -136,6 +137,10 @@ class Task < ApplicationRecord
   after_create :record_creation_activity
   after_create :auto_assign_to_agent
   after_update :record_update_activities
+  # Auto-spawn is opt-in only. Default behavior is manual spawn by operator/assistant.
+  after_update :fire_openclaw_on_in_progress, if: -> {
+    saved_change_to_status? && status == "in_progress" && ENV["OPENCLAW_AUTO_SPAWN_ON_IN_PROGRESS"].to_s.downcase == "true"
+  }
   after_update :create_status_notification, if: :saved_change_to_status?
   after_save :auto_assign_on_up_next
 
@@ -164,10 +169,10 @@ class Task < ApplicationRecord
   }
 
 # Pipeline scopes
-scope :pipeline_enabled, -> { where(pipeline_enabled: true) }
-scope :pipeline_pending, -> { pipeline_enabled.where(pipeline_stage: [nil, "", "unstarted"]) }
-scope :pipeline_triaged, -> { pipeline_enabled.where(pipeline_stage: "triaged") }
-scope :pipeline_routed, -> { pipeline_enabled.where(pipeline_stage: "routed") }
+scope :pipeline_enabled, -> { none }
+scope :pipeline_pending, -> { none }
+scope :pipeline_triaged, -> { none }
+scope :pipeline_routed, -> { none }
 
   scope :ordered_for_column, ->(column_status) {
     case column_status.to_s
@@ -318,5 +323,9 @@ end
     return unless user
     old_status, new_status = saved_change_to_status
     Notification.create_for_status_change(self, old_status, new_status)
+  end
+
+  def fire_openclaw_on_in_progress
+    OpenclawNotifyJob.perform_later(id)
   end
 end

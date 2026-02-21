@@ -18,9 +18,7 @@ module Api
         task = find_task_from_params
         return render json: { error: "task not found" }, status: :not_found unless task
 
-        contract = SubAgentOutputContract.from_params(params)
-        findings = contract&.to_markdown
-        findings ||= params[:findings].presence || params[:output].presence
+        findings = params[:findings].presence || params[:output].presence
 
         # If no findings provided, try to extract from transcript
         transcript_files = []
@@ -103,6 +101,19 @@ module Api
         # Record agent output as an inter-agent message for chat history
         record_agent_output_message(task, findings, effective_session_id)
 
+        persist_activity_event(task, {
+          run_id: params[:run_id].presence || effective_session_id.presence || "task-#{task.id}",
+          source: "hook",
+          level: "info",
+          event_type: "final_summary",
+          message: findings.to_s.truncate(5_000),
+          seq: next_event_seq(task, params[:run_id].presence || effective_session_id.presence || "task-#{task.id}"),
+          payload: {
+            session_id: effective_session_id,
+            session_key: params[:session_key].presence || params[:agent_session_key].presence
+          }
+        })
+
         # Pipeline phase handoff: if the task is in a pipeline, advance to next stage.
         # The router updates the model recommendation for the next stage.
         pipeline_advanced = advance_pipeline_stage(task)
@@ -116,44 +127,6 @@ module Api
         }
       end
 
-      # POST /api/v1/hooks/agent_done
-      #
-      # Generic webhook receiver for OpenClaw cron job completions.
-      # Used by Factory cron jobs (delivery.mode: "webhook") to push results
-      # directly to ClawTrol instead of relying on announce.
-      #
-      # Payload (from OpenClaw cron webhook delivery):
-      #   jobId, runId, status, output, startedAt, endedAt, error
-      def agent_done
-        data = request.body.read
-        parsed = JSON.parse(data) rescue {}
-
-        job_id = parsed["jobId"] || params[:job_id]
-        run_id = parsed["runId"] || params[:run_id]
-        status = parsed["status"] || "unknown"
-        output = parsed["output"] || parsed["result"] || ""
-        error  = parsed["error"]
-
-        Rails.logger.info("[HooksController#agent_done] job=#{job_id} run=#{run_id} status=#{status}")
-
-        # If it's a Factory job, create a FactoryLog or just log it
-        # Future: map job_id to a Task and update accordingly
-        if error.present?
-          Rails.logger.warn("[HooksController#agent_done] Error from job #{job_id}: #{error}")
-        end
-
-        render json: {
-          ok: true,
-          job_id: job_id,
-          run_id: run_id,
-          status: status,
-          received_at: Time.current.iso8601
-        }
-      rescue => e
-        Rails.logger.error("[HooksController#agent_done] #{e.message}")
-        render json: { ok: false, error: e.message }, status: :internal_server_error
-      end
-
       # POST /api/v1/hooks/task_outcome
       #
       # OpenClaw completion hook (OutcomeContract v1). This is intentionally
@@ -165,13 +138,23 @@ module Api
         payload = params.permit(
           :version, :run_id, :ended_at, :needs_follow_up, :recommended_action,
           :next_prompt, :summary, :model_used, :openclaw_session_id,
-          :openclaw_session_key, :task_id, :changes, :validation, :follow_up,
-          achieved: [], evidence: [], remaining: [], changes: [], follow_up: [], validation: {}
+          :openclaw_session_key, :task_id,
+          achieved: [], evidence: [], remaining: []
         ).to_h
 
         result = TaskOutcomeService.call(task, payload)
 
         if result.success?
+          persist_activity_event(task, {
+            run_id: payload["run_id"],
+            source: "hook",
+            level: "info",
+            event_type: "status",
+            message: "Outcome received (#{payload['recommended_action'] || 'in_review'})",
+            seq: next_event_seq(task, payload["run_id"]),
+            payload: payload
+          })
+
           render json: {
             success: true,
             idempotent: result.idempotent?,
@@ -182,6 +165,24 @@ module Api
         else
           render json: { error: result.error }, status: result.error_status
         end
+      end
+
+      # POST /api/v1/hooks/agent_activity
+      # Persists append-only activity events independent of transcript cleanup.
+      def agent_activity
+        task = find_task_from_params
+        return render json: { error: "task not found" }, status: :not_found unless task
+
+        events = params[:events].presence || [params.permit(:run_id, :source, :level, :event_type, :message, :seq, :created_at, payload: {}).to_h]
+        result = AgentActivityIngestionService.call(task: task, events: events)
+
+        render json: {
+          success: true,
+          task_id: task.id,
+          created: result.created,
+          duplicates: result.duplicates,
+          errors: result.errors
+        }
       end
 
       private
@@ -286,8 +287,7 @@ module Api
 
         # Try to determine which model hit the limit
         model_name = task.model.presence || detect_model_from_text(findings)
-        model_name = model_name.to_s.strip
-        return if model_name.blank? || model_name.length > 120
+        return unless model_name.present? && Task::MODELS.include?(model_name)
 
         # Find the user who owns this task to register the limit
         # BUG FIX: never fall back to User.first — that would attribute limits to wrong user
@@ -305,29 +305,12 @@ module Api
       # and update the model recommendation. Returns true if advanced.
       # Reloads the task after attempt to ensure response reflects persisted state.
       def advance_pipeline_stage(task)
-        return false unless task.pipeline_enabled?
+        return false if task.pipeline_unstarted? || task.pipeline_pipeline_done?
 
-        target_stage = case task.status.to_s
-        when "in_progress" then "executing"
-        when "in_review" then "verifying"
-        when "done", "archived" then "completed"
-        else nil
-        end
-
-        return false if target_stage.blank? || task.pipeline_stage.to_s == target_stage
-
-        log = Array(task.pipeline_log)
-        log << {
-          stage: "pipeline_sync",
-          from: task.pipeline_stage,
-          to: target_stage,
-          source: "hooks#agent_complete",
-          at: Time.current.iso8601
-        }
-
-        task.update_columns(pipeline_stage: target_stage, pipeline_log: log, updated_at: Time.current)
-        task.reload
-        true
+        router = ClawRouterService.new(task)
+        result = router.advance!
+        task.reload unless result # Ensure in-memory state matches DB on failure
+        result
       rescue StandardError => e
         Rails.logger.warn("[HooksController] Pipeline advance failed for task ##{task.id}: #{e.message}")
         task.reload rescue nil
@@ -379,6 +362,16 @@ module Api
         end
       rescue StandardError => e
         Rails.logger.warn("[HooksController] Failed to record agent message for task ##{task.id}: #{e.message}")
+      end
+
+      def persist_activity_event(task, attrs)
+        AgentActivityIngestionService.call(task: task, events: [attrs])
+      rescue StandardError => e
+        Rails.logger.warn("[HooksController] Failed to persist activity event for task ##{task.id}: #{e.message}")
+      end
+
+      def next_event_seq(task, run_id)
+        AgentActivityEvent.where(task_id: task.id, run_id: run_id.to_s).maximum(:seq).to_i + 1
       end
 
       def updated_description(current_description, findings, activity_markdown)

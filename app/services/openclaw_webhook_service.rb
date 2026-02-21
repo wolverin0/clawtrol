@@ -26,7 +26,7 @@ class OpenclawWebhookService
 
     persona =
       if task.agent_persona
-        "#{task.agent_persona.emoji || '🤖'} #{task.agent_persona.name}"
+        "#{task.agent_persona.emoji || "bot"} #{task.agent_persona.name}"
       else
         "none"
       end
@@ -44,7 +44,7 @@ class OpenclawWebhookService
 
     persona =
       if task.agent_persona
-        "#{task.agent_persona.emoji || '🤖'} #{task.agent_persona.name}"
+        "#{task.agent_persona.emoji || "bot"} #{task.agent_persona.name}"
       else
         "none"
       end
@@ -69,11 +69,9 @@ class OpenclawWebhookService
   end
 
   def hook_token
-    if @user.respond_to?(:openclaw_hooks_token)
-      @user.openclaw_hooks_token.to_s.strip
-    else
-      ""
-    end
+    return "" unless @user.respond_to?(:openclaw_hooks_token)
+
+    @user.openclaw_hooks_token.to_s.strip
   end
 
   def auth_token
@@ -89,7 +87,8 @@ class OpenclawWebhookService
 
     request = Net::HTTP::Post.new(uri.path, {
       "Content-Type" => "application/json",
-      "Authorization" => "Bearer #{auth_token}"
+      "Authorization" => "Bearer #{auth_token}",
+      "X-OpenClaw-Token" => auth_token
     })
     request.body = {
       text: message,
@@ -141,6 +140,7 @@ class OpenclawWebhookService
     token = auth_token
     return false if url.blank? || token.blank?
     return false if url.match?(/example/i)
+
     true
   end
 end

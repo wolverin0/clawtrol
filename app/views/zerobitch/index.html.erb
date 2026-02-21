@@ -72,6 +72,22 @@
     </div>
   </div>
 
+  <div class="hidden fixed inset-0 z-50 bg-black/60 items-center justify-center p-4" data-zerobitch-fleet-target="logsModal">
+    <div class="w-full max-w-3xl bg-bg-elevated border border-border rounded-xl p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-content" data-zerobitch-fleet-target="logsTitle">Logs</h3>
+        <button type="button" class="px-2 py-1 rounded-md border border-border text-xs text-content-muted hover:text-content" data-action="click->zerobitch-fleet#closeLogs">Close</button>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-xs text-content-muted">
+        <label for="zerobitch-logs-tail">Tail</label>
+        <input id="zerobitch-logs-tail" type="number" min="10" max="2000" value="200" class="w-24 rounded-md border border-border bg-bg-base px-2 py-1 text-xs text-content" data-zerobitch-fleet-target="logsTail">
+        <button type="button" class="px-2 py-1 rounded-md bg-bg-base border border-border text-xs text-content" data-action="click->zerobitch-fleet#refreshLogs">Refresh</button>
+        <span data-zerobitch-fleet-target="logsStatus"></span>
+      </div>
+      <pre class="rounded-lg border border-border bg-[#141424] p-3 text-xs text-content min-h-64 max-h-[60vh] overflow-auto whitespace-pre-wrap" data-zerobitch-fleet-target="logsOutput">Select an agent to load logs.</pre>
+    </div>
+  </div>
+
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" data-zerobitch-fleet-target="grid">
     <% @agents.each do |agent| %>
       <%= render "agent_card", agent: agent %>

@@ -12,7 +12,8 @@ export default class extends Controller {
     logsUrl: String,
     tasksUrl: String,
     soulUrl: String,
-    agentsUrl: String
+    agentsUrl: String,
+    template: String
   }
 
   connect() {
@@ -20,6 +21,7 @@ export default class extends Controller {
     this.logsInterval = null
     this.highlightTabs()
     this.showPanel("overview")
+    this.prefillTaskPrompt()
   }
 
   disconnect() {
@@ -36,6 +38,8 @@ export default class extends Controller {
 
     if (tab === "logs") {
       this.refreshLogs()
+    } else if (tab === "task") {
+      this.prefillTaskPrompt()
     } else {
       this.stopLogsPolling()
     }
@@ -164,5 +168,12 @@ export default class extends Controller {
     }
 
     return data
+  }
+
+  prefillTaskPrompt() {
+    if (!this.hasTaskPromptTarget) return
+    if (this.taskPromptTarget.value.trim()) return
+    const template = this.templateValue?.trim()
+    if (template) this.taskPromptTarget.value = template
   }
 }

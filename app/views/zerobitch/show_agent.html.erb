@@ -3,6 +3,7 @@
 <div class="py-6"
      data-controller="zerobitch-agent"
      data-zerobitch-agent-id-value="<%= @agent[:id] %>"
+     data-zerobitch-agent-template-value="<%= @agent[:template].to_s %>"
      data-zerobitch-agent-task-url-value="<%= zerobitch_agent_task_path(@agent[:id]) %>"
      data-zerobitch-agent-logs-url-value="<%= zerobitch_agent_logs_path(@agent[:id]) %>"
      data-zerobitch-agent-tasks-url-value="<%= zerobitch_agent_tasks_path(@agent[:id]) %>"

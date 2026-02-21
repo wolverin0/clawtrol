@@ -547,7 +547,8 @@ class ZerobitchController < ApplicationController
     state_info = docker_info ? docker.container_state(agent[:container_name]) : {}
     status = docker_status_for(docker_info, state_info)
     tasks = (Zerobitch::TaskHistory.all(agent[:id]) rescue [])
-    last_task = tasks.first
+    last_task = tasks.last
+    last_activity_value = last_task&.dig("timestamp") || last_task&.dig("created_at")
     ram_percent = parse_percent(stats[:mem_percent])
     cron_entries = status == "running" ? fetch_native_cron(agent[:container_name], docker) : []
     cron_entries = cron_entries.presence || []
@@ -567,7 +568,7 @@ class ZerobitchController < ApplicationController
       ram_percent: ram_percent,
       ram_limit: stats[:mem_limit] || "—",
       uptime: format_uptime(state_info[:started_at], status),
-      last_activity: format_timestamp(last_task&.dig("created_at")) || "No task yet",
+      last_activity: format_timestamp(last_activity_value) || "No task yet",
       cron_entries: cron_entries,
       cron_display: cron_display,
       cron_source: cron_entries.any? ? "native" : (agent[:cron_schedule].present? ? "registry" : nil),

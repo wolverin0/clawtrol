@@ -14,6 +14,16 @@
 end %>
 <%# Nightly card styling %>
 <% nightly_card_class = task.nightly? ? 'task-card-nightly' : '' %>
+<% context_menu_url = if defined?(context_menu_board_task_path)
+  context_menu_board_task_path(task.board, task)
+else
+  board_task_path(task.board, task)
+end %>
+<% agent_modal_url = if defined?(agent_modal_board_task_path)
+  agent_modal_board_task_path(task.board, task)
+else
+  board_task_path(task.board, task)
+end %>
 <% cache ["task-card-v2", task.cache_key_with_version, blocking_task_ids, current_user&.id] do %>
 <li id="task_<%= task.id %>"
     role="article"
@@ -28,7 +38,7 @@ end %>
         data-agent-preview-task-name-value="<%= h(task.name.truncate(50)) %>"
         data-agent-preview-board-icon-value="<%= task.board.icon %>"
       <% end %>
-      data-dropdown-context-menu-url-value="<%= context_menu_board_task_path(task.board, task) %>"
+      data-dropdown-context-menu-url-value="<%= context_menu_url %>"
       data-dropdown-context-menu-frame-id-value="task_<%= task.id %>_context_menu_frame"
       <% if show_agent_modal_btn %>
         data-agent-modal-task-id-value="<%= task.id %>"
@@ -36,7 +46,7 @@ end %>
         data-agent-modal-session-id-value="<%= task.agent_session_id %>"
         data-agent-modal-task-status-value="<%= task.status %>"
         data-agent-modal-board-icon-value="<%= task.board.icon %>"
-        data-agent-modal-modal-url-value="<%= agent_modal_board_task_path(task.board, task) %>"
+        data-agent-modal-modal-url-value="<%= agent_modal_url %>"
       <% end %>
     <% end %>
     data-task-card

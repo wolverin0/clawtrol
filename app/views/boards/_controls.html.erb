@@ -89,11 +89,13 @@
             <span>🌙</span>
             <span>Nightshift</span>
           <% end %>
-          <%= link_to zerobitch_path,
-              class: "#{menu_item_base_class} #{controller_name == 'zerobitch' ? menu_item_active_class : menu_item_inactive_class}",
-              data: { turbo_frame: "_top" } do %>
-            <span>🎯</span>
-            <span>ZeroBitch</span>
+          <% if defined?(zerobitch_path) %>
+            <%= link_to zerobitch_path,
+                class: "#{menu_item_base_class} #{controller_name == 'zerobitch' ? menu_item_active_class : menu_item_inactive_class}",
+                data: { turbo_frame: "_top" } do %>
+              <span>🎯</span>
+              <span>ZeroBitch</span>
+            <% end %>
           <% end %>
           <%= link_to sessions_explorer_path,
               class: "#{menu_item_base_class} #{controller_name == 'sessions_explorer' ? menu_item_active_class : menu_item_inactive_class}",
@@ -251,11 +253,13 @@
             <span>⚙️</span>
             <span>Gateway Config</span>
           <% end %>
-          <%= link_to soul_editor_path,
-              class: "#{menu_item_base_class} #{controller_name == 'soul_editor' ? menu_item_active_class : menu_item_inactive_class}",
-              data: { turbo_frame: "_top" } do %>
-            <span>❤️</span>
-            <span>Soul Editor</span>
+          <% if defined?(soul_editor_path) %>
+            <%= link_to soul_editor_path,
+                class: "#{menu_item_base_class} #{controller_name == 'soul_editor' ? menu_item_active_class : menu_item_inactive_class}",
+                data: { turbo_frame: "_top" } do %>
+              <span>❤️</span>
+              <span>Soul Editor</span>
+            <% end %>
           <% end %>
         </div>
       </div>
