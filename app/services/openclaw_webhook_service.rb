@@ -12,13 +12,13 @@ class OpenclawWebhookService
   def notify_task_assigned(task)
     return unless configured?
 
-    send_webhook(task, "Execute Now: #{task.name}")
+    send_wake_message("Execute Now: #{task.name}", task: task, tag: "task_assigned")
   end
 
   def notify_auto_claimed(task)
     return unless configured?
 
-    send_webhook(task, "Auto-claimed task ##{task.id}: #{task.name}")
+    send_wake_message("Auto-claimed task ##{task.id}: #{task.name}", task: task, tag: "auto_claimed")
   end
 
   def notify_auto_pull_ready(task)
@@ -33,7 +33,11 @@ class OpenclawWebhookService
 
     model = task.model.presence || Task::DEFAULT_MODEL
     origin = origin_routing_text(task)
-    send_webhook(task, "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona})#{origin}")
+    send_wake_message(
+      "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona})#{origin}",
+      task: task,
+      tag: "auto_pull_ready"
+    )
   end
 
   # Pipeline-enriched wake: includes routing/context details only.
@@ -52,10 +56,17 @@ class OpenclawWebhookService
     model = task.routed_model.presence || task.model.presence || Task::DEFAULT_MODEL
     prompt_len = task.compiled_prompt.to_s.length
 
-    send_webhook(
-      task,
-      "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona}, pipeline: #{task.pipeline_stage}, prompt_chars: #{prompt_len})"
+    send_wake_message(
+      "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona}, pipeline: #{task.pipeline_stage}, prompt_chars: #{prompt_len})",
+      task: task,
+      tag: "auto_pull_ready_pipeline"
     )
+  end
+
+  def notify_runner_summary(message)
+    return unless configured?
+
+    send_wake_message(message.to_s, tag: "runner_summary")
   end
 
   private
@@ -78,7 +89,7 @@ class OpenclawWebhookService
     hook_token.presence || @user.openclaw_gateway_token.to_s.strip
   end
 
-  def send_webhook(task, message)
+  def send_wake_message(message, task: nil, tag: "wake")
     uri = URI.parse("#{@user.openclaw_gateway_url}/hooks/wake")
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = uri.scheme == "https"
@@ -106,7 +117,7 @@ class OpenclawWebhookService
         response = http.request(request)
       rescue *retryable_errors => e
         if attempts < max_attempts
-          Rails.logger.warn("[OpenClawWebhook] wake retry #{attempts}/#{max_attempts} task_id=#{task.id} err=#{e.class}: #{e.message}")
+          Rails.logger.warn("[OpenClawWebhook] #{tag} retry #{attempts}/#{max_attempts} task_id=#{task&.id || "-"} err=#{e.class}: #{e.message}")
           sleep(2**(attempts - 1))
           next
         end
@@ -116,22 +127,22 @@ class OpenclawWebhookService
 
       code = response.code.to_i
       if code >= 500 && attempts < max_attempts
-        Rails.logger.warn("[OpenClawWebhook] wake retry #{attempts}/#{max_attempts} task_id=#{task.id} code=#{response.code}")
+        Rails.logger.warn("[OpenClawWebhook] #{tag} retry #{attempts}/#{max_attempts} task_id=#{task&.id || "-"} code=#{response.code}")
         sleep(2**(attempts - 1))
         next
       end
 
       if code >= 200 && code < 300
-        Rails.logger.info("[OpenClawWebhook] wake ok task_id=#{task.id} code=#{response.code}")
+        Rails.logger.info("[OpenClawWebhook] #{tag} ok task_id=#{task&.id || "-"} code=#{response.code}")
       else
-        Rails.logger.warn("[OpenClawWebhook] wake non-2xx task_id=#{task.id} code=#{response.code}")
-        Rails.logger.error("[OpenClawWebhook] wake failed task_id=#{task.id} code=#{response.code}") if code >= 500
+        Rails.logger.warn("[OpenClawWebhook] #{tag} non-2xx task_id=#{task&.id || "-"} code=#{response.code}")
+        Rails.logger.error("[OpenClawWebhook] #{tag} failed task_id=#{task&.id || "-"} code=#{response.code}") if code >= 500
       end
 
       return response
     end
   rescue StandardError => e
-    Rails.logger.error("[OpenClawWebhook] wake failed task_id=#{task.id} err=#{e.class}: #{e.message}")
+    Rails.logger.error("[OpenClawWebhook] #{tag} failed task_id=#{task&.id || "-"} err=#{e.class}: #{e.message}")
     nil
   end
 

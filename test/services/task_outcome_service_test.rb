@@ -76,6 +76,23 @@ class TaskOutcomeServiceTest < ActiveSupport::TestCase
     assert_equal "in_review", @task.reload.status
   end
 
+test "requeue_same_task moves task back to up_next" do
+  payload = valid_payload.merge(
+    "needs_follow_up" => true,
+    "recommended_action" => "requeue_same_task",
+    "next_prompt" => "Continue with step 2"
+  )
+
+  result = TaskOutcomeService.call(@task, payload)
+  assert result.success?
+
+  task = @task.reload
+  assert_equal "up_next", task.status
+  assert task.assigned_to_agent?
+  assert_match(/Follow-up Prompt/, task.description.to_s)
+  assert_match(/Continue with step 2/, task.description.to_s)
+end
+
   test "increments run_count" do
     result = TaskOutcomeService.call(@task, valid_payload)
     assert result.success?

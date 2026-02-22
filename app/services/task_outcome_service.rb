@@ -158,6 +158,8 @@ class TaskOutcomeService
 
       # Release any runner lease: the run is over
       @task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
+      requeue_same_task = follow_up_requeue_same_task?
+      status_target = requeue_same_task ? :up_next : :in_review
 
       base_updates = {
         run_count: run_number,
@@ -166,8 +168,16 @@ class TaskOutcomeService
         last_needs_follow_up: needs_follow_up,
         last_recommended_action: recommended_action,
         agent_claimed_at: nil,
-        status: :in_review
+        agent_session_id: nil,
+        agent_session_key: nil,
+        status: status_target
       }
+
+      if requeue_same_task
+        base_updates[:assigned_to_agent] = true
+        base_updates[:assigned_at] = Time.current
+        base_updates[:description] = append_follow_up_prompt(@task.description.to_s, run_number)
+      end
 
       @task.update!(base_updates)
       status_changed = @task.saved_change_to_status?
@@ -188,6 +198,8 @@ class TaskOutcomeService
 
     target_stage = case @task.status.to_s
     when "in_progress" then "executing"
+    when "up_next"
+      (@task.routed_model.present? && @task.compiled_prompt.present?) ? "routed" : "unstarted"
     when "in_review" then "verifying"
     when "done", "archived" then "completed"
     else nil
@@ -236,6 +248,24 @@ class TaskOutcomeService
   rescue StandardError => e
     Rails.logger.warn("[TaskOutcomeService] Outcome notification failed task_id=#{@task.id}: #{e.message}")
   end
+
+def follow_up_requeue_same_task?
+  needs_follow_up && recommended_action == "requeue_same_task"
+end
+
+def append_follow_up_prompt(description, run_number)
+  prompt = @payload["next_prompt"].to_s.strip
+  return description if prompt.blank?
+
+  follow_up_block = "\n\n## Follow-up Prompt (run #{run_number})\n#{prompt}"
+  return description if description.to_s.include?(follow_up_block)
+
+  merged = "#{description}#{follow_up_block}".strip
+  max_len = 490_000
+  return merged if merged.length <= max_len
+
+  merged[-max_len, max_len]
+end
 
   def publish_outcome_event!(task_run)
     OutcomeEventChannel.publish!({

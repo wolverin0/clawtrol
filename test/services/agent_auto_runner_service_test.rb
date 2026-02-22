@@ -23,28 +23,29 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
   end
 
   class FakeWebhookService
-    cattr_accessor :wakes, default: []
+  cattr_accessor :wakes, default: []
+  cattr_accessor :summaries, default: []
 
-    def initialize(_user)
-    end
-
-    def notify_auto_pull_ready(task)
-      self.class.wakes << { task_id: task.id, name: task.name, pipeline: false }
-      true
-    end
-
-    def notify_auto_pull_ready_with_pipeline(task)
-      self.class.wakes << { task_id: task.id, name: task.name, pipeline: true }
-      true
-    end
-
-    def notify_auto_pull_ready_with_pipeline(task)
-      self.class.wakes << { task_id: task.id, name: task.name, pipeline: true }
-      true
-    end
+  def initialize(_user)
   end
 
-  test "demotes in_progress tasks with expired runner leases" do
+  def notify_auto_pull_ready(task)
+    self.class.wakes << { task_id: task.id, name: task.name, pipeline: false }
+    true
+  end
+
+  def notify_auto_pull_ready_with_pipeline(task)
+    self.class.wakes << { task_id: task.id, name: task.name, pipeline: true }
+    true
+  end
+
+  def notify_runner_summary(message)
+    self.class.summaries << message
+    true
+  end
+end
+
+test "demotes in_progress tasks with expired runner leases" do
     user = User.create!(
       email_address: "auto_runner_demote_#{SecureRandom.hex(4)}@example.test",
       password: "password123",
@@ -527,94 +528,124 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     assert_equal 1, FakeWebhookService.wakes.length
   end
 
-  # --- in_progress guardrails ---
+# --- queue orchestration guardrails ---
 
-  test "does not wake when base in_progress cap is reached without burst conditions" do
-    user = User.create!(
-      email_address: "auto_runner_cap_base_#{SecureRandom.hex(4)}@example.test",
-      password: "password123",
-      password_confirmation: "password123",
-      agent_auto_mode: true,
-      openclaw_gateway_url: "http://example.test",
-      openclaw_gateway_token: "tok"
+test "does not wake when board already has in_progress work" do
+  user = User.create!(
+    email_address: "auto_runner_board_busy_#{SecureRandom.hex(4)}@example.test",
+    password: "password123",
+    password_confirmation: "password123",
+    agent_auto_mode: true,
+    openclaw_gateway_url: "http://example.test",
+    openclaw_gateway_token: "tok"
+  )
+
+  user.tasks.destroy_all
+    user.boards.destroy_all
+    board = Board.create!(user: user, name: "Busy Board")
+  FakeWebhookService.wakes = []
+  cache = ActiveSupport::Cache::MemoryStore.new
+
+  travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+    Task.create!(
+      user: user,
+      board: board,
+      name: "Working",
+      status: :in_progress,
+      assigned_to_agent: true,
+      blocked: false,
+      model: "codex"
     )
 
-    board = Board.create!(user: user, name: "Cap Board")
-    FakeWebhookService.wakes = []
-    cache = ActiveSupport::Cache::MemoryStore.new
-
-    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
-      4.times do |i|
-        Task.create!(
-          user: user,
-          board: board,
-          name: "Working #{i}",
-          status: :in_progress,
-          assigned_to_agent: true,
-          blocked: false
-        )
-      end
-
-      Task.create!(
-        user: user,
-        board: board,
-        name: "Queued task",
-        status: :up_next,
-        assigned_to_agent: true,
-        blocked: false
-      )
-
-      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
-    end
-
-    assert_equal 0, FakeWebhookService.wakes.length
-  end
-
-  test "allows wake above base cap when burst conditions are met" do
-    user = User.create!(
-      email_address: "auto_runner_cap_burst_#{SecureRandom.hex(4)}@example.test",
-      password: "password123",
-      password_confirmation: "password123",
-      agent_auto_mode: true,
-      openclaw_gateway_url: "http://example.test",
-      openclaw_gateway_token: "tok"
+    Task.create!(
+      user: user,
+      board: board,
+      name: "Queued task",
+      status: :up_next,
+      assigned_to_agent: true,
+      blocked: false,
+      model: "codex"
     )
 
-    board = Board.create!(user: user, name: "Burst Board")
-    FakeWebhookService.wakes = []
-    cache = ActiveSupport::Cache::MemoryStore.new
-
-    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
-      4.times do |i|
-        Task.create!(
-          user: user,
-          board: board,
-          name: "Working #{i}",
-          status: :in_progress,
-          assigned_to_agent: true,
-          blocked: false
-        )
-      end
-
-      3.times do |i|
-        Task.create!(
-          user: user,
-          board: board,
-          name: "Queued #{i}",
-          status: :up_next,
-          assigned_to_agent: true,
-          blocked: false
-        )
-      end
-
-      stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
-      assert_equal 1, stats[:users_woken], "stats=#{stats.inspect}"
-    end
-
-    assert_equal 1, FakeWebhookService.wakes.length
+    stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+    assert_equal 0, stats[:users_woken]
+    assert_equal 0, stats[:tasks_woken]
+    assert stats[:queue_skip_reasons]["board_busy"].to_i >= 1
   end
 
-  # --- Stats reporting ---
+  assert_equal 0, FakeWebhookService.wakes.length
+end
+
+test "wakes at most one task per board and respects FIFO id order" do
+  user = User.create!(
+    email_address: "auto_runner_fifo_#{SecureRandom.hex(4)}@example.test",
+    password: "password123",
+    password_confirmation: "password123",
+    agent_auto_mode: true,
+    openclaw_gateway_url: "http://example.test",
+    openclaw_gateway_token: "tok"
+  )
+
+  user.tasks.destroy_all
+    user.boards.destroy_all
+    board_a = Board.create!(user: user, name: "A", position: 0)
+  board_b = Board.create!(user: user, name: "B", position: 1)
+  FakeWebhookService.wakes = []
+  cache = ActiveSupport::Cache::MemoryStore.new
+
+  travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+    t1 = Task.create!(user: user, board: board_a, name: "A-1", status: :up_next, assigned_to_agent: true, blocked: false, model: "codex")
+    t2 = Task.create!(user: user, board: board_a, name: "A-2", status: :up_next, assigned_to_agent: true, blocked: false, model: "codex")
+    t3 = Task.create!(user: user, board: board_b, name: "B-1", status: :up_next, assigned_to_agent: true, blocked: false, model: "gemini3")
+
+    stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+    assert_equal 1, stats[:users_woken]
+    assert_equal 2, stats[:tasks_woken]
+
+    ids = FakeWebhookService.wakes.map { |w| w[:task_id] }
+    assert_includes ids, t1.id
+    assert_includes ids, t3.id
+    refute_includes ids, t2.id
+  end
+
+end
+
+  test "sends periodic queue summary while queue is active" do
+  user = User.create!(
+    email_address: "auto_runner_summary_#{SecureRandom.hex(4)}@example.test",
+    password: "password123",
+    password_confirmation: "password123",
+    agent_auto_mode: true,
+    openclaw_gateway_url: "http://example.test",
+    openclaw_gateway_token: "tok"
+  )
+
+  board = Board.create!(user: user, name: "Summary Board", position: 0)
+  Task.create!(
+    user: user,
+    board: board,
+    name: "Summary queued",
+    status: :up_next,
+    assigned_to_agent: true,
+    blocked: false,
+    model: "codex"
+  )
+
+  FakeWebhookService.wakes = []
+  FakeWebhookService.summaries = []
+  cache = ActiveSupport::Cache::MemoryStore.new
+
+  travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+    AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+    AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+  end
+
+  assert_equal 1, FakeWebhookService.summaries.length
+  assert_match(/Queue summary:/, FakeWebhookService.summaries.first)
+  end
+
+# --- Stats reporting ---
+
 
   test "run! returns accurate stats hash" do
     user = users(:one)
