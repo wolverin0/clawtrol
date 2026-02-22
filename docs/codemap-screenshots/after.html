@@ -1,7 +1,0 @@
-<!doctype html><html><body style='margin:0;background:#020617'><canvas id='c' width='1000' height='420' style='width:1000px;height:420px;display:block;margin:20px auto'></canvas><script>
-const c=document.getElementById('c'),x=c.getContext('2d');
-const g=x.createLinearGradient(0,0,0,c.height);g.addColorStop(0,'#0b1120');g.addColorStop(1,'#030712');x.fillStyle=g;x.fillRect(0,0,c.width,c.height);
-const rooms=[['Inbox','#94a3b8',20,20,306,180],['Up Next','#38bdf8',346,20,306,180],['In Progress','#f59e0b',672,20,306,180],['In Review','#f472b6',180,220,306,180],['Done','#34d399',506,220,306,180]];
-for(const [name,color,rx,ry,rw,rh] of rooms){x.fillStyle='rgba(15,23,42,.95)';x.fillRect(rx,ry,rw,rh);x.strokeStyle=color;x.lineWidth=2;x.strokeRect(rx,ry,rw,rh);x.fillStyle=color;x.fillRect(rx+12,ry+10,rw-24,26);x.fillStyle='#f8fafc';x.font='bold 12px sans-serif';x.fillText(name,rx+20,ry+28);for(let i=0;i<5;i++){const tx=rx+26+(i%3)*88,ty=ry+62+Math.floor(i/3)*58;x.fillStyle='rgba(2,6,23,.92)';x.fillRect(tx,ty,78,24);x.strokeStyle='rgba(248,250,252,.25)';x.strokeRect(tx,ty,78,24);x.fillStyle='#e2e8f0';x.font='11px sans-serif';x.fillText('Task '+(i+1)+'…',tx+6,ty+16)}}
-x.fillStyle='#cbd5e1';x.font='bold 14px sans-serif';x.fillText('Codemap Hotel (after polish style)',20,414);
-</script></body></html>

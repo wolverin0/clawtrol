@@ -51,8 +51,6 @@ import InterventionRowController from "controllers/intervention_row_controller"
 import ZerobitchFleetController from "controllers/zerobitch_fleet_controller"
 import ZerobitchSpawnController from "controllers/zerobitch_spawn_controller"
 import ZerobitchAgentController from "controllers/zerobitch_agent_controller"
-import CodemapMonitorController from "controllers/codemap_monitor_controller"
-import VisualizerController from "controllers/visualizer_controller"
 
 application.register("notifications", NotificationsController)
 application.register("auto-claim-tags", AutoClaimTagsController)
@@ -100,8 +98,6 @@ application.register("intervention-row", InterventionRowController)
 application.register("zerobitch-fleet", ZerobitchFleetController)
 application.register("zerobitch-spawn", ZerobitchSpawnController)
 application.register("zerobitch-agent", ZerobitchAgentController)
-application.register("codemap-monitor", CodemapMonitorController)
-application.register("visualizer", VisualizerController)
 
 import ThemeToggleController from "controllers/theme_toggle_controller"
 application.register("theme-toggle", ThemeToggleController)
