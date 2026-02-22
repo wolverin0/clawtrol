@@ -157,4 +157,43 @@ class Api::V1::HooksControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Found by key", @task.reload.description
   end
+
+  test "runtime_events ingests v2 events and returns counts" do
+    assert_difference "AgentActivityEvent.count", 2 do
+      post "/api/v1/hooks/runtime_events",
+           params: {
+             version: 2,
+             task_id: @task.id,
+             run_id: "run-rt-1",
+             events: [
+               {
+                 type: "tool_call",
+                 seq: 1,
+                 tool_name: "Edit",
+                 input: { command: "rg -n", cwd: "/app" }
+               },
+               {
+                 type: "status",
+                 seq: 2,
+                 status: "running"
+               }
+             ]
+           },
+           headers: { "X-Hook-Token" => @token },
+           as: :json
+    end
+
+    assert_response :success
+    body = response.parsed_body
+    assert_equal 2, body["created"]
+  end
+
+  test "runtime_events rejects invalid version" do
+    post "/api/v1/hooks/runtime_events",
+         params: { version: 1, task_id: @task.id, events: [] },
+         headers: { "X-Hook-Token" => @token },
+         as: :json
+
+    assert_response :unprocessable_entity
+  end
 end

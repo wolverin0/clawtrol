@@ -185,16 +185,71 @@ module Api
         }
       end
 
+      # POST /api/v1/hooks/runtime_events
+      # Runtime events v2: streaming-friendly event batches for runtime panel.
+      def runtime_events
+        version = params[:version].to_i
+        return render json: { error: "invalid version" }, status: :unprocessable_entity unless version == 2
+
+        events = extract_runtime_events(params)
+        return render json: { error: "events missing" }, status: :unprocessable_entity if events.blank?
+
+        task = find_task_from_params
+        task ||= find_task_from_runtime_events(events)
+        return render json: { error: "task not found" }, status: :not_found unless task
+
+        run_id = params[:run_id].presence ||
+          params[:session_id].presence ||
+          params[:agent_session_id].presence ||
+          task.last_run_id.presence ||
+          task.agent_session_id.presence ||
+          "task-#{task.id}"
+
+
+        result = RuntimeEventsIngestionService.call(
+          task: task,
+          events: events,
+          run_id: run_id,
+          source: "runtime_hook"
+        )
+
+        render json: {
+          success: true,
+          task_id: task.id,
+          created: result.created,
+          duplicates: result.duplicates,
+          errors: result.errors
+        }
+      end
+
       private
 
       def find_task_from_params
-        session_key = params[:session_key].presence
-        session_id = params[:session_id].presence
+        session_key = params[:session_key].presence || params[:agent_session_key].presence
+        session_id = params[:session_id].presence || params[:agent_session_id].presence
         task_id = params[:task_id].presence
 
         (Task.find_by(agent_session_key: session_key) if session_key.present?) ||
           (Task.find_by(agent_session_id: session_id) if session_id.present?) ||
           (Task.find_by(id: task_id) if task_id.present?)
+      end
+
+      def find_task_from_runtime_events(events)
+        candidate = Array(events).find { |event| event.is_a?(Hash) && (event["task_id"].present? || event[:task_id].present?) }
+        task_id = candidate && (candidate["task_id"] || candidate[:task_id])
+        return nil if task_id.blank?
+
+        Task.find_by(id: task_id)
+      end
+
+      def extract_runtime_events(params)
+        events = params[:events]
+        return events if events.present?
+
+        single = params[:event].presence || params[:runtime_event].presence
+        return [single] if single.present?
+
+        []
       end
 
       def persist_agent_activity(task, session_id)

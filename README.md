@@ -20,237 +20,6 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Features
 
-### Core
-- **Kanban Boards** — Organize tasks across multiple boards with tabs in navbar
-- **Agent Assignment** — Assign tasks to your agent, track progress
-- **Real-time Updates** — WebSocket via ActionCable (KanbanChannel + AgentActivityChannel) with polling fallback
-- **API Access** — Full REST API for agent integrations
-- **Dashboard** — Overview page (`/dashboard`) with status cards, active agents, recent tasks, model status
-- **Analytics** — Analytics page (`/analytics`) with CSS bar charts, period filtering (24h/7d/30d/all), model usage, board breakdown
-
-### 🤖 Agent Integration
-- **Live Activity View** — Watch agent work in real-time via WebSocket or `/api/v1/tasks/:id/agent_log`
-- **Model Selection** — Choose model per task (opus, codex, gemini, glm, sonnet)
-- **Auto Session Linking** — `agent_complete`, `claim`, and task create/update accept session params directly
-- **Spinner Indicator** — Visual indicator on cards with active agents
-- **Deep Research Mode** — Toggle multi-agent analysis for complex tasks
-- **Agent Terminal** — Full session transcript viewer with tabbed interface, hover preview, pin-to-terminal
-
-### 📊 Multi-Board System
-- **Multiple Boards** — Create multiple boards per user (displayed as tabs)
-- **ALL Aggregator** — Read-only view across all boards
-- **Auto-Routing** — `spawn_ready` endpoint auto-detects project from task name prefix
-- **Board Context Menu** — Move tasks between boards easily
-- **Archived Status** — Archive completed tasks to reduce board clutter
-
-### ✅ Validation System
-- **Validation Commands** — Run shell commands to validate agent output (exit 0 = pass)
-- **Quick Templates** — One-click Rails Test, npm test, Rubocop, ESLint, pytest
-- **Background Execution** — Validation runs async (up to 2 minutes)
-- **Auto-Status** — Pass → `in_review`, Fail → stays `in_progress`
-- **Command Sandboxing** — Shellwords + allowlist prevents injection attacks
-
-### 🏭 Factory v2 — Continuous Improvement Engine
-- **Automated Code Improvement** — Configure loops that continuously improve your codebase
-- **10 Built-in Agents** — Security Auditor, Code Reviewer, Performance Profiler, Test Coverage Hunter, and more
-- **Stack Auto-Detection** — Detects Rails, Node, Python, Rust, Go and configures appropriate syntax/test commands
-- **OpenClaw Cron Sync** — Play/Pause/Stop loops from UI, syncs with OpenClaw scheduler
-- **Cycle Reporting** — Agents report progress via API with commit tracking and finding dedup
-- **Confidence Scoring** — Findings rated 0-100, deduplicated by SHA256 pattern hash
-- **Backlog-Driven** — Agents read `FACTORY_BACKLOG.md` and work through items in priority order
-
-### ⚔️ ZeroBitch — Agent Swarm Orchestration
-
-ZeroBitch is ClawTrol's fleet management layer for [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw) — a lightweight, Rust-based AI agent runtime. Instead of running a single agent, ZeroBitch lets you spawn, manage, and orchestrate a **swarm of ZeroClaw instances** as Docker containers, each with its own role, model, personality, and resource limits. Think of it as Kubernetes for your AI agents — launch a security auditor, a research analyst, and a code reviewer, all running in parallel on cheap/free LLMs, coordinated from one dashboard.
-
-- **Fleet Dashboard** (`/zerobitch`) — Monitor all agent instances with real-time status, RAM, CPU, sparkline charts
-- **One-Click Spawn** — Create agents from 6 templates (Infra Monitor, Research Analyst, Security Auditor, Content Writer, Code Reviewer, Data Analyst) or configure custom agents
-- **Docker Lifecycle** — Start/Stop/Restart/Destroy containers directly from the UI
-- **Task Dispatch** — Send prompts to individual agents and track execution results with timing
-- **Memory Browser** — Browse each agent's SQLite memory database, transfer knowledge between agents
-- **Auto-Scaler Rules** — Define conditions for automatic fleet scaling (e.g., "if CPU > 80% on all agents, spawn another")
-- **SOUL.md / AGENTS.md Editor** — Edit agent personality and instructions from the detail page, changes mount into the container live
-- **Logs Viewer** — Real-time container log streaming with auto-scroll and filtering
-- **Batch Operations** — Start/stop/restart multiple agents at once
-- **Resource Limits** — Per-agent memory (default 32MB) and CPU caps to keep your fleet lightweight
-
-### 🔄 Model Rate Limiting
-- **Model Status** — Check which models are available
-- **Best Model Selection** — Automatically pick the best available model
-- **Rate Limit Recording** — Track when models hit limits
-- **Auto-Fallback** — Seamlessly switch to backup models when limited
-
-### 🔗 Follow-up Tasks
-- **Parent Linking** — Chain related tasks together with visual parent links
-- **AI Suggestions** — Generate follow-up task suggestions with AI
-- **Create Follow-ups** — One-click follow-up creation with model/session inheritance
-- **Auto-Done** — Parent auto-completes when follow-up is created
-
-### 🔒 Task Dependencies
-- **Blocking System** — Tasks can block other tasks with `blocked_by`
-- **Circular Detection** — Prevents infinite dependency loops
-- **🔒 Badge** — Blocked tasks show badge with blocker info
-- **Drag Prevention** — Can't move blocked tasks to `in_progress`
-
-### 🔔 Notifications
-- **Bell Icon** — Notification center in navbar with unread count badge
-- **Event Types** — Agent claimed, task completed, validation results
-- **Browser Notifications** — Optional browser notification API integration
-- **Mark All Read** — One-click clear all notifications
-- **Telegram Push** — Get instant Telegram messages when tasks move to `in_review` or `done`
-- **Webhook Push** — Generic webhook (JSON POST) for custom integrations (Slack, Discord, etc.)
-- **Settings UI** — Configure Telegram bot token, chat ID, and webhook URL in Settings → Notifications tab
-- **Test Button** — Send a test notification to verify your setup
-- **Zero Dependencies** — Pure Rails, no external services required
-
-#### Setting Up Telegram Notifications
-
-1. Create a Telegram bot via [@BotFather](https://t.me/BotFather) and copy the token
-2. Send `/start` to your bot, then get your chat ID from [@userinfobot](https://t.me/userinfobot)
-3. Go to **Settings → Notifications** in ClawTrol
-4. Paste your bot token and chat ID
-5. Click **Test Notification** to verify
-6. Done — you'll get a Telegram message every time a task completes
-
-#### Webhook Integration
-
-Set a webhook URL in Settings → Notifications. ClawTrol will POST JSON on task completion:
-
-```json
-{
-  "event": "task_status_change",
-  "task_id": 123,
-  "task_name": "Fix login bug",
-  "status": "in_review",
-  "message": "📋 Task #123 → In review\n\nFix login bug\n\n...",
-  "timestamp": "2026-02-13T14:30:00-03:00"
-}
-```
-
-### ⌨️ Keyboard Shortcuts
-- `n` — New task
-- `Ctrl+/` — Toggle terminal
-- `?` — Help modal with all shortcuts
-
-### 📱 Mobile Responsive
-- **Hamburger Menu** — Slide-out navigation panel (md:hidden) with all 11 nav links + Settings
-- **Board Tabs as Dropdown** — `<select>` dropdown on mobile instead of horizontal scroll
-- **Memory Panel** — Fixed positioning on mobile, absolute on desktop
-- **Column Switcher** — Swipeable tab bar for kanban columns on mobile
-- **Bottom Nav** — Fixed navigation (Dashboard/Board/Terminal/Settings)
-- **Slide-in Panel** — Task modal slides from right on mobile, centered overlay on desktop
-
-### 🎨 UI Polish
-- **Card Progressive Disclosure** — Model-colored left borders (purple=Opus, green=Gemini, etc), hover badges
-- **Undo Toast** — 5-second countdown on status changes with undo revert
-- **Dark Theme** — WCAG-compliant contrast, column tints, done card dimming
-- **File Viewer** — Browse agent output files in-modal with fullscreen expand + markdown rendering (`/view?file=path`)
-- **Search** — Full-text search across all tasks with trigram indexing
-- **Task Templates** — Slash commands in add-card: `/review`, `/bug`, `/doc`, `/test`, `/research`
-- **Done Counter** — Today's completed tasks in header
-- **Copy URL** — One-click copy task URL for sharing
-- **Confetti** — Celebration animation on task completion 🎉
-
-### ⏰ Scheduling
-- **Nightly Tasks** — Delay execution until night hours
-- **Recurring Tasks** — Daily/weekly/monthly templates with time picker
-
-### 🌙 Nightshift Mission Control
-- **19 Automated Missions** — Pre-configured nightly tasks: security scans, dependency updates, financial reports, network monitoring, email triage, tech news, RAG reindexing, and more
-- **Mission Selector UI** — Terminal-themed `/nightshift` page with checkboxes, model indicators (Codex/Gemini/GLM), and estimated time per mission
-- **ARM & Execute** — Select missions → click ARM → `NightshiftRunnerJob` executes them sequentially via OpenClaw wake
-- **SolidQueue Recurring** — Automatic nightly run at 23:00 via `config/recurring.yml`
-- **Engine Service** — `NightshiftEngineService` handles execution orchestration, completion callbacks, and timeout (30 min per mission)
-- **Status Tracking** — Each selection tracks: `pending → running → completed/failed` with `launched_at` and `completed_at` timestamps
-- **API Integration** — `GET /api/v1/nightshift/selections` + `PATCH` for agent status reporting
-- **Completion Callbacks** — Agents report back via `PATCH /api/v1/nightshift/selections/:id` with result text
-- **Evening Planning** — 21:00 cron sends day review + nightshift planner via Telegram
-
-### 🔗 Link Inbox (Saved Links)
-- **Save & Process URLs** — `/saved_links` page to save URLs for AI analysis
-- **Gemini Processing** — One-click "Process with Gemini" button runs analysis via Gemini CLI (OAuth, no API key)
-- **Batch Processing** — Process all pending links at once
-- **Nightshift Integration** — Auto-process pending links during nightly runs
-- **X/Twitter Support** — Uses fxtwitter API for tweet content extraction
-
-### 🌙 Nightbeat Integration
-- **Moon-Marked Tasks** — Nightly tasks are marked with a moon 🌙 icon
-- **Nightbeat Filter** — Toggle to show/hide nightbeat tasks quickly
-- **Morning Brief** — `/nightbeat` page shows overnight completed tasks grouped by project
-
-
-### 🚀 Pipeline System (ClawRouter)
-- **3-Layer Mechanical Pipeline** — Zero-token triage + context compilation + model routing
-- **Triage (Layer 0)** — Ruby rules classify tasks into pipeline types: `quick-fix`, `bug-fix`, `feature`, `research`, `architecture`, `nightshift`
-- **Context Compiler (Layer 1)** — Enriches tasks with project manifests, board context, dependencies, and optional RAG from Qdrant
-- **Router (Layer 2)** — Selects optimal model based on task type, tier fallback chains (`free → subscription → api → expensive`)
-- **Pipeline Stages** — `unstarted → triaged → context_ready → routed → executing → verifying → completed/failed`
-- **Observation Mode** — Pipeline logs decisions without changing behavior (safe rollout)
-- **Per-Board Activation** — Enable pipeline per board via API or Config Hub
-- **Prompt Templates** — ERB templates per pipeline type with full context injection
-- **Escalation** — Auto-bumps to higher model tier on repeated failures
-- **YAML Config** — All rules, tiers, and templates configured in `config/pipelines.yml`
-
-### 🐝 Swarm Launcher
-- **Curated Task Ideas** — `/swarm` page with pre-configured task ideas organized by category
-- **One-Click Launch** — Select ideas and launch them as real tasks on any board
-- **Favorites** — Star frequently-used ideas for quick access
-- **Board Routing** — Per-idea board assignment with dropdown override
-- **Model Selection** — Per-idea model override with dropdown
-- **Multi-Select** — Checkbox selection with "Select All" and batch launch
-- **Launch History** — Track `times_launched` and `last_launched_at` per idea
-- **Pipeline Integration** — Launched tasks auto-enter the pipeline with `pipeline_enabled: true`
-- **Category Filters** — Filter ideas by category or favorites
-- **Bottom Panel** — Shows selected count, estimated time, and launch button
-
-### ⚙️ Config Hub
-- **OpenClaw Configuration Dashboard** — `/config` page to manage all OpenClaw gateway settings from ClawTrol
-- **15 Config Sections** — Typing, Identity, Sandbox, Compaction, Heartbeat, Session Reset, Message Queue, Media, Telegram, Discord, Logging, Channel, Gateway, Agent
-- **Live Editing** — View and update OpenClaw configuration in real-time via gateway API
-- **Gateway Health** — Status indicator showing gateway connection health
-- **Log Viewer** — Tail OpenClaw logs directly from the Config Hub
-- **Channel Management** — Configure per-channel behavior for messaging integrations
-
-### 🏭 Agent Factory
-- **Factory Loops** — Automated task generation cycles with play/pause/stop controls
-- **Auto-Generate Personas** — Create board-specific agent personas automatically
-- **Loop Metrics** — Track cycle completion rates, timing, and outcomes
-- **API Control** — Full CRUD + play/pause/stop via REST API
-
-### 🪝 Agent Complete Auto-Save Pipeline
-- **Webhook Endpoint** — `POST /api/v1/hooks/agent_complete` for agent self-reporting
-- **Accepted Payload** — `task_id`, `findings`, `session_id`, `session_key`, `output_files`
-- **Auto Output Save** — Persists findings into task description under `## Agent Output`
-- **Auto Review Handoff** — Moves task to `in_review` automatically
-- **Session + File Linking** — Links session metadata and extracts output files from commits/transcripts
-- **Token Auth** — Requires `X-Hook-Token` header
-
-### 🔒 Done Validation
-- **Agent Output Required** — Agent-assigned tasks cannot move to `done` without `## Agent Output`
-- **Clear API Error** — Returns HTTP `422` with actionable validation message
-- **Kanban Guardrails** — Drag/drop reverts card and shows toast on rejection
-
-### 📄 Transcript Recovery
-- **Recover Endpoint** — `POST /api/v1/tasks/:id/recover_output`
-- **UI Recovery Actions** — Buttons: **"Recuperar del Transcript"** and **"Escribir manualmente"**
-- **Smart Extraction** — Reads `.jsonl` transcript and restores latest assistant summary
-
-### 📁 Output Files Auto-Extraction
-- **Findings Parsing** — Detects file paths directly from findings text
-- **Transcript Commit Mining** — Extracts changed files from git commits in transcript
-- **Merge + Dedupe** — Combines all discovered files and removes duplicates
-
-### 🛰️ Agent Activity Improvements
-- **Session Fallbacks** — Shows activity even without `session_id` using description markers
-- **Lifecycle Timeline** — `assigned → claimed → output posted → current status`
-- **Transcript Access** — Shows transcript link when transcript file exists
-- **Durable Activity Events** — Optional `agent_events` ingestion persists heartbeat/tool/final events in DB and rehydrates the live log stream
-
-### 🗺️ Codemap Monitor (MVP)
-- **Live Monitor Page** — `/codemap_monitor` with hotel + tech views for active agent tasks
-- **Realtime Task Motion** — Uses ActionCable task updates to move cards/rooms by status
-- **Task-Level Widget** — Shared codemap widget partial for board and monitor surfaces
-
 ### 🪝 Webhook Integration
 - **OpenClaw Gateway** — Instant wake via webhook when tasks are assigned
 - **Real-time Triggers** — No polling delay for agent activation
@@ -973,17 +742,25 @@ MIT License — see [LICENSE](LICENSE) for details.
 - 🐙 **GitHub:** [wolverin0/clawtrol](https://github.com/wolverin0/clawtrol)
 - 🦞 **Upstream:** [clawdeckio/clawdeck](https://github.com/clawdeckio/clawdeck)
 
-## Telegram Notification Routing
+## Telegram Notification Routing (Strict Origin)
 
-Tasks can route completion notifications back to the originating Telegram topic:
+ClawTrol stores routing metadata on each task and always routes completion output to the task origin.
 
-- **`origin_chat_id`** (string) — the Telegram chat/group ID the task was created from
-- **`origin_thread_id`** (integer) — the topic/thread ID within that group
+- **`origin_chat_id`** (string) — Telegram chat/group ID where the task originated
+- **`origin_thread_id`** (integer) — Telegram topic/thread ID where the task originated
+- **`origin_session_key`** (string, optional) — OpenClaw session for direct session-delivery
+
+### Behavior
+
+1. Task created from a Telegram topic → output is sent back to that same topic.
+2. Task created from chat root (no topic) → output is sent to chat root.
+3. No `origin_chat_id` → Telegram delivery is skipped (no fallback to default chat/topic).
+4. There is no default-thread fallback in strict mode.
 
 ### Setup
 
-1. Set `CLAWTROL_TELEGRAM_BOT_TOKEN` env var with your Telegram bot token
-2. When creating tasks via the API, pass `origin_chat_id` and optionally `origin_thread_id`:
+1. Set `CLAWTROL_TELEGRAM_BOT_TOKEN` env var with your Telegram bot token.
+2. Ensure task creation always includes `origin_chat_id` and, for forum topics, `origin_thread_id`.
 
 ```bash
 curl -X POST http://localhost:4001/api/v1/tasks \
@@ -992,9 +769,8 @@ curl -X POST http://localhost:4001/api/v1/tasks \
   -d '{"task": {"name": "Fix bug", "origin_chat_id": "-100123456789", "origin_thread_id": 42}}'
 ```
 
-3. When the task reaches `in_review` or `done`, a notification is sent to that chat/topic automatically
-4. If no `origin_chat_id` is set, Telegram notification is silently skipped
-5. Webhook notifications (via `webhook_notification_url` on User) still work as a secondary mechanism
+3. On `in_review` / `done`, completion notification is delivered to the stored origin.
+4. Webhook notifications (`webhook_notification_url`) still work as a secondary mechanism.
 
 ---
 

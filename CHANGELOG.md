@@ -9,7 +9,6 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 - **navbar:** add Docs Hub link to desktop and mobile navigation (`0847142`)
 - **agent-log:** durable sidecar ingest, backfill, and persisted timeline (`3b34b31`)
-- ship codemap monitor + durable agent activity telemetry release (`2d88d14`)
 - zerobitch observability + viewer download (#225) (`a1df05d`)
 - add Learning Inbox for self-audit proposals (#215) (`5eda049`)
 - replace icon-only nav with grouped dropdown categories (`e28af79`)
@@ -25,11 +24,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 - **auto-runner:** add safe burst headroom and document runtime hardening release (`07ef993`)
 - **api:** enforce strict task-scoped agent_log session resolution (`28c7216`)
-- **zerobitch:** scope activity to real task sessions and remove codemap panel (`9c38856`)
 - keep /view downloads working for large files (#225) (`a60f4c5`)
 - improve zerobitch fleet UX and view save (`8dfe43e`)
-- restore zerobitch routes + add codemap_monitor route (both were uncommitted) (`7f7dc63`)
-- **codemap:** fix atlas sprite coordinates - replace 0,0,16,16 placeholders with real pixel coords (`e4533e9`)
 - add turbo-frame=_top to all nav dropdown links, fix audits_path (`98de97b`)
 - precompile assets to include nav_dropdown_controller in importmap (`a16eb6b`)
 - remove invalid ( in link_to block calls in nav dropdowns (`6ab0ff8`)
