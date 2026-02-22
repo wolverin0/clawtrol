@@ -122,33 +122,36 @@ module Api
 
         render json: @tasks.map { |task| task_json(task) }
       end
+# GET /api/v1/tasks/next - get next task for agent to work on
+# Queue policy: one runnable task per board, FIFO by task id, with model/provider quotas.
+# Returns 204 No Content if no tasks are currently eligible.
+def next
+  unless current_user.agent_auto_mode?
+    head :no_content
+    return
+  end
 
-      # GET /api/v1/tasks/next - get next task for agent to work on
-      # Returns highest priority unclaimed task in "up_next" status
-      # Returns 204 No Content if no tasks available or user has auto_mode disabled
-      def next
-        # Check if user has agent auto mode enabled
-        unless current_user.agent_auto_mode?
-          head :no_content
-          return
-        end
+  selector = QueueOrchestrationSelector.new(current_user)
+  @task = selector.next_task
 
-        @task = current_user.tasks
-          .includes(TASK_JSON_INCLUDES)
-          .where(status: :up_next, blocked: false, agent_claimed_at: nil)
-          .order(priority: :desc, position: :asc)
-          .first
+  if @task
+    @task = current_user.tasks.includes(TASK_JSON_INCLUDES).find(@task.id)
+    render json: task_json(@task)
+  else
+    head :no_content
+  end
+end
 
-        if @task
-          render json: task_json(@task)
-        else
-          head :no_content
-        end
-      end
+# GET /api/v1/tasks/queue_health - orchestration snapshot for debugging/monitoring
+def queue_health
+  selector = QueueOrchestrationSelector.new(current_user)
+  render json: selector.metrics
+end
 
-      # GET /api/v1/tasks/pending_attention - tasks needing agent attention
-      # Returns tasks that are in "in_progress" and were claimed by agent
-      def pending_attention
+# GET /api/v1/tasks/pending_attention - tasks needing agent attention
+# Returns tasks that are in "in_progress" and were claimed by agent
+def pending_attention
+
         unless current_user.agent_auto_mode?
           render json: []
           return

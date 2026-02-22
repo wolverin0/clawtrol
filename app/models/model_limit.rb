@@ -15,7 +15,7 @@ class ModelLimit < ApplicationRecord
   scope :available, -> { where(limited: false).or(where("resets_at <= ?", Time.current)) }
   scope :active_limits, -> { where(limited: true).where("resets_at > ?", Time.current) }
 
-  MODEL_PRIORITY = %w[codex sonnet gemini glm opus].freeze
+  MODEL_PRIORITY = %w[codex sonnet gemini3 gemini3_flash glm opus].freeze
 
   def active_limit?
     limited? && resets_at.present? && resets_at > Time.current
@@ -113,15 +113,17 @@ class ModelLimit < ApplicationRecord
 
       default = case requested.to_s
       when "glm"
-        %w[gemini codex sonnet]
-      when "gemini"
-        %w[glm codex sonnet]
+        %w[gemini3_flash gemini3 codex sonnet]
+      when "gemini", "gemini3"
+        %w[gemini3_flash glm codex sonnet]
+      when "flash", "gemini3_flash"
+        %w[glm gemini3 codex sonnet]
       when "codex"
-        %w[sonnet gemini glm]
+        %w[sonnet gemini3 gemini3_flash glm]
       when "sonnet"
-        %w[codex gemini glm]
+        %w[codex gemini3 gemini3_flash glm]
       when "opus"
-        %w[sonnet codex gemini glm]
+        %w[codex sonnet gemini3 gemini3_flash glm]
       else
         MODEL_PRIORITY
       end

@@ -157,10 +157,12 @@ Rails.application.routes.draw do
       post "hooks/agent_complete", to: "hooks#agent_complete"
       post "hooks/task_outcome", to: "hooks#task_outcome"
       post "hooks/agent_done", to: "hooks#agent_done"
+      post "hooks/runtime_events", to: "hooks#runtime_events"
 
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
           get :next
+          get :queue_health
           get :pending_attention
           get :recurring
           get :errored_count

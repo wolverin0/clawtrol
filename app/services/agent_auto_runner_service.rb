@@ -2,18 +2,9 @@
 
 class AgentAutoRunnerService
   NO_FAKE_IN_PROGRESS_GRACE = 10.minutes
-  LEASE_STALE_AFTER = 10.minutes
   ZOMBIE_STALE_AFTER = 30.minutes
   SPAWN_COOLDOWN = 1.minute
   ZOMBIE_NOTIFY_COOLDOWN = 60.minutes
-  FAILURE_COOLDOWN = 5.minutes
-  FAILURE_LIMIT = 3
-  BASE_IN_PROGRESS_TASKS = 4
-  BURST_IN_PROGRESS_TASKS = 8
-  BURST_QUEUE_THRESHOLD = 3
-  BURST_ERROR_COOLDOWN = 10.minutes
-
-  NIGHT_TZ = "America/Argentina/Buenos_Aires"
 
   def initialize(logger: Rails.logger, cache: Rails.cache, openclaw_webhook_service: OpenclawWebhookService, openclaw_gateway_client: nil)
     @logger = logger
@@ -26,9 +17,12 @@ class AgentAutoRunnerService
     stats = {
       users_considered: 0,
       users_woken: 0,
+      tasks_woken: 0,
       tasks_demoted: 0,
       zombie_tasks: 0,
-      pipeline_processed: 0
+      pipeline_processed: 0,
+      queue_skip_reasons: Hash.new(0),
+      queue_summaries_sent: 0
     }
 
     User.where(agent_auto_mode: true).find_each do |user|
@@ -39,14 +33,25 @@ class AgentAutoRunnerService
       stats[:tasks_demoted] += demote_expired_or_missing_leases!(user)
       stats[:zombie_tasks] += notify_zombies_if_any!(user)
 
-      next if max_in_progress_reached?(user)
-      next if agent_currently_working?(user)
+      selector = QueueOrchestrationSelector.new(user, now: Time.current, logger: @logger)
+      plan = selector.plan
+      plan.skip_reasons.each { |reason, amount| stats[:queue_skip_reasons][reason] += amount.to_i }
 
-      if wake_if_work_available!(user)
-        stats[:users_woken] += 1
-      end
+woke = 0
+if plan.tasks.any?
+  woke = wake_tasks!(user, plan.tasks)
+  if woke.positive?
+    stats[:users_woken] += 1
+    stats[:tasks_woken] += woke
+  end
+end
+
+if maybe_send_queue_summary!(user: user, selector: selector, plan: plan, tasks_woken: woke)
+  stats[:queue_summaries_sent] += 1
+end
     end
 
+    stats[:queue_skip_reasons] = stats[:queue_skip_reasons].to_h
     @logger.info("[AgentAutoRunner] finished stats=#{stats.inspect}")
     stats
   end
@@ -56,53 +61,6 @@ class AgentAutoRunnerService
   def openclaw_configured?(user)
     hooks_token = user.respond_to?(:openclaw_hooks_token) ? user.openclaw_hooks_token : nil
     user.openclaw_gateway_url.present? && (hooks_token.present? || user.openclaw_gateway_token.present?)
-  end
-
-  def agent_currently_working?(user)
-    RunnerLease.active.joins(:task).where(tasks: { user_id: user.id, status: Task.statuses[:in_progress] }).exists?
-  end
-
-  def max_in_progress_reached?(user)
-    in_progress_count = user.tasks.where(status: :in_progress).count
-    in_progress_count >= dynamic_in_progress_limit_for(user)
-  end
-
-  def dynamic_in_progress_limit_for(user)
-    return BASE_IN_PROGRESS_TASKS unless burst_allowed?(user)
-
-    BURST_IN_PROGRESS_TASKS
-  end
-
-  def burst_allowed?(user)
-    queued = user.tasks
-      .where(status: :up_next, blocked: false, assigned_to_agent: true)
-      .where(auto_pull_blocked: false)
-      .count
-
-    return false if queued < BURST_QUEUE_THRESHOLD
-
-    recent_task_errors = user.tasks
-      .where.not(auto_pull_last_error_at: nil)
-      .where("auto_pull_last_error_at >= ?", Time.current - BURST_ERROR_COOLDOWN)
-      .exists?
-
-    return false if recent_task_errors
-
-    return false if ModelLimit.active_limits.where(user: user).exists?
-
-    true
-  end
-
-  def runnable_up_next_task_for(user)
-    scope = user.tasks
-      .where(status: :up_next, blocked: false, agent_claimed_at: nil, agent_session_id: nil, agent_session_key: nil)
-      .where(assigned_to_agent: true)
-      .where(auto_pull_blocked: false)
-      .where("auto_pull_last_error_at IS NULL OR auto_pull_last_error_at < ?", Time.current - FAILURE_COOLDOWN)
-      .where.not(recurring: true, parent_task_id: nil)
-
-    tasks = scope.order(priority: :desc, position: :asc, assigned_to_agent: :desc, assigned_at: :asc).to_a
-    tasks.find { |t| eligible_for_time_window?(t) }
   end
 
   # Pipeline: process tasks that need pipeline advancement
@@ -131,11 +89,18 @@ class AgentAutoRunnerService
     count
   end
 
-  def wake_if_work_available!(user)
-    task = runnable_up_next_task_for(user)
-    return false unless task
+  def wake_tasks!(user, tasks)
+    woke = 0
+    tasks.each do |task|
+      next unless wake_task!(user, task)
 
-    cache_key = "agent_auto_runner:last_wake:user:#{user.id}"
+      woke += 1
+    end
+    woke
+  end
+
+  def wake_task!(user, task)
+    cache_key = "agent_auto_runner:last_wake:user:#{user.id}:task:#{task.id}"
     return false if @cache.read(cache_key).present?
 
     Notification.create_deduped!(
@@ -146,7 +111,12 @@ class AgentAutoRunnerService
     )
 
     begin
-      @openclaw_webhook_service.new(user).notify_auto_pull_ready(task)
+      service = @openclaw_webhook_service.new(user)
+      if task.pipeline_ready?
+        service.notify_auto_pull_ready_with_pipeline(task)
+      else
+        service.notify_auto_pull_ready(task)
+      end
     rescue StandardError => e
       @logger.warn("[AgentAutoRunner] wake failed user_id=#{user.id} task_id=#{task.id} err=#{e.class}: #{e.message}")
     end
@@ -171,32 +141,82 @@ class AgentAutoRunnerService
     false
   end
 
-  def eligible_for_time_window?(task)
-    return true unless task.nightly?
+def maybe_send_queue_summary!(user:, selector:, plan:, tasks_woken:)
+  interval_minutes = Rails.configuration.x.auto_runner.summary_interval_minutes.to_i
+  interval = [interval_minutes, 1].max.minutes
 
-    now = Time.current.in_time_zone(NIGHT_TZ)
-    start_hour = Rails.configuration.x.auto_runner.nightly_start_hour
-    end_hour = Rails.configuration.x.auto_runner.nightly_end_hour
+  cache_key = "agent_auto_runner:last_summary:user:#{user.id}"
+  return false if @cache.read(cache_key).present?
 
-    in_window = if start_hour < end_hour
-      now.hour >= start_hour && now.hour < end_hour
-    else
-      now.hour >= start_hour || now.hour < end_hour
-    end
+  metrics = selector.metrics
+  queue_depth = metrics[:queue_depth].to_i
+  active = metrics[:active_in_progress].to_i
+  return false if queue_depth.zero? && active.zero? && tasks_woken.to_i.zero?
 
-    return false unless in_window
+  top_skips = plan.skip_reasons
+    .sort_by { |(_reason, count)| -count.to_i }
+    .first(3)
+    .map { |(reason, count)| "#{reason}=#{count}" }
 
-    delay_hours = task.nightly_delay_hours.to_i
-    return true if delay_hours <= 0
+  mode = metrics[:in_night_window] ? "night" : "day"
+  summary = "Queue summary: mode=#{mode} max=#{metrics[:max_concurrent]} active=#{active} queue=#{queue_depth} slots=#{metrics[:available_slots]} woken_now=#{tasks_woken}"
+  summary += " skip={#{top_skips.join(",")}}" if top_skips.any?
 
-    night_start_date = now.hour >= start_hour ? now.to_date : (now.to_date - 1.day)
-    night_start = Time.find_zone!(NIGHT_TZ).local(night_start_date.year, night_start_date.month, night_start_date.day, start_hour, 0, 0)
+  @openclaw_webhook_service.new(user).notify_runner_summary(summary)
 
-    now >= (night_start + delay_hours.hours)
-  end
+  bucket = (Time.current.to_i / interval.to_i)
+  Notification.create_deduped!(
+    user: user,
+    event_type: "auto_runner",
+    message: summary,
+    event_id: "auto_runner_summary:user:#{user.id}:#{bucket}",
+    ttl: interval
+  )
+
+  @cache.write(cache_key, Time.current.to_i, expires_in: interval)
+  true
+rescue StandardError => e
+  @logger.warn("[AgentAutoRunner] queue summary failed user_id=#{user.id} err=#{e.class}: #{e.message}")
+  false
+end
+
 
   def demote_expired_or_missing_leases!(user)
     count = 0
+
+    stale_cutoff = Time.current - Rails.configuration.x.auto_runner.stale_heartbeat_minutes.to_i.minutes
+    stale_leases = RunnerLease.active
+      .joins(:task)
+      .where(tasks: { user_id: user.id, status: Task.statuses[:in_progress] })
+      .where("runner_leases.last_heartbeat_at < ?", stale_cutoff)
+
+    stale_leases.find_each do |lease|
+      task = lease.task
+      old_status = task.status
+
+      task.activity_source = "system"
+      task.actor_name = "Auto-Runner"
+      task.actor_emoji = "??"
+      task.activity_note = "Auto-demoted: stale lease heartbeat (last hb #{lease.last_heartbeat_at&.iso8601})"
+
+      demote_to_up_next!(task, release_lease: lease)
+      broadcast_update(task, old_status: old_status)
+
+      if HeartbeatAlertGuard.allow?(key: "task:#{task.id}:lease_stale", state: lease.last_heartbeat_at&.to_i)
+        Notification.create_deduped!(
+          user: user,
+          task: task,
+          event_type: "runner_lease_expired",
+          message: "Guardrail: demoted stale RUNNING task back to Up Next: #{task.name.truncate(60)}",
+          event_id: "runner_lease_stale:task:#{task.id}:lease:#{lease.id}"
+        )
+      end
+
+      count += 1
+      @logger.warn("[AgentAutoRunner] demoted stale lease task_id=#{task.id} lease_id=#{lease.id}")
+    rescue StandardError => e
+      @logger.error("[AgentAutoRunner] failed stale-lease demotion lease_id=#{lease&.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
+    end
 
     RunnerLease.expired.joins(:task).where(tasks: { user_id: user.id, status: Task.statuses[:in_progress] }).find_each do |lease|
       task = lease.task
@@ -204,19 +224,11 @@ class AgentAutoRunnerService
 
       task.activity_source = "system"
       task.actor_name = "Auto-Runner"
-      task.actor_emoji = "🤖"
+      task.actor_emoji = "??"
       task.activity_note = "Auto-demoted: Runner Lease expired (last hb #{lease.last_heartbeat_at&.iso8601})"
 
-      lease.release!
-      task.update!(status: :up_next, agent_claimed_at: nil, agent_session_id: nil, agent_session_key: nil)
-
-      KanbanChannel.broadcast_refresh(
-        task.board_id,
-        task_id: task.id,
-        action: "update",
-        old_status: old_status,
-        new_status: task.status
-      )
+      demote_to_up_next!(task, release_lease: lease)
+      broadcast_update(task, old_status: old_status)
 
       if HeartbeatAlertGuard.allow?(key: "task:#{task.id}:lease_expired", state: lease.last_heartbeat_at&.to_i)
         Notification.create_deduped!(
@@ -246,18 +258,11 @@ class AgentAutoRunnerService
       old_status = task.status
       task.activity_source = "system"
       task.actor_name = "Auto-Runner"
-      task.actor_emoji = "🤖"
+      task.actor_emoji = "??"
       task.activity_note = "Auto-demoted: in_progress without Runner Lease for > #{NO_FAKE_IN_PROGRESS_GRACE.inspect}"
 
-      task.update!(status: :up_next, agent_claimed_at: nil)
-
-      KanbanChannel.broadcast_refresh(
-        task.board_id,
-        task_id: task.id,
-        action: "update",
-        old_status: old_status,
-        new_status: task.status
-      )
+      demote_to_up_next!(task)
+      broadcast_update(task, old_status: old_status)
 
       if HeartbeatAlertGuard.allow?(key: "task:#{task.id}:lease_missing", state: task.agent_claimed_at&.to_i || task.updated_at.to_i)
         Notification.create_deduped!(
@@ -308,5 +313,20 @@ class AgentAutoRunnerService
     @logger.warn("[AgentAutoRunner] zombie KPI user_id=#{user.id} count=#{zombie_count}")
 
     zombie_count
+  end
+
+  def demote_to_up_next!(task, release_lease: nil)
+    release_lease&.release!
+    task.update!(status: :up_next, agent_claimed_at: nil, agent_session_id: nil, agent_session_key: nil)
+  end
+
+  def broadcast_update(task, old_status:)
+    KanbanChannel.broadcast_refresh(
+      task.board_id,
+      task_id: task.id,
+      action: "update",
+      old_status: old_status,
+      new_status: task.status
+    )
   end
 end

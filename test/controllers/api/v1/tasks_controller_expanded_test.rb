@@ -47,6 +47,16 @@ class Api::V1::TasksControllerExpandedTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+test "queue_health returns orchestration snapshot" do
+  get queue_health_api_v1_tasks_url, headers: @auth_header
+  assert_response :success
+
+  body = JSON.parse(response.body)
+  assert body.key?("queue_depth")
+  assert body.key?("active_in_progress")
+  assert body.key?("inflight_by_model")
+end
+
   # === Task scoping ===
 
   test "cannot update other users task" do
