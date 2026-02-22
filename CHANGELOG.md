@@ -7,8 +7,10 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- **queue:** add board-fair scheduler, quotas, same-task follow-up, and runner summaries (`05e25a2`)
 - **navbar:** add Docs Hub link to desktop and mobile navigation (`0847142`)
 - **agent-log:** durable sidecar ingest, backfill, and persisted timeline (`3b34b31`)
+- ship codemap monitor + durable agent activity telemetry release (`2d88d14`)
 - zerobitch observability + viewer download (#225) (`a1df05d`)
 - add Learning Inbox for self-audit proposals (#215) (`5eda049`)
 - replace icon-only nav with grouped dropdown categories (`e28af79`)
@@ -24,8 +26,11 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 - **auto-runner:** add safe burst headroom and document runtime hardening release (`07ef993`)
 - **api:** enforce strict task-scoped agent_log session resolution (`28c7216`)
+- **zerobitch:** scope activity to real task sessions and remove codemap panel (`9c38856`)
 - keep /view downloads working for large files (#225) (`a60f4c5`)
 - improve zerobitch fleet UX and view save (`8dfe43e`)
+- restore zerobitch routes + add codemap_monitor route (both were uncommitted) (`7f7dc63`)
+- **codemap:** fix atlas sprite coordinates - replace 0,0,16,16 placeholders with real pixel coords (`e4533e9`)
 - add turbo-frame=_top to all nav dropdown links, fix audits_path (`98de97b`)
 - precompile assets to include nav_dropdown_controller in importmap (`a16eb6b`)
 - remove invalid ( in link_to block calls in nav dropdowns (`6ab0ff8`)
@@ -46,6 +51,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`9db8eee`)
 - update CHANGELOG.md [skip ci] (`b67f70a`)
 - update CHANGELOG.md [skip ci] (`553b5ec`)
 - update CHANGELOG.md [skip ci] (`dffb290`)
@@ -84,6 +90,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🔧 Chores
 
+- remove codemap feature, assets, and monitor endpoints (`7f12317`)
 - remove unused large binary artifacts from repo (`84e9a1c`)
 
 ## [v0.9.0] — 2026-02-17
