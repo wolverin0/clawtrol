@@ -45,6 +45,11 @@ default: &default
     queue: default
     schedule: at 2am every day
 
+  daily_executive_digest:
+    class: DailyExecutiveDigestJob
+    queue: default
+    schedule: at 8am every day
+
 development:
   <<: *default
 
