@@ -17,7 +17,7 @@ Rule: Pick first unchecked item top-to-bottom. One item per cycle.
 - [ ] Learning Inbox Wiring (self-audit/cognitive -> actions)
 - [ ] Cognitive Core Sync (`mind/PROJECTS.md`, `DECISIONS.md`, `ERRORS.md`, daily logs)
 - [ ] Runbook Generator (repeated incidents -> runbooks with owner/ETA)
-- [ ] Daily Executive Digest (Telegram summary: done/failed/blocked/next 3)
+- [x] Daily Executive Digest (Telegram summary: done/failed/blocked/next 3)
 
 ## Guardrails
 
