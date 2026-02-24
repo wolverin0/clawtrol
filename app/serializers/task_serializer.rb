@@ -68,6 +68,7 @@ class TaskSerializer
 
       # Computed fields
       result[:openclaw_spawn_model] = task.try(:openclaw_spawn_model)
+      result[:effective_prompt] = task.effective_prompt
       result[:pipeline_active] = task.try(:pipeline_active?)
 
       # P0: Include latest TaskRun data
