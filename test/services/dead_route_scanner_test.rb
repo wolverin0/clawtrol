@@ -12,6 +12,7 @@ class DeadRouteScannerTest < ActiveSupport::TestCase
       fake_route("POST", "/boards(.:format)", false),
       fake_route("GET|POST", "/mixed(.:format)", false),
       fake_route("GET", "/boards/:id(.:format)", false),
+      fake_route("GET", "/files/*path", false),
       fake_route("GET", "/rails/info(.:format)", false),
       fake_route("GET", "/assets/app.js", false),
       fake_route("GET", "/cable", false),

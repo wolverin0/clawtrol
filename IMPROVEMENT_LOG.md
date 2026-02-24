@@ -3140,3 +3140,10 @@
 **Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2418 runs, 5475 assertions, 0 failures)
 **Risk:** low (scanner selection fix + targeted test coverage)
+
+## [2026-02-24 04:19] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Excluded wildcard/glob routes from DeadRouteScanner eligibility.
+**Why:** Paths like `/files/*path` are dynamic catch-alls that cannot be deterministically scanned as concrete pages; including them causes noisy failures and wasted requests during route scanning. Filtering them reduces scanner workload and improves signal quality.
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2418 runs, 5475 assertions, 0 failures)
+**Risk:** low (route filter tightening for scanner-only logic)
