@@ -93,4 +93,25 @@ class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
       assert_not_includes result.output, "super-secret"
     end
   end
+
+  test "run_check returns timeout result when check exceeds timeout" do
+    Timeout.stub(:timeout, ->(*_args) { raise Timeout::Error }) do
+      result = FactoryPromotionGateService.send(
+        :run_check,
+        name: "test_command",
+        command: "bin/rails test",
+        repo_path: Rails.root.to_s
+      )
+
+      assert_not result.success
+      assert_equal "Timed out after #{FactoryPromotionGateService::CHECK_TIMEOUT_SECONDS}s", result.output
+    end
+  end
+
+  test "normalize_repo_path expands valid relative directory" do
+    Dir.chdir(Rails.root) do
+      normalized = FactoryPromotionGateService.send(:normalize_repo_path, "app")
+      assert_equal Rails.root.join("app").to_s, normalized
+    end
+  end
 end
