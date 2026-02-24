@@ -39,7 +39,7 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 3. ClawTrol auto-runner wakes runnable work with nightly gating and in-progress guardrails (base cap 4, burst cap 8 only when queue pressure is high and no recent errors/rate-limits).
 4. OpenClaw is the orchestrator: it picks claimed work, routes model/persona, and executes.
 5. OpenClaw must always report structured outcome via `POST /api/v1/hooks/task_outcome`.
-6. OpenClaw must always persist execution output via `POST /api/v1/hooks/agent_complete`.
+6. OpenClaw must always persist execution output via `POST /api/v1/hooks/agent_complete` (stores in TaskRun, not description).
 7. Task moves to `in_review`; follow-up is `YES/NO` plus recommendation, never silent.
 8. If follow-up is needed, requeue happens only after explicit human approval, using the same card (`POST /api/v1/tasks/:id/requeue`).
 9. If no follow-up is needed, task remains in `in_review` and the human decides next action.
@@ -146,6 +146,20 @@ Configure webhook in Settings → OpenClaw Integration:
 - **Gateway Token:** Your authentication token
 - **Agent Prompt:** copy from `Settings -> Integration -> Agent Install Prompt`
 - **Onboarding + self-heal:** `docs/OPENCLAW_ONBOARDING.md`
+
+#### Session ID Format
+
+OpenClaw sends session identifiers in various formats. ClawTrol handles all of them:
+
+| Format | Example | Handling |
+|--------|---------|----------|
+| Plain UUID | `abc123-def-456` | Used as-is |
+| Prefixed (subagent) | `agent:main:subagent:abc123-def-456` | Extracts UUID after last `:` |
+| Session key | `sess_abc123` | Used as-is |
+
+**Best practice:** Send the **plain session UUID** as `session_id`. If you send a prefixed format, ClawTrol extracts the UUID automatically via `extract_session_uuid`.
+
+**Transcript auto-discovery:** If no `session_id` is linked, ClawTrol scans recent transcript files (`~/.openclaw/agents/main/sessions/*.jsonl`) for task references and auto-links the matching session. This handles edge cases where hooks fire without session data.
 
 ### Running Tests
 ```bash
@@ -273,7 +287,7 @@ APP_BASE_URL=http://HOST:PORT  # Used for webhook callbacks and links
 >   }'
 > ```
 >
-> Hook 2 — `agent_complete` (saves output + transitions status):
+> Hook 2 — `agent_complete` (saves output to TaskRun + transitions status):
 > ```bash
 > curl -s -X POST http://HOST:PORT/api/v1/hooks/agent_complete \
 >   -H "X-Hook-Token: $CLAWTROL_HOOKS_TOKEN" \
@@ -489,6 +503,7 @@ curl -s -X POST http://YOUR_HOST:4001/api/v1/hooks/agent_complete \
     "task_id": 302,
     "findings": "Implemented feature X and updated docs.",
     "session_id": "sess_123",
+    "session_id": "abc-def-123-456",
     "session_key": "agent:main:subagent:abc",
     "output_files": ["README.md", "app/controllers/tasks_controller.rb"]
   }'
@@ -496,11 +511,16 @@ curl -s -X POST http://YOUR_HOST:4001/api/v1/hooks/agent_complete \
 
 **Behavior**
 
-- Auto-appends/updates `## Agent Output` in task description
+- Stores output in `task_runs.agent_output` (structured TaskRun record, NOT description)
 - Auto-transitions task status to `in_review`
-- Links session metadata when provided
+- Links session metadata when provided (handles `agent:main:subagent:UUID` format — extracts clean UUID)
+- Creates or updates TaskRun with `agent_output`, `agent_activity_md`, and `prompt_used`
 - Auto-extracts output files from findings text and transcript commit data
 - Merges + deduplicates discovered files and provided `output_files`
+
+> **P0 Data Contract (Feb 2026):** Agent output is NO LONGER written to `tasks.description`.
+> The description field is the human task brief only. All agent results go to `task_runs` table.
+> Read output via `task.agent_output_text` (auto-falls back to description for legacy tasks).
 
 **Success Response**
 

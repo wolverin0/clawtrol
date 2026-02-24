@@ -186,17 +186,20 @@ const spawnResult = await sessionsSpawn({
 
 ⚠️ **Critical:** Get the REAL session ID, not the session key!
 
+The `session_key` from spawn (e.g., `agent:main:subagent:UUID-A`) contains the subagent **process** UUID.
+The transcript file uses a different **session** UUID. These are NOT the same!
+
 ```javascript
 // The spawn returns a session_key (e.g., "agent:main:subagent:UUID-A")
-// But the transcript API uses session_id (different!)
+// UUID-A is the subagent PROCESS id, NOT the transcript file UUID!
 
-// Get all sessions
+// Get all sessions to find the REAL transcript UUID
 const sessions = await sessionsList();
 
 // Find the one matching our spawn
 const session = sessions.find(s => s.key === spawnResult.childSessionKey);
 
-// Link to ClawTrol with the REAL session_id
+// Link to ClawTrol with the REAL session_id (transcript file UUID)
 await fetch(`${API_BASE}/tasks/${task.id}/link_session`, {
   method: 'POST',
   headers: {
@@ -204,11 +207,14 @@ await fetch(`${API_BASE}/tasks/${task.id}/link_session`, {
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    session_id: session.sessionId,  // ← This enables live transcript view!
-    session_key: session.key
+    session_id: session.sessionId,  // ← Transcript file UUID - enables live view!
+    session_key: session.key        // ← Process key - for reference only
   })
 });
 ```
+
+> **Fallback:** If `link_session` is not called, ClawTrol auto-discovers transcripts by scanning
+> recent `.jsonl` files for task ID references. This is slower but handles missed linking.
 
 ### Step 5: Sub-Agent Calls agent_complete
 
@@ -529,11 +535,29 @@ curl -X POST "http://192.168.100.186:4001/api/v1/tasks/XXX/agent_complete" \
 
 ## Troubleshooting
 
-### Live transcript not showing
+### Live transcript not showing ("No agent activity")
 
-1. Check that `session_id` (not `session_key`) was linked
+1. Check that `session_id` (not `session_key`) was linked:
+   ```bash
+   bin/rails runner "puts Task.find(ID).agent_session_id"
+   ```
 2. Verify the session file exists: `~/.openclaw/agents/main/sessions/{session_id}.jsonl`
-3. Confirm the session is still active
+3. If `session_id` is blank, the hooks didn't send it or it was rejected:
+   - OpenClaw sends `agent:main:subagent:UUID` format — ClawTrol extracts the UUID automatically
+   - But the extracted UUID is the subagent process ID, NOT the transcript file UUID
+   - Use `sessions_list` after spawn to get the real transcript UUID
+4. Force auto-discovery by clearing and re-calling agent_log:
+   ```bash
+   bin/rails runner "
+     t = Task.find(ID)
+     t.update_column(:agent_session_id, nil)
+     svc = AgentLogService.new(t)
+     result = svc.call
+     puts result[:has_session]
+     puts t.reload.agent_session_id
+   "
+   ```
+   This triggers `scan_recent_transcripts_for_task!` which searches last 20 recent transcript files.
 
 ### Model fallback not working
 
