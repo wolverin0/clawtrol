@@ -26,6 +26,12 @@ class FactoryEngineServiceTest < ActiveSupport::TestCase
     @service = FactoryEngineService.new(@user)
   end
 
+  test "initialize does not perform implicit user fallback lookup" do
+    User.stub(:find_by, ->(**_kwargs) { raise "should not query users" }) do
+      assert_nothing_raised { FactoryEngineService.new(nil) }
+    end
+  end
+
   # --- record_cycle_result: successful ---
 
   test "record_cycle_result marks cycle completed" do
