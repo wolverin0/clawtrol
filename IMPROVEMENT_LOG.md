@@ -3189,3 +3189,10 @@
 **Files:** test/services/model_catalog_service_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2426 runs, 5507 assertions, 0 failures)
 **Risk:** low (test-only change)
+
+## [2026-02-24 07:58] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Added `FactoryPromotionGateService` and wired cherry-pick verification to use it.
+**Why:** Backlog item "Factory Promotion Gate (tests/lint/e2e before promote)" needed a dedicated gate abstraction instead of ad-hoc `bin/rails test` output parsing. The new service runs a structured syntax check + test command gate (with optional e2e check), returns per-check results, and gives deterministic pass/fail data for promotion workflows.
+**Files:** app/services/factory_promotion_gate_service.rb, app/services/cherry_pick_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2429 runs, 5515 assertions, 0 failures)
+**Risk:** low (additive service + existing verify endpoint now returns richer gate details)
