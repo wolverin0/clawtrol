@@ -3126,3 +3126,10 @@
 **Files:** app/controllers/telegram_mini_app_controller.rb, test/controllers/telegram_mini_app_controller_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2415 runs, 5469 assertions, 0 failures)
 **Risk:** Low — fallback behavior is preserved behind explicit env opt-in.
+
+## [2026-02-24 03:30] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added focused test coverage for Dead/Empty Route Scanner and extracted scanner logic into `DeadRouteScanner` service.
+**Why:** The scanner task had no automated coverage. Extracting route filtering + scan result shaping into a service enabled deterministic unit tests for route eligibility, 404/500 failure detection, and exception handling.
+**Files:** app/services/dead_route_scanner.rb, lib/tasks/scanner.rake, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2418 runs, 5475 assertions, 0 failures)
+**Risk:** low (behavior preserved; adds tests and isolates scanner logic for safer future changes)
