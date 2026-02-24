@@ -117,24 +117,16 @@ class CherryPickService
       )
     end
 
-    # Run tests in production after cherry-pick
+    # Run promotion gate checks in production after cherry-pick
     def verify_production!
-      output = nil
-      IO.popen(
-        ["bash", "-c", "cd #{PRODUCTION_PATH} && bin/rails test 2>&1 | tail -20"],
-        err: [:child, :out]
-      ) do |io|
-        output = io.read(50_000)
-      end
-
-      passed = output&.include?("0 failures, 0 errors") || output&.include?("0 failures")
+      gate_result = FactoryPromotionGateService.verify!(PRODUCTION_PATH)
       Result.new(
-        success: passed,
-        message: passed ? "All tests pass in production" : "Tests failed in production",
-        data: { output: output }
+        success: gate_result[:success],
+        message: gate_result[:message],
+        data: gate_result
       )
     rescue StandardError => e
-      Result.new(success: false, message: "Test execution failed: #{e.message}")
+      Result.new(success: false, message: "Promotion gate execution failed: #{e.message}")
     end
 
     private
