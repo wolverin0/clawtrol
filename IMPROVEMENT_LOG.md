@@ -1,5 +1,16 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 17:20] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Tightened GET route detection in `DeadRouteScanner` to avoid false positives from verbs that merely contain the substring `GET`.
+**Why:** `supports_get_verb?` used `/GET/`, which could incorrectly classify non-GET verb strings (e.g., `"TARGET"`) as scannable GET routes.
+**Files:**
+- `app/services/dead_route_scanner.rb`
+- `test/services/dead_route_scanner_test.rb`
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2448 runs, 0 failures, 0 errors)
+**Risk:** Low — narrows route matching logic, preserving valid GET formats (`GET`, `GET|POST`, regex-style GET strings).
+
 ## [2026-02-24 16:25] - Category: Bug Fix — STATUS: ✅ VERIFIED
 **What:** Expanded roadmap markdown checkbox parsing to support `* [ ]`, `+ [ ]`, and ordered list (`1. [ ]`) items, with regression tests.
 **Why:** Roadmap-to-task generation depended on `BoardRoadmap#unchecked_items`, but it only recognized `- [ ]` lines. Common markdown task list variants were silently ignored, causing missing task generation from valid roadmap content.
