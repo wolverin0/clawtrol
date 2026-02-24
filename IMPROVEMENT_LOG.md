@@ -3147,3 +3147,10 @@
 **Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2418 runs, 5475 assertions, 0 failures)
 **Risk:** low (route filter tightening for scanner-only logic)
+
+## [2026-02-24 04:44] - Category: Bug Fixes — STATUS: ✅ VERIFIED
+**What:** Fixed Mission Control migration status reporting when database is disconnected.
+**Why:** Dashboard previously rescued migration checks to `false`, incorrectly showing "Up to Date" even when DB connection was down. It now reports migration status as `Unknown` unless DB connectivity is confirmed.
+**Files:** app/controllers/mission_control_controller.rb, app/views/mission_control/index.html.erb, test/controllers/mission_control_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2419 runs, 5477 assertions, 0 failures)
+**Risk:** low (UI/status accuracy improvement + regression test)
