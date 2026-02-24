@@ -1,5 +1,16 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 15:50] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Hardened Mission Control shell metric collection to fail closed when `uptime`/`ps` commands fail or return invalid output.
+**Why:** Backtick calls in `MissionControlHealthSnapshotService` treated command errors as valid values (`"0.0 MB"` on bad `ps` output), which could silently mask runtime failures in the health dashboard.
+**Files:**
+- `app/services/mission_control_health_snapshot_service.rb`
+- `test/services/mission_control_health_snapshot_service_test.rb`
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2446 runs, 0 failures, 0 errors)
+**Risk:** Low — read-only dashboard metrics now report `"Unknown"` on shell-command failure instead of misleading values.
+
 ## [2026-02-24 15:25] - Category: Testing — STATUS: ✅ VERIFIED
 **What:** Added Mission Control controller regression test to verify cache TTL expiration behavior.
 **Why:** Existing test only covered cache hits within the TTL window. It did not verify recomputation after the 30-second TTL expires, which is the key freshness contract for the dashboard snapshot cache.
