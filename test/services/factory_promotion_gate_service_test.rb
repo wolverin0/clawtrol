@@ -42,6 +42,15 @@ class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "check_definitions appends e2e check only when requested" do
+    base = FactoryPromotionGateService.send(:check_definitions, include_e2e: false)
+    with_e2e = FactoryPromotionGateService.send(:check_definitions, include_e2e: true)
+
+    assert_equal 2, base.size
+    assert_equal ["syntax_check", "test_command"], base.map { |check| check[:name] }
+    assert_equal ["syntax_check", "test_command", "e2e_command"], with_e2e.map { |check| check[:name] }
+  end
+
   test "run_check executes command in repo_path via chdir" do
     captured = nil
 
