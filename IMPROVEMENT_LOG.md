@@ -1,5 +1,15 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 13:25] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Hardened `FactoryRunnerV2Job` cycle log creation against duplicate cycle numbers under concurrent execution.
+**Why:** `create_cycle_log!` calculated `maximum(:cycle_number) + 1` without a row lock. If overlapping job runs happen (worker restart, concurrency edge), two jobs can race and attempt the same cycle number.
+**Files:**
+- `app/jobs/factory_runner_v2_job.rb` (wrapped cycle-number allocation in `loop.with_lock` + retry on `ActiveRecord::RecordNotUnique`)
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2440 runs, 0 failures, 0 errors)
+**Risk:** Low — defensive locking/retry around existing behavior.
+
 ## [2026-02-24 00:20] - Category: Architecture — STATUS: ✅ VERIFIED
 **What:** Added Mission Control Health Dashboard
 **Why:** Needed a centralized place to view Ruby/Rails versions, environment status, database connection, pending migrations, system uptime, and memory usage.

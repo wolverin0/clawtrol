@@ -79,15 +79,25 @@ class FactoryRunnerV2Job < ApplicationJob
   end
 
   def create_cycle_log!(loop:, agent:, started_at:)
-    attrs = {
-      cycle_number: (loop.factory_cycle_logs.maximum(:cycle_number) || 0) + 1,
-      status: "running",
-      started_at: started_at,
-      trigger: "idle_agent",
-      agent_name: agent.name
-    }
+    retries = 0
 
-    loop.factory_cycle_logs.create!(filter_attrs(FactoryCycleLog, attrs))
+    begin
+      loop.with_lock do
+        attrs = {
+          cycle_number: (loop.factory_cycle_logs.maximum(:cycle_number) || 0) + 1,
+          status: "running",
+          started_at: started_at,
+          trigger: "idle_agent",
+          agent_name: agent.name
+        }
+
+        return loop.factory_cycle_logs.create!(filter_attrs(FactoryCycleLog, attrs))
+      end
+    rescue ActiveRecord::RecordNotUnique
+      retries += 1
+      retry if retries < 3
+      raise
+    end
   end
 
   def create_agent_run!(loop:, agent:, cycle_log:, started_at:)
