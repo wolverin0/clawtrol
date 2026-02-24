@@ -259,7 +259,7 @@ class WorkflowExecutionEngine
 
     normalized_expr = expr.to_s.strip
     if normalized_expr.length > MAX_EXPRESSION_LENGTH
-      Rails.logger.warn("[WorkflowEngine] expression too long (#{normalized_expr.length} chars)")
+      @logger.warn("[WorkflowEngine] expression too long (#{normalized_expr.length} chars)")
       return false
     end
 
@@ -293,7 +293,7 @@ class WorkflowExecutionEngine
       normalized_expr.present?
     end
   rescue StandardError => e
-    Rails.logger.warn("[WorkflowEngine] expression eval failed: #{e.message}")
+    @logger.warn("[WorkflowEngine] expression eval failed: #{e.message}")
     false
   end
 
