@@ -6,12 +6,16 @@ class DeadRouteScanner
 
   class << self
     def route_paths(routes = Rails.application.routes.routes)
-      routes.filter_map do |route|
+      seen_paths = {}
+
+      routes.each_with_object([]) do |route, paths|
         path = normalized_path(route)
         next unless scannable_get_route?(route, path)
+        next if seen_paths[path]
 
-        path
-      end.uniq
+        seen_paths[path] = true
+        paths << path
+      end
     end
 
     def scan(session: ActionDispatch::Integration::Session.new(Rails.application), routes: route_paths)
