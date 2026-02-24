@@ -25,23 +25,9 @@ class DeadRouteScanner
           status = session.response.status
           empty = empty_success_response?(status, session.response)
 
-          {
-            path: path,
-            status: status,
-            ok: status < 400 && !empty,
-            failed: status >= 500 || status == 404 || empty,
-            empty: empty,
-            exception: nil
-          }
+          success_result(path: path, status: status, empty: empty)
         rescue StandardError => e
-          {
-            path: path,
-            status: nil,
-            ok: false,
-            failed: true,
-            empty: false,
-            exception: safe_exception_message(e)
-          }
+          failure_result(path: path, exception: safe_exception_message(e))
         end
       end
     end
@@ -66,6 +52,28 @@ class DeadRouteScanner
 
     def empty_success_response?(status, response)
       status.between?(200, 299) && response.body.to_s.strip.empty?
+    end
+
+    def success_result(path:, status:, empty:)
+      {
+        path: path,
+        status: status,
+        ok: status < 400 && !empty,
+        failed: status >= 500 || status == 404 || empty,
+        empty: empty,
+        exception: nil
+      }
+    end
+
+    def failure_result(path:, exception:)
+      {
+        path: path,
+        status: nil,
+        ok: false,
+        failed: true,
+        empty: false,
+        exception: exception
+      }
     end
 
     def safe_exception_message(error)
