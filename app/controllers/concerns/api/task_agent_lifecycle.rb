@@ -192,7 +192,8 @@ module Api
         if actual_model != requested_model
           @task.model = actual_model
           if fallback_note.present?
-            @task.description = "#{fallback_note}\n\n---\n\n#{@task.description}"
+            # Store fallback note in pipeline_log instead of polluting description (P0 contract)
+        @task.pipeline_log = (@task.pipeline_log || {}).merge("model_fallback" => fallback_note)
           end
         end
       end

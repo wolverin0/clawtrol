@@ -263,7 +263,8 @@ def pending_attention
             @task.model = actual_model
             # Prepend fallback note to description
             if fallback_note.present?
-              @task.description = "#{fallback_note}\n\n---\n\n#{@task.description}"
+              # Store fallback note in pipeline_log instead of polluting description (P0 contract)
+        @task.pipeline_log = (@task.pipeline_log || {}).merge("model_fallback" => fallback_note)
             end
           end
         end

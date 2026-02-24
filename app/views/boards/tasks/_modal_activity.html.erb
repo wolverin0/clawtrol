@@ -32,7 +32,11 @@
   <div class="prose prose-invert prose-sm max-w-none break-words max-h-[60vh] overflow-y-auto">
     <%= safe_markdown(task.latest_run.agent_activity_md.truncate(10_000)) %>
   </div>
-<% elsif task.description_section("Agent Activity").present? %>
+<% elsif task.latest_run&.agent_activity_md.present? %>
+          <div class="prose prose-sm dark:prose-invert max-w-none">
+            <%= safe_markdown(task.latest_run.agent_activity_md.truncate(10_000)) %>
+          </div>
+        <% elsif task.description_section("Agent Activity").present? %>
   <%# Legacy fallback: extract from description %>
   <div class="prose prose-invert prose-sm max-w-none break-words max-h-[60vh] overflow-y-auto">
     <%= safe_markdown(task.description_section("Agent Activity").truncate(10_000)) %>

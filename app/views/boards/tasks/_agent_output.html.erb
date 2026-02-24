@@ -6,10 +6,10 @@
   </div>
 <% elsif task.description.to_s.include?("## Agent Output") %>
   <%# Legacy fallback for tasks without TaskRun %>
-  <% legacy_match = task.description.to_s.match(/(?:^|\n)##\s*Agent Output\s*\n(.*?)(?:\n##\s|\n\n---\n\n|\z)/m) %>
-  <% if legacy_match %>
+  <% legacy_output = task.description_section("Agent Output") %>
+  <% if legacy_output %>
     <div class="prose prose-invert prose-sm max-w-none break-words">
-      <%= safe_markdown(legacy_match[1].to_s.strip) %>
+      <%= safe_markdown(legacy_output.to_s.strip) %>
     </div>
   <% end %>
 <% end %>
