@@ -13,6 +13,13 @@ class MissionControlControllerTest < ActionDispatch::IntegrationTest
     assert_select ".card", minimum: 3
   end
 
+  test "sets no-store cache header for sensitive dashboard data" do
+    get mission_control_url
+
+    assert_response :success
+    assert_equal "no-store", response.headers["Cache-Control"]
+  end
+
   test "shows unknown migration state when database is disconnected" do
     fake_connection = Object.new
     fake_connection.define_singleton_method(:active?) { false }
