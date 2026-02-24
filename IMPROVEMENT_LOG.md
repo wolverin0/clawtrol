@@ -3442,3 +3442,4 @@ Set complementary `Pragma` and `Expires` headers and keep regression coverage fo
 [CONFIDENCE: 71] Performance — app/controllers/sessions_explorer_controller.rb:20
 Task-link lookup built an `IN` list from raw session keys without deduplication, which can inflate query work on repeated keys.
 Normalize to unique keys before querying to reduce query parameter count while preserving output.
+Roadmap Executor Sync completed
