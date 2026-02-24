@@ -42,6 +42,26 @@ class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "run_check executes command in repo_path via chdir" do
+    captured = nil
+
+    Open3.stub(:capture3, lambda { |*args, **kwargs|
+      captured = { args: args, kwargs: kwargs }
+      ["ok", "", Struct.new(:success?).new(true)]
+    }) do
+      result = FactoryPromotionGateService.send(
+        :run_check,
+        name: "syntax_check",
+        command: "bin/rails test",
+        repo_path: Rails.root.to_s
+      )
+
+      assert result.success
+      assert_equal ["bash", "-lc", "bin/rails test"], captured[:args]
+      assert_equal Rails.root.to_s, captured[:kwargs][:chdir]
+    end
+  end
+
   test "run_check does not leak raw exception message" do
     Open3.stub(:capture3, ->(*_args) { raise StandardError, "token=super-secret" }) do
       result = FactoryPromotionGateService.send(
