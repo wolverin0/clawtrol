@@ -1,5 +1,16 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 14:55] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** WorkflowExecutionEngine now uses its injected logger (`@logger`) for expression warnings instead of hard-coding `Rails.logger`. Added regression test to verify warnings are emitted through the injected logger.
+**Why:** The service already accepts a logger dependency, but `evaluate_simple_expression` bypassed it in two places. This made behavior inconsistent and harder to test/route logs in non-default environments.
+**Files:**
+- `app/services/workflow_execution_engine.rb`
+- `test/services/workflow_execution_engine_test.rb`
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2443 runs, 0 failures, 0 errors)
+**Risk:** Low — logging path consistency only, no execution semantics changed.
+
 ## [2026-02-24 14:22] - Category: Security — STATUS: ✅ VERIFIED
 **What:** Added expression length guard to `WorkflowExecutionEngine#evaluate_simple_expression` and regression test coverage.
 **Why:** Workflow expressions are user-controlled text. Extremely large payloads can cause avoidable CPU/memory pressure during repeated regex evaluation. Added a hard ceiling (`MAX_EXPRESSION_LENGTH = 1000`) with safe failure (`false`) and warning log when exceeded.
