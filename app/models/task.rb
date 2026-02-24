@@ -314,6 +314,10 @@ end
     return unless origin_chat_id.present?
     return if origin_thread_id.present?
 
+    # Only default thread for group chats (Telegram group IDs are negative).
+    # DM chat IDs are positive and do not support threads.
+    return unless origin_chat_id.to_s.strip.start_with?("-")
+
     configured_thread = ENV["CLAWTROL_TELEGRAM_THREAD_ID"].presence ||
       ENV["TELEGRAM_THREAD_ID"].presence
 

@@ -145,7 +145,8 @@ Configure webhook in Settings → OpenClaw Integration:
 - **Gateway URL:** Your OpenClaw gateway endpoint
 - **Gateway Token:** Your authentication token
 - **Agent Prompt:** copy from `Settings -> Integration -> Agent Install Prompt`
-- **Onboarding + self-heal:** `docs/OPENCLAW_ONBOARDING.md`
+- **Onboarding + self-heal:** [`docs/OPENCLAW_ONBOARDING.md`](docs/OPENCLAW_ONBOARDING.md)
+- **Full integration guide:** [`docs/OPENCLAW_INTEGRATION.md`](docs/OPENCLAW_INTEGRATION.md)
 
 #### Session ID Format
 
@@ -263,6 +264,19 @@ APP_BASE_URL=http://HOST:PORT  # Used for webhook callbacks and links
 > curl -s -H "Authorization: Bearer $CLAWTROL_API_TOKEN" \
 >   http://HOST:PORT/api/v1/tasks?assigned=true&status=up_next
 > ```
+>
+> **Step 7b — Origin routing (optional)**
+>
+> When creating tasks from a specific Telegram context, pass origin headers so output routes back correctly:
+> ```bash
+> curl -X POST http://HOST:PORT/api/v1/tasks \
+>   -H "Authorization: Bearer API_TOKEN" \
+>   -H "X-Origin-Chat-Id: YOUR_TELEGRAM_CHAT_ID" \
+>   -H "X-Origin-Thread-Id: 25" \
+>   -H "Content-Type: application/json" \
+>   -d '{"task": {"name": "My task"}}'
+> ```
+> ClawTrol auto-detects: group chat IDs (negative) get default thread 25; DM chat IDs (positive) get no thread.
 >
 > **Step 8 — Set up the completion contract**
 >
@@ -469,6 +483,52 @@ POST /api/v1/tasks/:id/create_followup
 
 ---
 
+### Webhook: Task Outcome (Structured Result)
+
+`POST /api/v1/hooks/task_outcome`
+
+**Call this FIRST** after every task execution. Reports structured results with follow-up recommendation.
+
+**Authentication:** `X-Hook-Token: YOUR_HOOKS_TOKEN`
+
+**Request Body (JSON)**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `version` | string | ✅ | Always `"1"` |
+| `task_id` | integer | ✅ | Target task ID |
+| `run_id` | string | optional | Session UUID for this run |
+| `ended_at` | string | optional | ISO8601 timestamp |
+| `needs_follow_up` | boolean | ✅ | Whether task needs follow-up work |
+| `recommended_action` | string | ✅ | `"in_review"` or `"requeue_same_task"` |
+| `summary` | string | ✅ | What was accomplished |
+| `achieved` | array | optional | List of completed items |
+| `evidence` | array | optional | Proof of completion |
+| `remaining` | array | optional | Items still pending |
+| `next_prompt` | string | optional | Instructions for requeue (when `needs_follow_up: true`) |
+
+**Example Request**
+
+```bash
+curl -s -X POST http://YOUR_HOST:4001/api/v1/hooks/task_outcome \
+  -H "X-Hook-Token: YOUR_HOOKS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "version": "1",
+    "task_id": 302,
+    "needs_follow_up": false,
+    "recommended_action": "in_review",
+    "summary": "Fixed authentication bug and added tests",
+    "achieved": ["Added password validation", "Added unit tests"],
+    "evidence": ["All tests pass"],
+    "remaining": []
+  }'
+```
+
+**Behavior:** Creates a TaskRun record with structured fields (`achieved`, `evidence`, `remaining`, `summary`). Must be called BEFORE `agent_complete`.
+
+---
+
 ### Webhook: Agent Complete (Auto-Save Pipeline)
 
 `POST /api/v1/hooks/agent_complete`
@@ -488,7 +548,7 @@ X-Hook-Token: YOUR_HOOKS_TOKEN
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `task_id` | integer | ✅ | Target task ID to update |
-| `findings` | string | ✅ | Work summary; stored under `## Agent Output` |
+| `findings` | string | ✅ | Work summary; stored in `task_runs.agent_output` (NOT in task description) |
 | `session_id` | string | optional | Agent session UUID for transcript/activity linking |
 | `session_key` | string | optional | Session key used by terminal/transcript viewer |
 | `output_files` | array[string] | optional | Explicit output file list (merged with auto-extracted files) |
@@ -502,7 +562,6 @@ curl -s -X POST http://YOUR_HOST:4001/api/v1/hooks/agent_complete \
   -d '{
     "task_id": 302,
     "findings": "Implemented feature X and updated docs.",
-    "session_id": "sess_123",
     "session_id": "abc-def-123-456",
     "session_key": "agent:main:subagent:abc",
     "output_files": ["README.md", "app/controllers/tasks_controller.rb"]
