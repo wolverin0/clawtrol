@@ -121,7 +121,7 @@ class Task < ApplicationRecord
   validates :model, length: { maximum: 120 }, allow_nil: true, allow_blank: true
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
   validates :description, length: { maximum: 500_000 }, allow_nil: true
-  validates :execution_plan, length: { maximum: 100_000 }, allow_nil: true
+  validates :execution_prompt, length: { maximum: 100_000 }, allow_nil: true
   validates :error_message, length: { maximum: 50_000 }, allow_nil: true
   validates :validation_command, length: { maximum: 1_000 }, allow_nil: true
   validates :origin_chat_id, length: { maximum: 200 }, allow_nil: true
@@ -208,9 +208,37 @@ def advance_pipeline_stage!(new_stage, log_entry = nil)
   update!(updates)
 end
 
+# --- P0 Data Contract Helpers ---
+
+# Effective prompt for agent execution: follows precedence chain
+def effective_prompt
+  compiled_prompt.presence || execution_prompt.presence || original_description.presence || description.presence || name
+end
+
+# Latest TaskRun (memoized per request via instance variable)
+def latest_run
+  @latest_run ||= task_runs.order(created_at: :desc).first
+end
+
+# Agent output text: reads from TaskRun first, falls back to description regex
+def agent_output_text
+  latest_run&.agent_output.presence || description_section("Agent Output")
+end
+
+# Check if agent output exists (TaskRun or description pattern)
+def has_agent_output?
+  latest_run&.agent_output.present? || has_agent_output_marker?
+end
+
+# Extract a named markdown section from description (legacy fallback)
+def description_section(heading)
+  desc = description.to_s
+  match = desc.match(/(?:^|\n)##\s*#{Regexp.escape(heading)}\s*\n(.*?)(?:\n##\s|\n\n---\n\n|\z)/m)
+  match&.[](1)&.strip
+end
+
 
   private
-
   # Auto-assign tasks to agent when created with up_next status
   def auto_assign_to_agent
     return unless status == "up_next" && !assigned_to_agent?
@@ -280,7 +308,17 @@ end
     self.origin_chat_id = user&.telegram_chat_id.presence ||
       ENV["CLAWTROL_TELEGRAM_CHAT_ID"].presence ||
       ENV["TELEGRAM_CHAT_ID"].presence
-    self.origin_thread_id ||= ExternalNotificationService::DEFAULT_MISSION_CONTROL_THREAD_ID if origin_chat_id.present?
+    return unless origin_chat_id.present?
+    return if origin_thread_id.present?
+
+    configured_thread = ENV["CLAWTROL_TELEGRAM_THREAD_ID"].presence ||
+      ENV["TELEGRAM_THREAD_ID"].presence
+
+    if configured_thread.to_s.match?(/\A\d+\z/)
+      self.origin_thread_id = configured_thread.to_i
+    else
+      self.origin_thread_id = ExternalNotificationService::DEFAULT_MISSION_CONTROL_THREAD_ID
+    end
   end
 
   def sync_completed_with_status

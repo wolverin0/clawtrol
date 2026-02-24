@@ -1,0 +1,44 @@
+<%# Activity tab: agent activity events or fallback to markdown %>
+<% events = task.agent_activity_events.order(created_at: :asc, seq: :asc).limit(200) %>
+<% if events.any? %>
+  <div class="space-y-1 max-h-[60vh] overflow-y-auto font-mono text-xs">
+    <% events.each do |event| %>
+      <div class="flex gap-2 py-1 px-2 rounded hover:bg-bg-elevated/50 <%= event.level == 'error' ? 'bg-red-500/5' : '' %>">
+        <span class="text-content-muted whitespace-nowrap flex-shrink-0">
+          <%= event.created_at.strftime("%H:%M:%S") %>
+        </span>
+        <span class="flex-shrink-0">
+          <% case event.event_type %>
+          <% when "heartbeat" %>&#x1F493;
+          <% when "tool_call" %>&#x1F527;
+          <% when "tool_result" %>&#x2705;
+          <% when "error" %>&#x274C;
+          <% when "final_summary" %>&#x2705;
+          <% when "status" %>&#x1F4CA;
+          <% else %>&#x1F4AC;
+          <% end %>
+        </span>
+        <span class="text-content-secondary break-words min-w-0">
+          <% if event.event_type == "tool_call" && event.payload.is_a?(Hash) %>
+            <span class="text-blue-400"><%= event.payload["tool"] || event.payload[:tool] || event.event_type %></span>
+          <% end %>
+          <%= h(event.message.to_s.truncate(500)) %>
+        </span>
+      </div>
+    <% end %>
+  </div>
+<% elsif task.latest_run&.agent_activity_md.present? %>
+  <%# Fallback: markdown from TaskRun %>
+  <div class="prose prose-invert prose-sm max-w-none break-words max-h-[60vh] overflow-y-auto">
+    <%= safe_markdown(task.latest_run.agent_activity_md.truncate(10_000)) %>
+  </div>
+<% elsif task.description_section("Agent Activity").present? %>
+  <%# Legacy fallback: extract from description %>
+  <div class="prose prose-invert prose-sm max-w-none break-words max-h-[60vh] overflow-y-auto">
+    <%= safe_markdown(task.description_section("Agent Activity").truncate(10_000)) %>
+  </div>
+<% else %>
+  <div class="flex items-center justify-center h-32 text-content-muted text-sm">
+    No agent activity recorded
+  </div>
+<% end %>

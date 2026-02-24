@@ -97,8 +97,19 @@ class TaskOutcomeService
   def normalized_payload
     base = @payload.to_h
     contract_payload = output_contract&.to_payload || {}
-    base.merge(contract_payload)
+    merged = base.merge(contract_payload)
+
+    run_tokens = normalized_run_tokens_payload
+    return merged unless run_tokens.present?
+
+    run_payload = merged["run"]
+    run_payload = {} unless run_payload.is_a?(Hash)
+    run_payload["tokens"] = run_tokens
+    merged["run"] = run_payload
+
+    merged
   end
+
 
   def validate_payload
     unless @payload["version"].to_s == REQUIRED_VERSION
@@ -149,14 +160,19 @@ class TaskOutcomeService
         achieved: Array(@payload["achieved"]),
         evidence: Array(@payload["evidence"]),
         remaining: Array(@payload["remaining"]),
-        next_prompt: @payload["next_prompt"],
-        model_used: @payload["model_used"],
+next_prompt: @payload["next_prompt"],
+model_used: @payload["model_used"],
+prompt_used: @task.effective_prompt,
+follow_up_prompt: @payload["next_prompt"],
         openclaw_session_id: @payload["openclaw_session_id"],
         openclaw_session_key: @payload["openclaw_session_key"],
         raw_payload: normalized_payload
       )
 
+      record_run_tokens!(task_run)
+
       # Release any runner lease: the run is over
+
       @task.runner_leases.where(released_at: nil).update_all(released_at: Time.current)
       requeue_same_task = follow_up_requeue_same_task?
       status_target = requeue_same_task ? :up_next : :in_review
@@ -176,7 +192,9 @@ class TaskOutcomeService
       if requeue_same_task
         base_updates[:assigned_to_agent] = true
         base_updates[:assigned_at] = Time.current
-        base_updates[:description] = append_follow_up_prompt(@task.description.to_s, run_number)
+base_updates[:description] = append_follow_up_prompt(@task.description.to_s, run_number)
+# P0 dual-write: also persist follow_up_prompt on the TaskRun
+task_run.update_columns(follow_up_prompt: @payload["next_prompt"]) if @payload["next_prompt"].present?
       end
 
       @task.update!(base_updates)
@@ -253,21 +271,10 @@ def follow_up_requeue_same_task?
   needs_follow_up && recommended_action == "requeue_same_task"
 end
 
-def append_follow_up_prompt(description, run_number)
-  prompt = @payload["next_prompt"].to_s.strip
-  return description if prompt.blank?
-
-  follow_up_block = "\n\n## Follow-up Prompt (run #{run_number})\n#{prompt}"
-  return description if description.to_s.include?(follow_up_block)
-
-  merged = "#{description}#{follow_up_block}".strip
-  max_len = 490_000
-  return merged if merged.length <= max_len
-
-  merged[-max_len, max_len]
-end
 
   def publish_outcome_event!(task_run)
+    resolution = DeliveryTargetResolver.resolve(@task)
+
     OutcomeEventChannel.publish!({
       event_id: run_id,
       kind: "task_outcome",
@@ -284,11 +291,88 @@ end
       origin_chat_id: @task.origin_chat_id,
       origin_thread_id: @task.origin_thread_id,
       origin_session_id: @task.origin_session_id,
-      origin_session_key: @task.origin_session_key
+      origin_session_key: @task.origin_session_key,
+      delivery_channel: resolution.channel.to_s,
+      delivery_reason: resolution.reason,
+      delivery_source: resolution.source,
+      delivery_target: resolution.to_h
     })
   rescue StandardError => e
     Rails.logger.warn("[TaskOutcomeService] Outcome event publish failed task_id=#{@task.id}: #{e.message}")
   end
+
+def normalized_run_tokens_payload
+  tokens = run_tokens_contract
+  return nil unless tokens
+
+  {
+    "input_tokens" => tokens[:input_tokens],
+    "output_tokens" => tokens[:output_tokens],
+    "cache_read_tokens" => tokens[:cache_read_tokens],
+    "cache_write_tokens" => tokens[:cache_write_tokens],
+    "model" => tokens[:model],
+    "cost_usd" => tokens[:cost]
+  }.compact
+end
+
+def run_tokens_contract
+  @run_tokens_contract ||= begin
+    source = @payload["run"]
+    source = source["tokens"] if source.is_a?(Hash)
+    source ||= @payload["tokens"]
+    source ||= @payload["usage"]
+
+    return nil unless source.respond_to?(:to_h)
+
+    raw = source.to_h.with_indifferent_access
+    input_tokens = raw[:input_tokens] || raw[:input] || raw[:prompt_tokens]
+    output_tokens = raw[:output_tokens] || raw[:output] || raw[:completion_tokens]
+    cache_read_tokens = raw[:cache_read_tokens] || raw[:cache_read]
+    cache_write_tokens = raw[:cache_write_tokens] || raw[:cache_write]
+    cost = raw[:cost_usd] || raw[:cost]
+
+    normalized = {
+      input_tokens: input_tokens.to_i,
+      output_tokens: output_tokens.to_i,
+      cache_read_tokens: cache_read_tokens.to_i,
+      cache_write_tokens: cache_write_tokens.to_i,
+      model: raw[:model].presence || @payload["model_used"].presence || @task.model,
+      cost: cost.present? ? cost.to_f : nil,
+      session_key: @payload["openclaw_session_key"].presence || @task.agent_session_key
+    }
+
+    has_signal = normalized[:input_tokens].positive? || normalized[:output_tokens].positive? || normalized[:cost].present?
+    has_signal ? normalized : nil
+  rescue StandardError => e
+    Rails.logger.warn("[TaskOutcomeService] Could not parse run.tokens for task_id=#{@task.id}: #{e.message}")
+    nil
+  end
+end
+
+def record_run_tokens!(task_run)
+  tokens = run_tokens_contract
+  return unless tokens
+
+  usage = TokenUsage.create!(
+    task: @task,
+    agent_persona_id: @task.agent_persona_id,
+    model: tokens[:model].presence || @task.model.presence || "unknown",
+    input_tokens: tokens[:input_tokens].to_i,
+    output_tokens: tokens[:output_tokens].to_i,
+    session_key: tokens[:session_key]
+  )
+
+  usage.update_column(:cost, tokens[:cost].to_f.round(6)) if tokens[:cost].present?
+
+  return unless task_run.raw_payload.is_a?(Hash)
+
+  run_payload = task_run.raw_payload["run"]
+  run_payload = {} unless run_payload.is_a?(Hash)
+  run_payload["tokens"] = normalized_run_tokens_payload if normalized_run_tokens_payload
+  task_run.update_column(:raw_payload, task_run.raw_payload.merge("run" => run_payload))
+rescue StandardError => e
+  Rails.logger.warn("[TaskOutcomeService] token recording failed for task_id=#{@task.id}: #{e.message}")
+end
 
   def normalize_list(value)
     case value

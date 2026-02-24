@@ -1,0 +1,15 @@
+<%# Agent output partial - renders from TaskRun or falls back to description parsing %>
+<% output_text = task.agent_output_text %>
+<% if output_text.present? %>
+  <div class="prose prose-invert prose-sm max-w-none break-words">
+    <%= safe_markdown(output_text) %>
+  </div>
+<% elsif task.description.to_s.include?("## Agent Output") %>
+  <%# Legacy fallback for tasks without TaskRun %>
+  <% legacy_match = task.description.to_s.match(/(?:^|\n)##\s*Agent Output\s*\n(.*?)(?:\n##\s|\n\n---\n\n|\z)/m) %>
+  <% if legacy_match %>
+    <div class="prose prose-invert prose-sm max-w-none break-words">
+      <%= safe_markdown(legacy_match[1].to_s.strip) %>
+    </div>
+  <% end %>
+<% end %>

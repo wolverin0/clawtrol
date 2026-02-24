@@ -31,7 +31,7 @@
           </div>
 
           <!-- Parent Task Output (if agent completed work) -->
-          <% agent_output = @task.description.to_s.split("## Agent Output").last.to_s.strip if @task.description.to_s.include?("## Agent Output") %>
+          <% agent_output = @task.agent_output_text %>
           <% if agent_output.present? %>
             <details class="group" open>
               <summary class="flex items-center gap-2 text-sm text-content-muted cursor-pointer hover:text-content transition-colors">

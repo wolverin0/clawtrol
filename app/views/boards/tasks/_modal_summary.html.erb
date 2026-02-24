@@ -1,0 +1,44 @@
+<%# Summary tab: latest run summary and agent output %>
+<% run = task.latest_run %>
+<% if run&.summary.present? || run&.agent_output.present? %>
+  <div class="space-y-3">
+    <% if run.summary.present? %>
+      <div class="space-y-1">
+        <span class="text-[10px] font-medium text-content-muted uppercase tracking-wider">Summary</span>
+        <div class="prose prose-invert prose-sm max-w-none break-words">
+          <%= safe_markdown(run.summary) %>
+        </div>
+      </div>
+    <% end %>
+
+    <% if run.agent_output.present? %>
+      <div class="space-y-1">
+        <span class="text-[10px] font-medium text-content-muted uppercase tracking-wider">Agent Output</span>
+        <div class="prose prose-invert prose-sm max-w-none break-words max-h-[60vh] overflow-y-auto">
+          <%= safe_markdown(run.agent_output.truncate(10_000)) %>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="flex flex-wrap gap-2 text-[10px] text-content-muted">
+      <% if run.model_used.present? %>
+        <span class="bg-bg-elevated px-2 py-0.5 rounded">Model: <%= run.model_used %></span>
+      <% end %>
+      <% if run.recommended_action.present? %>
+        <span class="bg-bg-elevated px-2 py-0.5 rounded">Action: <%= run.recommended_action %></span>
+      <% end %>
+      <% if run.ended_at.present? %>
+        <span class="bg-bg-elevated px-2 py-0.5 rounded">Ended: <%= time_ago_in_words(run.ended_at) %> ago</span>
+      <% end %>
+    </div>
+  </div>
+<% elsif task.agent_output_text.present? %>
+  <%# Legacy fallback: extract from description %>
+  <div class="prose prose-invert prose-sm max-w-none break-words max-h-[60vh] overflow-y-auto">
+    <%= safe_markdown(task.agent_output_text.truncate(10_000)) %>
+  </div>
+<% else %>
+  <div class="flex items-center justify-center h-32 text-content-muted text-sm">
+    No agent output yet
+  </div>
+<% end %>

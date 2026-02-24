@@ -5,7 +5,12 @@ class TaskRun < ApplicationRecord
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
   strict_loading :n_plus_one
 
-  belongs_to :task, inverse_of: :task_runs
+belongs_to :task, inverse_of: :task_runs
+
+# Broadcast panel update when a TaskRun is created or updated
+after_create_commit :broadcast_task_panel_update
+after_update_commit :broadcast_task_panel_update
+
 
   RECOMMENDED_ACTIONS = %w[
     in_review
@@ -40,7 +45,22 @@ class TaskRun < ApplicationRecord
     normalize_list(raw_payload["follow_up"] || raw_payload[:follow_up])
   end
 
-  private
+# Broadcast a Turbo Stream update to refresh the task panel when run data changes
+def broadcast_task_panel_update
+  return unless task_id.present?
+  KanbanChannel.broadcast_refresh(
+    task.board_id,
+    task_id: task_id,
+    action: "update",
+    old_status: task.status,
+    new_status: task.status
+  )
+rescue StandardError => e
+  Rails.logger.warn("[TaskRun##{id}] broadcast_task_panel_update failed: #{e.message}")
+end
+
+private
+
 
   def normalize_list(value)
     case value

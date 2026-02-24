@@ -8,6 +8,7 @@ module Task::AgentIntegration
     after_update :warn_if_review_without_session, if: :saved_change_to_status?
     after_update :heartbeat_lease_from_activity_evidence
     after_update :reset_auto_pull_guardrails_if_manual_change
+    after_commit :enqueue_zeroclaw_auditor_if_needed, on: :update, if: :saved_change_to_status?
     after_create :try_auto_claim
 
     validate :agent_output_required_for_done_transition, if: :moving_to_done?
@@ -275,7 +276,7 @@ module Task::AgentIntegration
   end
 
   def missing_agent_output?
-    requires_agent_output_for_done? && !has_agent_output_marker?
+    requires_agent_output_for_done? && !has_agent_output?
   end
 
   def agent_output_posted_at
@@ -302,7 +303,7 @@ module Task::AgentIntegration
 
   def agent_output_required_for_done_transition
     return unless requires_agent_output_for_done?
-    return if has_agent_output_marker?
+    return if has_agent_output?
 
     errors.add(:status, "Cannot mark as done without Agent Output. Use 'Recuperar del Transcript' in the task panel, or add ## Agent Output manually.")
   end
@@ -377,6 +378,17 @@ module Task::AgentIntegration
     )
   rescue StandardError => e
     Rails.logger.warn("[Task##{id}] reset_auto_pull_guardrails failed: #{e.class}: #{e.message}")
+  end
+
+  def enqueue_zeroclaw_auditor_if_needed
+    return unless status == "in_review"
+    return unless assigned_to_agent?
+    return unless Zeroclaw::AuditorConfig.enabled?
+    return unless Zeroclaw::AuditableTask.auditable?(self)
+
+    ZeroclawAuditorJob.perform_later(id, trigger: "status_transition")
+  rescue StandardError => e
+    Rails.logger.warn("[Task##{id}] enqueue_zeroclaw_auditor_if_needed failed: #{e.class}: #{e.message}")
   end
 
   # Try to auto-queue this task based on board settings.
