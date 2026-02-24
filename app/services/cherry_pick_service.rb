@@ -3,7 +3,7 @@
 # Service for cherry-picking commits from playground repo to production ~/clawdeck.
 # Provides safe, audited git operations with conflict detection and rollback.
 class CherryPickService
-  PLAYGROUND_PATH = File.expand_path("~/.openclaw/workspace/clawtrolplayground")
+  PLAYGROUND_PATH = File.expand_path(ENV.fetch("CHERRY_PICK_PLAYGROUND_PATH", "~/.openclaw/workspace/clawtrolplayground"))
   PRODUCTION_PATH = File.expand_path("~/clawdeck")
 
   Result = Struct.new(:success, :message, :data, keyword_init: true)
@@ -12,10 +12,12 @@ class CherryPickService
     # Returns commits in playground that are NOT in production (cherry-pickable).
     # Only includes [factory] commits for safety.
     def pickable_commits(limit: 50)
+      safe_limit = [[limit.to_i, 1].max, 200].min
+
       # Get commits in playground not in production/main
       output = git_playground(
         "log", "--oneline", "--format=%H|%h|%s|%ai|%an",
-        "production/main..HEAD", "-#{limit}"
+        "production/main..HEAD", "-#{safe_limit}"
       )
       return Result.new(success: false, message: "Failed to list commits") if output.nil?
 
@@ -28,7 +30,7 @@ class CherryPickService
           message: parts[2],
           date: parts[3],
           author: parts[4],
-          factory: parts[2].start_with?("[factory]")
+          factory: parts[2].include?("[factory]")
         }
       end
 
@@ -59,8 +61,17 @@ class CherryPickService
     # Execute cherry-pick of one or more commits into production.
     # Returns success/failure with details.
     def cherry_pick!(commit_hashes, dry_run: false)
-      hashes = Array(commit_hashes).select { |h| valid_hash?(h) }
+      hashes = Array(commit_hashes).map(&:to_s).uniq.select { |h| valid_hash?(h) }
       return Result.new(success: false, message: "No valid commit hashes provided") if hashes.empty?
+
+      non_factory_hashes = hashes.reject { |hash| factory_commit?(hash) }
+      if non_factory_hashes.any?
+        return Result.new(
+          success: false,
+          message: "Only [factory] commits are allowed",
+          data: { rejected_hashes: non_factory_hashes }
+        )
+      end
 
       # Verify production repo is clean
       status = git_production("status", "--porcelain")
@@ -130,6 +141,11 @@ class CherryPickService
 
     def valid_hash?(hash)
       hash.is_a?(String) && hash.match?(/\A[a-f0-9]{7,40}\z/)
+    end
+
+    def factory_commit?(hash)
+      message = git_playground("log", "--format=%s", "-1", hash)&.strip
+      message.present? && message.include?("[factory]")
     end
 
     def git_playground(*args)
