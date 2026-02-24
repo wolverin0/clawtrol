@@ -45,11 +45,15 @@ class DeadRouteScanner
     end
 
     def scannable_get_route?(route, path)
-      route.verb == "GET" &&
+      supports_get_verb?(route.verb) &&
         !route.internal &&
         path !~ /:/ &&
         path.length >= MIN_PATH_LENGTH &&
         EXCLUDED_PREFIXES.none? { |prefix| path.start_with?(prefix) }
+    end
+
+    def supports_get_verb?(verb)
+      verb.to_s.split("|").include?("GET")
     end
   end
 end

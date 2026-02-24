@@ -3133,3 +3133,10 @@
 **Files:** app/services/dead_route_scanner.rb, lib/tasks/scanner.rake, test/services/dead_route_scanner_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2418 runs, 5475 assertions, 0 failures)
 **Risk:** low (behavior preserved; adds tests and isolates scanner logic for safer future changes)
+
+## [2026-02-24 03:48] - Category: Bug Fixes — STATUS: ✅ VERIFIED
+**What:** Fixed DeadRouteScanner GET route detection to include multi-verb routes (e.g., `GET|POST`) instead of only exact `GET` matches.
+**Why:** Some Rails routes expose GET plus additional verbs. The previous `route.verb == "GET"` check skipped those paths, creating false negatives in dead/empty route scans.
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2418 runs, 5475 assertions, 0 failures)
+**Risk:** low (scanner selection fix + targeted test coverage)
