@@ -8,6 +8,20 @@ This guide defines the production contract between OpenClaw (orchestrator) and C
 - ClawTrol owns task state, visibility, history, and reporting UI.
 - Do not treat "task moved" as "task reported". Reporting is mandatory.
 
+### P0 Data Contract (Feb 2026)
+
+**Agent output goes to `task_runs` table, NOT `tasks.description`.**
+
+| Field | Table | Purpose |
+|-------|-------|---------|
+| `description` | `tasks` | Human task brief only. NEVER write agent output here. |
+| `agent_output` | `task_runs` | Agent findings per execution run |
+| `prompt_used` | `task_runs` | Immutable snapshot of the prompt used |
+| `agent_activity_md` | `task_runs` | Activity markdown log |
+| `follow_up_prompt` | `task_runs` | Requeue instructions |
+
+Both `task_outcome` and `agent_complete` hooks write to `task_runs` automatically.
+
 ## 2) Required callbacks (every run)
 
 For every completed run, call both hooks in this exact order:
@@ -20,6 +34,34 @@ Rules:
 - If follow-up is needed, set `recommended_action` to `requeue_same_task` and include `next_prompt`.
 - If follow-up is not needed, set `recommended_action` to `in_review`.
 - `agent_complete` must include findings (and session/output files when available).
+- `session_id` should be the **plain UUID** of the transcript session (NOT the session key like `agent:main:subagent:UUID`).
+- If you send a prefixed `session_id`, ClawTrol extracts the UUID automatically.
+- If no `session_id` is provided, ClawTrol scans recent transcripts for task references and auto-links.
+
+## 2b) Session linking for live transcript
+
+For the ClawTrol Transcript tab to show live agent activity, the task must be linked to a session:
+
+**Option A (preferred):** Send `session_id` in the `agent_complete` hook:
+```json
+{
+  "task_id": 454,
+  "session_id": "81f82d21-0920-44f5-8a82-0839bed2f874",
+  "findings": "Completed the task..."
+}
+```
+
+**Option B:** Call `POST /api/v1/tasks/:id/link_session` after spawning:
+```json
+{
+  "session_id": "81f82d21-0920-44f5-8a82-0839bed2f874",
+  "session_key": "agent:main:subagent:81f82d21"
+}
+```
+
+**Option C (automatic):** If neither A nor B happens, ClawTrol's `AgentLogService` scans recent transcript files (`~/.openclaw/agents/main/sessions/*.jsonl`) for task ID references and auto-links the first match. This scan runs on every `agent_log` API call when no session is linked.
+
+**Important:** The `session_id` must match a `.jsonl` filename in the sessions directory. OpenClaw's `session_key` (e.g., `agent:main:subagent:UUID`) is NOT the same as the transcript file UUID. Use `sessions_list` to get the real `sessionId` after spawning.
 
 ## 3) Follow-up policy (same-card, human approval)
 
@@ -74,3 +116,36 @@ After self-heal, verify with:
 1. One run with `needs_follow_up=false`.
 2. One run with `needs_follow_up=true` and `requeue_same_task` suggestion.
 3. Confirm no extra duplicate tasks were created for the same issue.
+4. Confirm Transcript tab shows agent activity (session must be linked).
+5. Confirm `tasks.description` was NOT modified by agent output.
+
+## 8) Transcript visibility troubleshooting
+
+If the Transcript tab shows "No agent activity":
+
+1. **Check session_id:** `bin/rails runner "puts Task.find(ID).agent_session_id"`
+   - If blank: session was never linked. Send `session_id` in hooks or call `link_session`.
+   - If set: verify the transcript file exists at `~/.openclaw/agents/main/sessions/{session_id}.jsonl`.
+
+2. **Check transcript file:**
+   ```bash
+   ls -la ~/.openclaw/agents/main/sessions/{session_id}.jsonl
+   ```
+   - If missing: the session UUID doesn't match a transcript file. Use `sessions_list` to find the real transcript UUID.
+
+3. **Force auto-discovery:**
+   ```bash
+   bin/rails runner "
+     task = Task.find(ID)
+     task.update_column(:agent_session_id, nil)  # clear stale link
+     svc = AgentLogService.new(task)
+     result = svc.call
+     puts 'has_session: ' + result[:has_session].to_s
+     puts 'session_id: ' + task.reload.agent_session_id.to_s
+   "
+   ```
+   This triggers `scan_recent_transcripts_for_task!` which searches recent `.jsonl` files for task references.
+
+4. **Common session_id format issues:**
+   - `agent:main:subagent:UUID` — ClawTrol extracts UUID automatically since Feb 2026
+   - Transcript file UUID ≠ subagent process UUID — always use `sessions_list` to get the real ID
