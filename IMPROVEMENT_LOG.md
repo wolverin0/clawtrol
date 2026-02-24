@@ -3431,3 +3431,14 @@ Extract shared payload construction into private helpers and keep `scan` focused
 [CONFIDENCE: 81] Security — app/controllers/mission_control_controller.rb:24
 Mission Control responses only enforced `Cache-Control`, which can be inconsistently interpreted by older intermediaries.
 Set complementary `Pragma` and `Expires` headers and keep regression coverage for all anti-cache directives.
+
+## [2026-02-24 18:20] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Deduplicated session keys before task-link lookup in `SessionsExplorerController#index`.
+**Why:** Session payloads can include repeated keys across snapshots/reconnects. Passing duplicates into `WHERE agent_session_id IN (...)` unnecessarily increases bind parameters and query overhead with no result benefit.
+**Files:** app/controllers/sessions_explorer_controller.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2448 runs, 5551 assertions, 0 failures)
+**Risk:** low (query-input reduction only, behavior unchanged)
+
+[CONFIDENCE: 71] Performance — app/controllers/sessions_explorer_controller.rb:20
+Task-link lookup built an `IN` list from raw session keys without deduplication, which can inflate query work on repeated keys.
+Normalize to unique keys before querying to reduce query parameter count while preserving output.
