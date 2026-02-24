@@ -3154,3 +3154,10 @@
 **Files:** app/controllers/mission_control_controller.rb, app/views/mission_control/index.html.erb, test/controllers/mission_control_controller_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2419 runs, 5477 assertions, 0 failures)
 **Risk:** low (UI/status accuracy improvement + regression test)
+
+## [2026-02-24 05:20] - Category: Bug Fixes — STATUS: ✅ VERIFIED
+**What:** Mark empty 2xx responses as failed in `DeadRouteScanner` and expose `:empty` in scan results.
+**Why:** Dead/Empty Route Scanner previously treated any `<400` status as healthy, allowing blank pages to pass silently. Empty successful responses are now flagged as failed to surface missing-content routes.
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2420 runs, 5481 assertions, 0 failures)
+**Risk:** low (scanner-only detection tightening with targeted tests)
