@@ -3396,3 +3396,15 @@ Keep a dedicated timeout regression test so gate failures remain deterministic u
 - `app/views/shared/_nav_icons.html.erb`
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` (no modified Ruby files). `bin/rails test` passed (2440 runs, 0 failures, 0 errors).
 **Risk:** Low — view-only active class condition updates.
+
+## [2026-02-24 16:50] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extracted `DeadRouteScanner.scan` result payload builders into dedicated private helpers (`success_result`, `failure_result`).
+**Why:** The method duplicated hash construction inline for success and error paths, increasing noise and making future field changes easier to miss. Helper extraction keeps scan flow focused on request execution while preserving behavior.
+**Files:** app/services/dead_route_scanner.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2448 runs, 5548 assertions, 0 failures)
+**Risk:** low (internal refactor, no behavior change)
+
+[CONFIDENCE: 70] Maintainability — app/services/dead_route_scanner.rb:19
+`scan` previously built two near-duplicate result hashes inline, making the method harder to read and edit safely.
+Extract shared payload construction into private helpers and keep `scan` focused on control flow.
+
