@@ -3273,3 +3273,14 @@ Use regex presence matching (`/GET/`) to correctly include Rails route verb repr
 [CONFIDENCE: 82] Security — app/services/factory_promotion_gate_service.rb:17
 Promotion gate accepted non-directory repo paths and delegated failure to shell command execution.
 Validate and normalize the repo path up front, then return a deterministic failed check when inaccessible.
+
+## [2026-02-24 10:53] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Optimized `DeadRouteScanner.route_paths` to deduplicate paths during collection instead of `filter_map + uniq` post-processing.
+**Why:** Route scans iterate over all Rails routes. Avoiding an additional full-array deduplication pass reduces allocations and improves throughput on larger route sets while preserving order.
+**Files:** app/services/dead_route_scanner.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2434 runs, 5539 assertions, 0 failures)
+**Risk:** low (internal iteration refactor, behavior preserved by existing route_paths regression test)
+
+[CONFIDENCE: 72] Performance — app/services/dead_route_scanner.rb:9
+`route_paths` previously built an intermediate array and then deduplicated with `.uniq`, adding an extra traversal and allocations.
+Deduplicate inline with a seen-path lookup while collecting to keep stable ordering and reduce overhead.
