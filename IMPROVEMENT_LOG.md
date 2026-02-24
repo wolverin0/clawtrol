@@ -3215,3 +3215,15 @@
 [CONFIDENCE: 78] Performance — app/services/factory_promotion_gate_service.rb:48
 Used `chdir:` execution context instead of shell `cd &&` string composition.
 Keep `command` source controlled/trusted as currently designed; avoid passing user input directly.
+
+## [2026-02-24 09:07] - Category: Bug Fixes — STATUS: ✅ VERIFIED
+**What:** Removed implicit `User.first` fallback from `FactoryEngineService` initialization.
+**Why:** Service methods do not use user context; keeping the fallback performed unnecessary user lookup and preserved a risky attribution pattern.
+**Files:** app/services/factory_engine_service.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2431 runs, 5532 assertions, 0 failures)
+**Commit:** (set after commit)
+**Risk:** low (no runtime behavior change in service methods)
+
+[CONFIDENCE: 73] Bug Fixes — app/services/factory_engine_service.rb:6
+Initialization previously hit `User.first` despite no user usage in this service.
+Keep constructor parameter as compatibility shim until all call sites are explicitly updated.
