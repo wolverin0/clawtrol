@@ -28,6 +28,14 @@ class AgentLogService
     return persisted_only_result(persisted_scope, persisted_count) unless @task.agent_session_id.present?
 
     session_id = @task.agent_session_id.to_s
+    # Extract clean UUID from prefixed formats (e.g. "agent:main:subagent:UUID")
+    if !session_id.match?(SESSION_ID_FORMAT) && session_id.include?(":")
+      extracted = session_id.split(":").last
+      if extracted.present? && extracted.match?(SESSION_ID_FORMAT)
+        session_id = extracted
+        @task.update_column(:agent_session_id, session_id) if @task.agent_session_id != session_id
+      end
+    end
     return persisted_only_result(persisted_scope, persisted_count) unless session_id.match?(SESSION_ID_FORMAT)
 
     transcript_path = TranscriptParser.transcript_path(session_id)

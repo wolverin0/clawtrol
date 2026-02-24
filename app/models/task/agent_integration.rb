@@ -280,6 +280,10 @@ module Task::AgentIntegration
   end
 
   def agent_output_posted_at
+    # Check TaskRun first (P0 contract), then fall back to description marker
+    if latest_run&.agent_output.present?
+      return latest_run.ended_at || latest_run.updated_at || latest_run.created_at
+    end
     return nil unless has_agent_output_marker?
 
     # Best signal: when task moved into review (agent_complete default flow)
