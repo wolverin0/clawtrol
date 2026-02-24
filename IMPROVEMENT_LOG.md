@@ -3196,3 +3196,10 @@
 **Files:** app/services/factory_promotion_gate_service.rb, app/services/cherry_pick_service.rb, test/services/factory_promotion_gate_service_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2429 runs, 5515 assertions, 0 failures)
 **Risk:** low (additive service + existing verify endpoint now returns richer gate details)
+
+## [2026-02-24 08:20] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened `FactoryPromotionGateService` error output to avoid leaking raw exception messages from shell execution checks.
+**Why:** The promotion gate previously returned `e.message` on check execution errors, which could expose sensitive command/runtime details in API responses. Errors are now class-only with a generic message, and coverage was added to ensure secrets are not echoed.
+**Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2430 runs, 5529 assertions, 0 failures)
+**Risk:** low (defensive output sanitization + targeted regression test)

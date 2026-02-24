@@ -41,4 +41,19 @@ class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
       assert_equal 3, result[:checks].size
     end
   end
+
+  test "run_check does not leak raw exception message" do
+    Open3.stub(:capture3, ->(*_args) { raise StandardError, "token=super-secret" }) do
+      result = FactoryPromotionGateService.send(
+        :run_check,
+        name: "syntax_check",
+        command: "bin/rails test",
+        repo_path: Rails.root.to_s
+      )
+
+      assert_not result.success
+      assert_equal "StandardError: check execution failed", result.output
+      assert_not_includes result.output, "super-secret"
+    end
+  end
 end
