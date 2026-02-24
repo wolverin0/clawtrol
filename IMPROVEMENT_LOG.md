@@ -3119,3 +3119,10 @@
 **Files:** app/controllers/file_viewer_controller.rb, test/controllers/file_viewer_controller_test.rb
 **Verify:** Ruby syntax OK; `bin/rails test` passed (2413 runs, 0 failures)
 **Risk:** low (adds input guard; preserves current behavior for normal-sized edits)
+
+## [2026-02-24 03:12] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened Telegram Mini App account linking: single-tenant fallback is now disabled by default and must be explicitly enabled with `TELEGRAM_MINI_APP_SINGLE_TENANT_FALLBACK=true`.
+**Why:** The implicit fallback to `User.first` could misattribute actions when Telegram ID mapping was missing. Default-deny linking reduces cross-account risk and enforces explicit `telegram_chat_id` binding unless the operator intentionally opts into fallback mode.
+**Files:** app/controllers/telegram_mini_app_controller.rb, test/controllers/telegram_mini_app_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2415 runs, 5469 assertions, 0 failures)
+**Risk:** Low — fallback behavior is preserved behind explicit env opt-in.
