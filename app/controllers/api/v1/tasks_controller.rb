@@ -535,7 +535,7 @@ def pending_attention
 
           # Auto-resolve: if task still has no session_id and description was just updated with agent output,
           # scan recent transcripts for this task's ID
-          if @task.agent_session_id.blank? && @task.description&.include?("## Agent Output")
+          if @task.agent_session_id.blank? && @task.has_agent_output?
             resolved_id = scan_transcripts_for_task(@task.id)
             if resolved_id.present?
               @task.update_column(:agent_session_id, resolved_id)
@@ -627,15 +627,18 @@ def pending_attention
 
         set_task_activity_info(@task)
 
-        existing = @task.description.to_s
-        marker = "## Agent Output"
-        new_description = if existing.include?(marker)
-          existing.sub(/## Agent Output\s*\n*/m, "## Agent Output\n\n#{recovered_text}\n\n")
+        # P0 Data Contract: store recovered output in TaskRun, NOT description
+        task_run = @task.task_runs.order(created_at: :desc).first
+        if task_run
+          task_run.update!(agent_output: recovered_text)
         else
-          ["#{marker}\n\n#{recovered_text}", existing].reject(&:blank?).join("\n\n")
+          @task.task_runs.create!(
+            run_id: SecureRandom.uuid,
+            agent_output: recovered_text,
+            prompt_used: @task.effective_prompt,
+            status: "completed"
+          )
         end
-
-        @task.update!(description: new_description)
 
         render json: task_json(@task.reload)
       end

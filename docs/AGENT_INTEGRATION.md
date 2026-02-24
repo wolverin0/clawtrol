@@ -65,7 +65,7 @@ This is the **recommended workflow** for orchestrators spawning sub-agents:
 │    → Has task_id + API token in its prompt context                     │
 │                                                                         │
 │ 6. Sub-agent calls POST /tasks/:id/agent_complete                      │
-│    → Appends output to description                                     │
+│    → Stores output in TaskRun record (NOT description)                 │
 │    → Moves task to in_review                                           │
 │    → Runs validation if configured                                     │
 │                                                                         │
@@ -194,17 +194,22 @@ Authorization: Bearer YOUR_TOKEN
 {
   "id": 103,
   "status": "in_review",
-  "description": "Original description...\n\n## Agent Output\nFixed the validation bug...",
+  "task_run_id": 42,
+  "agent_output": "Fixed the validation bug...",
   "completed_at": "2026-02-05T15:00:00Z"
 }
 ```
 
 **What happens:**
-1. Output is appended to description under "## Agent Output"
+1. Output is stored in `task_runs.agent_output` column (structured storage, NOT description)
 2. Task moves to `in_review`
 3. `completed_at` timestamp is set
 4. `agent_claimed_at` is cleared
 5. Validation command runs if configured
+
+> **IMPORTANT (P0 Data Contract, Feb 2026):** Agent output is NO LONGER written to `tasks.description`.
+> The description field is reserved for the human task brief only. All agent output goes to TaskRun records.
+> Use `task_outcome` webhook (preferred) or `agent_complete` — both write to `task_runs` table.
 
 ---
 

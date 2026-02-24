@@ -15,7 +15,26 @@ This guide covers:
 
 ---
 
+## CRITICAL: P0 Data Contract (Feb 2026)
+
+**Agent output is NO LONGER written to `tasks.description`.**
+
+The `description` field is the human task brief. Agent results go to **TaskRun** records:
+
+| Old (DEPRECATED) | New (REQUIRED) |
+|-------------------|----------------|
+| `description += "## Agent Output\n..."` | `task_runs.agent_output` |
+| `description += "## Agent Activity\n..."` | `task_runs.agent_activity_md` or `agent_activity_events` |
+| `description += "## Follow-up Prompt\n..."` | `task_runs.follow_up_prompt` |
+| Parse description to find output | `task.latest_run.agent_output` |
+
+**Preferred completion method:** `POST /api/v1/hooks/task_outcome` (creates TaskRun with structured fields).
+**Legacy method:** `POST /api/v1/tasks/:id/agent_complete` (still works, writes to TaskRun).
+
+---
+
 ## Prerequisites
+
 
 - OpenClaw agent running (main session)
 - ClawTrol instance accessible (default: http://192.168.100.186:4001)

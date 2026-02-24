@@ -71,6 +71,13 @@ Run this command to verify your implementation:
 - No hardcoded secrets — use environment variables
 - Handle errors gracefully
 
+
+## IMPORTANT: Output Contract (P0)
+- Your output goes to `task_runs.agent_output` — NOT to `tasks.description`
+- The description field is the human brief — do NOT modify it
+- When calling `agent_complete` or `task_outcome`, your findings are stored in TaskRun records
+- Do NOT append `## Agent Output` sections to the description field
+
 ## Completion
 Report:
 1. What was implemented (files changed)

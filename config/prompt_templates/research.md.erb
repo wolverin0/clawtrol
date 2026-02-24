@@ -40,3 +40,9 @@ Provide your findings as a structured report with:
 2. **Details** — Full analysis
 3. **Recommendations** — Actionable next steps
 4. **Sources** — References used
+
+## IMPORTANT: Output Contract (P0)
+- Your output goes to `task_runs.agent_output` — NOT to `tasks.description`
+- The description field is the human brief — do NOT modify it
+- When calling `agent_complete` or `task_outcome`, your findings are stored in TaskRun records
+- Do NOT append `## Agent Output` sections to the description field

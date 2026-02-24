@@ -1,244 +1,206 @@
-# AGENTS.md - ClawTrol Development Guide
+# AGENTS.md - ClawTrol Operational Guide
 
-This file provides guidance to Claude Code (claude.ai/code) and other AI coding assistants when working with this repository.
+This file is the operational source-of-truth for AI coding assistants working on ClawTrol.
 
-## Project Overview
+## 1) Operational Context (Critical)
 
-**ClawTrol** is a Rails 8.1 mission control dashboard for AI agents. It provides:
-- Task queue with agent assignment workflow
-- Multi-board kanban organization
-- Live agent transcript viewing
-- Model routing (opus, sonnet, codex, gemini, glm)
-- Validation system (command + debate)
-- Follow-up task chaining
-- Nightly/recurring task scheduling
+Use this map first. Most recent confusion came from editing the wrong folder.
 
-Previously known as ClawDeck. Rebranded to ClawTrol in February 2026.
+### Canonical vs mirror folders
 
-## Development Commands
+| Role | Path | Status | Notes |
+|---|---|---|---|
+| Canonical ClawTrol codebase | `/home/ggorbalan/clawdeck` | **WRITE HERE** | Rails app, git repo, running service |
+| ClawTrol docs mirror on Windows | `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawtrol` | Mirror/docs only | No `.git`, do not treat as runtime codebase |
+| Scratch patch dump | `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawdeck_remote_work` | Non-canonical | Isolated files, not the live repo |
+| Repo comparison clones (Windows) | `G:\_OneDrive\OneDrive\Desktop\Py Apps\gitclones` | Reference only | For benchmarking patterns |
+| Repo comparison clones (Ubuntu) | `/home/ggorbalan/gitclone` | Reference only | For benchmarking patterns |
+| OpenClaw workspace | `/home/ggorbalan/.openclaw/workspace` | Separate project | Cognitive/memory files, not ClawTrol app code |
 
-### Initial Setup
+### Runtime endpoints
+
+- ClawTrol app URL: `http://192.168.100.186:4001`
+- Service unit: `systemctl --user status clawdeck-web.service`
+
+## 2) Mandatory Preflight Before Any Edit
+
+Run these checks in order before coding:
+
 ```bash
-bin/setup              # Install dependencies, prepare database, start server
-bin/setup --skip-server  # Setup without starting the server
-bin/setup --reset      # Setup with database reset
+# 1) Confirm machine/repo
+ssh ggorbalan@192.168.100.186 'cd ~/clawdeck && pwd && git rev-parse --show-toplevel'
+
+# 2) Confirm branch + dirty state
+ssh ggorbalan@192.168.100.186 'cd ~/clawdeck && git branch --show-current && git status --short'
+
+# 3) Confirm target file exists in canonical repo
+ssh ggorbalan@192.168.100.186 'cd ~/clawdeck && ls -la <target_path>'
 ```
 
-### Running the Application
-```bash
-bin/dev                # Start development server (web + Tailwind CSS watch)
-bin/rails server       # Start web server only
-bin/rails tailwindcss:watch  # Watch and rebuild Tailwind CSS
-```
+If these do not point to `/home/ggorbalan/clawdeck`, stop and re-route.
 
-### Database
-```bash
-bin/rails db:prepare   # Create, migrate, and seed database
-bin/rails db:migrate   # Run pending migrations
-bin/rails db:reset     # Drop, create, migrate, seed
-bin/rails db:seed:replant  # Truncate and reseed
-```
+## 3) Documentation Source-of-Truth Policy
 
-### Testing
-```bash
-bin/rails test         # Run all unit/integration tests
-bin/rails test:system  # Run system tests (Capybara + Selenium)
-bin/rails test test/models/user_test.rb  # Run specific test file
-bin/rails test test/models/user_test.rb:10  # Run specific test line
-```
+- Canonical roadmap lives in: `docs/roadmaps/`
+- Execution evidence lives in: `docs/reports/` and `docs/artifacts/`
+- Session handoff context lives in: `handoff.md`
 
-### Code Quality and Security
-```bash
-bin/rubocop            # Run RuboCop linter (Omakase Ruby style)
-bin/rubocop -a         # Auto-correct offenses
-bin/brakeman           # Security analysis
-bin/bundler-audit      # Check for vulnerable gem versions
-bin/importmap audit    # Check for vulnerable JavaScript dependencies
-bin/ci                 # Run full CI suite (setup, linting, security, tests)
-```
+When roadmaps conflict:
+1. Keep one canonical roadmap marked ACTIVE.
+2. Mark older files as superseded, do not delete historical context.
+3. Update checkbox status immediately after each completed step.
 
-### Asset Management
-```bash
-bin/rails assets:precompile  # Precompile assets for production
-bin/importmap pin <package>  # Pin JavaScript package from CDN
-bin/importmap unpin <package>  # Unpin JavaScript package
-```
+## 4) Project Overview
 
-### Deployment
-```bash
-ssh root@YOUR_SERVER_IP       # SSH to production VPS
-systemctl status puma         # Check Puma status
-systemctl status solid_queue  # Check Solid Queue status
-systemctl restart puma        # Restart web server
-systemctl restart solid_queue # Restart background jobs
-tail -f /var/log/clawdeck/puma.log      # View application logs
-tail -f /var/log/clawdeck/solid_queue.log  # View job logs
-```
+ClawTrol (formerly ClawDeck) is a Rails 8.1 mission control dashboard for AI agents.
 
-## Architecture
+Core capabilities:
+- Task queue with board-based workflow
+- Agent orchestration state (sessions, model routing, validation)
+- Swarm idea launcher
+- Factory loop automation
+- ZeroBitch fleet controls
+- Nightshift/cron orchestration
 
-### Technology Stack
-- **Ruby/Rails**: 3.3.1 / 8.1.0
-- **Database**: PostgreSQL with multi-database setup (primary, cache, queue, cable)
-- **Background Jobs**: Solid Queue (database-backed)
-- **Caching**: Solid Cache (database-backed)
-- **WebSockets**: Solid Cable (database-backed)
-- **Email**: Resend API (passwordless authentication with 6-digit codes)
-- **Frontend**: Hotwire (Turbo + Stimulus), Tailwind CSS, importmap for JavaScript
-- **Image Processing**: Active Storage with image_processing gem
-- **Deployment**: DigitalOcean VPS + GitHub Actions auto-deploy
-- **Web Server**: Puma with Nginx reverse proxy
+## 5) Architecture Snapshot
 
-### Application Structure
-- **Module Name**: `ClawDeck` (config/application.rb) — module name retained for code compatibility
-- **Product Name**: ClawTrol — used in UI and documentation
-- **Solid Stack**: Uses solid_cache, solid_queue, and solid_cable instead of Redis
-- **Hotwire-first**: Built for Turbo Drive navigation with minimal JavaScript
-- **Asset Pipeline**: Propshaft for static assets, importmap-rails for JavaScript modules
+### Stack
+- Ruby 3.3.x / Rails 8.1
+- PostgreSQL (primary/cache/queue/cable)
+- Solid Queue, Solid Cache, Solid Cable
+- Hotwire (Turbo + Stimulus) + Tailwind
+- Puma + Nginx deployment
 
-### Key Models
+### P0 Data Contract (Feb 2026)
 
-#### User
-- Email-based authentication with 6-digit verification codes (15-minute expiry)
-- `has_many :boards` - Multiple kanban boards
-- `has_many :tasks` - All user tasks
-- `has_many :model_limits` - Rate limit tracking per model
+**`tasks.description` is the HUMAN BRIEF only. Agent output goes to TaskRun.**
 
-#### Board
-- `belongs_to :user`
-- `has_many :tasks`
-- Fields: name, icon (emoji), color
-- Used for organizing tasks by project/context
+Key columns:
+- `tasks.description` — Human task brief (never mutated by agents)
+- `tasks.original_description` — Backup of original brief
+- `tasks.execution_prompt` — Prompt for agent execution (was `execution_plan`)
+- `tasks.compiled_prompt` — Pipeline-generated prompt from ERB templates
+- `task_runs.agent_output` — Agent findings/output per run
+- `task_runs.prompt_used` — Immutable snapshot of the prompt sent to agent
+- `task_runs.agent_activity_md` — Markdown transcript summary
+- `task_runs.follow_up_prompt` — Follow-up instructions for requeue
 
-#### Task
-- `belongs_to :user`
-- `belongs_to :board`
-- `belongs_to :parent_task, optional: true` - For follow-ups
-- **Statuses**: inbox, up_next, in_progress, in_review, done
-- **Priorities**: none, low, medium, high
-- **Models**: opus, sonnet, codex, gemini, glm
-- **Agent fields**: assigned_to_agent, agent_session_id, agent_session_key
-- **Validation fields**: validation_command, validation_status, validation_output
-- **Review fields**: review_type, review_status, review_config, review_result
-- **Nightly fields**: nightly, nightly_delay_hours
-- **Recurring fields**: recurring, recurrence_rule, recurrence_time
+Prompt precedence chain: `compiled_prompt || execution_prompt || original_description || description || name`
 
-#### ModelLimit
-- `belongs_to :user`
-- Tracks rate limits per model
-- Fields: name, limited, resets_at, error_message
-- Used for model fallback chain
-
-### API Architecture
-
-Base URL: `/api/v1`
-
-#### Core Task Endpoints
-- `GET /tasks` - List tasks (filters: status, assigned, board_id, etc.)
-- `GET /tasks/:id` - Get single task
-- `POST /tasks` - Create task
-- `PATCH /tasks/:id` - Update task
-- `DELETE /tasks/:id` - Delete task
-
-#### Agent Workflow Endpoints
-- `POST /tasks/spawn_ready` - Create task in_progress + assigned
-- `POST /tasks/:id/link_session` - Connect OpenClaw session
-- `POST /tasks/:id/agent_complete` - Complete task with output
-- `GET /tasks/:id/agent_log` - Get agent transcript
-- `POST /tasks/:id/handoff` - Hand off to different model
-
-#### Review Endpoints
-- `POST /tasks/:id/start_validation` - Start command validation
-- `POST /tasks/:id/run_debate` - Start debate review
-- `POST /tasks/:id/complete_review` - Complete review with result
-
-#### Model Limit Endpoints
-- `GET /models/status` - Get all model statuses
-- `POST /models/best` - Get best available model
-- `POST /models/:name/limit` - Record rate limit
-- `DELETE /models/:name/limit` - Clear rate limit
-
-#### Board Endpoints
-- `GET /boards` - List boards
-- `GET /boards/:id` - Get board (optionally with tasks)
-- `POST /boards` - Create board
-- `PATCH /boards/:id` - Update board
-- `DELETE /boards/:id` - Delete board
-
-### Authentication
-
-API authentication via Bearer token:
-```
-Authorization: Bearer YOUR_TOKEN
-```
-
-Agent identity via headers:
-```
-X-Agent-Name: Otacon
-X-Agent-Emoji: 📟
-```
-
-### Routes Structure
+**Reading agent output:**
 ```ruby
-namespace :api do
-  namespace :v1 do
-    resources :boards
-    resources :tasks do
-      collection do
-        post :spawn_ready
-        get :recurring
-      end
-      member do
-        post :agent_complete
-        post :link_session
-        get :agent_log
-        post :handoff
-        post :start_validation
-        post :run_debate
-      end
-    end
-  end
-end
+task.agent_output_text     # reads TaskRun first, falls back to description regex
+task.has_agent_output?     # checks TaskRun OR description pattern
+task.latest_run            # most recent TaskRun
+task.effective_prompt      # prompt that would be sent to agent
+task.description_section("Agent Output")  # legacy fallback only
 ```
 
-### CI Pipeline
-GitHub Actions runs on PR and push to main:
-1. **scan_ruby**: Brakeman + bundler-audit
-2. **scan_js**: importmap audit
-3. **lint**: RuboCop
-4. **test**: Rails tests with PostgreSQL
-5. **system-test**: Capybara tests
+### Key domains
 
-### Deployment Flow
-Auto-deploy on push to main:
-1. SSH to VPS
-2. Pull latest code
-3. Bundle install
-4. Backup databases
-5. Run migrations
-6. Precompile assets
-7. Restart Puma + Solid Queue
+- `Task` lifecycle: `inbox -> up_next -> in_progress -> in_review -> done`
+- Factory loops: persistent automation cycles with logs/findings
+- Swarm ideas: curated launch templates that create tasks
+- ZeroBitch: external fleet/agent execution surface
 
-### Background Jobs
-- `RunValidationJob` - Execute validation commands
-- `RunDebateJob` - Run multi-model debate reviews
+## 6) Dev Commands
 
-### Frontend Controllers (Stimulus)
-- `sortable_controller.js` - Drag-and-drop task ordering
-- `task_modal_controller.js` - Task detail modals
-- `live_activity_controller.js` - Real-time transcript polling
-- `dropdown_controller.js` - UI dropdowns
-- `flash_controller.js` - Flash messages
+### Setup + run
+```bash
+bin/setup
+bin/dev
+bin/rails server
+```
 
-### Development Guidelines
-1. Never default to regular JS if Turbo/Hotwire can accomplish the same thing
-2. Follow Rails conventions and DRY principles
-3. Deploy via GitHub Actions by pushing to main branch
-4. Use Solid Queue for background jobs, not Sidekiq
-5. Test with bin/rails test before pushing
+### DB
+```bash
+bin/rails db:prepare
+bin/rails db:migrate
+bin/rails db:reset
+```
 
-## Documentation
+### Tests + quality
+```bash
+bin/rails test
+bin/rails test:system
+bin/rubocop
+bin/brakeman
+bin/bundler-audit
+bin/ci
+```
 
-- `docs/AGENT_INTEGRATION.md` - Complete agent integration guide
-- `docs/OPENCLAW_INTEGRATION.md` - OpenClaw-specific setup
-- `docs/API_REFERENCE.md` - Full API endpoint reference
+## 7) Merge Gate Baseline (Do Not Skip)
+
+Any change intended for integration should pass:
+
+1. Lint/static checks (`rubocop`, security checks where applicable)
+2. Unit/integration tests for touched areas
+3. E2E/system tests for user-facing flows changed
+4. Route/UI smoke check for impacted endpoints
+5. Evidence written to `docs/artifacts/` or `docs/reports/`
+
+If any gate fails, do not mark task done.
+
+## 8) Collaboration Rules for Agents
+
+1. Edit code in `/home/ggorbalan/clawdeck` only.
+2. Avoid broad refactors in dirty worktrees unless explicitly requested.
+3. Never use destructive git commands (`reset --hard`, `checkout --`) unless asked.
+4. When context is ambiguous, verify path + repo before touching files.
+5. Prefer small reversible changes with explicit validation steps.
+6. Keep roadmap checkboxes updated in the same execution window.
+
+## 9) Common Pitfalls and Fixes
+
+### Pitfall: "I changed files but app did not change"
+Cause: edited a mirror/non-canonical folder.
+Fix: re-run preflight, ensure edits happen in `/home/ggorbalan/clawdeck`.
+
+### Pitfall: "Nav differs across pages"
+Cause: duplicated nav partials drifting.
+Fix: update all nav partials together and verify desktop + mobile.
+
+### Pitfall: "Factory produced many commits but low trust"
+Cause: missing merge gate/E2E evidence.
+Fix: enforce merge gate baseline before integration.
+
+## 10) API/Auth Notes
+
+- API base: `/api/v1`
+- Auth header:
+  - `Authorization: Bearer <token>`
+- Agent identity headers (when used):
+  - `X-Agent-Name: <name>`
+  - `X-Agent-Emoji: <emoji>`
+
+## 11) Related Docs
+
+- `docs/AGENT_INTEGRATION.md`
+- `docs/OPENCLAW_INTEGRATION.md`
+- `docs/API_REFERENCE.md`
+- `docs/factory/ARCHITECTURE.md`
+- `docs/roadmaps/`
+
+## 12) Swarm/Factory/ZeroClaw (Exception Mode Only)
+
+Default execution mode is the normal task flow:
+- One task at a time
+- Standard board pipeline
+- Normal review and validation gates
+
+Do not activate Swarm/Factory/ZeroClaw by default.
+
+Activate this mode only when at least one trigger is true:
+1. The roadmap explicitly marks a phase as `BURST`, `BATCH`, or `PARALLEL`.
+2. There are 5+ related tasks that can be safely parallelized.
+3. A large refactor needs isolated playground validation before merge.
+4. The user explicitly asks for swarm/factory/zeroclaw execution.
+
+When exception mode is active:
+- Swarm orchestrates phases and dispatch.
+- Factory runs high-volume experiments in isolated workspaces.
+- ZeroClaw handles heavy parallel subtasks and returns artifacts.
+
+Guardrail:
+- Never bypass the normal merge gates.
+- If exception mode is not clearly required, stay on regular task flow.

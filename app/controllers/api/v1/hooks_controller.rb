@@ -78,7 +78,6 @@ module Api
           end
         end
 
-        updates[:description] = updated_description(task.description.to_s, findings, activity[:activity_markdown])
 
 # --- P0 dual-write: persist structured output to TaskRun ---
 run_id = params[:run_id].presence || effective_session_id.presence || SecureRandom.uuid

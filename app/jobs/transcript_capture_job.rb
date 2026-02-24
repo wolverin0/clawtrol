@@ -15,11 +15,10 @@ class TranscriptCaptureJob < ApplicationJob
     task = Task.find_by(id: task_id)
     return unless task
 
-    # Skip if task already has real agent output (not the generic fallback)
-    desc = task.description.to_s
-    if desc.include?("## Agent Output")
-      output_section = desc.split("## Agent Output", 2).last.to_s
-      return if output_section.present? && !output_section.include?("Agent completed (no findings provided)")
+    # P0 Data Contract: check TaskRun for output, fall back to description parsing
+    if task.has_agent_output?
+      output = task.agent_output_text.to_s
+      return unless output.include?("Agent completed (no findings provided)")
     end
     return if task.agent_session_id.present? && transcript_exists?(task.agent_session_id)
 
@@ -112,26 +111,29 @@ class TranscriptCaptureJob < ApplicationJob
     }
   end
 
+  # P0 Data Contract: store captured output in TaskRun, NOT description
   def apply_captured_output(task, result)
-    updates = {}
-
     if result[:output].present?
-      new_description = task.description.to_s
-      unless new_description.include?("## Agent Output")
-        new_description += "\n\n## Agent Output\n"
+      task_run = task.task_runs.order(created_at: :desc).first
+      captured_text = "_(Auto-captured from transcript)_\n\n#{result[:output]}"
+
+      if task_run
+        task_run.update_columns(agent_output: captured_text) if task_run.agent_output.blank?
+      else
+        task.task_runs.create!(
+          run_id: SecureRandom.uuid,
+          agent_output: captured_text,
+          prompt_used: task.effective_prompt,
+          status: "completed"
+        )
       end
-      new_description += "\n_(Auto-captured from transcript)_\n\n#{result[:output]}"
-      updates[:description] = new_description
     end
 
     if result[:files].present?
       existing = task.output_files || []
-      updates[:output_files] = (existing + result[:files]).uniq
+      task.update!(output_files: (existing + result[:files]).uniq)
     end
 
-    if updates.any?
-      task.update!(updates)
-      Rails.logger.info("[TranscriptCapture] Captured output for task ##{task.id}: #{result[:output]&.truncate(100)}, #{result[:files].size} files")
-    end
+    Rails.logger.info("[TranscriptCapture] Captured output for task ##{task.id}: #{result[:output]&.truncate(100)}, #{result[:files]&.size || 0} files")
   end
 end
