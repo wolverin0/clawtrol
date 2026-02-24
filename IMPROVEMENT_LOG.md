@@ -3203,3 +3203,15 @@
 **Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2430 runs, 5529 assertions, 0 failures)
 **Risk:** low (defensive output sanitization + targeted regression test)
+
+## [2026-02-24 08:42] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Reduced shell overhead in `FactoryPromotionGateService#run_check` by executing commands with `Open3.capture3(..., chdir: repo_path)` instead of prepending `cd ... &&` in a composed shell string.
+**Why:** Avoids extra command composition/parsing per gate check and keeps working-directory handling native to `Open3`.
+**Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2431 runs, 5532 assertions, 0 failures)
+**Commit:** 2519875
+**Risk:** low (behavior preserved, command execution path simplified)
+
+[CONFIDENCE: 78] Performance — app/services/factory_promotion_gate_service.rb:48
+Used `chdir:` execution context instead of shell `cd &&` string composition.
+Keep `command` source controlled/trusted as currently designed; avoid passing user input directly.

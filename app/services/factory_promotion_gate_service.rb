@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "open3"
-require "shellwords"
 require "timeout"
 
 class FactoryPromotionGateService
@@ -50,7 +49,7 @@ class FactoryPromotionGateService
       success = false
 
       Timeout.timeout(CHECK_TIMEOUT_SECONDS) do
-        stdout, stderr, status = Open3.capture3("bash", "-lc", "cd #{Shellwords.escape(repo_path)} && #{command}")
+        stdout, stderr, status = Open3.capture3("bash", "-lc", command, chdir: repo_path)
         output = [stdout, stderr].compact.join("\n").truncate(50_000)
         success = status.success?
       end
