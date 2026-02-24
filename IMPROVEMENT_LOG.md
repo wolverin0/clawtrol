@@ -3262,3 +3262,14 @@ Keep check catalog centralized and append optional checks through a dedicated bu
 [CONFIDENCE: 85] Correctness — app/services/dead_route_scanner.rb:56
 GET route detection required exact token matching and could exclude regex-serialized GET verbs.
 Use regex presence matching (`/GET/`) to correctly include Rails route verb representations.
+
+## [2026-02-24 10:20] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added repository-path accessibility guard to `FactoryPromotionGateService.verify!` with fail-fast result when the target path is invalid.
+**Why:** Promotion gate execution previously attempted shell checks with any provided path. A missing/invalid directory produced noisy command errors instead of a deterministic gate failure. Guarding path accessibility tightens execution safety and avoids accidental command runs against unexpected locations.
+**Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2434 runs, 5539 assertions, 0 failures)
+**Risk:** low (fail-fast validation + targeted regression test)
+
+[CONFIDENCE: 82] Security — app/services/factory_promotion_gate_service.rb:17
+Promotion gate accepted non-directory repo paths and delegated failure to shell command execution.
+Validate and normalize the repo path up front, then return a deterministic failed check when inaccessible.

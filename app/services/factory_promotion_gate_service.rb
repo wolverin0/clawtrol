@@ -15,11 +15,20 @@ class FactoryPromotionGateService
 
   class << self
     def verify!(repo_path, include_e2e: false)
+      normalized_repo_path = normalize_repo_path(repo_path)
+      unless normalized_repo_path
+        return {
+          success: false,
+          message: "Promotion gate failed",
+          checks: [Result.new(name: "repo_path", success: false, output: "Repository path is not accessible").to_h]
+        }
+      end
+
       checks = check_definitions(include_e2e:).map do |check|
         run_check(
           name: check[:name],
           command: check[:command],
-          repo_path: repo_path
+          repo_path: normalized_repo_path
         )
       end
 
@@ -37,6 +46,13 @@ class FactoryPromotionGateService
 
     def check_definitions(include_e2e:)
       include_e2e ? BASE_CHECKS + [E2E_CHECK] : BASE_CHECKS
+    end
+
+    def normalize_repo_path(repo_path)
+      expanded_path = File.expand_path(repo_path.to_s)
+      return expanded_path if File.directory?(expanded_path)
+
+      nil
     end
 
     def run_check(name:, command:, repo_path:)
