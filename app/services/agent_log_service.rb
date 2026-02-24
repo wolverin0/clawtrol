@@ -40,7 +40,11 @@ class AgentLogService
 
     transcript_path = TranscriptParser.transcript_path(session_id)
     return persisted_only_result(persisted_scope, persisted_count) unless transcript_path
-    return persisted_only_result(persisted_scope, persisted_count) unless transcript_matches_task_scope?(transcript_path)
+    # Skip scope check if session was explicitly linked (via link_session or hooks).
+    # Only enforce scope check for auto-discovered sessions to prevent false matches.
+    unless @skip_scope_check
+      return persisted_only_result(persisted_scope, persisted_count) unless transcript_matches_task_scope?(transcript_path)
+    end
 
     parsed = TranscriptParser.parse_messages(transcript_path, since: @since)
     ingest_transcript_messages(parsed[:messages], session_id)
@@ -58,7 +62,10 @@ class AgentLogService
   private
 
   def lazy_resolve_session_id!
-    return if @task.agent_session_id.present?
+    if @task.agent_session_id.present?
+      @skip_scope_check = true  # session was linked before this call — trust it
+      return
+    end
 
     # Try session_key resolution first
     if @task.agent_session_key.present? && @session_resolver
