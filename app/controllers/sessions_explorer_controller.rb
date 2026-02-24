@@ -19,7 +19,7 @@ class SessionsExplorerController < ApplicationController
     @active_count = all_sessions.count { |s| active?(s) }
 
     # Link sessions to ClawTrol tasks
-    session_keys = all_sessions.filter_map { |s| s["key"] || s["sessionKey"] }
+    session_keys = all_sessions.filter_map { |s| s["key"] || s["sessionKey"] }.uniq
     @task_links = if session_keys.any?
       current_user.tasks
         .where(agent_session_id: session_keys)
