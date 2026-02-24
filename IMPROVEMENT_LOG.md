@@ -1,5 +1,16 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 14:05] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added short-lived caching for Mission Control health snapshot in `MissionControlController` (30s TTL) to avoid repeated DB/shell checks on rapid refresh.
+**Why:** The dashboard recalculated uptime/memory and DB migration status on every request. This is unnecessarily expensive when users auto-refresh or reopen the page repeatedly.
+**Files:**
+- `app/controllers/mission_control_controller.rb` (cache key + TTL constants, `Rails.cache.fetch` wrapping service call)
+- `test/controllers/mission_control_controller_test.rb` (new cache behavior regression test using MemoryStore)
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2441 runs, 0 failures, 0 errors)
+**Risk:** Low — read-only dashboard data, bounded 30-second freshness window.
+
 ## [2026-02-24 13:25] - Category: Bug Fix — STATUS: ✅ VERIFIED
 **What:** Hardened `FactoryRunnerV2Job` cycle log creation against duplicate cycle numbers under concurrent execution.
 **Why:** `create_cycle_log!` calculated `maximum(:cycle_number) + 1` without a row lock. If overlapping job runs happen (worker restart, concurrency edge), two jobs can race and attempt the same cycle number.

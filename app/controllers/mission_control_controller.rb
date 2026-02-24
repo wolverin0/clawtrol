@@ -1,8 +1,13 @@
 class MissionControlController < ApplicationController
   before_action :set_no_store_cache_headers
 
+  SNAPSHOT_CACHE_KEY = "mission_control/health_snapshot/v1"
+  SNAPSHOT_CACHE_TTL = 30.seconds
+
   def index
-    snapshot = MissionControlHealthSnapshotService.call
+    snapshot = Rails.cache.fetch(SNAPSHOT_CACHE_KEY, expires_in: SNAPSHOT_CACHE_TTL) do
+      MissionControlHealthSnapshotService.call
+    end
 
     @ruby_version = snapshot[:ruby_version]
     @rails_version = snapshot[:rails_version]
