@@ -144,7 +144,7 @@ class Board < ApplicationRecord
   def set_position
     return if position.present? && position > 0
 
-    max_position = user.boards.where(user_id: user_id).maximum(:position) || 0
+    max_position = user.boards.maximum(:position) || 0
     self.position = max_position + 1
   end
 end
