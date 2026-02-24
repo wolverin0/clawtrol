@@ -73,6 +73,17 @@ class WorkflowExecutionEngineTest < ActiveSupport::TestCase
     assert_not engine.send(:evaluate_simple_expression, long_expr)
   end
 
+  test "evaluate_simple_expression uses injected logger for warnings" do
+    logger = Minitest::Mock.new
+    logger.expect(:warn, nil, [String])
+
+    engine = WorkflowExecutionEngine.new(build_workflow({ "nodes" => [], "edges" => [] }), user: @user, logger: logger)
+    long_expr = "a" * (WorkflowExecutionEngine::MAX_EXPRESSION_LENGTH + 1)
+
+    assert_not engine.send(:evaluate_simple_expression, long_expr)
+    logger.verify
+  end
+
   # --- Workflow Execution ---
 
   test "run with invalid definition returns errors" do
