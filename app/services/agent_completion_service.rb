@@ -8,7 +8,7 @@
 #   - Session ID resolution (from key, or transcript scan)
 #   - Output text extraction (from multiple param aliases)
 #   - Output files extraction (from multiple param aliases)
-#   - Description update with ## Agent Output section
+#   - TaskRun agent_output storage (P0: no longer writes to description)
 #   - Token usage recording
 #   - WebSocket broadcast
 #   - Validation triggering
@@ -130,14 +130,8 @@ class AgentCompletionService
   def build_updates(output_text, raw_files)
     updates = { status: @params[:status].presence || :in_review }
 
-    if output_text.present?
-      new_description = @task.description.to_s
-      unless new_description.include?("## Agent Output")
-        new_description += "\n\n## Agent Output\n"
-      end
-      new_description += output_text
-      updates[:description] = new_description
-    end
+    # P0 Data Contract: store agent output in TaskRun, NOT description
+    store_agent_output_in_task_run(output_text) if output_text.present?
 
     if raw_files.any?
       updates[:output_files] = ((@task.output_files || []) + raw_files).uniq
@@ -147,6 +141,36 @@ class AgentCompletionService
     updates[:agent_claimed_at] = nil
 
     updates
+  end
+
+  def store_agent_output_in_task_run(output_text)
+    run_id = @params[:run_id].presence ||
+             @task.agent_session_id.presence ||
+             SecureRandom.uuid
+
+    task_run = @task.task_runs.find_by(run_id: run_id) ||
+               @task.task_runs.order(created_at: :desc).first
+
+    if task_run
+      run_updates = {}
+      run_updates[:agent_output] = output_text if task_run.agent_output.blank?
+      run_updates[:prompt_used] = @task.effective_prompt if task_run.prompt_used.blank?
+      task_run.update_columns(run_updates) if run_updates.any?
+    else
+      @task.task_runs.create!(
+        run_id: run_id,
+        agent_output: output_text,
+        prompt_used: @task.effective_prompt,
+        status: "completed"
+      )
+    end
+
+    # Preserve original description if not already saved
+    if @task.original_description.blank? && @task.description.present?
+      @task.update_column(:original_description, @task.description)
+    end
+  rescue StandardError => e
+    Rails.logger.error("[AgentCompletionService] Failed to store in TaskRun: #{e.message}")
   end
 
   def record_token_usage!

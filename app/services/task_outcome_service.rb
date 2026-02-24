@@ -192,7 +192,6 @@ follow_up_prompt: @payload["next_prompt"],
       if requeue_same_task
         base_updates[:assigned_to_agent] = true
         base_updates[:assigned_at] = Time.current
-base_updates[:description] = append_follow_up_prompt(@task.description.to_s, run_number)
 # P0 dual-write: also persist follow_up_prompt on the TaskRun
 task_run.update_columns(follow_up_prompt: @payload["next_prompt"]) if @payload["next_prompt"].present?
       end
