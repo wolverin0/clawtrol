@@ -3295,3 +3295,14 @@ Deduplicate inline with a seen-path lookup while collecting to keep stable order
 [CONFIDENCE: 78] Architecture — app/helpers/navigation_helper.rb:2
 Last-board path computation existed in multiple places with inconsistent fallback behavior.
 Centralize ownership-aware path resolution in a single helper method and reuse across navigation views.
+
+## [2026-02-24 11:50] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added timeout and path-normalization regression tests for `FactoryPromotionGateService` private execution helpers.
+**Why:** Promotion gate logic had coverage for success/failure flows but lacked direct tests for timeout handling and relative-path normalization, both critical for reliable gate behavior.
+**Files:** test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2439 runs, 5545 assertions, 0 failures)
+**Risk:** low (test-only coverage)
+
+[CONFIDENCE: 76] Testing — test/services/factory_promotion_gate_service_test.rb:97
+Timeout fallback behavior in `run_check` was previously unpinned and could regress silently.
+Keep a dedicated timeout regression test so gate failures remain deterministic under long-running checks.
