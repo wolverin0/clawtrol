@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- expose effective_prompt in task API for orchestrator consumption (`c88d3e5`)
 - inject agent_persona context into effective_prompt (`477e51e`)
 - **p0:** description separation + structured TaskRun output + modal history tab (`23e3b7a`)
 - **queue:** add board-fair scheduler, quotas, same-task follow-up, and runner summaries (`05e25a2`)
@@ -56,6 +57,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`5731403`)
 - update CHANGELOG.md [skip ci] (`654e94f`)
 - update CHANGELOG.md [skip ci] (`af324ff`)
 - update README + onboarding + integration for P0 data contract and session linking (`5dedf3e`)
