@@ -16,7 +16,7 @@ class TaskImportService
   IMPORTABLE_FIELDS = %w[
     name description status priority position
     tags model nightly blocked
-    execution_plan validation_command
+    execution_prompt validation_command
     pipeline_stage
   ].freeze
 

@@ -14,7 +14,7 @@ class TaskSerializer
     board_id user_id agent_persona_id parent_task_id followup_task_id
     tags output_files
     blocked completed nightly recurring assigned_to_agent
-    model pipeline_stage execution_plan compiled_prompt routed_model
+    model pipeline_stage execution_prompt compiled_prompt routed_model
     agent_session_id agent_session_key agent_claimed_at
     context_usage_percent
     error_message error_at retry_count
@@ -69,6 +69,23 @@ class TaskSerializer
       # Computed fields
       result[:openclaw_spawn_model] = task.try(:openclaw_spawn_model)
       result[:pipeline_active] = task.try(:pipeline_active?)
+
+      # P0: Include latest TaskRun data
+      if (run = task.latest_run)
+        result[:latest_run] = {
+          id: run.id,
+          run_id: run.run_id,
+          run_number: run.run_number,
+          summary: run.summary,
+          agent_output: run.agent_output&.truncate(2000),
+          model_used: run.model_used,
+          prompt_used: run.prompt_used&.truncate(500),
+          recommended_action: run.recommended_action,
+          needs_follow_up: run.needs_follow_up,
+          ended_at: run.ended_at&.iso8601(3),
+          created_at: run.created_at.iso8601(3)
+        }
+      end
     end
 
     result

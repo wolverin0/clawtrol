@@ -1,0 +1,30 @@
+<%# Artifacts tab: output files %>
+<% files = Array(task.output_files) %>
+<% if files.any? %>
+  <div class="space-y-2 max-h-[60vh] overflow-y-auto">
+    <% files.each do |file_path| %>
+      <div class="flex items-center gap-2 px-3 py-2 bg-bg-elevated/50 rounded-lg hover:bg-bg-elevated transition-colors group">
+        <span class="text-content-muted flex-shrink-0">
+          <% ext = File.extname(file_path.to_s).downcase %>
+          <% if %w[.html .htm].include?(ext) %>&#x1F310;
+          <% elsif %w[.rb .py .js .ts .tsx .jsx].include?(ext) %>&#x1F4DD;
+          <% elsif %w[.png .jpg .jpeg .gif .webp .svg].include?(ext) %>&#x1F5BC;
+          <% elsif %w[.md .markdown].include?(ext) %>&#x1F4C4;
+          <% else %>&#x1F4CE;
+          <% end %>
+        </span>
+        <span class="text-sm text-content-secondary font-mono truncate flex-1"><%= h(file_path) %></span>
+        <% if task.respond_to?(:board) && task.board %>
+          <%= link_to "View",
+                view_file_board_task_path(task.board, task, path: file_path),
+                target: "_blank",
+                class: "text-xs text-accent hover:text-accent-hover opacity-0 group-hover:opacity-100 transition-opacity" %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <div class="flex items-center justify-center h-32 text-content-muted text-sm">
+    No output files
+  </div>
+<% end %>

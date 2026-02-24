@@ -9,6 +9,14 @@
   }
   missing_output_warning = task.in_review? && task.missing_agent_output?
   has_output_files = task.output_files.present? && task.output_files.any?
+  description_text = task.description.to_s
+  # P0: use model helper instead of regex
+  agent_output_text = task.agent_output_text.to_s.strip
+  summary_source_text = agent_output_text.presence || description_text.strip
+  summary_preview = summary_source_text.gsub(/\r\n?/, "\n")
+  summary_preview = "#{summary_preview[0, 1800]}..." if summary_preview.length > 1800
+  is_live = task.runner_lease_active? || task.status == "in_progress"
+  live_badge_class = is_live ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" : "bg-bg-elevated text-content-muted border border-border"
 %>
 
 <div data-controller="task-modal file-viewer"
@@ -441,6 +449,10 @@
         <div class="hidden lg:flex lg:flex-[2] flex-col min-h-0 overflow-hidden" data-controller="evidence-tabs">
           <div class="px-5 py-3 border-b border-border bg-bg-surface/40 flex items-center justify-between gap-3 flex-shrink-0">
             <div class="flex items-center gap-2">
+              <button type="button" data-evidence-tabs-target="tab" data-key="summary" data-action="click->evidence-tabs#select"
+                      class="px-2 py-1 rounded-md text-xs font-semibold bg-bg-elevated text-content-muted">
+                Summary
+              </button>
               <button type="button" data-evidence-tabs-target="tab" data-key="transcript" data-action="click->evidence-tabs#select"
                       class="px-2 py-1 rounded-md text-xs font-semibold bg-accent/20 text-accent">
                 Transcript
@@ -453,6 +465,10 @@
                       class="px-2 py-1 rounded-md text-xs font-semibold bg-bg-elevated text-content-muted">
                 Events
               </button>
+              <button type="button" data-evidence-tabs-target="tab" data-key="history" data-action="click->evidence-tabs#select"
+                      class="px-2 py-1 rounded-md text-xs font-semibold bg-bg-elevated text-content-muted">
+                History
+              </button>
             </div>
 
             <% if task.runner_lease_active? %>
@@ -463,6 +479,63 @@
           </div>
 
           <div class="flex-1 min-h-0 overflow-hidden">
+            <%# === Summary panel === %>
+            <div data-evidence-tabs-target="panel" data-key="summary" class="hidden h-full overflow-y-auto px-5 py-4">
+              <div class="space-y-4">
+                <div class="flex items-center justify-between gap-3">
+                  <h3 class="text-sm font-semibold text-content font-display">Execution Summary</h3>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium <%= live_badge_class %>">
+                    <%= is_live ? "Live" : task.status.humanize %>
+                  </span>
+                </div>
+
+                <div class="rounded-lg border border-border bg-bg-elevated/40 p-3">
+                  <h4 class="text-xs font-semibold text-content mb-2 uppercase tracking-wide">Current Signal</h4>
+                  <p class="text-xs text-content-secondary leading-relaxed">
+                    <% if task.runner_lease_active? %>
+                      Runner lease active. Last heartbeat <%= time_ago_in_words(task.runner_last_heartbeat_at) %> ago.
+                    <% elsif task.agent_claimed_at.present? && task.status == "in_progress" %>
+                      Agent claimed this task <%= time_ago_in_words(task.agent_claimed_at) %> ago and is still running.
+                    <% elsif task.agent_output_posted_at.present? %>
+                      Latest output was posted <%= time_ago_in_words(task.agent_output_posted_at) %> ago.
+                    <% else %>
+                      No live runner signal detected.
+                    <% end %>
+                  </p>
+                </div>
+
+                <div class="rounded-lg border border-border bg-bg-elevated/40 p-3">
+                  <h4 class="text-xs font-semibold text-content mb-2 uppercase tracking-wide">Timeline</h4>
+                  <ol class="space-y-1.5 text-xs text-content-secondary">
+                    <% if task.assigned_at.present? %>
+                      <li>Assigned to agent <span class="text-content-muted">- <%= time_ago_in_words(task.assigned_at) %> ago</span></li>
+                    <% end %>
+                    <% if task.agent_claimed_at.present? %>
+                      <li>Agent claimed task <span class="text-content-muted">- <%= time_ago_in_words(task.agent_claimed_at) %> ago</span></li>
+                    <% end %>
+                    <% if task.agent_output_posted_at.present? %>
+                      <li>Output posted <span class="text-content-muted">- <%= time_ago_in_words(task.agent_output_posted_at) %> ago</span></li>
+                    <% end %>
+                    <li>Current status: <span class="font-medium text-content"><%= task.status.humanize %></span></li>
+                  </ol>
+                </div>
+
+                <div class="rounded-lg border border-border bg-bg-elevated/40 p-3">
+                  <div class="flex items-center justify-between gap-2 mb-2">
+                    <h4 class="text-xs font-semibold text-content uppercase tracking-wide">Latest Output Preview</h4>
+                    <% if task.transcript_exists? %>
+                      <%= link_to "Open transcript", agent_log_api_v1_task_path(task), target: "_blank", rel: "noopener", class: "text-[11px] text-accent hover:underline" %>
+                    <% end %>
+                  </div>
+                  <% if summary_preview.present? %>
+                    <pre class="text-xs text-content-secondary whitespace-pre-wrap break-words max-h-80 overflow-y-auto rounded bg-bg-surface/60 border border-border p-3"><%= summary_preview %></pre>
+                  <% else %>
+                    <p class="text-xs text-content-muted">No output summary yet.</p>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+
             <%# === Transcript panel === %>
             <div data-evidence-tabs-target="panel" data-key="transcript" class="h-full">
               <% has_agent_activity = task.show_agent_activity? %>
@@ -815,10 +888,15 @@
               <h3 class="text-sm font-semibold text-content mb-3 font-display">Events</h3>
               <%= render "shared/task_activities", task: task %>
             </div>
+
+            <%# === Run History panel === %>
+            <div data-evidence-tabs-target="panel" data-key="history" class="hidden h-full overflow-y-auto px-5 py-4">
+              <%= render "boards/tasks/modal_history", task: task %>
+            </div>
           </div>
         </div>
 
-        <!-- Mobile: Agent Activity + Output Files (shown below left column on mobile) -->
+<!-- Mobile: Agent Activity + Output Files (shown below left column on mobile) -->
         <div class="lg:hidden px-5 py-4 border-t border-border pb-24 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden">
 
           <%# Mobile Output Files %>

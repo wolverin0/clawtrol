@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_20_033901) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_24_153412) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -797,14 +797,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_20_033901) do
 
   create_table "task_runs", force: :cascade do |t|
     t.jsonb "achieved", default: [], null: false
+    t.text "agent_activity_md"
+    t.text "agent_output"
     t.datetime "created_at", null: false
     t.datetime "ended_at"
     t.jsonb "evidence", default: [], null: false
+    t.text "follow_up_prompt"
     t.string "model_used"
     t.boolean "needs_follow_up", default: false, null: false
     t.text "next_prompt"
     t.string "openclaw_session_id"
     t.string "openclaw_session_key"
+    t.text "prompt_used"
     t.jsonb "raw_payload", default: {}, null: false
     t.string "recommended_action", default: "in_review", null: false
     t.jsonb "remaining", default: [], null: false
@@ -815,6 +819,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_20_033901) do
     t.datetime "updated_at", null: false
     t.index ["openclaw_session_id"], name: "index_task_runs_on_openclaw_session_id"
     t.index ["run_id"], name: "index_task_runs_on_run_id", unique: true
+    t.index ["task_id", "created_at"], name: "idx_task_runs_latest_per_task", order: { created_at: :desc }
     t.index ["task_id", "run_number"], name: "index_task_runs_on_task_id_and_run_number", unique: true
     t.index ["task_id"], name: "index_task_runs_on_task_id"
   end
@@ -865,7 +870,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_20_033901) do
     t.date "due_date"
     t.datetime "error_at"
     t.text "error_message"
-    t.text "execution_plan"
+    t.text "execution_prompt"
     t.bigint "followup_task_id"
     t.boolean "last_needs_follow_up"
     t.datetime "last_outcome_at"

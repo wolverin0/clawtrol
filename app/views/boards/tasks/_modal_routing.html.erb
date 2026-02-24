@@ -1,0 +1,47 @@
+<%# Routing info: execution prompt, model, pipeline status %>
+<div class="space-y-3">
+  <h3 class="text-sm font-semibold text-content font-display">Execution</h3>
+
+  <% if task.execution_prompt.present? %>
+    <div class="space-y-1">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-medium text-content-muted uppercase tracking-wider">Execution Prompt</span>
+        <% if task.task_runs.any? %>
+          <span class="text-[10px] text-amber-400/80 bg-amber-500/10 px-1.5 py-0.5 rounded">locked after first run</span>
+        <% end %>
+      </div>
+      <div class="text-xs text-content-secondary bg-bg-elevated/50 rounded-lg p-2.5 max-h-32 overflow-y-auto font-mono">
+        <%= h(task.execution_prompt.truncate(2000)) %>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="flex flex-wrap gap-2 text-[10px]">
+    <% if task.model.present? %>
+      <span class="bg-bg-elevated text-content-secondary px-2 py-1 rounded-md">Model: <%= task.model %></span>
+    <% end %>
+    <% if task.routed_model.present? && task.routed_model != task.model %>
+      <span class="bg-bg-elevated text-content-secondary px-2 py-1 rounded-md">Routed: <%= task.routed_model %></span>
+    <% end %>
+    <% if task.pipeline_stage.present? && task.pipeline_stage != "unstarted" %>
+      <span class="bg-bg-elevated text-content-secondary px-2 py-1 rounded-md">Pipeline: <%= task.pipeline_stage %></span>
+    <% end %>
+    <% if task.agent_persona.present? %>
+      <span class="bg-bg-elevated text-content-secondary px-2 py-1 rounded-md"><%= task.agent_persona.try(:emoji) %> <%= task.agent_persona.name %></span>
+    <% end %>
+  </div>
+
+  <% if task.pipeline_log.present? && task.pipeline_log.is_a?(Array) && task.pipeline_log.any? %>
+    <details class="text-xs text-content-muted">
+      <summary class="cursor-pointer hover:text-content-secondary">Pipeline Log (<%= task.pipeline_log.size %> entries)</summary>
+      <div class="mt-1 space-y-1 max-h-40 overflow-y-auto">
+        <% task.pipeline_log.each do |entry| %>
+          <div class="font-mono bg-bg-elevated/30 rounded px-2 py-1">
+            <span class="text-content-secondary"><%= entry["stage"] || entry[:stage] %></span>
+            <span class="text-content-muted ml-1"><%= entry["at"] || entry[:at] %></span>
+          </div>
+        <% end %>
+      </div>
+    </details>
+  <% end %>
+</div>

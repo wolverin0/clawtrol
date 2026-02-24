@@ -152,7 +152,7 @@
                           Files
                         </span>
                       <% end %>
-                    <% elsif task.description.to_s.include?("## Agent Output") %>
+                    <% elsif task.has_agent_output? %>
                       <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-500/5 to-emerald-500/10">
                         <span class="text-7xl opacity-60 group-hover:opacity-80 transition-all">📝</span>
                       </div>

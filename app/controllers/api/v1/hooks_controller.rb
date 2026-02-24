@@ -80,8 +80,21 @@ module Api
 
         updates[:description] = updated_description(task.description.to_s, findings, activity[:activity_markdown])
 
-        old_status = task.status
-        task.update!(updates)
+# --- P0 dual-write: persist structured output to TaskRun ---
+run_id = params[:run_id].presence || effective_session_id.presence || SecureRandom.uuid
+task_run = task.task_runs.find_by(run_id: run_id)
+task_run ||= task.task_runs.order(created_at: :desc).first
+if task_run
+  run_updates = {}
+  run_updates[:agent_output] = findings if findings.present? && task_run.agent_output.blank?
+  run_updates[:agent_activity_md] = activity[:activity_markdown] if activity[:activity_markdown].present? && task_run.agent_activity_md.blank?
+  run_updates[:prompt_used] = task.effective_prompt if task_run.prompt_used.blank?
+  task_run.update_columns(run_updates) if run_updates.any?
+end
+
+old_status = task.status
+task.update!(updates)
+
 
         # Generate diffs for output files (async to avoid blocking the response)
         GenerateDiffsJob.perform_later(task.id, merged_files) if merged_files.any?
@@ -139,8 +152,15 @@ module Api
           :version, :run_id, :ended_at, :needs_follow_up, :recommended_action,
           :next_prompt, :summary, :model_used, :openclaw_session_id,
           :openclaw_session_key, :task_id,
-          achieved: [], evidence: [], remaining: []
+          achieved: [], evidence: [], remaining: [],
+          run: {}, tokens: {}, usage: {}
         ).to_h
+
+        # Preserve optional token contracts even when nested payloads include dynamic keys.
+        unsafe_payload = params.to_unsafe_h
+        payload["run"] = unsafe_payload["run"] if unsafe_payload["run"].is_a?(Hash)
+        payload["tokens"] = unsafe_payload["tokens"] if unsafe_payload["tokens"].is_a?(Hash)
+        payload["usage"] = unsafe_payload["usage"] if unsafe_payload["usage"].is_a?(Hash)
 
         result = TaskOutcomeService.call(task, payload)
 
@@ -219,6 +239,34 @@ module Api
           created: result.created,
           duplicates: result.duplicates,
           errors: result.errors
+        }
+      end
+
+      # POST /api/v1/hooks/zeroclaw_auditor
+      # Explicit webhook trigger for auditor runs (external orchestrators).
+      def zeroclaw_auditor
+        task = find_task_from_params
+        return render json: { error: "task not found" }, status: :not_found unless task
+
+        unless task.status == "in_review"
+          render json: { error: "task must be in_review", task_id: task.id, status: task.status }, status: :unprocessable_entity
+          return
+        end
+
+        unless task.assigned_to_agent? && Zeroclaw::AuditableTask.auditable?(task)
+          render json: { error: "task not eligible for auditor", task_id: task.id }, status: :unprocessable_entity
+          return
+        end
+
+        force = ActiveModel::Type::Boolean.new.cast(params[:force])
+        ZeroclawAuditorJob.perform_later(task.id, trigger: "webhook", force: force)
+
+        render json: {
+          success: true,
+          task_id: task.id,
+          queued: true,
+          trigger: "webhook",
+          force: force
         }
       end
 
@@ -427,31 +475,6 @@ module Api
 
       def next_event_seq(task, run_id)
         AgentActivityEvent.where(task_id: task.id, run_id: run_id.to_s).maximum(:seq).to_i + 1
-      end
-
-      def updated_description(current_description, findings, activity_markdown)
-        activity_marker = "## Agent Activity"
-        output_marker = "## Agent Output"
-
-        activity_markdown = activity_markdown.presence || "(No transcript available)"
-
-        top_block = "#{activity_marker}\n\n#{activity_markdown}\n\n#{output_marker}\n\n#{findings}"
-
-        if current_description.start_with?(activity_marker) || current_description.start_with?(output_marker)
-          # Replace existing top agent sections, preserving remaining description.
-          if current_description.include?("\n\n---\n\n")
-            _old_top, rest = current_description.split("\n\n---\n\n", 2)
-            return "#{top_block}\n\n---\n\n#{rest}"
-          end
-
-          return top_block
-        end
-
-        if current_description.blank?
-          top_block
-        else
-          "#{top_block}\n\n---\n\n#{current_description}"
-        end
       end
     end
   end

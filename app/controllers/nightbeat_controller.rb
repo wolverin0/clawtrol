@@ -29,7 +29,12 @@ class NightbeatController < ApplicationController
   def build_findings_summary(tasks)
     tasks.each_with_object({}) do |task, summary|
       snippet = task.description.to_s
-      snippet = snippet.split("## Agent Output").last.to_s.strip if snippet.include?("## Agent Output")
+      # P0: prefer TaskRun agent_output over description parsing
+      if task.respond_to?(:agent_output_text) && task.agent_output_text.present?
+        snippet = task.agent_output_text.truncate(500)
+      elsif snippet.include?("## Agent Output")
+        snippet = snippet.split("## Agent Output").last.to_s.strip
+      end
       snippet = snippet.gsub(/\s+/, " ").truncate(180)
       snippet = "Completed overnight" if snippet.blank?
 

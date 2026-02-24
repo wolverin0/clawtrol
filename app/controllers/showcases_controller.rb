@@ -3,6 +3,7 @@
 class ShowcasesController < ApplicationController
   include OutputRenderable
 
+  before_action -> { enforce_module_enabled!("CLAWTROL_DISABLE_SHOWCASES") }
   before_action :set_task, only: [:show, :raw, :toggle_winner]
 
   # Known product tags for filtering

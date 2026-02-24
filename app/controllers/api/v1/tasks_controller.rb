@@ -9,7 +9,7 @@ module Api
       include Api::TaskPipelineManagement
       include Api::TaskAgentLifecycle
       include Api::TaskValidationManagement
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :requeue, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health, :run_lobster, :resume_lobster, :spawn_via_gateway ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :requeue, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :run_auditor, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health, :run_lobster, :resume_lobster, :spawn_via_gateway ]
 
       # GET /api/v1/tasks/:id/agent_log - get agent transcript for this task
       # Returns parsed messages from the OpenClaw session transcript
@@ -82,7 +82,7 @@ module Api
       # POST /api/v1/tasks/:id/spawn_via_gateway
       def spawn_via_gateway
         client = OpenclawGatewayClient.new(current_user)
-        prompt = @task.compiled_prompt.presence || @task.description.presence || @task.name
+        prompt = @task.effective_prompt
         model = @task.model.presence || Task::DEFAULT_MODEL
 
         result = client.spawn_session!(model: model, prompt: prompt)
@@ -734,41 +734,34 @@ def pending_attention
       end
 
       # POST /api/v1/tasks/:id/run_debate
-      # Start a debate review
-      def run_debate
-        # Debate review is not yet implemented — return early
-        render json: {
-          error: "Debate review is not yet implemented. Coming soon.",
-          not_implemented: true
-        }, status: :service_unavailable
-        return
+# Start a debate review
+def run_debate
+  style = params[:style].presence || "quick"
+  focus = params[:focus].to_s.strip.presence
+  models = Array(params[:models]).map(&:to_s).reject(&:blank?)
+  models = %w[gemini claude glm] if models.empty?
 
-        style = params[:style] || "quick"
-        focus = params[:focus]
-        models = Array(params[:models]).reject(&:blank?)
-        models = %w[gemini claude glm] if models.empty?
+  set_task_activity_info(@task)
+  @task.start_review!(
+    type: "debate",
+    config: {
+      style: style,
+      focus: focus,
+      models: models
+    }.compact
+  )
 
-        set_task_activity_info(@task)
-        @task.start_review!(
-          type: "debate",
-          config: {
-            style: style,
-            focus: focus,
-            models: models
-          }
-        )
+  RunDebateJob.perform_later(@task.id)
 
-        # Run debate in background
-        RunDebateJob.perform_later(@task.id)
+  render json: {
+    task: task_json(@task),
+    review_status: @task.review_status,
+    message: "Debate review started"
+  }
+end
 
-        render json: {
-          task: task_json(@task),
-          review_status: @task.review_status,
-          message: "Debate review started"
-        }
-      end
+# POST /api/v1/tasks/:id/complete_review
 
-      # POST /api/v1/tasks/:id/complete_review
       # Complete a review with status and result (called by background job or external process)
       def complete_review
         status = params[:status]
@@ -918,7 +911,7 @@ def pending_attention
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :pipeline_stage, :execution_plan, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, :origin_chat_id, :origin_thread_id, :origin_session_id, :origin_session_key, tags: [], output_files: [], review_config: {}, review_result: {})
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :pipeline_stage, :execution_prompt, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, :origin_chat_id, :origin_thread_id, :origin_session_id, :origin_session_key, tags: [], output_files: [], review_config: {}, review_result: {})
       end
 
       # Validation command execution delegated to ValidationRunnerService

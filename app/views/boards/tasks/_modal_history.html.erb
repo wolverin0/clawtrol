@@ -1,0 +1,60 @@
+<%# History tab: all TaskRuns chronologically %>
+<% runs = task.task_runs.order(created_at: :desc) %>
+<% if runs.any? %>
+  <div class="space-y-3 max-h-[60vh] overflow-y-auto">
+    <% runs.each do |run| %>
+      <div class="bg-bg-elevated/30 rounded-lg p-3 space-y-2 border border-border/50">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-content">Run #<%= run.run_number %></span>
+            <span class="text-[10px] text-content-muted font-mono"><%= run.run_id.to_s[0..7] %></span>
+          </div>
+          <div class="flex items-center gap-2 text-[10px]">
+            <% if run.model_used.present? %>
+              <span class="bg-bg-elevated text-content-muted px-1.5 py-0.5 rounded"><%= run.model_used %></span>
+            <% end %>
+            <span class="text-content-muted"><%= run.created_at.strftime("%m/%d %H:%M") %></span>
+          </div>
+        </div>
+
+        <% if run.summary.present? %>
+          <div class="text-sm text-content-secondary"><%= h(run.summary.truncate(300)) %></div>
+        <% end %>
+
+        <div class="flex flex-wrap gap-2 text-[10px]">
+          <span class="px-1.5 py-0.5 rounded <%= run.recommended_action == 'in_review' ? 'bg-amber-500/10 text-amber-400' : 'bg-bg-elevated text-content-muted' %>">
+            <%= run.recommended_action %>
+          </span>
+          <% if run.needs_follow_up? %>
+            <span class="bg-orange-500/10 text-orange-400 px-1.5 py-0.5 rounded">needs follow-up</span>
+          <% end %>
+          <% if run.ended_at.present? %>
+            <span class="text-content-muted"><%= time_ago_in_words(run.ended_at) %> ago</span>
+          <% end %>
+        </div>
+
+        <% if run.agent_output.present? %>
+          <details class="text-xs">
+            <summary class="cursor-pointer text-content-muted hover:text-content-secondary">Show output (<%= run.agent_output.length %> chars)</summary>
+            <div class="mt-1 prose prose-invert prose-sm max-w-none break-words max-h-48 overflow-y-auto">
+              <%= safe_markdown(run.agent_output.truncate(5000)) %>
+            </div>
+          </details>
+        <% end %>
+
+        <% if run.prompt_used.present? %>
+          <details class="text-xs">
+            <summary class="cursor-pointer text-content-muted hover:text-content-secondary">Show prompt used (<%= run.prompt_used.length %> chars)</summary>
+            <div class="mt-1 font-mono text-content-muted bg-bg-elevated/50 rounded p-2 max-h-32 overflow-y-auto">
+              <%= h(run.prompt_used.truncate(3000)) %>
+            </div>
+          </details>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% else %>
+  <div class="flex items-center justify-center h-32 text-content-muted text-sm">
+    No runs recorded yet
+  </div>
+<% end %>

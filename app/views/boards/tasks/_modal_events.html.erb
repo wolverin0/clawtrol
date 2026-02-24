@@ -1,0 +1,37 @@
+<%# Events tab: pipeline log + lifecycle events from task activities %>
+<div class="space-y-4 max-h-[60vh] overflow-y-auto">
+  <% if task.pipeline_log.present? && task.pipeline_log.is_a?(Array) && task.pipeline_log.any? %>
+    <div class="space-y-1">
+      <span class="text-[10px] font-medium text-content-muted uppercase tracking-wider">Pipeline Events</span>
+      <% task.pipeline_log.each do |entry| %>
+        <div class="flex gap-2 py-1 px-2 text-xs font-mono rounded hover:bg-bg-elevated/50">
+          <span class="text-content-muted whitespace-nowrap"><%= entry["at"] || entry[:at] %></span>
+          <span class="text-content-secondary"><%= entry["stage"] || entry[:stage] %></span>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% activities = task.activities.order(created_at: :desc).limit(50) %>
+  <% if activities.any? %>
+    <div class="space-y-1">
+      <span class="text-[10px] font-medium text-content-muted uppercase tracking-wider">Task Activities</span>
+      <% activities.each do |activity| %>
+        <div class="flex gap-2 py-1 px-2 text-xs rounded hover:bg-bg-elevated/50">
+          <span class="text-content-muted whitespace-nowrap"><%= activity.created_at.strftime("%m/%d %H:%M") %></span>
+          <span class="flex-shrink-0"><%= activity.actor_emoji || "📋" %></span>
+          <span class="text-content-secondary">
+            <%= activity.action %>
+            <% if activity.field_name.present? %>
+              <span class="text-content-muted"><%= activity.field_name %>: <%= activity.old_value %> → <%= activity.new_value %></span>
+            <% end %>
+          </span>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="flex items-center justify-center h-32 text-content-muted text-sm">
+      No lifecycle events recorded
+    </div>
+  <% end %>
+</div>

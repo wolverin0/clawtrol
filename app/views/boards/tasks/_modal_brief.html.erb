@@ -1,0 +1,21 @@
+<%# Left side: Task Brief (human-only description, always editable) %>
+<div class="space-y-3">
+  <div class="flex items-center justify-between">
+    <h3 class="text-sm font-semibold text-content font-display">Task Brief</h3>
+    <% if task.original_description.present? && task.original_description != task.description %>
+      <span class="text-[10px] text-content-muted bg-bg-elevated px-2 py-0.5 rounded">original preserved</span>
+    <% end %>
+  </div>
+  <div class="text-sm text-content-secondary prose prose-invert prose-sm max-w-none break-words"
+       data-controller="inline-edit"
+       data-inline-edit-url-value="<%= api_v1_task_path(task) %>"
+       data-inline-edit-field-value="description"
+       data-action="dblclick->inline-edit#enable">
+    <% brief = task.original_description.presence || task.description.to_s %>
+    <% if brief.present? %>
+      <%= safe_markdown(brief.truncate(5000)) %>
+    <% else %>
+      <p class="text-content-muted italic">No description yet. Double-click to add one.</p>
+    <% end %>
+  </div>
+</div>
