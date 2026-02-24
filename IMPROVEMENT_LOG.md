@@ -1,5 +1,17 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 20:25] - Category: UX — STATUS: ✅ VERIFIED
+**What:** Deleted unused `_nav_icons.html.erb` partial.
+**Why:** The partial was 19KB of hardcoded SVGs and links, completely dead code superseded by `_desktop_nav.html.erb` and `_mobile_nav.html.erb` which both correctly consume the `primary_navigation` registry from `NavigationHelper`. Removing it eliminates parity drift risks and reduces codebase size.
+**Files:**
+- `app/views/shared/_nav_icons.html.erb` (deleted)
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2451 runs, 5566 assertions, 0 failures)
+**Risk:** low (deleting unused code)
+
+[CONFIDENCE: 90] Maintainability — app/views/shared/_nav_icons.html.erb:1
+File contained hardcoded SVGs and paths, but was not rendered by any view.
+Removed the file entirely as the application uses `_desktop_nav.html.erb` and `_mobile_nav.html.erb` with `NavigationHelper`.
+
 ## [2026-02-24 17:20] - Category: Bug Fix — STATUS: ✅ VERIFIED
 **What:** Tightened GET route detection in `DeadRouteScanner` to avoid false positives from verbs that merely contain the substring `GET`.
 **Why:** `supports_get_verb?` used `/GET/`, which could incorrectly classify non-GET verb strings (e.g., `"TARGET"`) as scannable GET routes.
