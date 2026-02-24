@@ -3419,3 +3419,15 @@ Keep a dedicated timeout regression test so gate failures remain deterministic u
 `scan` previously built two near-duplicate result hashes inline, making the method harder to read and edit safely.
 Extract shared payload construction into private helpers and keep `scan` focused on control flow.
 
+
+## [2026-02-24 17:55] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened Mission Control anti-caching headers by adding legacy proxy directives (`Pragma`, `Expires`) while preserving no-store semantics.
+**Why:** `Cache-Control: no-store` is primary, but some intermediary/legacy clients still honor `Pragma`/`Expires`. Adding both reduces accidental retention of sensitive health dashboard metadata.
+**Files:** app/controllers/mission_control_controller.rb, test/controllers/mission_control_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2448 runs, 5551 assertions, 0 failures)
+**Commit:** 8b7b97c
+**Risk:** low (response header hardening + controller test update)
+
+[CONFIDENCE: 81] Security — app/controllers/mission_control_controller.rb:24
+Mission Control responses only enforced `Cache-Control`, which can be inconsistently interpreted by older intermediaries.
+Set complementary `Pragma` and `Expires` headers and keep regression coverage for all anti-cache directives.
