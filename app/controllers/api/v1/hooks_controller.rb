@@ -42,7 +42,9 @@ module Api
         }
 
         # Auto-link session_id/session_key on first hook
-        session_id = params[:session_id].presence || params[:agent_session_id].presence
+        raw_session_id = params[:session_id].presence || params[:agent_session_id].presence ||
+                         params.dig(:hook, :session_id).presence || params.dig(:hook, :agent_session_id).presence
+        session_id = extract_session_uuid(raw_session_id)
         session_key = params[:session_key].presence || params[:agent_session_key].presence
         updates[:agent_session_id] = session_id if session_id.present? && task.agent_session_id.blank?
         updates[:agent_session_key] = session_key if session_key.present? && task.agent_session_key.blank?
@@ -79,17 +81,27 @@ module Api
         end
 
 
-# --- P0 dual-write: persist structured output to TaskRun ---
-run_id = params[:run_id].presence || effective_session_id.presence || SecureRandom.uuid
-task_run = task.task_runs.find_by(run_id: run_id)
-task_run ||= task.task_runs.order(created_at: :desc).first
-if task_run
-  run_updates = {}
-  run_updates[:agent_output] = findings if findings.present? && task_run.agent_output.blank?
-  run_updates[:agent_activity_md] = activity[:activity_markdown] if activity[:activity_markdown].present? && task_run.agent_activity_md.blank?
-  run_updates[:prompt_used] = task.effective_prompt if task_run.prompt_used.blank?
-  task_run.update_columns(run_updates) if run_updates.any?
-end
+# --- P0: persist structured output to TaskRun ---
+        hook_run_id = resolved_run_id.presence || effective_session_id.presence || SecureRandom.uuid
+        task_run = task.task_runs.find_by(run_id: hook_run_id)
+        if task_run
+          run_updates = {}
+          run_updates[:agent_output] = findings if findings.present? && task_run.agent_output.blank?
+          run_updates[:agent_activity_md] = activity[:activity_markdown] if activity[:activity_markdown].present? && task_run.agent_activity_md.blank?
+          run_updates[:prompt_used] = task.effective_prompt if task_run.prompt_used.blank?
+          task_run.update_columns(run_updates) if run_updates.any?
+        else
+          # No matching TaskRun — create one for this completion
+          next_num = (task.task_runs.maximum(:run_number) || 0) + 1
+          task.task_runs.create!(
+            run_id: hook_run_id,
+            run_number: next_num,
+            agent_output: findings,
+            agent_activity_md: activity[:activity_markdown],
+            prompt_used: task.effective_prompt,
+            summary: findings.to_s.truncate(500)
+          )
+        end
 
 old_status = task.status
 task.update!(updates)
@@ -114,12 +126,12 @@ task.update!(updates)
         record_agent_output_message(task, findings, effective_session_id)
 
         persist_activity_event(task, {
-          run_id: params[:run_id].presence || effective_session_id.presence || "task-#{task.id}",
+          run_id: resolved_run_id.presence || effective_session_id.presence || "task-#{task.id}",
           source: "hook",
           level: "info",
           event_type: "final_summary",
           message: findings.to_s.truncate(5_000),
-          seq: next_event_seq(task, params[:run_id].presence || effective_session_id.presence || "task-#{task.id}"),
+          seq: next_event_seq(task, resolved_run_id.presence || effective_session_id.presence || "task-#{task.id}"),
           payload: {
             session_id: effective_session_id,
             session_key: params[:session_key].presence || params[:agent_session_key].presence
@@ -217,7 +229,7 @@ task.update!(updates)
         task ||= find_task_from_runtime_events(events)
         return render json: { error: "task not found" }, status: :not_found unless task
 
-        run_id = params[:run_id].presence ||
+        run_id = resolved_run_id.presence ||
           params[:session_id].presence ||
           params[:agent_session_id].presence ||
           task.last_run_id.presence ||
@@ -271,6 +283,27 @@ task.update!(updates)
 
       private
 
+      # Extract clean UUID from OpenClaw session identifiers
+      # Handles formats like "agent:main:subagent:UUID" or plain "UUID"
+      def extract_session_uuid(raw_id)
+        return nil if raw_id.blank?
+        raw = raw_id.to_s.strip
+        # OpenClaw subagent format: "agent:main:subagent:UUID"
+        if raw.include?(":")
+          parts = raw.split(":")
+          candidate = parts.last
+          return candidate if candidate.match?(/\A[a-zA-Z0-9_\-]+\z/)
+        end
+        # Plain UUID or session ID
+        return raw if raw.match?(/\A[a-zA-Z0-9_\-]+\z/)
+        nil
+      end
+
+      # P0: resolve run_id from both top-level and wrapped params
+      def resolved_run_id
+        params[:run_id].presence || params.dig(:hook, :run_id).presence
+      end
+
       def find_task_from_params
         session_key = params[:session_key].presence || params[:agent_session_key].presence
         session_id = params[:session_id].presence || params[:agent_session_id].presence
@@ -308,12 +341,14 @@ task.update!(updates)
 
         # SECURITY: Sanitize session_id to prevent path traversal.
         # Session IDs are alphanumeric with hyphens/underscores only.
-        sanitized_sid = session_id.to_s.gsub(/[^a-zA-Z0-9\-_]/, "")
-        if sanitized_sid.blank? || sanitized_sid != session_id.to_s
+        # Extract UUID from prefixed formats (e.g. "agent:main:subagent:UUID")
+        clean_sid = extract_session_uuid(session_id) || session_id.to_s.gsub(/[^a-zA-Z0-9\-_]/, "")
+        if clean_sid.blank?
           Rails.logger.warn("[HooksController] Rejected suspicious session_id: #{session_id.inspect}")
           activity_lines << "Transcript: (invalid session_id)"
           return { activity_markdown: activity_lines.join("\n"), output_files: [] }
         end
+        sanitized_sid = clean_sid
 
         # Locate transcript file (current or archived)
         sessions_dir = File.expand_path("~/.openclaw/agents/main/sessions")
@@ -445,7 +480,7 @@ task.update!(updates)
           model: model,
           session_id: session_id,
           agent_name: agent_name,
-          metadata: { run_id: params[:run_id], hook: "agent_complete" }
+          metadata: { run_id: resolved_run_id, hook: "agent_complete" }
         )
 
         # If this task feeds into a follow-up or parent, record handoff
@@ -459,7 +494,7 @@ task.update!(updates)
             model: model,
             session_id: session_id,
             agent_name: agent_name,
-            metadata: { run_id: params[:run_id], source_hook: "agent_complete" }
+            metadata: { run_id: resolved_run_id, source_hook: "agent_complete" }
           )
         end
       rescue StandardError => e
