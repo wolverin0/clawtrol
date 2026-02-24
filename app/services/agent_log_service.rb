@@ -51,13 +51,45 @@ class AgentLogService
 
   def lazy_resolve_session_id!
     return if @task.agent_session_id.present?
-    return unless @task.agent_session_key.present?
-    return unless @session_resolver
 
-    resolved_id = @session_resolver.call(@task.agent_session_key, @task)
-    if resolved_id.present?
-      @task.update_column(:agent_session_id, resolved_id)
-      Rails.logger.info("[AgentLogService] Lazy-resolved session_id=#{resolved_id} for task #{@task.id}")
+    # Try session_key resolution first
+    if @task.agent_session_key.present? && @session_resolver
+      resolved_id = @session_resolver.call(@task.agent_session_key, @task)
+      if resolved_id.present?
+        @task.update_column(:agent_session_id, resolved_id)
+        Rails.logger.info("[AgentLogService] Lazy-resolved session_id=#{resolved_id} for task #{@task.id}")
+        return
+      end
+    end
+
+    # Fallback: scan recent transcripts for task reference (for in_progress tasks)
+    scan_recent_transcripts_for_task!
+  end
+
+  def scan_recent_transcripts_for_task!
+    sessions_dir = TranscriptParser::SESSIONS_DIR
+    return unless Dir.exist?(sessions_dir)
+
+    cutoff = Time.current - 12.hours
+    recent_files = Dir.glob(File.join(sessions_dir, "*.jsonl"))
+                      .select { |f| File.mtime(f) > cutoff }
+                      .sort_by { |f| -File.mtime(f).to_i }
+                      .first(20) # limit to 20 most recent
+
+    recent_files.each do |fpath|
+      # Quick check: read first 20 lines for task reference
+      sample = File.foreach(fpath).first(20).join rescue next
+      task_patterns = ["Task ##{@task.id}", "task_id.*#{@task.id}", "tasks/#{@task.id}"]
+      if task_patterns.any? { |p| sample.include?(p) }
+        session_id = File.basename(fpath, ".jsonl")
+        # Handle topic-suffixed files (e.g. UUID-topic-1.jsonl)
+        session_id = session_id.sub(/-topic-\d+$/, "")
+        if session_id.match?(/\A[a-zA-Z0-9_\-]+\z/)
+          @task.update_column(:agent_session_id, session_id)
+          Rails.logger.info("[AgentLogService] Auto-linked session_id=#{session_id} for task #{@task.id} from transcript scan")
+          return
+        end
+      end
     end
   end
 
