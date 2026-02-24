@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class BoardRoadmap < ApplicationRecord
-  CHECKLIST_REGEX = /^\s*-\s\[\s\]\s+(.+?)\s*$/.freeze
+  CHECKLIST_REGEX = /^\s*(?:[-*+]|\d+\.)\s\[\s\]\s+(.+?)\s*$/.freeze
 
   belongs_to :board
   has_many :task_links, class_name: "BoardRoadmapTaskLink", dependent: :destroy, inverse_of: :board_roadmap
