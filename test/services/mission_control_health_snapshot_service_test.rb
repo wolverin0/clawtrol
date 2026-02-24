@@ -3,6 +3,7 @@
 require "test_helper"
 
 class MissionControlHealthSnapshotServiceTest < ActiveSupport::TestCase
+  FakeStatus = Struct.new(:success?)
   test "returns unknown pending migration status when database is disconnected" do
     fake_connection = Object.new
     fake_connection.define_singleton_method(:active?) { false }
@@ -31,6 +32,27 @@ class MissionControlHealthSnapshotServiceTest < ActiveSupport::TestCase
 
       assert_equal true, snapshot[:database_connected]
       assert_equal true, snapshot[:pending_migrations]
+    end
+  end
+
+  test "returns unknown uptime when shell command fails" do
+    Open3.stub(:capture2, [ "", FakeStatus.new(false) ]) do
+      snapshot = MissionControlHealthSnapshotService.call
+
+      assert_equal "Unknown", snapshot[:uptime]
+    end
+  end
+
+  test "returns unknown memory usage when rss command returns non-positive value" do
+    capture2_calls = [
+      [ "up 1 minute\n", FakeStatus.new(true) ],
+      [ "0\n", FakeStatus.new(true) ]
+    ]
+
+    Open3.stub(:capture2, ->(*_) { capture2_calls.shift }) do
+      snapshot = MissionControlHealthSnapshotService.call
+
+      assert_equal "Unknown", snapshot[:memory_usage]
     end
   end
 end
