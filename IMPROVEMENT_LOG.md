@@ -3100,3 +3100,4 @@
 **Files:** test/models/session_test.rb (72→154 lines, 13→34 tests), test/models/task_diff_test.rb (82→182 lines, 12→40 tests)
 **Verify:** Ruby syntax OK on both files
 **Risk:** low (test-only additions)
+- 2026-02-23: Add /health endpoint for Mission Control Dashboard (Architecture)

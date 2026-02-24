@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  get "/health", to: "health#show"
   # ActionCable endpoint (required for Turbo Streams + custom channels)
   mount ActionCable.server => "/cable"
 
