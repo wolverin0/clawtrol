@@ -25,90 +25,41 @@
 
       <%# Navigation links %>
       <nav class="py-2">
-        <%= link_to command_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🎮</span> Command Center
-        <% end %>
-        <%= link_to workflows_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🔀</span> Workflows
-        <% end %>
-        <%= link_to cronjobs_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🕐</span> Cron Jobs
-        <% end %>
-        <%= link_to analytics_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">📊</span> Analytics
-        <% end %>
-        <% if pipeline_ui_enabled? %>
-          <%= link_to pipeline_board_path(1), class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-            <span class="text-lg w-7 text-center">🧪</span> Pipeline
-          <% end %>
-        <% end %>
-        <%= link_to tokens_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🪙</span> Tokens
-        <% end %>
-        <%= link_to nightshift_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🌙</span> Nightshift
-        <% end %>
-        <%= link_to factory_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🏭</span> Factory
-        <% end %>
-        <%= link_to board_path(1), class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🏠</span> Dashboard
-        <% end %>
-        <%= link_to agent_personas_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🧠</span> Agent Personas
-        <% end %>
-        <%= link_to roster_agent_personas_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">📋</span> Roster
-        <% end %>
-        <%= link_to nightbeat_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🌙</span> Nightbeat
-        <% end %>
-        <%= link_to outputs_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">👁️</span> Outputs
-        <% end %>
-        <%= link_to showcases_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🏆</span> Showcases
-        <% end %>
-        <%= link_to sessions_explorer_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🔗</span> Sessions
-        <% end %>
-        <%= link_to nodes_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">📱</span> Nodes
-        <% end %>
-        <%= link_to skill_manager_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🧩</span> Skills
-        <% end %>
-        <%= link_to saved_links_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">📥</span> Saved Links
-        <% end %>
-        <%= link_to learning_proposals_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">🧠</span>
-          <span class="flex-1">Learning Inbox</span>
-          <% if pending_learning_proposals_count.positive? %>
-            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-accent">
-              <%= pending_learning_proposals_count %>
-            </span>
-          <% end %>
-        <% end %>
-        <%= link_to marketing_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">📢</span> Marketing
-        <% end %>
-        <% if defined?(soul_editor_path) %>
-          <%= link_to soul_editor_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-            <span class="text-lg w-7 text-center">🫀</span> Soul Editor
-          <% end %>
-        <% end %>
-        <% if defined?(zerobitch_path) %>
-          <%= link_to zerobitch_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-            <span class="text-lg w-7 text-center">🐕</span> ZeroBitch
+        <% primary_navigation.each do |category| %>
+          <div class="px-4 py-2 mt-2 text-[10px] font-bold uppercase tracking-wider text-content-muted opacity-70">
+            <%= category[:icon] %> <%= category[:label] %>
+          </div>
+          <% category[:items].each do |item| %>
+            <% if item[:type] == :separator %>
+              <div class="border-t border-border my-2"></div>
+            <% elsif item[:type] == :label %>
+              <div class="px-4 py-1 mt-1 text-[10px] font-bold uppercase tracking-wider text-content-muted opacity-70">
+                <%= item[:text] %>
+              </div>
+            <% else %>
+              <% is_active = nav_item_active?(item) %>
+              <% active_class = is_active ? "text-accent bg-accent/10" : "text-content-secondary hover:bg-bg-elevated hover:text-content" %>
+              
+              <% if item[:external] %>
+                <%= link_to item[:url], target: "_blank", rel: "noopener noreferrer", class: "flex items-center gap-3 px-4 py-3 text-sm transition-colors #{active_class}" do %>
+                  <span class="text-lg w-7 text-center"><%= item[:icon] %></span> <%= item[:label] %>
+                <% end %>
+              <% else %>
+                <%= link_to item[:url], class: "flex items-center gap-3 px-4 py-3 text-sm transition-colors #{active_class}" do %>
+                  <span class="text-lg w-7 text-center"><%= item[:icon] %></span> 
+                  <span class="flex-1"><%= item[:label] %></span>
+                  <% if item[:badge] %>
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-accent">
+                      <%= item[:badge] %>
+                    </span>
+                  <% end %>
+                <% end %>
+              <% end %>
+            <% end %>
           <% end %>
         <% end %>
 
         <div class="border-t border-border my-2"></div>
-
-        <%= link_to "http://192.168.100.186:4010", target: "_blank", rel: "noopener noreferrer", class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
-          <span class="text-lg w-7 text-center">📚</span> Docs Hub
-        <% end %>
 
         <%= link_to settings_path, class: "flex items-center gap-3 px-4 py-3 text-sm text-content-secondary hover:bg-bg-elevated hover:text-content transition-colors" do %>
           <span class="text-lg w-7 text-center">⚙️</span> Settings

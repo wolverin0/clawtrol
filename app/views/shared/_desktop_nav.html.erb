@@ -1,0 +1,57 @@
+<nav class="hidden md:flex items-center gap-2" aria-label="Primary navigation">
+  <% category_base_class = "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-content-muted hover:text-content hover:bg-bg-elevated text-sm font-semibold transition-colors" %>
+  <% category_active_class = "text-accent bg-accent/10 border border-accent/20" %>
+  <% dropdown_panel_class = "absolute top-full left-0 mt-1.5 min-w-[200px] bg-bg-surface border border-border rounded-xl shadow-xl z-50 py-1.5" %>
+  <% menu_item_base_class = "flex items-center gap-2.5 px-3 py-2 text-sm transition-colors" %>
+  <% menu_item_active_class = "text-accent bg-accent/10" %>
+  <% menu_item_inactive_class = "text-content-secondary hover:bg-bg-elevated hover:text-content" %>
+  <% section_label_class = "px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-content-muted opacity-70" %>
+  <% separator_class = "border-t border-border my-1" %>
+  <% chevron_class = "text-xs transition-transform" %>
+
+  <% primary_navigation.each do |category| %>
+    <% is_category_active = category[:controllers].include?(controller_name) %>
+    <div class="relative" data-controller="nav-dropdown">
+      <button type="button"
+              data-nav-dropdown-target="button"
+              data-nav-dropdown-active="<%= is_category_active %>"
+              data-action="click->nav-dropdown#toggle"
+              class="<%= "#{category_base_class} #{is_category_active ? category_active_class : ''}".strip %>"
+              aria-expanded="false"
+              aria-haspopup="true">
+        <span><%= category[:icon] %></span>
+        <span><%= category[:label] %></span>
+        <span class="<%= chevron_class %>" data-nav-dropdown-target="chevron">▾</span>
+      </button>
+      <div data-nav-dropdown-target="menu" class="hidden <%= dropdown_panel_class %>">
+        <% category[:items].each do |item| %>
+          <% if item[:type] == :separator %>
+            <div class="<%= separator_class %>"></div>
+          <% elsif item[:type] == :label %>
+            <div class="<%= section_label_class %>"><%= item[:text] %></div>
+          <% else %>
+            <% is_item_active = nav_item_active?(item) %>
+            <% link_classes = "#{menu_item_base_class} #{is_item_active ? menu_item_active_class : menu_item_inactive_class}" %>
+            
+            <% if item[:external] %>
+              <%= link_to item[:url], target: "_blank", rel: "noopener noreferrer", class: link_classes do %>
+                <span><%= item[:icon] %></span>
+                <span><%= item[:label] %></span>
+              <% end %>
+            <% else %>
+              <%= link_to item[:url], class: link_classes, data: { turbo_frame: "_top" } do %>
+                <span><%= item[:icon] %></span>
+                <span><%= item[:label] %></span>
+                <% if item[:badge] %>
+                  <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-accent">
+                    <%= item[:badge] %>
+                  </span>
+                <% end %>
+              <% end %>
+            <% end %>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</nav>
