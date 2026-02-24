@@ -5,29 +5,20 @@ require "timeout"
 
 class FactoryPromotionGateService
   CHECK_TIMEOUT_SECONDS = 300
+  BASE_CHECKS = [
+    { name: "syntax_check", command: "git diff --name-only -- '*.rb' | xargs -r ruby -c" },
+    { name: "test_command", command: "bin/rails test" }
+  ].freeze
+  E2E_CHECK = { name: "e2e_command", command: "bin/rails test:system" }.freeze
 
   Result = Struct.new(:name, :success, :output, keyword_init: true)
 
   class << self
     def verify!(repo_path, include_e2e: false)
-      checks = []
-
-      checks << run_check(
-        name: "syntax_check",
-        command: "git diff --name-only -- '*.rb' | xargs -r ruby -c",
-        repo_path: repo_path
-      )
-
-      checks << run_check(
-        name: "test_command",
-        command: "bin/rails test",
-        repo_path: repo_path
-      )
-
-      if include_e2e
-        checks << run_check(
-          name: "e2e_command",
-          command: "bin/rails test:system",
+      checks = check_definitions(include_e2e:).map do |check|
+        run_check(
+          name: check[:name],
+          command: check[:command],
           repo_path: repo_path
         )
       end
@@ -43,6 +34,10 @@ class FactoryPromotionGateService
     end
 
     private
+
+    def check_definitions(include_e2e:)
+      include_e2e ? BASE_CHECKS + [E2E_CHECK] : BASE_CHECKS
+    end
 
     def run_check(name:, command:, repo_path:)
       output = ""

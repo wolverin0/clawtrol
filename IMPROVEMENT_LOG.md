@@ -3239,3 +3239,15 @@ Keep constructor parameter as compatibility shim until all call sites are explic
 [CONFIDENCE: 80] Testing — test/services/factory_engine_service_test.rb:28
 Constructor behavior is now pinned with a no-lookup regression test.
 If constructor semantics expand later, add explicit collaborator injection tests rather than implicit DB fallbacks.
+
+## [2026-02-24 09:34] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Centralized promotion gate check definitions in constants (`BASE_CHECKS`, `E2E_CHECK`) and added a private `check_definitions` builder.
+**Why:** `verify!` repeated check hashes inline, making the check list stringly-typed and harder to extend safely. Extracting definitions reduces duplication and keeps command catalog in one place.
+**Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2433 runs, 5536 assertions, 0 failures)
+**Risk:** low (refactor only, no behavioral change in executed commands)
+
+[CONFIDENCE: 74] Code Quality — app/services/factory_promotion_gate_service.rb:6
+Check definitions were duplicated inline inside `verify!`, increasing drift risk when adding/removing gate steps.
+Keep check catalog centralized and append optional checks through a dedicated builder method.
+
