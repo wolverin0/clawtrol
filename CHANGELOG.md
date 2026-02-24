@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- **p0:** description separation + structured TaskRun output + modal history tab (`23e3b7a`)
 - **queue:** add board-fair scheduler, quotas, same-task follow-up, and runner summaries (`05e25a2`)
 - **navbar:** add Docs Hub link to desktop and mobile navigation (`0847142`)
 - **agent-log:** durable sidecar ingest, backfill, and persisted timeline (`3b34b31`)
@@ -24,6 +25,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **factory:** cherry-pick GitHub integration — clone repos + create PRs (#95) (`f960ec1`)
 ### 🐛 Bug Fixes
 
+- **hooks:** resolve session_id linking + transcript auto-discovery (`6bf97b3`)
+- **p0:** enforce data contract — remove all description write paths (`c83c1d5`)
 - **auto-runner:** add safe burst headroom and document runtime hardening release (`07ef993`)
 - **api:** enforce strict task-scoped agent_log session resolution (`28c7216`)
 - **zerobitch:** scope activity to real task sessions and remove codemap panel (`9c38856`)
@@ -51,6 +54,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update README + onboarding + integration for P0 data contract and session linking (`5dedf3e`)
+- update CHANGELOG.md [skip ci] (`8d0ad50`)
 - update CHANGELOG.md [skip ci] (`9db8eee`)
 - update CHANGELOG.md [skip ci] (`b67f70a`)
 - update CHANGELOG.md [skip ci] (`553b5ec`)
