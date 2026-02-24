@@ -19,11 +19,14 @@ class DeadRouteScanner
         begin
           session.get(path)
           status = session.response.status
+          empty = empty_success_response?(status, session.response)
+
           {
             path: path,
             status: status,
-            ok: status < 400,
-            failed: status >= 500 || status == 404,
+            ok: status < 400 && !empty,
+            failed: status >= 500 || status == 404 || empty,
+            empty: empty,
             exception: nil
           }
         rescue StandardError => e
@@ -32,6 +35,7 @@ class DeadRouteScanner
             status: nil,
             ok: false,
             failed: true,
+            empty: false,
             exception: e.message
           }
         end
@@ -54,6 +58,10 @@ class DeadRouteScanner
 
     def supports_get_verb?(verb)
       verb.to_s.split("|").include?("GET")
+    end
+
+    def empty_success_response?(status, response)
+      status.between?(200, 299) && response.body.to_s.strip.empty?
     end
   end
 end

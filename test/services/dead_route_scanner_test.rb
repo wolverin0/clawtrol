@@ -26,9 +26,9 @@ class DeadRouteScannerTest < ActiveSupport::TestCase
 
   test "scan marks 404 and 500 responses as failed" do
     session = build_fake_session({
-      "/ok" => 200,
-      "/missing" => 404,
-      "/boom" => 500
+      "/ok" => { status: 200, body: "ok" },
+      "/missing" => { status: 404, body: "not found" },
+      "/boom" => { status: 500, body: "error" }
     })
 
     results = DeadRouteScanner.scan(session: session, routes: ["/ok", "/missing", "/boom"])
@@ -37,8 +37,24 @@ class DeadRouteScannerTest < ActiveSupport::TestCase
     assert_equal [true, false, false], results.map { |r| r[:ok] }
   end
 
+  test "scan marks empty successful responses as failed" do
+    session = build_fake_session({
+      "/full" => { status: 200, body: "<h1>Dashboard</h1>" },
+      "/empty" => { status: 200, body: "   " }
+    })
+
+    results = DeadRouteScanner.scan(session: session, routes: ["/full", "/empty"])
+
+    assert_equal false, results.find { |r| r[:path] == "/full" }[:empty]
+
+    empty_result = results.find { |r| r[:path] == "/empty" }
+    assert_equal true, empty_result[:empty]
+    assert_equal true, empty_result[:failed]
+    assert_equal false, empty_result[:ok]
+  end
+
   test "scan captures exceptions as failed" do
-    session = build_fake_session({ "/ok" => 200 }, raise_for: "/explode")
+    session = build_fake_session({ "/ok" => { status: 200, body: "ok" } }, raise_for: "/explode")
 
     results = DeadRouteScanner.scan(session: session, routes: ["/ok", "/explode"])
     exception_result = results.find { |r| r[:path] == "/explode" }
@@ -55,14 +71,16 @@ class DeadRouteScannerTest < ActiveSupport::TestCase
   end
 
   def build_fake_session(status_map, raise_for: nil)
-    response = Struct.new(:status).new(200)
+    response = Struct.new(:status, :body).new(200, "")
 
     Object.new.tap do |session|
       session.define_singleton_method(:response) { response }
       session.define_singleton_method(:get) do |path|
         raise StandardError, "boom" if path == raise_for
 
-        response.status = status_map.fetch(path)
+        payload = status_map.fetch(path)
+        response.status = payload.fetch(:status)
+        response.body = payload.fetch(:body)
       end
     end
   end
