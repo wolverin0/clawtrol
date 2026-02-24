@@ -70,6 +70,18 @@ class FileViewerControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.headers["Content-Disposition"], "filename=\"#{File.basename(relative)}\""
   end
 
+  test "rejects oversized file updates" do
+    relative = "tmp/file-viewer-update-#{SecureRandom.hex(6)}.txt"
+    oversized_content = "a" * (FileViewerController::MAX_FILE_SIZE + 1)
+
+    put view_path(file: relative),
+        params: { file: relative, content: oversized_content },
+        as: :json
+
+    assert_response :content_too_large
+    assert_match(/Content too large/, response.parsed_body["error"])
+  end
+
   private
 
   def create_workspace_file(relative, content)

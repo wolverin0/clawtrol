@@ -3112,3 +3112,10 @@
 **Verify:** Ruby syntax OK on both files
 **Risk:** low (test-only additions)
 - 2026-02-23: Add /health endpoint for Mission Control Dashboard (Architecture)
+
+## [2026-02-24 02:21] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Enforce maximum payload size for file edits in FileViewerController
+**Why:** `update` accepted unbounded request content, which could allow oversized writes and memory/disk abuse. It now rejects edits larger than 2MB using `:content_too_large`, matching existing viewer read limits.
+**Files:** app/controllers/file_viewer_controller.rb, test/controllers/file_viewer_controller_test.rb
+**Verify:** Ruby syntax OK; `bin/rails test` passed (2413 runs, 0 failures)
+**Risk:** low (adds input guard; preserves current behavior for normal-sized edits)
