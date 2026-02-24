@@ -1,5 +1,16 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 14:22] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added expression length guard to `WorkflowExecutionEngine#evaluate_simple_expression` and regression test coverage.
+**Why:** Workflow expressions are user-controlled text. Extremely large payloads can cause avoidable CPU/memory pressure during repeated regex evaluation. Added a hard ceiling (`MAX_EXPRESSION_LENGTH = 1000`) with safe failure (`false`) and warning log when exceeded.
+**Files:**
+- `app/services/workflow_execution_engine.rb`
+- `test/services/workflow_execution_engine_test.rb`
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2442 runs, 0 failures, 0 errors)
+**Risk:** Low — overlong expressions now fail closed instead of being evaluated.
+
 ## [2026-02-24 14:05] - Category: Performance — STATUS: ✅ VERIFIED
 **What:** Added short-lived caching for Mission Control health snapshot in `MissionControlController` (30s TTL) to avoid repeated DB/shell checks on rapid refresh.
 **Why:** The dashboard recalculated uptime/memory and DB migration status on every request. This is unnecessarily expensive when users auto-refresh or reopen the page repeatedly.
