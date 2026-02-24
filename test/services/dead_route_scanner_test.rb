@@ -11,6 +11,7 @@ class DeadRouteScannerTest < ActiveSupport::TestCase
       fake_route("GET", "/boards(.:format)", false),
       fake_route("POST", "/boards(.:format)", false),
       fake_route("GET|POST", "/mixed(.:format)", false),
+      fake_route("(?-mix:^GET$)", "/regex-get(.:format)", false),
       fake_route("GET", "/boards/:id(.:format)", false),
       fake_route("GET", "/files/*path", false),
       fake_route("GET", "/rails/info(.:format)", false),
@@ -21,7 +22,7 @@ class DeadRouteScannerTest < ActiveSupport::TestCase
       fake_route("GET", "/boards(.:format)", false)
     ]
 
-    assert_equal ["/boards", "/mixed"], DeadRouteScanner.route_paths(routes)
+    assert_equal ["/boards", "/mixed", "/regex-get"], DeadRouteScanner.route_paths(routes)
   end
 
   test "scan marks 404 and 500 responses as failed" do
