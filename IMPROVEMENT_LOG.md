@@ -3182,3 +3182,10 @@
 **Files:** app/services/factory_github_service.rb, test/services/factory_github_service_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2424 runs, 5489 assertions, 0 failures)
 **Risk:** low (DRY refactor, behavior preserved)
+
+## [2026-02-24 07:14] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Replaced placeholder `ModelCatalogService` test with real service coverage for aggregation, gateway fallback, and nil-user defaults.
+**Why:** Cross-model catalog behavior is core to model selection flows but previously had no assertions (`skip`). Added deterministic tests for merged sources (gateway payload, tasks, personas, limits, fallback chain), graceful gateway failure handling, and default behavior when user is absent.
+**Files:** test/services/model_catalog_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2426 runs, 5507 assertions, 0 failures)
+**Risk:** low (test-only change)
