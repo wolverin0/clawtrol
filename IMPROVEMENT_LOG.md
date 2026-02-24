@@ -3313,3 +3313,11 @@ Keep a dedicated timeout regression test so gate failures remain deterministic u
 **Files:** app/controllers/mission_control_controller.rb, test/controllers/mission_control_controller_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅; `bin/rails test` ✅ (2440 runs, 5547 assertions, 0 failures, 0 errors)
 **Risk:** Low — response header hardening only.
+
+## [2026-02-24 12:50] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Fixed desktop navbar active-state mismatches for Dashboard and Skills icons.
+**Why:** Two nav icons were using stale controller checks, so active highlighting was incorrect: Dashboard checked `controller_name == 'dashboard'` (controller no longer exists) and Skills checked `controller_name == 'skills'` (actual controller is `skill_manager`). This caused visual parity drift versus mobile nav state logic.
+**Files:**
+- `app/views/shared/_nav_icons.html.erb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` (no modified Ruby files). `bin/rails test` passed (2440 runs, 0 failures, 0 errors).
+**Risk:** Low — view-only active class condition updates.
