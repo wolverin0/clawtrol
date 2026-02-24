@@ -3161,3 +3161,10 @@
 **Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2420 runs, 5481 assertions, 0 failures)
 **Risk:** low (scanner-only detection tightening with targeted tests)
+
+## [2026-02-24 05:50] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Sanitized `DeadRouteScanner` exception output to avoid exposing raw error messages in scan results.
+**Why:** Route scan exceptions were returned as `e.message`, which can leak internal details (paths, secrets, stack-derived text) into UI/API consumers. Scanner now reports a generic class-based message (`<ErrorClass>: request failed`).
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2420 runs, 5483 assertions, 0 failures)
+**Risk:** low (error reporting hardening in scanner-only path)
