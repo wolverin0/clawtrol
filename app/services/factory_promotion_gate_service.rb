@@ -59,7 +59,7 @@ class FactoryPromotionGateService
     rescue Timeout::Error
       Result.new(name: name, success: false, output: "Timed out after #{CHECK_TIMEOUT_SECONDS}s")
     rescue StandardError => e
-      Result.new(name: name, success: false, output: "#{e.class}: #{e.message}")
+      Result.new(name: name, success: false, output: "#{e.class}: check execution failed")
     end
   end
 end
