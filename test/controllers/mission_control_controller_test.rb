@@ -13,11 +13,13 @@ class MissionControlControllerTest < ActionDispatch::IntegrationTest
     assert_select ".card", minimum: 3
   end
 
-  test "sets no-store cache header for sensitive dashboard data" do
+  test "sets strict no-cache headers for sensitive dashboard data" do
     get mission_control_url
 
     assert_response :success
-    assert_equal "no-store", response.headers["Cache-Control"]
+    assert_includes response.headers["Cache-Control"], "no-store"
+    assert_equal "no-cache", response.headers["Pragma"]
+    assert_equal "0", response.headers["Expires"]
   end
 
   test "shows unknown migration state when database is disconnected" do
