@@ -66,6 +66,13 @@ class WorkflowExecutionEngineTest < ActiveSupport::TestCase
     assert engine.send(:evaluate_simple_expression, nil)
   end
 
+  test "evaluate_simple_expression: rejects overly long expressions" do
+    engine = WorkflowExecutionEngine.new(build_workflow({ "nodes" => [], "edges" => [] }), user: @user)
+    long_expr = "a" * (WorkflowExecutionEngine::MAX_EXPRESSION_LENGTH + 1)
+
+    assert_not engine.send(:evaluate_simple_expression, long_expr)
+  end
+
   # --- Workflow Execution ---
 
   test "run with invalid definition returns errors" do

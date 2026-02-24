@@ -8,6 +8,8 @@ require "securerandom"
 # - Executes nodes in topological order
 # - Returns per-node status + logs (no DB persistence yet)
 class WorkflowExecutionEngine
+  MAX_EXPRESSION_LENGTH = 1_000
+
   NodeResult = Struct.new(
     :id, :type, :label, :status, :started_at, :finished_at,
     :logs, :output, :session,
@@ -255,9 +257,15 @@ class WorkflowExecutionEngine
   def evaluate_simple_expression(expr)
     return true if expr.blank?
 
+    normalized_expr = expr.to_s.strip
+    if normalized_expr.length > MAX_EXPRESSION_LENGTH
+      Rails.logger.warn("[WorkflowEngine] expression too long (#{normalized_expr.length} chars)")
+      return false
+    end
+
     # Simple expression evaluator for safe expressions
     # Supports: ==, !=, >, <, >=, <=, contains, empty, not_empty
-    case expr.strip
+    case normalized_expr
     when /\A(.+?)\s*==\s*(.+)\z/
       $1.strip == $2.strip
     when /\A(.+?)\s*!=\s*(.+)\z/
@@ -282,7 +290,7 @@ class WorkflowExecutionEngine
       false
     else
       # Default: treat non-empty strings as truthy
-      expr.strip.present?
+      normalized_expr.present?
     end
   rescue StandardError => e
     Rails.logger.warn("[WorkflowEngine] expression eval failed: #{e.message}")
