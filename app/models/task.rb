@@ -210,9 +210,12 @@ end
 
 # --- P0 Data Contract Helpers ---
 
-# Effective prompt for agent execution: follows precedence chain
+# Effective prompt for agent execution: persona context + precedence chain
 def effective_prompt
-  compiled_prompt.presence || execution_prompt.presence || original_description.presence || description.presence || name
+  base = compiled_prompt.presence || execution_prompt.presence || original_description.presence || description.presence || name
+  persona_context = agent_persona&.spawn_prompt.presence
+  return base unless persona_context
+  [persona_context, base].join("\n\n---\n\n")
 end
 
 # Latest TaskRun (memoized per request via instance variable)
