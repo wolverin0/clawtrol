@@ -1,5 +1,15 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 15:25] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added Mission Control controller regression test to verify cache TTL expiration behavior.
+**Why:** Existing test only covered cache hits within the TTL window. It did not verify recomputation after the 30-second TTL expires, which is the key freshness contract for the dashboard snapshot cache.
+**Files:**
+- `test/controllers/mission_control_controller_test.rb`
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2444 runs, 0 failures, 0 errors)
+**Risk:** Low — test-only change, no production code modified.
+
 ## [2026-02-24 14:55] - Category: Code Quality — STATUS: ✅ VERIFIED
 **What:** WorkflowExecutionEngine now uses its injected logger (`@logger`) for expression warnings instead of hard-coding `Rails.logger`. Added regression test to verify warnings are emitted through the injected logger.
 **Why:** The service already accepts a logger dependency, but `evaluate_simple_expression` bypassed it in two places. This made behavior inconsistent and harder to test/route logs in non-default environments.
