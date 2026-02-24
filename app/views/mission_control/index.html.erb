@@ -18,8 +18,8 @@
     </p>
     <p>
       <strong>Migrations:</strong>
-      <span style="color: <%= @pending_migrations ? 'orange' : 'green' %>">
-        <%= @pending_migrations ? 'Pending' : 'Up to Date' %>
+      <span style="color: <%= @pending_migrations.nil? ? 'gray' : (@pending_migrations ? 'orange' : 'green') %>">
+        <%= @pending_migrations.nil? ? 'Unknown' : (@pending_migrations ? 'Pending' : 'Up to Date') %>
       </span>
     </p>
   </div>
