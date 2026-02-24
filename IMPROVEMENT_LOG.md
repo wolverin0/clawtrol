@@ -3284,3 +3284,14 @@ Validate and normalize the repo path up front, then return a deterministic faile
 [CONFIDENCE: 72] Performance — app/services/dead_route_scanner.rb:9
 `route_paths` previously built an intermediate array and then deduplicated with `.uniq`, adding an extra traversal and allocations.
 Deduplicate inline with a seen-path lookup while collecting to keep stable ordering and reduce overhead.
+
+## [2026-02-24 11:22] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Unified last-board navigation resolution behind `NavigationHelper#last_board_navigation_path` and wired desktop nav to use it.
+**Why:** Desktop sidebar and mobile registry had diverging last-board logic. Centralizing path resolution prevents drift and ensures both navigation surfaces respect user-owned board lookup with safe fallback.
+**Files:** app/helpers/navigation_helper.rb, app/views/shared/_nav_icons.html.erb, test/helpers/navigation_helper_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2437 runs, 5542 assertions, 0 failures)
+**Risk:** low (shared helper extraction + regression tests)
+
+[CONFIDENCE: 78] Architecture — app/helpers/navigation_helper.rb:2
+Last-board path computation existed in multiple places with inconsistent fallback behavior.
+Centralize ownership-aware path resolution in a single helper method and reuse across navigation views.

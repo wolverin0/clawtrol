@@ -1,7 +1,6 @@
 <% icon_base_class = "w-8 h-8 rounded-md flex items-center justify-center transition-colors" %>
 <% icon_inactive_class = "text-content-muted hover:text-content hover:bg-bg-elevated" %>
 <% icon_active_class = "text-content bg-bg-elevated" %>
-<% last_board = session[:last_board_id] && current_user&.boards&.order(position: :asc)&.find_by(id: session[:last_board_id]) %>
 
 <%= link_to board_path(1),
     class: "#{icon_base_class} #{controller_name == 'dashboard' ? icon_active_class : icon_inactive_class}",
@@ -27,7 +26,7 @@
   </svg>
 <% end %>
 
-<%= link_to(last_board ? board_path(last_board) : boards_path,
+<%= link_to(last_board_navigation_path,
     class: "#{icon_base_class} #{controller_name == 'boards' ? icon_active_class : icon_inactive_class}",
     title: "Board") do %>
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
