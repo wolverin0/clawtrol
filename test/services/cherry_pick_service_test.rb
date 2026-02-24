@@ -67,6 +67,22 @@ class CherryPickServiceTest < ActiveSupport::TestCase
     assert_equal false, result.success
   end
 
+  test "cherry_pick! rejects non factory commits" do
+    CherryPickService.stub(:factory_commit?, false) do
+      result = CherryPickService.cherry_pick!(["abcdef1"])
+      assert_equal false, result.success
+      assert_match(/Only \[factory\] commits are allowed/, result.message)
+    end
+  end
+
+  test "cherry_pick! deduplicates rejected hashes" do
+    CherryPickService.stub(:factory_commit?, false) do
+      result = CherryPickService.cherry_pick!(["abcdef1", "abcdef1"])
+      assert_equal false, result.success
+      assert_equal ["abcdef1"], result.data[:rejected_hashes]
+    end
+  end
+
   test "cherry_pick! rejects non-hex strings" do
     result = CherryPickService.cherry_pick!(["hello-world"])
     assert_equal false, result.success
