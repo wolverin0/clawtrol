@@ -42,6 +42,14 @@ class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "verify! fails fast when repo_path is not a directory" do
+    result = FactoryPromotionGateService.verify!("/tmp/does-not-exist")
+
+    assert_not result[:success]
+    assert_equal "Promotion gate failed", result[:message]
+    assert_equal [{ name: "repo_path", success: false, output: "Repository path is not accessible" }], result[:checks]
+  end
+
   test "check_definitions appends e2e check only when requested" do
     base = FactoryPromotionGateService.send(:check_definitions, include_e2e: false)
     with_e2e = FactoryPromotionGateService.send(:check_definitions, include_e2e: true)
