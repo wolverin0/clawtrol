@@ -57,7 +57,7 @@ class DeadRouteScanner
     end
 
     def supports_get_verb?(verb)
-      verb.to_s.split("|").include?("GET")
+      verb.to_s.match?(/GET/)
     end
 
     def empty_success_response?(status, response)

@@ -3251,3 +3251,14 @@ If constructor semantics expand later, add explicit collaborator injection tests
 Check definitions were duplicated inline inside `verify!`, increasing drift risk when adding/removing gate steps.
 Keep check catalog centralized and append optional checks through a dedicated builder method.
 
+
+## [2026-02-24 09:50] - Category: Bug Fixes — STATUS: ✅ VERIFIED
+**What:** Fixed GET-route detection in `DeadRouteScanner` to handle Rails route verb regex serialization (e.g. `(?-mix:^GET$)`) and added regression coverage.
+**Why:** `supports_get_verb?` previously split on `|` and only matched exact `"GET"`, which misses regex-serialized GET verbs and can silently skip valid routes during scans.
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2433 runs, 5536 assertions, 0 failures)
+**Risk:** low (bug fix + test coverage)
+
+[CONFIDENCE: 85] Correctness — app/services/dead_route_scanner.rb:56
+GET route detection required exact token matching and could exclude regex-serialized GET verbs.
+Use regex presence matching (`/GET/`) to correctly include Rails route verb representations.
