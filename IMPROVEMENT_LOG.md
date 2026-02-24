@@ -1,5 +1,16 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 16:25] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Expanded roadmap markdown checkbox parsing to support `* [ ]`, `+ [ ]`, and ordered list (`1. [ ]`) items, with regression tests.
+**Why:** Roadmap-to-task generation depended on `BoardRoadmap#unchecked_items`, but it only recognized `- [ ]` lines. Common markdown task list variants were silently ignored, causing missing task generation from valid roadmap content.
+**Files:**
+- `app/models/board_roadmap.rb`
+- `test/models/board_roadmap_test.rb` (NEW)
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2448 runs, 0 failures, 0 errors)
+**Risk:** Low — parser is more permissive for unchecked markdown list formats; checked items and dedup behavior unchanged.
+
 ## [2026-02-24 15:50] - Category: Bug Fix — STATUS: ✅ VERIFIED
 **What:** Hardened Mission Control shell metric collection to fail closed when `uptime`/`ps` commands fail or return invalid output.
 **Why:** Backtick calls in `MissionControlHealthSnapshotService` treated command errors as valid values (`"0.0 MB"` on bad `ps` output), which could silently mask runtime failures in the health dashboard.
