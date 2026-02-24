@@ -1,9 +1,16 @@
 module NavigationHelper
+  def last_board_navigation_path
+    last_board_id = session[:last_board_id]
+    return boards_path unless current_user && last_board_id.present?
+
+    board = current_user.boards.order(position: :asc).find_by(id: last_board_id)
+    board ? board_path(board) : boards_path
+  end
+
   def primary_navigation
     # Memoize to avoid evaluating multiple times per request
     @primary_navigation ||= begin
-      last_board_id = session[:last_board_id] || 1
-      last_board_path = board_path(last_board_id)
+      last_board_path = last_board_navigation_path
 
       learning_count = respond_to?(:pending_learning_proposals_count) ? pending_learning_proposals_count.to_i : 0
 
