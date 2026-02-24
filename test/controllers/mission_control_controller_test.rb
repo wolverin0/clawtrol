@@ -34,4 +34,32 @@ class MissionControlControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "span", text: "Unknown"
   end
+
+  test "caches health snapshot briefly to avoid repeated expensive checks" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+
+    fake_snapshot = {
+      ruby_version: "3.3.0",
+      rails_version: "8.0.0",
+      environment: "test",
+      database_connected: true,
+      pending_migrations: false,
+      uptime: "up 1 minute",
+      memory_usage: "100 MB"
+    }
+
+    call_count = 0
+    MissionControlHealthSnapshotService.stub(:call, -> {
+      call_count += 1
+      fake_snapshot
+    }) do
+      get mission_control_url
+      get mission_control_url
+    end
+
+    assert_equal 1, call_count
+  ensure
+    Rails.cache = original_cache
+  end
 end
