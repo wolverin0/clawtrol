@@ -3168,3 +3168,10 @@
 **Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2420 runs, 5483 assertions, 0 failures)
 **Risk:** low (error reporting hardening in scanner-only path)
+
+## [2026-02-24 06:20] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Extracted Mission Control health snapshot gathering into `MissionControlHealthSnapshotService`.
+**Why:** Controller was handling health-data collection inline (DB, migrations, uptime, memory), mixing presentation and infrastructure checks. Service extraction centralizes health logic for easier extension of the Mission Control Health Dashboard and adds focused unit coverage for disconnected/connected DB migration states.
+**Files:** app/controllers/mission_control_controller.rb, app/services/mission_control_health_snapshot_service.rb, test/services/mission_control_health_snapshot_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2422 runs, 5487 assertions, 0 failures)
+**Risk:** low (refactor + tests; dashboard behavior preserved)
