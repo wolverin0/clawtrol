@@ -3306,3 +3306,10 @@ Centralize ownership-aware path resolution in a single helper method and reuse a
 [CONFIDENCE: 76] Testing — test/services/factory_promotion_gate_service_test.rb:97
 Timeout fallback behavior in `run_check` was previously unpinned and could regress silently.
 Keep a dedicated timeout regression test so gate failures remain deterministic under long-running checks.
+
+## [2026-02-24 12:14] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added no-store cache policy to Mission Control dashboard responses
+**Why:** Mission Control exposes sensitive runtime metadata (environment, DB connectivity, uptime, memory). Browsers/proxies should not cache this page on shared machines.
+**Files:** app/controllers/mission_control_controller.rb, test/controllers/mission_control_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅; `bin/rails test` ✅ (2440 runs, 5547 assertions, 0 failures, 0 errors)
+**Risk:** Low — response header hardening only.
