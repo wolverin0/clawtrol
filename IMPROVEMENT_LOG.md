@@ -1,5 +1,16 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 00:20] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Added Mission Control Health Dashboard
+**Why:** Needed a centralized place to view Ruby/Rails versions, environment status, database connection, pending migrations, system uptime, and memory usage.
+**Files:**
+- `app/controllers/mission_control_controller.rb` (NEW)
+- `app/views/mission_control/index.html.erb` (NEW)
+- `config/routes.rb` (MODIFIED)
+- `test/controllers/mission_control_controller_test.rb` (NEW)
+**Verify:** `ruby -c` on all Ruby files passed. `bin/rails test test/controllers/mission_control_controller_test.rb` passed.
+**Risk:** Low — read-only dashboard.
+
 ## [2026-02-14 13:10] - Category: Code Quality — STATUS: ✅ VERIFIED
 **What:** Extracted `OpenclawCliRunnable` concern from 3 controllers (CommandController, CronjobsController, TokensController)
 **Why:** All three duplicated `openclaw_timeout_seconds`, `ms_to_time`, `run_openclaw_sessions`, Open3+Timeout CLI execution, and error hash construction. DRY extraction reduces ~163 lines and centralizes CLI interaction patterns.
