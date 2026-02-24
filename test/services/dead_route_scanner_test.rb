@@ -53,14 +53,15 @@ class DeadRouteScannerTest < ActiveSupport::TestCase
     assert_equal false, empty_result[:ok]
   end
 
-  test "scan captures exceptions as failed" do
+  test "scan captures exceptions as failed without exposing raw error details" do
     session = build_fake_session({ "/ok" => { status: 200, body: "ok" } }, raise_for: "/explode")
 
     results = DeadRouteScanner.scan(session: session, routes: ["/ok", "/explode"])
     exception_result = results.find { |r| r[:path] == "/explode" }
 
     assert exception_result[:failed]
-    assert_equal "boom", exception_result[:exception]
+    assert_equal "StandardError: request failed", exception_result[:exception]
+    refute_includes exception_result[:exception], "boom"
     assert_nil exception_result[:status]
   end
 

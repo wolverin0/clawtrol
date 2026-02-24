@@ -36,7 +36,7 @@ class DeadRouteScanner
             ok: false,
             failed: true,
             empty: false,
-            exception: e.message
+            exception: safe_exception_message(e)
           }
         end
       end
@@ -62,6 +62,10 @@ class DeadRouteScanner
 
     def empty_success_response?(status, response)
       status.between?(200, 299) && response.body.to_s.strip.empty?
+    end
+
+    def safe_exception_message(error)
+      "#{error.class.name}: request failed"
     end
   end
 end
