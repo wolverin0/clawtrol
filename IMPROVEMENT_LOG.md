@@ -1,5 +1,17 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 20:38] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Expanded `NavigationHelper` coverage to assert `primary_navigation` board-link behavior for owned vs unowned `last_board_id` values.
+**Why:** Unified navbar registry logic now drives both desktop and mobile menus, but helper tests only covered `last_board_navigation_path` in isolation. These regressions lock URL resolution through the real `primary_navigation` payload used by both nav surfaces.
+**Files:**
+- `test/helpers/navigation_helper_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2453 runs, 5568 assertions, 0 failures)
+**Risk:** low (test-only)
+
+[CONFIDENCE: 84] Testing — test/helpers/navigation_helper_test.rb:66
+`primary_navigation` URL behavior for the shared "Board" nav item was untested.
+Add regression tests that assert owned-board routing and fallback-to-boards behavior from the built navigation structure.
+
 ## [2026-02-24 20:25] - Category: UX — STATUS: ✅ VERIFIED
 **What:** Deleted unused `_nav_icons.html.erb` partial.
 **Why:** The partial was 19KB of hardcoded SVGs and links, completely dead code superseded by `_desktop_nav.html.erb` and `_mobile_nav.html.erb` which both correctly consume the `primary_navigation` registry from `NavigationHelper`. Removing it eliminates parity drift risks and reduces codebase size.
