@@ -2,6 +2,7 @@
 
 require "net/http"
 require "uri"
+require "cgi"
 
 class DailyExecutiveDigestService
   def self.call
@@ -42,31 +43,35 @@ class DailyExecutiveDigestService
     
     if done.any?
       message << "✅ <b>Done Today</b> (#{done.count})"
-      done.each { |t| message << "• #{t.name}" }
+      done.each { |t| message << "• #{escape_html(t.name)}" }
       message << ""
     end
 
     if failed.any?
       message << "❌ <b>Failed Today</b> (#{failed.count})"
-      failed.each { |t| message << "• #{t.name}" }
+      failed.each { |t| message << "• #{escape_html(t.name)}" }
       message << ""
     end
 
     if blocked.any?
       message << "🚧 <b>Currently Blocked</b> (#{blocked.count})"
-      blocked.each { |t| message << "• #{t.name}" }
+      blocked.each { |t| message << "• #{escape_html(t.name)}" }
       message << ""
     end
 
     if up_next.any?
       message << "⏭️ <b>Up Next</b> (Top 3)"
-      up_next.each { |t| message << "• #{t.name}" }
+      up_next.each { |t| message << "• #{escape_html(t.name)}" }
       message << ""
     end
     
     message << "<i>No significant activity to report.</i>" if done.empty? && failed.empty? && blocked.empty? && up_next.empty?
 
     send_telegram_message(user, message.join("\n"))
+  end
+
+  def escape_html(value)
+    CGI.escapeHTML(value.to_s)
   end
 
   def send_telegram_message(user, text)

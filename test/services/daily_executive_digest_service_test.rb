@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "ostruct"
 
 class DailyExecutiveDigestServiceTest < ActiveSupport::TestCase
   def setup
@@ -45,9 +46,23 @@ class DailyExecutiveDigestServiceTest < ActiveSupport::TestCase
     assert_mock mock_response
   end
 
+  test "escapes html in task names for telegram html parse mode" do
+    board = @user.boards.first || @user.boards.create!(name: "Test")
+    @user.tasks.create!(name: "<b>boom</b> & \"quoted\"", status: "done", board: board)
+
+    captured_text = nil
+
+    Net::HTTP.stub(:post_form, ->(_uri, params) { captured_text = params[:text]; OpenStruct.new(code: "200") }) do
+      DailyExecutiveDigestService.new.send(:send_digest, @user)
+    end
+
+    assert_includes captured_text, "• &lt;b&gt;boom&lt;/b&gt; &amp; &quot;quoted&quot;"
+    refute_includes captured_text, "• <b>boom</b>"
+  end
+
   test "skips users without telegram config" do
     @user.update!(telegram_chat_id: nil)
-    
+
     assert_nothing_raised do
       DailyExecutiveDigestService.call
     end
