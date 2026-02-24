@@ -3175,3 +3175,10 @@
 **Files:** app/controllers/mission_control_controller.rb, app/services/mission_control_health_snapshot_service.rb, test/services/mission_control_health_snapshot_service_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2422 runs, 5487 assertions, 0 failures)
 **Risk:** low (refactor + tests; dashboard behavior preserved)
+
+## [2026-02-24 06:44] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Centralized Factory GitHub default work-branch handling in `FactoryGithubService`.
+**Why:** The service repeated the fallback string `"factory/auto"` in five methods, creating stringly-typed duplication and higher drift risk. Introduced `DEFAULT_WORK_BRANCH` + `configured_work_branch` helper and added regression tests for configured and fallback behavior.
+**Files:** app/services/factory_github_service.rb, test/services/factory_github_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2424 runs, 5489 assertions, 0 failures)
+**Risk:** low (DRY refactor, behavior preserved)
