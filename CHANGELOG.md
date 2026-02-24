@@ -27,6 +27,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **factory:** cherry-pick GitHub integration — clone repos + create PRs (#95) (`f960ec1`)
 ### 🐛 Bug Fixes
 
+- **routing:** smart origin_thread_id + README P0 contract + doc unification (`537562d`)
 - **transcript:** skip scope check for explicitly linked sessions (`b08bd1c`)
 - **p0:** resolve 6 workflow inconsistencies from audit (`a80a96c`)
 - **hooks:** resolve session_id linking + transcript auto-discovery (`6bf97b3`)
@@ -58,6 +59,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`05e71bd`)
 - update CHANGELOG.md [skip ci] (`26da7bc`)
 - update CHANGELOG.md [skip ci] (`5731403`)
 - update CHANGELOG.md [skip ci] (`654e94f`)
