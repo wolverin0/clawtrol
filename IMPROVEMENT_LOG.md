@@ -3209,7 +3209,7 @@
 **Why:** Avoids extra command composition/parsing per gate check and keeps working-directory handling native to `Open3`.
 **Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2431 runs, 5532 assertions, 0 failures)
-**Commit:** 2519875
+**Commit:** c7460a4
 **Risk:** low (behavior preserved, command execution path simplified)
 
 [CONFIDENCE: 78] Performance — app/services/factory_promotion_gate_service.rb:48
@@ -3221,9 +3221,21 @@ Keep `command` source controlled/trusted as currently designed; avoid passing us
 **Why:** Service methods do not use user context; keeping the fallback performed unnecessary user lookup and preserved a risky attribution pattern.
 **Files:** app/services/factory_engine_service.rb
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2431 runs, 5532 assertions, 0 failures)
-**Commit:** (set after commit)
+**Commit:** 7818ce4
 **Risk:** low (no runtime behavior change in service methods)
 
 [CONFIDENCE: 73] Bug Fixes — app/services/factory_engine_service.rb:6
 Initialization previously hit `User.first` despite no user usage in this service.
 Keep constructor parameter as compatibility shim until all call sites are explicitly updated.
+
+## [2026-02-24 09:22] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added regression test proving `FactoryEngineService` initialization no longer performs implicit user fallback queries.
+**Why:** Guards against reintroducing `User.first`-style lookup behavior in this service's constructor.
+**Files:** test/services/factory_engine_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2432 runs, 5533 assertions, 0 failures)
+**Commit:** (set after commit)
+**Risk:** low (test-only coverage)
+
+[CONFIDENCE: 80] Testing — test/services/factory_engine_service_test.rb:28
+Constructor behavior is now pinned with a no-lookup regression test.
+If constructor semantics expand later, add explicit collaborator injection tests rather than implicit DB fallbacks.
