@@ -211,6 +211,16 @@ class FactoryGithubServiceTest < ActiveSupport::TestCase
     assert_equal "wolverin0/test-repo", @loop.github_owner_repo
   end
 
+  test "configured_work_branch returns configured branch" do
+    assert_equal "factory/test", @service.send(:configured_work_branch)
+  end
+
+  test "configured_work_branch falls back to default branch" do
+    @loop.update!(work_branch: nil)
+
+    assert_equal FactoryGithubService::DEFAULT_WORK_BRANCH, @service.send(:configured_work_branch)
+  end
+
   private
 
   def stub_workspace_root(tmpdir)
