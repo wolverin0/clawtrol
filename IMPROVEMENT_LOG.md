@@ -3685,3 +3685,11 @@ Replace the placeholder with focused tests that verify both the no-history path 
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2472 runs, 5671 assertions, 0 failures)
 **Commit:** 3d1536e
 **Risk:** low (no behavior change beyond consistent timing)
+
+## [2026-02-25 08:19] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Prevented expired API tokens from authenticating and added regression coverage.
+**Why:** `ApiToken.authenticate` accepted any matching digest without honoring `expires_at`, allowing stale tokens to authenticate.
+**Files:** app/models/api_token.rb, test/models/api_token_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2473 runs, 5672 assertions, 0 failures)
+**Commit:** 55173c8
+**Risk:** low (expiry check + targeted test)
