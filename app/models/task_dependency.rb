@@ -19,9 +19,9 @@ class TaskDependency < ApplicationRecord
   private
 
   def no_self_dependency
-    if task_id == depends_on_id
-      errors.add(:base, "cannot depend on itself")
-    end
+    return if task_id.blank? || depends_on_id.blank?
+
+    errors.add(:base, "cannot depend on itself") if task_id == depends_on_id
   end
 
   def no_circular_dependency
