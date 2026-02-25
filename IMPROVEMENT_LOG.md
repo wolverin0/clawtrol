@@ -3609,3 +3609,14 @@ Replace the skipped placeholder with regression tests that validate normalizatio
 [CONFIDENCE: 67] Correctness — app/services/sub_agent_output_contract.rb:24
 Scalar fields were not trimmed, so user-visible summaries and recommended actions could retain accidental whitespace.
 Normalize scalar text through a shared `normalized_text` helper before serializing payload/markdown output.
+
+## [2026-02-25 05:56] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Reduced repeated relation hits in `DailyExecutiveDigestService#format_digest` by extracting shared section rendering and reusing bounded pluck/count access patterns.
+**Why:** Digest generation previously called `count`/`any?` multiple times per section and instantiated AR objects for list rendering, which increased avoidable query churn and allocations on every run.
+**Files:** app/services/daily_executive_digest_service.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2469 runs, 5658 assertions, 0 failures)
+**Risk:** low (output-preserving refactor for query/object reduction)
+
+[CONFIDENCE: 73] Performance — app/services/daily_executive_digest_service.rb:28
+Digest rendering was issuing redundant relation checks/counts and loading full records where only task names were needed.
+Consolidate section rendering with a helper that counts once and fetches only bounded `name` fields via `pluck`.
