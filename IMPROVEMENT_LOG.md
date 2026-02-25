@@ -3694,6 +3694,17 @@ Replace the placeholder with focused tests that verify both the no-history path 
 **Commit:** 55173c8
 **Risk:** low (expiry check + targeted test)
 
+## [2026-02-25 08:25] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Refactored `RoadmapExecutorSync` to preload roadmap links/tasks and sync from in-memory maps instead of issuing per-item queries.
+**Why:** The previous implementation did two `find_by` lookups for every unchecked roadmap item, increasing query chatter as roadmap size grows.
+**Files:** app/services/roadmap_executor_sync.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2474 runs, 5676 assertions, 0 failures)
+**Risk:** low (query reduction refactor, behavior preserved)
+
+[CONFIDENCE: 74] Performance — app/services/roadmap_executor_sync.rb:12
+Sync loop performed repetitive `find_by` queries for links and tasks on every roadmap item, creating avoidable N+1-like query overhead on larger checklists.
+Preload existing links/tasks with `where(...).index_by` once, then resolve/create in-memory during the transaction.
+
 ## [2026-02-25 08:24] - Category: Bug Fix — STATUS: ✅ VERIFIED
 **What:** Avoided adding self-dependency errors when dependency IDs are missing, with regression coverage.
 **Why:** The validation was firing on nil IDs and producing misleading base errors before association validations ran.
