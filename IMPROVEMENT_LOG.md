@@ -3728,3 +3728,11 @@ Preload existing links/tasks with `where(...).index_by` once, then resolve/creat
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2475 runs, 5677 assertions, 0 failures)
 **Commit:** 3027eb1
 **Risk:** low (nil-safe scope behavior + test)
+
+## [2026-02-25 08:41] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Switched dependency-cycle traversal to an indexed queue to avoid repeated array shifts.
+**Why:** `Array#shift` is O(n) and can amplify work in deep dependency graphs, while index iteration preserves behavior with lower overhead.
+**Files:** app/models/task_dependency.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2475 runs, 5677 assertions, 0 failures)
+**Commit:** d21cc19
+**Risk:** low (behavior-preserving traversal)
