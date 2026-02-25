@@ -8,36 +8,36 @@ class RoadmapExecutorSync
   end
 
   def call
+    items = @board_roadmap.unchecked_items
+    return if items.empty?
+
+    existing_links = preload_links(items)
+    tasks_by_name = preload_tasks(items)
+
     ApplicationRecord.transaction do
-      @board_roadmap.unchecked_items.each do |item|
-        sync_item(item[:key], item[:text])
+      items.each do |item|
+        next if existing_links.key?(item[:key])
+
+        task = tasks_by_name[item[:text]] ||= create_task(item[:text])
+        link = @board_roadmap.task_links.create!(item_key: item[:key], item_text: item[:text], task: task)
+        existing_links[item[:key]] = link
       end
     end
   end
 
   private
 
-  def sync_item(item_key, item_text)
-    # Check if a link already exists
-    link = @board_roadmap.task_links.find_by(item_key: item_key)
-    return if link
+  def preload_links(items)
+    keys = items.map { |item| item[:key] }
+    @board_roadmap.task_links.where(item_key: keys).index_by(&:item_key)
+  end
 
-    # Check if a task with the exact name already exists on this board
-    # to avoid duplicates if the user created it manually.
-    task = @board.tasks.find_by(name: item_text)
+  def preload_tasks(items)
+    names = items.map { |item| item[:text] }
+    @board.tasks.where(name: names).index_by(&:name)
+  end
 
-    unless task
-      task = @board.tasks.create!(
-        user: @user,
-        name: item_text,
-        status: "inbox"
-      )
-    end
-
-    @board_roadmap.task_links.create!(
-      item_key: item_key,
-      item_text: item_text,
-      task: task
-    )
+  def create_task(item_text)
+    @board.tasks.create!(user: @user, name: item_text, status: "inbox")
   end
 end
