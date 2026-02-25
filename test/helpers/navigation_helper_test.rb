@@ -4,10 +4,11 @@ class NavigationHelperTest < ActiveSupport::TestCase
   class NavigationHelperHost
     include NavigationHelper
 
-    attr_accessor :session, :current_user
+    attr_accessor :session, :current_user, :controller_name, :action_name, :params
 
     def initialize
       @session = {}
+      @params = {}
     end
 
     def boards_path = "/boards"
@@ -85,5 +86,44 @@ class NavigationHelperTest < ActiveSupport::TestCase
       .find { |item| item[:label] == "Board" }
 
     assert_equal "/boards", board_item[:url]
+  end
+
+  test "nav_item_active? requires matching action when action is provided" do
+    host = NavigationHelperHost.new
+    host.controller_name = "agent_personas"
+    host.action_name = "index"
+
+    item = { controller: "agent_personas", action: "roster" }
+
+    assert_equal false, host.nav_item_active?(item)
+
+    host.action_name = "roster"
+    assert_equal true, host.nav_item_active?(item)
+  end
+
+  test "nav_item_active? requires matching id when id_param is provided" do
+    host = NavigationHelperHost.new
+    host.controller_name = "boards"
+    host.action_name = "show"
+    host.params = { id: "2" }
+
+    item = { controller: "boards", id_param: "1" }
+
+    assert_equal false, host.nav_item_active?(item)
+
+    host.params = { id: "1" }
+    assert_equal true, host.nav_item_active?(item)
+  end
+
+  test "nav_item_active? exact_action false excludes roster action" do
+    host = NavigationHelperHost.new
+    host.controller_name = "agent_personas"
+    item = { controller: "agent_personas", exact_action: false }
+
+    host.action_name = "index"
+    assert_equal true, host.nav_item_active?(item)
+
+    host.action_name = "roster"
+    assert_equal false, host.nav_item_active?(item)
   end
 end

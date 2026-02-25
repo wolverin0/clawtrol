@@ -3467,3 +3467,14 @@ Set complementary `Pragma` and `Expires` headers and keep regression coverage fo
 Task-link lookup built an `IN` list from raw session keys without deduplication, which can inflate query work on repeated keys.
 Normalize to unique keys before querying to reduce query parameter count while preserving output.
 Roadmap Executor Sync completed
+
+## [2026-02-24 22:59] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added targeted `NavigationHelper#nav_item_active?` regression tests for action matching, id matching, and `exact_action: false` roster exclusion behavior.
+**Why:** Active-state highlighting logic had implicit branching but no direct helper-level tests, which made navbar parity regressions easy to miss when changing controller/action routing.
+**Files:** test/helpers/navigation_helper_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2458 runs, 5618 assertions, 0 failures)
+**Risk:** low (test-only coverage)
+
+[CONFIDENCE: 74] Testing — test/helpers/navigation_helper_test.rb:75
+`nav_item_active?` contains multi-branch conditions (`action`, `id_param`, `exact_action`) that were not fully covered by focused unit tests.
+Pin each branch with direct helper regression tests to prevent desktop/mobile active-state drift during future nav changes.
