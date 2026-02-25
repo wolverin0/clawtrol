@@ -3669,3 +3669,11 @@ Replace the placeholder with focused tests that verify both the no-history path 
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2471 runs, 5668 assertions, 0 failures)
 **Commit:** 1eaa141
 **Risk:** low (no behavior change; configuration cleanup)
+
+## [2026-02-25 08:08] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added coverage ensuring task validation commands must start with an allowed prefix.
+**Why:** The model enforces prefix restrictions, but we did not have a regression test guarding the error path.
+**Files:** test/models/task_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2472 runs, 5671 assertions, 0 failures)
+**Commit:** 63159f4
+**Risk:** low (test-only change)
