@@ -1,5 +1,18 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-25 00:25] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added a hard safety cap for cherry-pick batch size in `CherryPickService` (`MAX_CHERRY_PICK_COMMITS = 20`) and test coverage for over-limit rejection.
+**Why:** `cherry_pick!` accepted an unbounded list of hashes. A large payload could trigger long-running git operations and create avoidable operational risk during promotion.
+**Files:**
+- `app/services/cherry_pick_service.rb`
+- `test/services/cherry_pick_service_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2459 runs, 5622 assertions, 0 failures)
+**Risk:** low — additive guardrail; normal cherry-pick behavior unchanged for valid batches.
+
+[CONFIDENCE: 86] Security — app/services/cherry_pick_service.rb:67
+`cherry_pick!` previously allowed arbitrary batch sizes, which can amplify operational impact if misused.
+Reject requests above a fixed safe limit and return structured metadata (`max_commits`, `requested`) so callers can recover gracefully.
+
 ## [2026-02-24 23:20] - Category: Architecture — STATUS: ✅ VERIFIED
 **What:** Refactored Daily Executive Digest into a user-scoped service instance and updated the scheduled job to iterate users explicitly.
 **Why:** The digest service mixed cross-user iteration with rendering/sending logic. Separating concerns makes the service easier to test, avoids hidden global iteration, and improves failure isolation per user run.
