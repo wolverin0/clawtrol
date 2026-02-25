@@ -56,6 +56,25 @@ class DeadRouteScannerTest < ActiveSupport::TestCase
     assert_equal true, empty_result[:empty]
     assert_equal true, empty_result[:failed]
     assert_equal false, empty_result[:ok]
+    assert_equal false, empty_result[:turbo_frame_mismatch]
+  end
+
+  test "scan marks turbo frame mismatch responses as failed" do
+    session = build_fake_session({
+      "/frame-ok" => { status: 200, body: "<turbo-frame id=\"modal\">ok</turbo-frame>" },
+      "/frame-mismatch" => { status: 200, body: "The response (200) did not contain the expected <turbo-frame id=\"modal\">" }
+    })
+
+    results = DeadRouteScanner.scan(session: session, routes: ["/frame-ok", "/frame-mismatch"])
+
+    ok_result = results.find { |r| r[:path] == "/frame-ok" }
+    assert_equal false, ok_result[:turbo_frame_mismatch]
+    assert_equal true, ok_result[:ok]
+
+    mismatch_result = results.find { |r| r[:path] == "/frame-mismatch" }
+    assert_equal true, mismatch_result[:turbo_frame_mismatch]
+    assert_equal true, mismatch_result[:failed]
+    assert_equal false, mismatch_result[:ok]
   end
 
   test "scan captures exceptions as failed without exposing raw error details" do
