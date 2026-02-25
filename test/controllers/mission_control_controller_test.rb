@@ -94,4 +94,30 @@ class MissionControlControllerTest < ActionDispatch::IntegrationTest
   ensure
     Rails.cache = original_cache
   end
+
+  test "uses environment-scoped cache keys for health snapshot" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+
+    call_count = 0
+    MissionControlHealthSnapshotService.stub(:call, -> {
+      call_count += 1
+      {
+        ruby_version: "3.3.0",
+        rails_version: "8.0.0",
+        environment: "test",
+        database_connected: true,
+        pending_migrations: false,
+        uptime: "up #{call_count} minute",
+        memory_usage: "100 MB"
+      }
+    }) do
+      Rails.stub(:env, ActiveSupport::StringInquirer.new("test")) { get mission_control_url }
+      Rails.stub(:env, ActiveSupport::StringInquirer.new("staging")) { get mission_control_url }
+    end
+
+    assert_equal 2, call_count
+  ensure
+    Rails.cache = original_cache
+  end
 end
