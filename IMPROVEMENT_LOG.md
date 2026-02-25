@@ -3720,3 +3720,11 @@ Preload existing links/tasks with `where(...).index_by` once, then resolve/creat
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2474 runs, 5676 assertions, 0 failures)
 **Commit:** 45d2a6a
 **Risk:** low (behavior-preserving refactor with shared helpers)
+
+## [2026-02-25 08:36] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Made `ApiToken.by_user(nil)` return an empty relation instead of nil and added coverage.
+**Why:** Returning nil breaks scope chaining and can raise errors when optional users are passed through.
+**Files:** app/models/api_token.rb, test/models/api_token_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2475 runs, 5677 assertions, 0 failures)
+**Commit:** 3027eb1
+**Risk:** low (nil-safe scope behavior + test)
