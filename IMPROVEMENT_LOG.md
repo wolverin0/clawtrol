@@ -1,5 +1,18 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-25 02:29] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened `FactoryPromotionGateService` repository validation to only accept git repositories (`.git` directory or worktree `.git` file), and added regression coverage.
+**Why:** Promotion gate commands are shell-executed against `repo_path`. Previously, any existing directory was accepted, which widened command execution surface and made accidental misuse easier.
+**Files:**
+- `app/services/factory_promotion_gate_service.rb`
+- `test/services/factory_promotion_gate_service_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2463 runs, 5633 assertions, 0 failures)
+**Risk:** low — invalid/non-repo paths now fail closed; valid git repos (including worktrees) remain supported.
+
+[CONFIDENCE: 87] Security — app/services/factory_promotion_gate_service.rb:56
+`verify!` previously accepted any directory as `repo_path`, allowing gate shell commands to execute outside a git repository boundary.
+Require a `.git` marker (`dir` or `file`) during path normalization and return a structured repo-path failure for non-repo directories.
+
 ## [2026-02-25 01:45] - Category: Performance — STATUS: ✅ VERIFIED
 **What:** Added fail-fast behavior to `FactoryPromotionGateService.verify!` (default `fail_fast: true`) so promotion checks stop after the first failed gate, with opt-out support (`fail_fast: false`) when full check visibility is needed.
 **Why:** Promotion gate currently runs expensive checks sequentially (including full test suite and optional system tests). Continuing after an early failure wastes runtime and slows feedback loops during cherry-pick verification.
