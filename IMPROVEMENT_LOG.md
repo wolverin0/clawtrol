@@ -3693,3 +3693,11 @@ Replace the placeholder with focused tests that verify both the no-history path 
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2473 runs, 5672 assertions, 0 failures)
 **Commit:** 55173c8
 **Risk:** low (expiry check + targeted test)
+
+## [2026-02-25 08:24] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Avoided adding self-dependency errors when dependency IDs are missing, with regression coverage.
+**Why:** The validation was firing on nil IDs and producing misleading base errors before association validations ran.
+**Files:** app/models/task_dependency.rb, test/models/task_dependency_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2474 runs, 5676 assertions, 0 failures)
+**Commit:** 101af88
+**Risk:** low (guarded validation + focused test)
