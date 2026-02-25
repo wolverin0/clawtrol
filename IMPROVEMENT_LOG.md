@@ -1,5 +1,19 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-25 01:45] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added fail-fast behavior to `FactoryPromotionGateService.verify!` (default `fail_fast: true`) so promotion checks stop after the first failed gate, with opt-out support (`fail_fast: false`) when full check visibility is needed.
+**Why:** Promotion gate currently runs expensive checks sequentially (including full test suite and optional system tests). Continuing after an early failure wastes runtime and slows feedback loops during cherry-pick verification.
+**Files:**
+- `app/services/factory_promotion_gate_service.rb`
+- `test/services/factory_promotion_gate_service_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2461 runs, 5629 assertions, 0 failures)
+**Commit:** b62ef42
+**Risk:** low — default execution is faster on first failure; callers can preserve full-run behavior by passing `fail_fast: false`.
+
+[CONFIDENCE: 82] Performance — app/services/factory_promotion_gate_service.rb:34
+Gate verification executed all checks even after an early hard failure, including expensive test commands.
+Short-circuit on first failed check by default, and expose `fail_fast: false` for diagnostics.
+
 ## [2026-02-25 00:51] - Category: Bug Fix — STATUS: ✅ VERIFIED
 **What:** Hardened `DeadRouteScanner.route_paths` against nil route path specs.
 **Why:** Some Rails route objects (especially engine/mount edge cases) can expose nil `path`/`spec`. The scanner previously assumed `route.path.spec` always existed, which could raise and abort route collection.
