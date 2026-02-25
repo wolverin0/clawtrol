@@ -3661,3 +3661,11 @@ Compute a bounded span (`min(total_commits - 1, 10)`) and return `N/A` when ther
 [CONFIDENCE: 72] Testing — test/controllers/factory_controller_test.rb:5
 FactoryController had only a skipped placeholder test, so regressions in git range selection could ship unnoticed.
 Replace the placeholder with focused tests that verify both the no-history path and the bounded range command arguments.
+
+## [2026-02-25 07:58] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Removed a duplicate `strict_loading` declaration in `Task` to keep model configuration single-sourced.
+**Why:** The repeated call was redundant and made the model definition noisier without adding behavior.
+**Files:** app/models/task.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2471 runs, 5668 assertions, 0 failures)
+**Commit:** 1eaa141
+**Risk:** low (no behavior change; configuration cleanup)
