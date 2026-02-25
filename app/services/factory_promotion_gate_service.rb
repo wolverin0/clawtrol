@@ -14,7 +14,7 @@ class FactoryPromotionGateService
   Result = Struct.new(:name, :success, :output, keyword_init: true)
 
   class << self
-    def verify!(repo_path, include_e2e: false)
+    def verify!(repo_path, include_e2e: false, fail_fast: true)
       normalized_repo_path = normalize_repo_path(repo_path)
       unless normalized_repo_path
         return {
@@ -24,12 +24,17 @@ class FactoryPromotionGateService
         }
       end
 
-      checks = check_definitions(include_e2e:).map do |check|
-        run_check(
+      checks = []
+
+      check_definitions(include_e2e:).each do |check|
+        result = run_check(
           name: check[:name],
           command: check[:command],
           repo_path: normalized_repo_path
         )
+
+        checks << result
+        break if fail_fast && !result.success
       end
 
       success = checks.all?(&:success)
