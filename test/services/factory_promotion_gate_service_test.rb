@@ -155,6 +155,15 @@ class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "normalize_repo_path accepts git worktree marker file" do
+    Dir.mktmpdir do |tmpdir|
+      File.write(File.join(tmpdir, ".git"), "gitdir: /tmp/fake-worktree")
+
+      normalized = FactoryPromotionGateService.send(:normalize_repo_path, tmpdir)
+      assert_equal tmpdir, normalized
+    end
+  end
+
   test "normalize_repo_path returns nil for non git subdirectory" do
     Dir.chdir(Rails.root) do
       assert_nil FactoryPromotionGateService.send(:normalize_repo_path, "app")
