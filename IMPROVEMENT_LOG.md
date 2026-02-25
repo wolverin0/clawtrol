@@ -3581,3 +3581,18 @@ Guard blank/nil/whitespace paths before expansion and keep explicit regression c
 [CONFIDENCE: 84] Correctness — app/controllers/mission_control_controller.rb:8
 Mission Control used a single static cache key for health snapshots, which can leak stale data between environments if they share cache storage.
 Namespace the key with `Rails.env` and keep regression coverage that verifies separate recomputation per environment.
+
+## [2026-02-25 05:00] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Replaced placeholder `SubAgentOutputContract` test stub with focused regression coverage and normalized scalar text fields (`summary`, `validation`, `recommended_action`) during payload parsing.
+**Why:** The contract previously preserved leading/trailing whitespace in scalar fields, which produced noisy markdown/payload output and made test assertions brittle. There was also no service-level test coverage, so regressions in nested extraction/normalization could slip through.
+**Files:** app/services/sub_agent_output_contract.rb, test/services/sub_agent_output_contract_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2469 runs, 5658 assertions, 0 failures)
+**Risk:** low (string normalization hardening + test coverage)
+
+[CONFIDENCE: 78] Testing — test/services/sub_agent_output_contract_test.rb:5
+`SubAgentOutputContract` had no behavioral tests, leaving nested contract extraction and output formatting paths unguarded.
+Replace the skipped placeholder with regression tests that validate normalization, validation payload handling, and markdown rendering.
+
+[CONFIDENCE: 67] Correctness — app/services/sub_agent_output_contract.rb:24
+Scalar fields were not trimmed, so user-visible summaries and recommended actions could retain accidental whitespace.
+Normalize scalar text through a shared `normalized_text` helper before serializing payload/markdown output.
