@@ -3646,3 +3646,18 @@ Consolidate section rendering with a helper that counts once and fetches only bo
 [CONFIDENCE: 85] Correctness — app/services/dead_route_scanner.rb:57
 Scanner success criteria only failed on 404/500/empty body and missed Turbo Frame mismatch responses that are logically broken despite returning HTTP 200.
 Detect the canonical Turbo mismatch marker in successful response bodies and mark those routes as failed for accurate dead-route reporting.
+
+## [2026-02-25 07:40] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Hardened `FactoryController#playground` file-change stats to avoid invalid `HEAD~10` ranges on shallow/new repositories by using a bounded commit span helper.
+**Why:** The previous implementation always diffed `HEAD~10..HEAD`, which emits `fatal: bad revision 'HEAD'` when the repo has insufficient history. This polluted logs/test output and can mask real issues.
+**Files:** app/controllers/factory_controller.rb, test/controllers/factory_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2471 runs, 5668 assertions, 0 failures)
+**Risk:** low (defensive range calculation + focused controller unit tests)
+
+[CONFIDENCE: 82] Correctness — app/controllers/factory_controller.rb:34
+Playground stats used a fixed `HEAD~10` diff range, which is invalid on repositories with fewer than 11 commits and causes noisy fatal git errors.
+Compute a bounded span (`min(total_commits - 1, 10)`) and return `N/A` when there is not enough history.
+
+[CONFIDENCE: 72] Testing — test/controllers/factory_controller_test.rb:5
+FactoryController had only a skipped placeholder test, so regressions in git range selection could ship unnoticed.
+Replace the placeholder with focused tests that verify both the no-history path and the bounded range command arguments.
