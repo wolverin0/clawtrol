@@ -1,5 +1,18 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-25 05:25] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Allowed root route (`/`) to be scanned by `DeadRouteScanner` and added regression coverage.
+**Why:** Scanner excluded any path shorter than 3 chars, which unintentionally dropped the homepage route (`/`) from health scans. That could hide 500/empty-response failures on the most critical endpoint.
+**Files:**
+- `app/services/dead_route_scanner.rb`
+- `test/services/dead_route_scanner_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2469 runs, 5658 assertions, 0 failures)
+**Risk:** low — narrow path-filter fix with test coverage.
+
+[CONFIDENCE: 88] Correctness — app/services/dead_route_scanner.rb:46
+Path-length filtering treated `/` as non-scannable, skipping homepage checks entirely.
+Allow `/` as a special-case scannable route while keeping the short-path filter for other endpoints.
+
 ## [2026-02-25 02:58] - Category: Testing — STATUS: ✅ VERIFIED
 **What:** Added regression coverage for git worktree repository detection in `FactoryPromotionGateService`.
 **Why:** The promotion gate now allows repositories where `.git` is a file (git worktree), but tests only covered standard `.git` directories. This left a gap that could regress worktree support silently.
