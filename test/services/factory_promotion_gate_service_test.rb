@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "tmpdir"
 
 class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
   test "verify! runs syntax and test checks" do
@@ -76,7 +77,17 @@ class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
 
     assert_not result[:success]
     assert_equal "Promotion gate failed", result[:message]
-    assert_equal [{ name: "repo_path", success: false, output: "Repository path is not accessible" }], result[:checks]
+    assert_equal [{ name: "repo_path", success: false, output: "Repository path must point to a git repository" }], result[:checks]
+  end
+
+  test "verify! fails when directory is not a git repository" do
+    Dir.mktmpdir do |tmpdir|
+      result = FactoryPromotionGateService.verify!(tmpdir)
+
+      assert_not result[:success]
+      assert_equal "Promotion gate failed", result[:message]
+      assert_equal [{ name: "repo_path", success: false, output: "Repository path must point to a git repository" }], result[:checks]
+    end
   end
 
   test "check_definitions appends e2e check only when requested" do
@@ -137,10 +148,16 @@ class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "normalize_repo_path expands valid relative directory" do
+  test "normalize_repo_path expands valid git repository directory" do
     Dir.chdir(Rails.root) do
-      normalized = FactoryPromotionGateService.send(:normalize_repo_path, "app")
-      assert_equal Rails.root.join("app").to_s, normalized
+      normalized = FactoryPromotionGateService.send(:normalize_repo_path, ".")
+      assert_equal Rails.root.to_s, normalized
+    end
+  end
+
+  test "normalize_repo_path returns nil for non git subdirectory" do
+    Dir.chdir(Rails.root) do
+      assert_nil FactoryPromotionGateService.send(:normalize_repo_path, "app")
     end
   end
 end

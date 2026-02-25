@@ -20,7 +20,7 @@ class FactoryPromotionGateService
         return {
           success: false,
           message: "Promotion gate failed",
-          checks: [Result.new(name: "repo_path", success: false, output: "Repository path is not accessible").to_h]
+          checks: [Result.new(name: "repo_path", success: false, output: "Repository path must point to a git repository").to_h]
         }
       end
 
@@ -55,9 +55,12 @@ class FactoryPromotionGateService
 
     def normalize_repo_path(repo_path)
       expanded_path = File.expand_path(repo_path.to_s)
-      return expanded_path if File.directory?(expanded_path)
+      return nil unless File.directory?(expanded_path)
 
-      nil
+      git_marker_path = File.join(expanded_path, ".git")
+      return nil unless File.directory?(git_marker_path) || File.file?(git_marker_path)
+
+      expanded_path
     end
 
     def run_check(name:, command:, repo_path:)
