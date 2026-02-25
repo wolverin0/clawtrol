@@ -29,6 +29,7 @@ class ApiToken < ApplicationRecord
     digest = Digest::SHA256.hexdigest(token)
     api_token = find_by(token_digest: digest)
     return nil unless api_token
+    return nil if api_token.expires_at.present? && api_token.expires_at <= Time.current
 
     # Debounce last_used_at writes to reduce DB load under high request volume
     if api_token.last_used_at.nil? || api_token.last_used_at < LAST_USED_DEBOUNCE.ago

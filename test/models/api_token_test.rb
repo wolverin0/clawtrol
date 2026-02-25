@@ -40,6 +40,12 @@ class ApiTokenTest < ActiveSupport::TestCase
     assert_nil user
   end
 
+  test "authenticate returns nil for expired token" do
+    user = users(:one)
+    token = user.api_tokens.create!(name: "Expired Token", expires_at: 1.hour.ago)
+    assert_nil ApiToken.authenticate(token.raw_token)
+  end
+
   test "authenticate returns nil for blank token" do
     assert_nil ApiToken.authenticate(nil)
     assert_nil ApiToken.authenticate("")
