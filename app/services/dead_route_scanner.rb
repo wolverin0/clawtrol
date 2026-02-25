@@ -24,8 +24,9 @@ class DeadRouteScanner
           session.get(path)
           status = session.response.status
           empty = empty_success_response?(status, session.response)
+          turbo_frame_mismatch = turbo_frame_mismatch_response?(status, session.response)
 
-          success_result(path: path, status: status, empty: empty)
+          success_result(path: path, status: status, empty: empty, turbo_frame_mismatch: turbo_frame_mismatch)
         rescue StandardError => e
           failure_result(path: path, exception: safe_exception_message(e))
         end
@@ -59,13 +60,21 @@ class DeadRouteScanner
       status.between?(200, 299) && response.body.to_s.strip.empty?
     end
 
-    def success_result(path:, status:, empty:)
+    def turbo_frame_mismatch_response?(status, response)
+      return false unless status.between?(200, 299)
+
+      body = response.body.to_s
+      body.include?("did not contain the expected <turbo-frame")
+    end
+
+    def success_result(path:, status:, empty:, turbo_frame_mismatch: false)
       {
         path: path,
         status: status,
-        ok: status < 400 && !empty,
-        failed: status >= 500 || status == 404 || empty,
+        ok: status < 400 && !empty && !turbo_frame_mismatch,
+        failed: status >= 500 || status == 404 || empty || turbo_frame_mismatch,
         empty: empty,
+        turbo_frame_mismatch: turbo_frame_mismatch,
         exception: nil
       }
     end
@@ -77,6 +86,7 @@ class DeadRouteScanner
         ok: false,
         failed: true,
         empty: false,
+        turbo_frame_mismatch: false,
         exception: exception
       }
     end
