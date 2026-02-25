@@ -3677,3 +3677,11 @@ Replace the placeholder with focused tests that verify both the no-history path 
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2472 runs, 5671 assertions, 0 failures)
 **Commit:** 63159f4
 **Risk:** low (test-only change)
+
+## [2026-02-25 08:13] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Reused a single `Time.current` value when formatting model limit reset windows.
+**Why:** The method previously queried the clock multiple times, which can skew comparisons and adds unnecessary calls during frequent status rendering.
+**Files:** app/models/model_limit.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2472 runs, 5671 assertions, 0 failures)
+**Commit:** 3d1536e
+**Risk:** low (no behavior change beyond consistent timing)
