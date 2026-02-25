@@ -31,7 +31,7 @@ class FactoryController < ApplicationController
     # Stats
     @total_commits = safe_shell("git", "-C", playground_path, "rev-list", "--count", "HEAD").strip.to_i
     @factory_commits = safe_shell("git", "-C", playground_path, "rev-list", "--count", "--all", "--grep=[factory]").strip.to_i rescue 0
-    @files_changed = safe_shell("git", "-C", playground_path, "diff", "--stat", "HEAD~10", "HEAD", "--", "app/", "test/", "db/").lines.last&.strip || "N/A"
+    @files_changed = recent_files_changed_summary(playground_path, @total_commits)
 
     # Diff for a specific commit (via params)
     @selected_diff = nil
@@ -196,6 +196,13 @@ class FactoryController < ApplicationController
       :github_url, :github_pr_enabled, :github_pr_batch_size, :github_default_branch,
       config: {}, state: {}
     )
+  end
+
+  def recent_files_changed_summary(playground_path, total_commits)
+    span = [total_commits - 1, 10].min
+    return "N/A" unless span.positive?
+
+    safe_shell("git", "-C", playground_path, "diff", "--stat", "HEAD~#{span}", "HEAD", "--", "app/", "test/", "db/").lines.last&.strip || "N/A"
   end
 
   # Safe shell execution with timeout and error handling
