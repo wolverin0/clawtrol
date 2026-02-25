@@ -3620,3 +3620,15 @@ Normalize scalar text through a shared `normalized_text` helper before serializi
 [CONFIDENCE: 73] Performance — app/services/daily_executive_digest_service.rb:28
 Digest rendering was issuing redundant relation checks/counts and loading full records where only task names were needed.
 Consolidate section rendering with a helper that counts once and fetches only bounded `name` fields via `pluck`.
+
+## [2026-02-25 06:27] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Updated `DeadRouteScanner` to flag Turbo Frame mismatch bodies as failed scans and expose `turbo_frame_mismatch` in scan output.
+**Why:** The scanner previously treated any non-empty 2xx response as healthy, so Turbo mismatch responses (`did not contain the expected <turbo-frame`) were incorrectly reported as successful routes.
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2470 runs, 5664 assertions, 0 failures)
+**Commit:** 43ecff0
+**Risk:** low (narrow failure-condition detection + regression test)
+
+[CONFIDENCE: 85] Correctness — app/services/dead_route_scanner.rb:57
+Scanner success criteria only failed on 404/500/empty body and missed Turbo Frame mismatch responses that are logically broken despite returning HTTP 200.
+Detect the canonical Turbo mismatch marker in successful response bodies and mark those routes as failed for accurate dead-route reporting.
