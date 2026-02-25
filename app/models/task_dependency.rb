@@ -38,9 +38,11 @@ class TaskDependency < ApplicationRecord
   def would_create_cycle?
     visited = Set.new
     queue = [depends_on_id]
+    index = 0
 
-    while queue.any?
-      current_id = queue.shift
+    while index < queue.length
+      current_id = queue[index]
+      index += 1
       return true if current_id == task_id
       next if visited.include?(current_id)
 
