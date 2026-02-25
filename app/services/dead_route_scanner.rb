@@ -46,6 +46,7 @@ class DeadRouteScanner
       return false if path.blank?
 
       supports_get_verb?(route.verb) &&
+        path.start_with?("/") &&
         !route.internal &&
         path !~ /[:*]/ &&
         (path == "/" || path.length >= MIN_PATH_LENGTH) &&
