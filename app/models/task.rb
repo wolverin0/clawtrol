@@ -6,6 +6,7 @@ class Task < ApplicationRecord
   include Task::TranscriptParsing
   include Task::DependencyManagement
   include Task::AgentIntegration
+  include ValidationCommandSafety
 
   # strict_loading helps detect N+1 queries in development/test
   strict_loading :n_plus_one
@@ -247,20 +248,12 @@ end
     end
   end
 
-  # Security: validate that validation_command is safe to execute
-  def validation_command_is_safe
-    cmd = validation_command.to_s.strip
+  def validation_command_unsafe_message
+    "contains unsafe shell metacharacters (no ;, |, &, $, backticks allowed)"
+  end
 
-    # Reject shell metacharacters
-    if cmd.match?(UNSAFE_COMMAND_PATTERN)
-      errors.add(:validation_command, "contains unsafe shell metacharacters (no ;, |, &, $, backticks allowed)")
-      return
-    end
-
-    # Must start with an allowed prefix
-    unless ALLOWED_VALIDATION_PREFIXES.any? { |prefix| cmd.start_with?(prefix) }
-      errors.add(:validation_command, "must start with an allowed prefix: #{ALLOWED_VALIDATION_PREFIXES.join(', ')}")
-    end
+  def validation_command_prefix_message
+    "must start with an allowed prefix: #{ALLOWED_VALIDATION_PREFIXES.join(', ')}"
   end
 
   def set_position
