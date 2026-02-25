@@ -1,5 +1,17 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-25 02:58] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added regression coverage for git worktree repository detection in `FactoryPromotionGateService`.
+**Why:** The promotion gate now allows repositories where `.git` is a file (git worktree), but tests only covered standard `.git` directories. This left a gap that could regress worktree support silently.
+**Files:**
+- `test/services/factory_promotion_gate_service_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅
+**Risk:** low — test-only change.
+
+[CONFIDENCE: 82] Testing — test/services/factory_promotion_gate_service_test.rb:174
+Worktree support (`.git` marker file) was implemented but not protected by a direct regression test.
+Add a temporary directory fixture with a `.git` file marker and assert `normalize_repo_path` accepts it.
+
 ## [2026-02-25 02:29] - Category: Security — STATUS: ✅ VERIFIED
 **What:** Hardened `FactoryPromotionGateService` repository validation to only accept git repositories (`.git` directory or worktree `.git` file), and added regression coverage.
 **Why:** Promotion gate commands are shell-executed against `repo_path`. Previously, any existing directory was accepted, which widened command execution surface and made accidental misuse easier.
