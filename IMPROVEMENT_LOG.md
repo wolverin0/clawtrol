@@ -1,5 +1,18 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-25 00:51] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Hardened `DeadRouteScanner.route_paths` against nil route path specs.
+**Why:** Some Rails route objects (especially engine/mount edge cases) can expose nil `path`/`spec`. The scanner previously assumed `route.path.spec` always existed, which could raise and abort route collection.
+**Files:**
+- `app/services/dead_route_scanner.rb`
+- `test/services/dead_route_scanner_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2459 runs, 5622 assertions, 0 failures)
+**Risk:** low — defensive nil-guard only, behavior unchanged for valid routes.
+
+[CONFIDENCE: 79] Correctness — app/services/dead_route_scanner.rb:36
+`normalized_path` assumed every route had a non-nil `path.spec`, which can raise on malformed/mounted route entries.
+Guard nil path/spec early and skip non-normalizable routes before scannable checks.
+
 ## [2026-02-25 00:25] - Category: Security — STATUS: ✅ VERIFIED
 **What:** Added a hard safety cap for cherry-pick batch size in `CherryPickService` (`MAX_CHERRY_PICK_COMMITS = 20`) and test coverage for over-limit rejection.
 **Why:** `cherry_pick!` accepted an unbounded list of hashes. A large payload could trigger long-running git operations and create avoidable operational risk during promotion.

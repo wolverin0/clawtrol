@@ -35,10 +35,15 @@ class DeadRouteScanner
     private
 
     def normalized_path(route)
-      route.path.spec.to_s.delete_suffix("(.:format)")
+      spec = route&.path&.spec
+      return nil if spec.blank?
+
+      spec.to_s.delete_suffix("(.:format)")
     end
 
     def scannable_get_route?(route, path)
+      return false if path.blank?
+
       supports_get_verb?(route.verb) &&
         !route.internal &&
         path !~ /[:*]/ &&
