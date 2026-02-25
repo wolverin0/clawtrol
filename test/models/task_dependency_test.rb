@@ -24,6 +24,13 @@ class TaskDependencyTest < ActiveSupport::TestCase
     assert_includes dep.errors[:base], "cannot depend on itself"
   end
 
+  test "missing dependency does not add self-dependency error" do
+    dep = TaskDependency.new(task: @task1)
+    assert_not dep.valid?
+    assert dep.errors[:depends_on].any?
+    assert_not_includes dep.errors[:base], "cannot depend on itself"
+  end
+
   test "rejects duplicate dependency" do
     TaskDependency.create!(task: @task1, depends_on: @task2)
     dup = TaskDependency.new(task: @task1, depends_on: @task2)
