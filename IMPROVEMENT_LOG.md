@@ -3559,3 +3559,14 @@ Roadmap Executor Sync completed
 [CONFIDENCE: 74] Testing — test/helpers/navigation_helper_test.rb:75
 `nav_item_active?` contains multi-branch conditions (`action`, `id_param`, `exact_action`) that were not fully covered by focused unit tests.
 Pin each branch with direct helper regression tests to prevent desktop/mobile active-state drift during future nav changes.
+
+## [2026-02-25 03:25] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened `FactoryPromotionGateService` repo-path normalization to reject blank inputs before path expansion, and added regression tests for `nil`/empty/whitespace values.
+**Why:** `File.expand_path(repo_path.to_s)` treats blank input as current working directory, which can unintentionally validate and run gate commands against an unintended repository when callers pass missing input.
+**Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2465 runs, 5637 assertions, 0 failures)
+**Risk:** low (input validation hardening + targeted tests)
+
+[CONFIDENCE: 87] Security — app/services/factory_promotion_gate_service.rb:53
+Blank `repo_path` values were normalized via `File.expand_path` to the current directory, allowing accidental gate execution in the wrong repository context.
+Guard blank/nil/whitespace paths before expansion and keep explicit regression coverage for those inputs.
