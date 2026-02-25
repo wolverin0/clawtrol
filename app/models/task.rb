@@ -29,9 +29,6 @@ class Task < ApplicationRecord
   has_many :agent_messages, dependent: :destroy, inverse_of: :task
   has_many :agent_activity_events, dependent: :destroy, inverse_of: :task
 
-  # Enforce eager loading to prevent N+1 queries
-  strict_loading :n_plus_one
-
   # Task dependencies (blocking relationships)
   has_many :task_dependencies, dependent: :destroy, inverse_of: :task
   has_many :dependencies, through: :task_dependencies, source: :depends_on
