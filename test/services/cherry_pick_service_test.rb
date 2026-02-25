@@ -88,6 +88,17 @@ class CherryPickServiceTest < ActiveSupport::TestCase
     assert_equal false, result.success
   end
 
+  test "cherry_pick! rejects requests above commit safety limit" do
+    valid_hashes = (1..(CherryPickService::MAX_CHERRY_PICK_COMMITS + 1)).map { |i| format("%07x", i) }
+
+    result = CherryPickService.cherry_pick!(valid_hashes)
+
+    assert_equal false, result.success
+    assert_equal "Too many commits requested", result.message
+    assert_equal CherryPickService::MAX_CHERRY_PICK_COMMITS, result.data[:max_commits]
+    assert_equal valid_hashes.size, result.data[:requested]
+  end
+
   test "Result struct has expected attributes" do
     result = CherryPickService::Result.new(success: true, message: "ok", data: { foo: 1 })
     assert_equal true, result.success

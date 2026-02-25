@@ -5,6 +5,7 @@
 class CherryPickService
   PLAYGROUND_PATH = File.expand_path(ENV.fetch("CHERRY_PICK_PLAYGROUND_PATH", "~/.openclaw/workspace/clawtrolplayground"))
   PRODUCTION_PATH = File.expand_path("~/clawdeck")
+  MAX_CHERRY_PICK_COMMITS = 20
 
   Result = Struct.new(:success, :message, :data, keyword_init: true)
 
@@ -63,6 +64,14 @@ class CherryPickService
     def cherry_pick!(commit_hashes, dry_run: false)
       hashes = Array(commit_hashes).map(&:to_s).uniq.select { |h| valid_hash?(h) }
       return Result.new(success: false, message: "No valid commit hashes provided") if hashes.empty?
+
+      if hashes.size > MAX_CHERRY_PICK_COMMITS
+        return Result.new(
+          success: false,
+          message: "Too many commits requested",
+          data: { max_commits: MAX_CHERRY_PICK_COMMITS, requested: hashes.size }
+        )
+      end
 
       non_factory_hashes = hashes.reject { |hash| factory_commit?(hash) }
       if non_factory_hashes.any?
