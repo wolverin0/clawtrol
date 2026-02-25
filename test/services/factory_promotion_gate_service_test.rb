@@ -30,6 +30,25 @@ class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
       assert_not result[:success]
       assert_equal "Promotion gate failed", result[:message]
       assert_equal [true, false], result[:checks].map { |c| c[:success] }
+      assert_equal 2, calls
+    end
+  end
+
+  test "verify! stops after first failing check by default" do
+    failing = FactoryPromotionGateService::Result.new(name: "syntax_check", success: false, output: "boom")
+    passing = FactoryPromotionGateService::Result.new(name: "test_command", success: true, output: "ok")
+
+    calls = 0
+    FactoryPromotionGateService.stub(:run_check, lambda { |**_kwargs|
+      calls += 1
+      calls == 1 ? failing : passing
+    }) do
+      result = FactoryPromotionGateService.verify!(Rails.root.to_s)
+
+      assert_not result[:success]
+      assert_equal 1, result[:checks].size
+      assert_equal [false], result[:checks].map { |c| c[:success] }
+      assert_equal 1, calls
     end
   end
 
@@ -39,6 +58,16 @@ class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
     FactoryPromotionGateService.stub(:run_check, check) do
       result = FactoryPromotionGateService.verify!(Rails.root.to_s, include_e2e: true)
       assert_equal 3, result[:checks].size
+    end
+  end
+
+  test "verify! can continue after failures when fail_fast is false" do
+    failing = FactoryPromotionGateService::Result.new(name: "syntax_check", success: false, output: "boom")
+
+    FactoryPromotionGateService.stub(:run_check, failing) do
+      result = FactoryPromotionGateService.verify!(Rails.root.to_s, include_e2e: true, fail_fast: false)
+      assert_equal 3, result[:checks].size
+      assert_equal [false, false, false], result[:checks].map { |c| c[:success] }
     end
   end
 
