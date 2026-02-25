@@ -1,5 +1,19 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-25 06:56] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened `DeadRouteScanner` to scan only relative in-app paths (must start with `/`) and added regression coverage for absolute URL-like route specs.
+**Why:** Route scanning should never attempt to request non-relative/externally-shaped paths; enforcing a leading slash keeps scanner behavior bounded to app routes and avoids malformed request targets.
+**Files:**
+- `app/services/dead_route_scanner.rb`
+- `test/services/dead_route_scanner_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2470 runs, 5664 assertions, 0 failures)
+**Commit:** aa60002
+**Risk:** low — additive route guard + regression test.
+
+[CONFIDENCE: 84] Security — app/services/dead_route_scanner.rb:48
+Scanner accepted any GET-like path spec, including non-relative values, which could expand request targets beyond intended in-app routes.
+Require route paths to start with `/` before scanning and cover with a regression test for absolute URL-like specs.
+
 ## [2026-02-25 05:25] - Category: Bug Fix — STATUS: ✅ VERIFIED
 **What:** Allowed root route (`/`) to be scanned by `DeadRouteScanner` and added regression coverage.
 **Why:** Scanner excluded any path shorter than 3 chars, which unintentionally dropped the homepage route (`/`) from health scans. That could hide 500/empty-response failures on the most critical endpoint.
