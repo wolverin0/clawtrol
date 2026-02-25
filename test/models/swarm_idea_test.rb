@@ -155,13 +155,17 @@ class SwarmIdeaTest < ActiveSupport::TestCase
   end
 
   test "launched_today? returns true if launched today" do
-    @idea.last_launched_at = 1.hour.ago
-    assert @idea.launched_today?
+    travel_to Time.current.middle_of_day do
+      @idea.last_launched_at = 1.hour.ago
+      assert @idea.launched_today?
+    end
   end
 
   test "launched_today? returns false if launched yesterday" do
-    @idea.last_launched_at = 1.day.ago
-    assert_not @idea.launched_today?
+    travel_to Time.current.middle_of_day do
+      @idea.last_launched_at = 1.day.ago
+      assert_not @idea.launched_today?
+    end
   end
 
   test "launch_count_display returns nil when never launched" do
