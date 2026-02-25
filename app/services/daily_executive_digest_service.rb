@@ -5,86 +5,93 @@ require "uri"
 require "cgi"
 
 class DailyExecutiveDigestService
-  def self.call
-    new.call
+  DEFAULT_MISSION_CONTROL_THREAD_ID = 1
+
+  def initialize(user)
+    @user = user
   end
 
   def call
-    User.find_each do |user|
-      next unless telegram_configured?(user)
-      send_digest(user)
+    return unless telegram_configured?
+
+    send_telegram(format_digest)
+  end
+
+  def format_digest
+    time_range = Time.current.beginning_of_day..Time.current.end_of_day
+
+    done_tasks = @user.tasks.where(status: "done", updated_at: time_range)
+    failed_tasks = @user.tasks.where.not(error_at: nil).where(updated_at: time_range)
+    blocked_tasks = @user.tasks.where(blocked: true)
+    next_tasks = @user.tasks.where(status: "up_next").order(priority: :desc, position: :asc).limit(3)
+
+    digest = "📊 <b>Daily Executive Digest</b>\n\n"
+
+    digest += "✅ <b>Done Today (#{done_tasks.count}):</b>\n"
+    if done_tasks.any?
+      done_tasks.limit(5).each { |t| digest += "• #{escape_html(t.name)}\n" }
+      digest += "• <i>...and #{done_tasks.count - 5} more</i>\n" if done_tasks.count > 5
+    else
+      digest += "• <i>No tasks completed</i>\n"
     end
+    digest += "\n"
+
+    if failed_tasks.any?
+      digest += "❌ <b>Failed Today (#{failed_tasks.count}):</b>\n"
+      failed_tasks.limit(5).each { |t| digest += "• #{escape_html(t.name)}\n" }
+      digest += "• <i>...and #{failed_tasks.count - 5} more</i>\n" if failed_tasks.count > 5
+      digest += "\n"
+    end
+
+    if blocked_tasks.any?
+      digest += "🚧 <b>Blocked (#{blocked_tasks.count}):</b>\n"
+      blocked_tasks.limit(5).each { |t| digest += "• #{escape_html(t.name)}\n" }
+      digest += "• <i>...and #{blocked_tasks.count - 5} more</i>\n" if blocked_tasks.count > 5
+      digest += "\n"
+    end
+
+    digest += "⏭️ <b>Up Next (Top 3):</b>\n"
+    if next_tasks.any?
+      next_tasks.each { |t| digest += "• #{escape_html(t.name)}\n" }
+    else
+      digest += "• <i>Inbox zero!</i>\n"
+    end
+
+    digest
   end
 
   private
 
-  def telegram_configured?(user)
-    telegram_bot_token.present? && telegram_chat_id(user).present?
+  def escape_html(value)
+    CGI.escapeHTML(value.to_s)
   end
 
   def telegram_bot_token
     ENV["CLAWTROL_TELEGRAM_BOT_TOKEN"].presence || ENV["TELEGRAM_BOT_TOKEN"].presence
   end
 
-  def telegram_chat_id(user)
-    user.telegram_chat_id.presence || ENV["CLAWTROL_TELEGRAM_CHAT_ID"].presence || ENV["TELEGRAM_CHAT_ID"].presence
+  def telegram_chat_id
+    @user.telegram_chat_id.presence || ENV["CLAWTROL_TELEGRAM_CHAT_ID"].presence || ENV["TELEGRAM_CHAT_ID"].presence
   end
 
-  def send_digest(user)
-    today = Time.current.beginning_of_day..Time.current.end_of_day
-    
-    done = user.tasks.where(status: "done", updated_at: today)
-    failed = user.tasks.where.not(error_message: [nil, ""]).where(updated_at: today)
-    blocked = user.tasks.where(blocked: true)
-    up_next = user.tasks.where(status: "up_next").order(position: :asc).limit(3)
-
-    message = []
-    message << "📊 <b>Daily Executive Digest</b>\n"
-    
-    if done.any?
-      message << "✅ <b>Done Today</b> (#{done.count})"
-      done.each { |t| message << "• #{escape_html(t.name)}" }
-      message << ""
-    end
-
-    if failed.any?
-      message << "❌ <b>Failed Today</b> (#{failed.count})"
-      failed.each { |t| message << "• #{escape_html(t.name)}" }
-      message << ""
-    end
-
-    if blocked.any?
-      message << "🚧 <b>Currently Blocked</b> (#{blocked.count})"
-      blocked.each { |t| message << "• #{escape_html(t.name)}" }
-      message << ""
-    end
-
-    if up_next.any?
-      message << "⏭️ <b>Up Next</b> (Top 3)"
-      up_next.each { |t| message << "• #{escape_html(t.name)}" }
-      message << ""
-    end
-    
-    message << "<i>No significant activity to report.</i>" if done.empty? && failed.empty? && blocked.empty? && up_next.empty?
-
-    send_telegram_message(user, message.join("\n"))
+  def telegram_configured?
+    telegram_bot_token.present? && telegram_chat_id.present?
   end
 
-  def escape_html(value)
-    CGI.escapeHTML(value.to_s)
-  end
-
-  def send_telegram_message(user, text)
+  def send_telegram(message)
     uri = URI("https://api.telegram.org/bot#{telegram_bot_token}/sendMessage")
 
     params = {
-      chat_id: telegram_chat_id(user),
-      text: text,
+      chat_id: telegram_chat_id,
+      text: message,
       parse_mode: "HTML"
     }
 
+    # Default to Mission Control thread if available
+    params[:message_thread_id] = DEFAULT_MISSION_CONTROL_THREAD_ID
+
     Net::HTTP.post_form(uri, params)
   rescue StandardError => e
-    Rails.logger.warn("[DailyExecutiveDigest] Telegram failed for User #{user.id}: #{e.message}")
+    Rails.logger.warn("[DailyExecutiveDigest] Telegram failed for User #{@user.id}: #{e.message}")
   end
 end

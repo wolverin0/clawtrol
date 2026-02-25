@@ -1,5 +1,21 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-24 23:20] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Refactored Daily Executive Digest into a user-scoped service instance and updated the scheduled job to iterate users explicitly.
+**Why:** The digest service mixed cross-user iteration with rendering/sending logic. Separating concerns makes the service easier to test, avoids hidden global iteration, and improves failure isolation per user run.
+**Files:**
+- `app/jobs/daily_executive_digest_job.rb`
+- `app/services/daily_executive_digest_service.rb`
+- `test/jobs/daily_executive_digest_job_test.rb`
+- `test/services/daily_executive_digest_service_test.rb`
+- `test/models/swarm_idea_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2458 runs, 5618 assertions, 0 failures)
+**Risk:** low — behavior-preserving refactor with expanded coverage for per-user execution path.
+
+[CONFIDENCE: 83] Maintainability — app/services/daily_executive_digest_service.rb:8
+Service now has a single responsibility (format+send for one user) instead of internal global iteration.
+Keep the per-user loop in the job layer and keep the service user-scoped for clearer ownership and testability.
+
 ## [2026-02-24 20:38] - Category: Testing — STATUS: ✅ VERIFIED
 **What:** Expanded `NavigationHelper` coverage to assert `primary_navigation` board-link behavior for owned vs unowned `last_board_id` values.
 **Why:** Unified navbar registry logic now drives both desktop and mobile menus, but helper tests only covered `last_board_navigation_path` in isolation. These regressions lock URL resolution through the real `primary_navigation` payload used by both nav surfaces.

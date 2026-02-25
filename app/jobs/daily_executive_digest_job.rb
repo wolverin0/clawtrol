@@ -3,7 +3,11 @@
 class DailyExecutiveDigestJob < ApplicationJob
   queue_as :default
 
+  retry_on StandardError, wait: :exponentially_longer, attempts: 3
+
   def perform
-    DailyExecutiveDigestService.call
+    User.find_each do |user|
+      DailyExecutiveDigestService.new(user).call
+    end
   end
 end
