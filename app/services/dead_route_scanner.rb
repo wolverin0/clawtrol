@@ -47,7 +47,7 @@ class DeadRouteScanner
       supports_get_verb?(route.verb) &&
         !route.internal &&
         path !~ /[:*]/ &&
-        path.length >= MIN_PATH_LENGTH &&
+        (path == "/" || path.length >= MIN_PATH_LENGTH) &&
         EXCLUDED_PREFIXES.none? { |prefix| path.start_with?(prefix) }
     end
 
