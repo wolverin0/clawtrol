@@ -1,11 +1,11 @@
 class MissionControlController < ApplicationController
   before_action :set_no_store_cache_headers
 
-  SNAPSHOT_CACHE_KEY = "mission_control/health_snapshot/v1"
+  SNAPSHOT_CACHE_KEY_PREFIX = "mission_control/health_snapshot/v1".freeze
   SNAPSHOT_CACHE_TTL = 30.seconds
 
   def index
-    snapshot = Rails.cache.fetch(SNAPSHOT_CACHE_KEY, expires_in: SNAPSHOT_CACHE_TTL) do
+    snapshot = Rails.cache.fetch(snapshot_cache_key, expires_in: SNAPSHOT_CACHE_TTL) do
       MissionControlHealthSnapshotService.call
     end
 
@@ -19,6 +19,10 @@ class MissionControlController < ApplicationController
   end
 
   private
+
+  def snapshot_cache_key
+    "#{SNAPSHOT_CACHE_KEY_PREFIX}/#{Rails.env}"
+  end
 
   def set_no_store_cache_headers
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"

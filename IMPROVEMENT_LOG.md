@@ -3570,3 +3570,14 @@ Pin each branch with direct helper regression tests to prevent desktop/mobile ac
 [CONFIDENCE: 87] Security — app/services/factory_promotion_gate_service.rb:53
 Blank `repo_path` values were normalized via `File.expand_path` to the current directory, allowing accidental gate execution in the wrong repository context.
 Guard blank/nil/whitespace paths before expansion and keep explicit regression coverage for those inputs.
+
+## [2026-02-25 03:55] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Scoped Mission Control health snapshot cache key by environment.
+**Why:** The dashboard cache key was global (`mission_control/health_snapshot/v1`) and could collide across environments when sharing a cache backend, causing stale or cross-environment health data to be reused.
+**Files:** app/controllers/mission_control_controller.rb, test/controllers/mission_control_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2466 runs, 5638 assertions, 0 failures)
+**Risk:** low (cache-key namespacing + regression test)
+
+[CONFIDENCE: 84] Correctness — app/controllers/mission_control_controller.rb:8
+Mission Control used a single static cache key for health snapshots, which can leak stale data between environments if they share cache storage.
+Namespace the key with `Rails.env` and keep regression coverage that verifies separate recomputation per environment.
