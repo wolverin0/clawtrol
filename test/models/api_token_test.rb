@@ -172,4 +172,8 @@ class ApiTokenTest < ActiveSupport::TestCase
     tokens = ApiToken.by_user(user)
     assert tokens.all? { |t| t.user_id == user.id }
   end
+
+  test "scope by_user returns empty relation for nil user" do
+    assert_equal 0, ApiToken.by_user(nil).count
+  end
 end
