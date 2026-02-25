@@ -3712,3 +3712,11 @@ Preload existing links/tasks with `where(...).index_by` once, then resolve/creat
 **Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2474 runs, 5676 assertions, 0 failures)
 **Commit:** 101af88
 **Risk:** low (guarded validation + focused test)
+
+## [2026-02-25 08:30] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Centralized validation-command safety checks in a shared concern for tasks and templates.
+**Why:** The same safety logic lived in two models, which risked drifting behavior and duplicated maintenance.
+**Files:** app/models/concerns/validation_command_safety.rb, app/models/task.rb, app/models/task_template.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2474 runs, 5676 assertions, 0 failures)
+**Commit:** 45d2a6a
+**Risk:** low (behavior-preserving refactor with shared helpers)
