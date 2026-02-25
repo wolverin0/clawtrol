@@ -54,7 +54,10 @@ class FactoryPromotionGateService
     end
 
     def normalize_repo_path(repo_path)
-      expanded_path = File.expand_path(repo_path.to_s)
+      repo_path_str = repo_path.to_s.strip
+      return nil if repo_path_str.empty?
+
+      expanded_path = File.expand_path(repo_path_str)
       return nil unless File.directory?(expanded_path)
 
       git_marker_path = File.join(expanded_path, ".git")

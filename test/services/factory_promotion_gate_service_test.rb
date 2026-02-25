@@ -164,6 +164,12 @@ class FactoryPromotionGateServiceTest < ActiveSupport::TestCase
     end
   end
 
+  test "normalize_repo_path returns nil for blank input" do
+    assert_nil FactoryPromotionGateService.send(:normalize_repo_path, nil)
+    assert_nil FactoryPromotionGateService.send(:normalize_repo_path, "")
+    assert_nil FactoryPromotionGateService.send(:normalize_repo_path, "   ")
+  end
+
   test "normalize_repo_path returns nil for non git subdirectory" do
     Dir.chdir(Rails.root) do
       assert_nil FactoryPromotionGateService.send(:normalize_repo_path, "app")
