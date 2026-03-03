@@ -5,13 +5,17 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ## [Unreleased]
 
-## [2026.3.0] - 2026-03-03
-
 ### 🚀 Features
 
+- ship learning effectiveness, board file refs, zeroclaw auditor, sessions explorer (`4068453`)
+- [factory] architecture add RoadmapExecutorSync to sync markdown to board tasks (`55c3096`)
 - expose effective_prompt in task API for orchestrator consumption (`c88d3e5`)
 - inject agent_persona context into effective_prompt (`477e51e`)
 - **p0:** description separation + structured TaskRun output + modal history tab (`23e3b7a`)
+- [factory] add Mission Control Health Dashboard (`db5bbea`)
+- **architecture:** [factory] add health endpoint for mission control dashboard (`13e0892`)
+- [factory] add dead route scanner rake task (`755f3f0`)
+- [factory] Daily Executive Digest (Telegram summary) (`3bfe8a5`)
 - **queue:** add board-fair scheduler, quotas, same-task follow-up, and runner summaries (`05e25a2`)
 - **navbar:** add Docs Hub link to desktop and mobile navigation (`0847142`)
 - **agent-log:** durable sidecar ingest, backfill, and persisted timeline (`3b34b31`)
@@ -27,23 +31,44 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **lobster:** add resume_token migration and pipeline files (Lobster integration step 1) (`cd420e0`)
 - openclaw-only orchestration + pipeline stage consistency + dynamic model catalog + outcome reporting (`64cb65f`)
 - **factory:** cherry-pick GitHub integration — clone repos + create PRs (#95) (`f960ec1`)
-- feat: board file refs — attach project files to boards
-- feat: board project files — project file index and modal views
-- feat: learning effectiveness — track advisory effectiveness, import proposals
-- feat: zeroclaw auditor — job, sweep, checklists (coding/infra/report/research/default)
-- feat: sessions explorer — view raw OpenClaw session transcripts
-- feat: delivery target resolver — smart origin_chat_id/thread_id routing
-- feat: context menu for tasks — right-click actions on kanban cards
-- feat: computer use prompt template
-- feat: factoryctl + merge_gate bin scripts
-- docs: AGENT_SWARM_TASK_CONTRACT, FACTORYCTL, MERGE_GATE, ZEROCLAW_AUDITOR_GATE
 ### 🐛 Bug Fixes
 
+- [factory] skip self-dependency on missing ids (`101af88`)
+- [factory] block expired api tokens (`55173c8`)
+- [factory] bound playground git diff range for shallow history (`0f7aa1a`)
+- [factory] reject non-relative routes in dead route scanner (`aa60002`)
+- [factory] mark turbo-frame mismatch responses as failed (`43ecff0`)
+- [factory] include root path in dead route scanner (`e6b04cd`)
+- [factory] scope mission control snapshot cache by env (`8bd3502`)
+- [factory] reject blank promotion gate repo_path (`8760bcd`)
+- [factory] security restrict promotion gate to git repositories (`d5a99ed`)
+- [factory] harden dead route scanner nil-path handling (`2615031`)
+- [factory] security cap cherry-pick batch size and add guard tests (`ab2e993`)
 - **routing:** smart origin_thread_id + README P0 contract + doc unification (`537562d`)
+- [factory] harden mission control no-cache headers (`8b7b97c`)
+- [factory] tighten GET verb matching in dead route scanner (`d3816d2`)
+- [factory] support roadmap checkbox list variants (`336fde4`)
+- [factory] fail closed for mission control shell metrics (`84394bb`)
 - **transcript:** skip scope check for explicitly linked sessions (`b08bd1c`)
 - **p0:** resolve 6 workflow inconsistencies from audit (`a80a96c`)
 - **hooks:** resolve session_id linking + transcript auto-discovery (`6bf97b3`)
 - **p0:** enforce data contract — remove all description write paths (`c83c1d5`)
+- [factory] security bound workflow expression length (`7b15c84`)
+- [factory] prevent cycle number race in factory runner v2 (`fb8708c`)
+- [factory] desktop navbar active states (`bf69d03`)
+- [factory] disable caching for mission control dashboard (`75056c6`)
+- [factory] security harden promotion gate repo path (`51a6328`)
+- [factory] include regex-serialized GET routes in dead route scanner (`49fb96b`)
+- [factory] Bug Fixes: remove unused user fallback in factory engine (`7818ce4`)
+- [factory] security sanitize promotion gate error output (`3c6fee4`)
+- [factory] sanitize dead route scanner exception output (`e9bd722`)
+- [factory] flag empty 2xx pages in dead route scanner (`4ee0e2a`)
+- [factory] show unknown migrations when db disconnected (`57d6dbd`)
+- [factory] scan GET routes when route has multiple verbs (`476b72e`)
+- [factory] require explicit opt-in for Telegram fallback (`b67b7f4`)
+- [factory] enforce max file viewer edit payload size (`7ee3500`)
+- [factory] security harden cherry-pick commit filtering (`40a8c0b`)
+- [factory] escape HTML in daily digest telegram output (`c67aa0b`)
 - **auto-runner:** add safe burst headroom and document runtime hardening release (`07ef993`)
 - **api:** enforce strict task-scoped agent_log session resolution (`28c7216`)
 - **zerobitch:** scope activity to real task sessions and remove codemap panel (`9c38856`)
@@ -71,12 +96,32 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **mobile:** add data-turbo-frame=_top to bottom nav links — fixes Content missing on tab switch (`ec672b5`)
 ### 📚 Documentation
 
+- update CHANGELOG to 2026.3.0 and README feature list (`7bac873`)
+- [factory] log dependency scan perf tweak (`aa75713`)
+- [factory] log api token scope tweak (`432712e`)
+- [factory] log validation safety concern (`0afe371`)
+- [factory] log task dependency validation guard (`3b391ea`)
+- [factory] log api token expiry guard (`b58267a`)
+- [factory] log model limit timing tweak (`f7fb8e7`)
+- [factory] log validation prefix test (`94ca85f`)
+- [factory] log code quality cleanup (`49b0c4c`)
+- [factory] log dead route scanner security hardening (`4d5bd39`)
+- [factory] log dead route turbo-frame mismatch fix (`58595ab`)
+- [factory] log promotion gate fail-fast cycle (`42c9cc4`)
+- update CHANGELOG.md [skip ci] (`f4806d8`)
+- [factory] log security cache-header hardening cycle (`50f73ab`)
+- [factory] log dead route scanner GET matching fix (`069131d`)
 - update CHANGELOG.md [skip ci] (`05e71bd`)
 - update CHANGELOG.md [skip ci] (`26da7bc`)
 - update CHANGELOG.md [skip ci] (`5731403`)
 - update CHANGELOG.md [skip ci] (`654e94f`)
+- [factory] log workflow engine logger consistency cycle (`d969fb0`)
 - update CHANGELOG.md [skip ci] (`af324ff`)
 - update README + onboarding + integration for P0 data contract and session linking (`5dedf3e`)
+- [factory] log security expression guard cycle (`cacc009`)
+- [factory] log mission control cache hardening cycle (`390aa59`)
+- [factory] log empty-response scanner hardening (`836f831`)
+- [factory] update improvement log with mission control health dashboard (`005f5fb`)
 - update CHANGELOG.md [skip ci] (`8d0ad50`)
 - update CHANGELOG.md [skip ci] (`9db8eee`)
 - update CHANGELOG.md [skip ci] (`b67f70a`)
@@ -103,11 +148,46 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - update CHANGELOG.md [skip ci] (`2d984fb`)
 ### ♻️  Refactoring
 
+- [factory] make api token by_user chainable (`3027eb1`)
+- [factory] share validation command safety (`45d2a6a`)
+- [factory] architecture preload roadmap sync links and tasks (`e506681`)
+- [factory] remove duplicate strict_loading (`1eaa141`)
+- [factory] architecture refactor daily executive digest service scope (`fb3b154`)
+- [factory] remove unused legacy nav_icons partial (`a38046c`)
+- [factory] extract dead route scan result builders (`94dfe5f`)
+- [factory] use injected logger in workflow engine (`2b515dc`)
+- [factory] unify last-board nav path resolution (`b686804`)
+- [factory] code quality centralize promotion gate checks catalog (`091df51`)
+- [factory] add promotion gate service for cherry-pick verify (`440643f`)
+- [factory] code quality: DRY default work branch fallback (`afe7949`)
+- [factory] architecture: extract mission control health snapshot service (`1cd7662`)
+- [factory] Unified Navbar Registry (desktop + mobile parity) (`4bf6600`)
+- [factory] extract BehavioralInterventionUpdaterService (`0f39f8b`)
 - remove pipeline_assist mode — openclaw_only is the sole orchestration path (`d6b994e`)
 ### ⚡ Performance
 
+- [factory] avoid shift in dependency scan (`d21cc19`)
+- [factory] reuse time in model limit reset (`3d1536e`)
+- [factory] reduce digest query churn (`28bb930`)
+- [factory] fail-fast promotion gate checks (`b62ef42`)
+- [factory] dedupe sessions explorer task-link keys (`098ee45`)
+- [factory] cache mission control health snapshot (`4bb1574`)
+- [factory] dedupe dead route paths in single pass (`982b6a1`)
+- [factory] Performance: use Open3 chdir for promotion checks (`c7460a4`)
+- [factory] skip wildcard routes in dead route scanner (`ce71809`)
 ### 🧪 Tests
 
+- [factory] cover validation command prefix (`63159f4`)
+- [factory] cover sub-agent output contract normalization (`7885e3f`)
+- [factory] cover git worktree marker in promotion gate (`a3504b0`)
+- [factory] cover navigation helper active-state branches (`8df4a6d`)
+- [factory] add primary_navigation board-link regression tests (`f7f1d52`)
+- [factory] add mission control cache ttl regression (`f6346b9`)
+- [factory] add promotion gate timeout/path regression tests (`b61f114`)
+- [factory] Testing: add factory engine init fallback regression (`d309b49`)
+- [factory] add ModelCatalogService coverage (`12a137b`)
+- [factory] cover dead route scanner behavior (`db14619`)
+- [factory] fix missing assertions in job and model tests (`357fa58`)
 - stabilize board system login setup for deterministic selenium runs (`58f3140`)
 ### 👷 CI
 
@@ -117,6 +197,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🔧 Chores
 
+- merge factory/minimax-auto — Mission Control health dashboard, promotion gate, dead route scanner, API token expiry, roadmap sync (`f731e6d`)
 - remove codemap feature, assets, and monitor endpoints (`7f12317`)
 - remove unused large binary artifacts from repo (`84e9a1c`)
 
