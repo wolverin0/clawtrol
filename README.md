@@ -24,6 +24,18 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **OpenClaw Gateway** — Instant wake via webhook when tasks are assigned
 - **Real-time Triggers** — No polling delay for agent activation
 
+### ✅ ZeroClaw Auditor
+- **Automated QA Gate** — Checklist-driven audits (coding, infra, report, research, default)
+
+### 📈 Learning Effectiveness
+- **Advisory Scoring** — Track effectiveness and import proposals
+
+### 🧭 Sessions Explorer
+- **Live Transcript Viewer** — Inspect raw OpenClaw session transcripts
+
+### 📎 Board File Refs
+- **Project File Attachments** — Attach and review files on boards
+
 ### 🔐 Security
 - **Command Injection Prevention** — Validation commands sandboxed with Shellwords + allowlist
 - **API Token Hashing** — Tokens stored as SHA-256 hashes, never plaintext

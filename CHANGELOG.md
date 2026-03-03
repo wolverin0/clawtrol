@@ -5,6 +5,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ## [Unreleased]
 
+## [2026.3.0] - 2026-03-03
+
 ### 🚀 Features
 
 - expose effective_prompt in task API for orchestrator consumption (`c88d3e5`)
@@ -25,6 +27,16 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **lobster:** add resume_token migration and pipeline files (Lobster integration step 1) (`cd420e0`)
 - openclaw-only orchestration + pipeline stage consistency + dynamic model catalog + outcome reporting (`64cb65f`)
 - **factory:** cherry-pick GitHub integration — clone repos + create PRs (#95) (`f960ec1`)
+- feat: board file refs — attach project files to boards
+- feat: board project files — project file index and modal views
+- feat: learning effectiveness — track advisory effectiveness, import proposals
+- feat: zeroclaw auditor — job, sweep, checklists (coding/infra/report/research/default)
+- feat: sessions explorer — view raw OpenClaw session transcripts
+- feat: delivery target resolver — smart origin_chat_id/thread_id routing
+- feat: context menu for tasks — right-click actions on kanban cards
+- feat: computer use prompt template
+- feat: factoryctl + merge_gate bin scripts
+- docs: AGENT_SWARM_TASK_CONTRACT, FACTORYCTL, MERGE_GATE, ZEROCLAW_AUDITOR_GATE
 ### 🐛 Bug Fixes
 
 - **routing:** smart origin_thread_id + README P0 contract + doc unification (`537562d`)
