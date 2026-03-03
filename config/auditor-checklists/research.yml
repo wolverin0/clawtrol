@@ -1,0 +1,18 @@
+name: research
+required_signals:
+  - acceptance_criteria_present
+  - executor_output_present
+  - source_links_present
+  - summary_present
+critical_signals:
+  - executor_output_present
+weights:
+  dod: 40
+  evidence: 30
+  policy: 20
+  handoff: 10
+fix_instructions:
+  source_links_present:
+    severity: major
+    instruction: Add source URLs for every key claim.
+    expected_proof: At least one valid http(s) source link in output.

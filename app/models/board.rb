@@ -6,6 +6,8 @@ class Board < ApplicationRecord
   has_one :roadmap, class_name: "BoardRoadmap", dependent: :destroy, inverse_of: :board
   has_many :agent_personas, dependent: :nullify, inverse_of: :board
   has_many :swarm_ideas, dependent: :nullify, inverse_of: :board
+  has_many :file_refs, class_name: "BoardFileRef", dependent: :destroy, inverse_of: :board
+  has_many :project_files, class_name: "BoardProjectFile", dependent: :destroy, inverse_of: :board
 
   # Scopes for common queries
   scope :for_user, ->(user) { where(user: user) }

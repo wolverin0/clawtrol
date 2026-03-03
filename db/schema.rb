@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_24_153412) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_26_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -195,6 +195,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_24_153412) do
     t.index ["audit_report_id"], name: "index_behavioral_interventions_on_audit_report_id"
     t.index ["user_id", "status"], name: "index_behavioral_interventions_on_user_id_and_status"
     t.index ["user_id"], name: "index_behavioral_interventions_on_user_id"
+  end
+
+  create_table "board_file_refs", force: :cascade do |t|
+    t.bigint "board_id", null: false
+    t.string "category", default: "general", null: false
+    t.datetime "created_at", null: false
+    t.string "label"
+    t.string "path", null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["board_id", "category", "position"], name: "index_board_file_refs_on_board_id_and_category_and_position"
+    t.index ["board_id", "path"], name: "index_board_file_refs_on_board_id_and_path", unique: true
+    t.index ["board_id"], name: "index_board_file_refs_on_board_id"
+  end
+
+  create_table "board_project_files", force: :cascade do |t|
+    t.bigint "board_id", null: false
+    t.datetime "created_at", null: false
+    t.string "file_path", null: false
+    t.string "file_type", default: "auto"
+    t.string "label"
+    t.boolean "pinned", default: true, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["board_id", "file_path"], name: "idx_board_project_files_unique", unique: true
+    t.index ["board_id"], name: "index_board_project_files_on_board_id"
   end
 
   create_table "board_roadmap_task_links", force: :cascade do |t|
@@ -451,6 +477,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_24_153412) do
     t.datetime "used_at"
     t.index ["code"], name: "index_invite_codes_on_code", unique: true
     t.index ["created_by_id"], name: "index_invite_codes_on_created_by_id"
+  end
+
+  create_table "learning_effectiveness", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.float "effectiveness_score"
+    t.string "learning_entry_id", null: false
+    t.string "learning_title", null: false
+    t.boolean "needs_follow_up", default: false, null: false
+    t.string "recommended_action"
+    t.datetime "surfaced_at", null: false
+    t.bigint "task_id", null: false
+    t.bigint "task_run_id"
+    t.boolean "task_succeeded", default: false, null: false
+    t.datetime "updated_at", null: false
+    t.index ["learning_entry_id", "task_succeeded"], name: "idx_learning_effectiveness_entry_success"
+    t.index ["learning_entry_id"], name: "index_learning_effectiveness_on_learning_entry_id"
+    t.index ["task_id"], name: "index_learning_effectiveness_on_task_id"
+    t.index ["task_run_id"], name: "index_learning_effectiveness_on_task_run_id"
+    t.index ["task_succeeded"], name: "index_learning_effectiveness_on_task_succeeded"
   end
 
   create_table "learning_proposals", force: :cascade do |t|
@@ -1061,6 +1106,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_24_153412) do
   add_foreign_key "audit_reports", "users"
   add_foreign_key "behavioral_interventions", "audit_reports"
   add_foreign_key "behavioral_interventions", "users"
+  add_foreign_key "board_file_refs", "boards"
+  add_foreign_key "board_project_files", "boards"
   add_foreign_key "board_roadmap_task_links", "board_roadmaps"
   add_foreign_key "board_roadmap_task_links", "tasks"
   add_foreign_key "board_roadmaps", "boards"
@@ -1076,6 +1123,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_24_153412) do
   add_foreign_key "factory_loops", "users"
   add_foreign_key "feed_entries", "users"
   add_foreign_key "invite_codes", "users", column: "created_by_id"
+  add_foreign_key "learning_effectiveness", "task_runs"
+  add_foreign_key "learning_effectiveness", "tasks"
   add_foreign_key "model_limits", "users"
   add_foreign_key "nightshift_missions", "users"
   add_foreign_key "nightshift_selections", "nightshift_missions"

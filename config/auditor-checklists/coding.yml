@@ -1,0 +1,20 @@
+name: coding
+required_signals:
+  - acceptance_criteria_present
+  - executor_output_present
+  - output_files_present
+  - validation_signal_present
+  - summary_present
+critical_signals:
+  - executor_output_present
+  - validation_signal_present
+weights:
+  dod: 40
+  evidence: 30
+  policy: 20
+  handoff: 10
+fix_instructions:
+  validation_signal_present:
+    severity: critical
+    instruction: Add validation evidence (tests/lint/check output).
+    expected_proof: Include command + PASS/FAIL output or validation_status passed.

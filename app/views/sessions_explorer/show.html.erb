@@ -1,0 +1,154 @@
+<% content_for :title, "Session #{@friendly_session_id} - clawdeck" %>
+<% content_for :breadcrumb_standalone, "Session #{@friendly_session_id}" %>
+
+<div class="py-6 space-y-6">
+  <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div>
+      <%= link_to "Back to Sessions", sessions_explorer_path, class: "text-xs text-accent hover:underline" %>
+      <h1 class="text-xl font-bold text-content mt-1">Session <span class="font-mono"><%= @friendly_session_id %></span></h1>
+      <p class="text-xs text-content-muted font-mono mt-1"><%= @resolved_session_key %></p>
+    </div>
+    <div class="flex items-center gap-2 text-xs text-content-muted">
+      <span class="px-2 py-1 rounded bg-bg-elevated">Model: <%= @session["model"] || "unknown" %></span>
+      <span class="px-2 py-1 rounded bg-bg-elevated">Session ID: <%= @resolved_session_id || "n/a" %></span>
+      <% if @can_kill %>
+        <span class="px-2 py-1 rounded bg-blue-500/15 text-blue-300 border border-blue-400/30">active subagent</span>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div class="bg-bg-elevated border border-border rounded-lg p-4">
+      <h2 class="text-sm font-semibold text-content mb-2">Token Summary</h2>
+      <div class="space-y-1 text-xs text-content-muted">
+        <div>Records: <%= @session_token_summary[:records] %></div>
+        <div>Input: <%= number_with_delimiter(@session_token_summary[:input_tokens]) %></div>
+        <div>Output: <%= number_with_delimiter(@session_token_summary[:output_tokens]) %></div>
+        <div>Cost: $<%= format('%.4f', @session_token_summary[:total_cost]) %></div>
+      </div>
+    </div>
+
+    <div class="bg-bg-elevated border border-border rounded-lg p-4 lg:col-span-2">
+      <h2 class="text-sm font-semibold text-content mb-3">Session Controls</h2>
+      <div class="space-y-3">
+        <%= form_with url: session_explorer_steer_path(session_key: @resolved_session_key), method: :post, class: "space-y-2" do %>
+          <textarea name="message" rows="3" class="w-full rounded-lg bg-bg-surface border border-border px-3 py-2 text-sm text-content" placeholder="Type steer instruction for this session"></textarea>
+          <div class="flex flex-wrap gap-2">
+            <button type="submit" class="px-3 py-1.5 text-xs rounded bg-accent text-white hover:bg-accent/90">Send Steer</button>
+          </div>
+        <% end %>
+
+        <div class="flex flex-wrap gap-2">
+          <%= form_with url: session_explorer_pause_path(session_key: @resolved_session_key), method: :post do %>
+            <input type="hidden" name="message" value="Operator pause requested. Stop active execution and wait for further instructions." />
+            <button type="submit" class="px-3 py-1.5 text-xs rounded border border-border bg-bg-surface text-content hover:border-accent">Pause</button>
+          <% end %>
+
+          <%= form_with url: session_explorer_kill_path(session_key: @resolved_session_key), method: :post do %>
+            <button type="submit"
+                    class="px-3 py-1.5 text-xs rounded border <%= @can_kill ? 'border-red-500/40 text-red-300 hover:bg-red-500/10' : 'border-border text-content-muted cursor-not-allowed' %>"
+                    <%= @can_kill ? '' : 'disabled' %>>
+              Kill
+            </button>
+          <% end %>
+
+          <% unless @can_kill %>
+            <span class="text-[11px] text-content-muted self-center">Kill is only available for active subagents.</span>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-bg-elevated border border-border rounded-lg p-4">
+    <h2 class="text-sm font-semibold text-content mb-3">Linked Task Context</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div>
+        <h3 class="text-xs uppercase tracking-wide text-content-muted mb-2">Tasks</h3>
+        <% if @session_task_context[:tasks].any? %>
+          <div class="space-y-2">
+            <% @session_task_context[:tasks].each do |task| %>
+              <div class="text-xs bg-bg-surface border border-border rounded p-2">
+                <div class="font-medium text-content">#<%= task.id %> <%= task.name %></div>
+                <div class="text-content-muted mt-1"><%= task.board&.name %> ? <%= task.status %></div>
+                <%= link_to "Open Task", board_task_path(task.board, task), class: "text-accent hover:underline", data: { turbo_frame: "_top" } %>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="text-xs text-content-muted">No tasks linked to this session key/session id.</p>
+        <% end %>
+      </div>
+
+      <div>
+        <h3 class="text-xs uppercase tracking-wide text-content-muted mb-2">Task Runs</h3>
+        <% if @session_task_context[:task_runs].any? %>
+          <div class="space-y-2 max-h-72 overflow-auto pr-1">
+            <% @session_task_context[:task_runs].each do |run| %>
+              <div class="text-xs bg-bg-surface border border-border rounded p-2">
+                <div class="font-medium text-content">Run <%= run.run_number %> ? Task #<%= run.task_id %></div>
+                <div class="text-content-muted mt-1"><%= run.task&.name %> ? <%= run.recommended_action %></div>
+                <% if run.summary.present? %>
+                  <div class="mt-1 text-content-secondary"><%= run.summary.to_s.truncate(180) %></div>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="text-xs text-content-muted">No task runs linked to this session key/session id.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-bg-elevated border border-border rounded-lg p-4">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-3">
+      <div>
+        <h2 class="text-sm font-semibold text-content">Transcript History</h2>
+        <p class="text-xs text-content-muted">Showing <%= @history_messages.size %> message(s) from gateway history.</p>
+      </div>
+
+      <%= form_with url: session_explorer_path(session_key: @resolved_session_key), method: :get, class: "flex flex-wrap gap-2 items-center" do %>
+        <input type="text" name="q" value="<%= @query %>" placeholder="Search transcript" class="rounded bg-bg-surface border border-border px-2 py-1 text-xs text-content" />
+        <select name="role" class="rounded bg-bg-surface border border-border px-2 py-1 text-xs text-content">
+          <option value="">Any role</option>
+          <option value="user" <%= @role_filter == 'user' ? 'selected' : '' %>>user</option>
+          <option value="assistant" <%= @role_filter == 'assistant' ? 'selected' : '' %>>assistant</option>
+          <option value="system" <%= @role_filter == 'system' ? 'selected' : '' %>>system</option>
+        </select>
+        <input type="number" name="limit" value="<%= @history_limit %>" min="10" max="300" class="w-20 rounded bg-bg-surface border border-border px-2 py-1 text-xs text-content" />
+        <button type="submit" class="px-2 py-1 text-xs rounded border border-border bg-bg-surface text-content hover:border-accent">Apply</button>
+      <% end %>
+    </div>
+
+    <% if @history_error.present? %>
+      <div class="mb-3 p-2 rounded bg-red-500/10 border border-red-500/30 text-red-300 text-xs"><%= @history_error %></div>
+    <% end %>
+
+    <% if @history_messages.empty? %>
+      <p class="text-xs text-content-muted">No messages found for the selected filters.</p>
+    <% else %>
+      <div class="space-y-2 max-h-[32rem] overflow-auto pr-1">
+        <% @history_messages.each do |msg| %>
+          <% role = msg["role"].to_s %>
+          <% role_class = role == 'assistant' ? 'border-blue-500/40 bg-blue-500/5' : (role == 'user' ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-border bg-bg-surface') %>
+          <div class="border rounded p-3 text-xs <%= role_class %>">
+            <div class="flex items-center gap-2 text-[11px] text-content-muted mb-1">
+              <span class="font-semibold text-content"><%= role.presence || 'unknown' %></span>
+              <% if msg["model"].present? %>
+                <span>model=<%= msg["model"] %></span>
+              <% end %>
+              <% if msg["provider"].present? %>
+                <span>provider=<%= msg["provider"] %></span>
+              <% end %>
+              <% if msg["timestamp"].present? %>
+                <span>ts=<%= msg["timestamp"] %></span>
+              <% end %>
+            </div>
+            <pre class="whitespace-pre-wrap break-words text-content-secondary font-sans"><%= msg["content"].presence || "(empty)" %></pre>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

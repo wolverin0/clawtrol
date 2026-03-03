@@ -18,7 +18,7 @@ class TaskOutcomeServiceTest < ActiveSupport::TestCase
       "recommended_action" => "in_review",
       "summary" => "Task completed successfully",
       "model_used" => "opus",
-      "achieved" => ["Fixed the bug"],
+      "achieved" => ["Fixed bug"],
       "evidence" => ["test passes"],
       "remaining" => []
     }
@@ -76,7 +76,7 @@ class TaskOutcomeServiceTest < ActiveSupport::TestCase
     assert_equal "in_review", @task.reload.status
   end
 
-test "requeue_same_task moves task back to up_next" do
+  test "requeue_same_task moves task back to up_next" do
   payload = valid_payload.merge(
     "needs_follow_up" => true,
     "recommended_action" => "requeue_same_task",
@@ -87,11 +87,11 @@ test "requeue_same_task moves task back to up_next" do
   assert result.success?
 
   task = @task.reload
-  assert_equal "up_next", task.status
+    assert_equal "up_next", task.status
   assert task.assigned_to_agent?
-  assert_match(/Follow-up Prompt/, task.description.to_s)
-  assert_match(/Continue with step 2/, task.description.to_s)
-end
+  # Follow-up prompt is now stored in TaskRun, not appended to description
+  assert_equal "Continue with step 2", result.task_run&.follow_up_prompt
+  end
 
   test "increments run_count" do
     result = TaskOutcomeService.call(@task, valid_payload)
@@ -116,7 +116,7 @@ end
   test "stores achieved and evidence arrays" do
     result = TaskOutcomeService.call(@task, valid_payload)
     assert result.success?
-    assert_equal ["Fixed the bug"], result.task_run.achieved
+    assert_equal ["Fixed bug"], result.task_run.achieved
     assert_equal ["test passes"], result.task_run.evidence
   end
 

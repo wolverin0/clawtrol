@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROFILE="full"
+OUTPUT_FILE=""
+
+usage() {
+  cat <<'USAGE'
+Usage: bin/merge_gate [--profile quick|full] [--output PATH]
+
+Profiles:
+  quick  -> rubocop + brakeman + bundler-audit + rails test + zeitwerk
+  full   -> quick + rails test:system
+USAGE
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --profile)
+      PROFILE="${2:-}"
+      shift 2
+      ;;
+    --output)
+      OUTPUT_FILE="${2:-}"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+if [[ "$PROFILE" != "quick" && "$PROFILE" != "full" ]]; then
+  echo "Invalid profile: $PROFILE" >&2
+  exit 1
+fi
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ARTIFACT_DIR="$ROOT_DIR/docs/artifacts"
+mkdir -p "$ARTIFACT_DIR"
+
+TS="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+if [[ -z "$OUTPUT_FILE" ]]; then
+  OUTPUT_FILE="$ARTIFACT_DIR/${TS}-merge-gate-${PROFILE}.md"
+fi
+
+LOG_FILE="${OUTPUT_FILE%.md}.log"
+: > "$LOG_FILE"
+
+if [[ ! -f "$ROOT_DIR/bin/rails" ]]; then
+  echo "bin/rails not found. Run from ClawTrol repo." >&2
+  exit 1
+fi
+
+FAILED=0
+
+run_step() {
+  local name="$1"
+  local cmd="$2"
+  local tmp
+  tmp="$(mktemp)"
+
+  echo "## $name" >> "$OUTPUT_FILE"
+  echo "\`\`\`bash" >> "$OUTPUT_FILE"
+  echo "$cmd" >> "$OUTPUT_FILE"
+  echo "\`\`\`" >> "$OUTPUT_FILE"
+
+  if bash -lc "cd '$ROOT_DIR' && $cmd" > "$tmp" 2>&1; then
+    echo "- Status: PASS" >> "$OUTPUT_FILE"
+  else
+    echo "- Status: FAIL" >> "$OUTPUT_FILE"
+    FAILED=1
+  fi
+
+  cat "$tmp" >> "$LOG_FILE"
+
+  echo "<details><summary>Output tail (last 30 lines)</summary>" >> "$OUTPUT_FILE"
+  echo >> "$OUTPUT_FILE"
+  echo "\`\`\`text" >> "$OUTPUT_FILE"
+  tail -n 30 "$tmp" >> "$OUTPUT_FILE"
+  echo "\`\`\`" >> "$OUTPUT_FILE"
+  echo >> "$OUTPUT_FILE"
+  echo "</details>" >> "$OUTPUT_FILE"
+  echo >> "$OUTPUT_FILE"
+
+  rm -f "$tmp"
+}
+
+{
+  echo "# Merge Gate Report"
+  echo
+  echo "- Timestamp (UTC): $TS"
+  echo "- Profile: $PROFILE"
+  echo "- Repo: $ROOT_DIR"
+  echo "- Log file: $LOG_FILE"
+  echo
+} > "$OUTPUT_FILE"
+
+run_step "RuboCop" "bin/rubocop"
+run_step "Brakeman" "bin/brakeman -q"
+run_step "Bundler Audit" "bin/bundler-audit check"
+run_step "Rails Tests" "bin/rails test"
+run_step "Zeitwerk Check" "bin/rails zeitwerk:check"
+
+if [[ "$PROFILE" == "full" ]]; then
+  run_step "System Tests" "bin/rails test:system"
+fi
+
+if [[ $FAILED -eq 0 ]]; then
+  echo "## Final Status" >> "$OUTPUT_FILE"
+  echo "PASS" >> "$OUTPUT_FILE"
+  echo "Merge gate passed. Report: $OUTPUT_FILE"
+  exit 0
+else
+  echo "## Final Status" >> "$OUTPUT_FILE"
+  echo "FAIL" >> "$OUTPUT_FILE"
+  echo "Merge gate failed. Report: $OUTPUT_FILE" >&2
+  exit 1
+fi

@@ -76,18 +76,22 @@ Rails.application.configure do
   config.active_record.attributes_for_inspect = [ :id ]
 
   # Enable DNS rebinding protection and other `Host` header attacks.
+  # DISABLED TEMPORARIAMENTE para debuggear acceso externo a view.puntofutura.com.ar
+  # config.hosts = nil
   config.hosts = [
-    "clawdeck.io",           # Production domain
-    "www.clawdeck.io",       # WWW subdomain
-    "104.236.193.0",      # Server IP for direct access
-    IPAddr.new("127.0.0.1"),  # Localhost
-    IPAddr.new("::1")         # IPv6 localhost
+    "clawdeck.io",
+    "www.clawdeck.io",
+    "104.236.193.0",
+    IPAddr.new("127.0.0.1"),
+    IPAddr.new("::1")
   ]
 
   # Allow Render and custom domain hosts
   config.hosts << "clawdeck.onrender.com"
   config.hosts << "app.clawdeck.io"
   config.hosts << ".clawdeck.io"  # Allow all subdomains
+  config.hosts << "view.puntofutura.com.ar"
+  config.hosts << ".puntofutura.com.ar" # Allow all puntofutura subdomains
 
   # ActionCable / Turbo Streams
   # Allow WebSocket origins for production domains.
@@ -96,7 +100,8 @@ Rails.application.configure do
     %r{\Ahttps://www\.clawdeck\.io\z},
     %r{\Ahttps://app\.clawdeck\.io\z},
     %r{\Ahttps://.*\.clawdeck\.io\z},
-    %r{\Ahttps://clawdeck\.onrender\.com\z}
+    %r{\Ahttps://clawdeck\.onrender\.com\z},
+    %r{\Ahttps://.*\.puntofutura\.com\.ar\z}
   ]
 
   # Allow APP_BASE_URL

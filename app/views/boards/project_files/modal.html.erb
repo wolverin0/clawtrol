@@ -1,0 +1,88 @@
+<div class="fixed inset-0 z-[95]" data-controller="board-files-modal" data-board-files-modal-board-id-value="<%= @board.id %>">
+  <div class="absolute inset-0 bg-black/70" data-action="click->board-files-modal#close"></div>
+
+  <dialog open
+          data-board-files-modal-target="modal"
+          class="rounded-xl border border-border bg-bg-surface text-content shadow-2xl p-0 overflow-hidden"
+          style="position: fixed; inset: auto; margin: 0;">
+    <div data-board-files-modal-target="dragHandle">
+      <div class="px-4 py-3 border-b border-border bg-bg-elevated flex items-center justify-between gap-3 cursor-grab select-none">
+        <div>
+          <h3 class="text-sm font-semibold text-content">📁 Board Files</h3>
+          <p class="text-xs text-content-muted">Seleccioná y editá archivos del proyecto en un panel flotante.</p>
+        </div>
+        <button type="button"
+                class="px-2 py-1 text-xs rounded border border-border bg-bg-surface hover:bg-bg-hover"
+                data-action="click->board-files-modal#close">
+          Close
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-12 h-[calc(100%-56px)]">
+      <aside class="col-span-4 border-r border-border bg-bg-elevated overflow-hidden flex flex-col">
+        <div class="px-3 pt-3 pb-1 text-[10px] font-semibold text-content-muted uppercase tracking-wider">Project files</div>
+
+        <div class="flex-1 overflow-y-auto px-3 pb-3" data-testid="board-files-tree">
+          <% if @tree.any? %>
+            <% @tree.each do |group| %>
+              <div class="mb-2">
+                <% if group[:dir] != "." %>
+                  <div class="text-[10px] text-content-muted font-mono px-1 py-0.5 truncate"><%= group[:dir] %>/</div>
+                <% end %>
+                <% group[:files].each do |file| %>
+                  <button type="button"
+                          data-action="click->board-files-modal#selectFile"
+                          data-board-files-modal-target="fileButton"
+                          data-path="<%= file[:path] %>"
+                          data-testid="board-file-button"
+                          class="w-full text-left px-2 py-1 text-xs rounded text-content-secondary hover:text-content hover:bg-bg-hover truncate">
+                    <%= file[:name] %>
+                  </button>
+                <% end %>
+              </div>
+            <% end %>
+          <% elsif @board.project_path.blank? %>
+            <p class="text-xs text-content-muted p-2">Este board no tiene <code>project_path</code> configurado.</p>
+          <% else %>
+            <p class="text-xs text-content-muted p-2">No se encontraron archivos editables en <code><%= @board.project_path %></code>.</p>
+          <% end %>
+        </div>
+      </aside>
+
+      <main class="col-span-8 flex flex-col min-h-0">
+        <div class="border-b border-border px-4 py-2 flex items-center gap-2 bg-bg-elevated min-h-[40px]">
+          <span data-board-files-modal-target="filename" class="text-xs text-content-muted font-mono truncate flex-1">
+            <%= @active_file_path ? File.basename(@active_file_path.to_s) : "Seleccioná un archivo" %>
+          </span>
+          <button type="button"
+                  data-board-files-modal-target="saveButton"
+                  data-action="click->board-files-modal#save"
+                  class="hidden text-xs px-3 py-1 rounded bg-accent text-content hover:bg-accent/80 transition-colors">
+            💾 Guardar
+          </button>
+        </div>
+
+        <div data-board-files-modal-target="error"
+             class="hidden px-4 py-2 text-xs text-red-300 bg-red-500/10 border-b border-red-500/20"></div>
+
+        <div data-board-files-modal-target="content" class="flex-1 overflow-y-auto p-4 min-h-0" data-testid="board-files-content">
+          <% if @active_file %>
+            <% if @active_file[:editable] %>
+              <textarea data-role="editor"
+                        class="w-full h-full min-h-[56vh] font-mono text-xs bg-transparent text-content border-none outline-none resize-none leading-relaxed"
+                        data-testid="board-files-editor"><%= @active_file[:content] %></textarea>
+            <% else %>
+              <pre class="text-xs font-mono text-content leading-relaxed whitespace-pre-wrap break-words"><%= h @active_file[:content] %></pre>
+            <% end %>
+          <% else %>
+            <div class="flex flex-col items-center justify-center h-full text-content-muted gap-2 pt-20">
+              <div class="text-4xl">📄</div>
+              <p class="text-sm">Seleccioná un archivo del panel izquierdo</p>
+            </div>
+          <% end %>
+        </div>
+      </main>
+    </div>
+  </dialog>
+</div>

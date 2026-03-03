@@ -83,6 +83,7 @@ Rails.application.routes.draw do
         member do
           get :status
         end
+        resources :file_refs, only: [:index, :create], controller: "board_file_refs"
       end
 
       resources :workflows, only: [] do
@@ -573,6 +574,15 @@ Rails.application.routes.draw do
     end
     resource :roadmap, only: [:update], controller: "boards/roadmaps" do
       post :generate_tasks, on: :member
+    end
+    resources :file_refs, only: [:create], controller: "boards/file_refs"
+    resources :project_files, only: [:index, :create, :destroy], controller: "boards/project_files" do
+      collection do
+        get :read
+        patch :save
+        get :tree
+        get :search
+      end
     end
     resources :tasks, only: [ :show, :new, :create, :edit, :update, :destroy ], controller: "boards/tasks" do
       collection do

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class BoardsController < ApplicationController
-  PER_COLUMN_ITEMS = Task::KANBAN_PER_COLUMN_ITEMS
+  PER_COLUMN_ITEMS = 25
 
   before_action :set_board, only: [:show, :update, :destroy, :update_task_status, :archived, :column, :dependency_graph, :generate_persona]
 

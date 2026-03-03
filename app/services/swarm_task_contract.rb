@@ -70,6 +70,10 @@ class SwarmTaskContract
       }
     end
 
+    def render_execution_plan(contract)
+      render_execution_prompt(contract)
+    end
+
     def render_execution_prompt(contract)
       payload = contract.is_a?(Hash) ? contract : {}
       criteria = Array(payload["acceptance_criteria"]).map(&:to_s).map(&:strip).reject(&:blank?)
