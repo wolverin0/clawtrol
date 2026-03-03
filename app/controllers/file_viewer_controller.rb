@@ -134,6 +134,11 @@ class FileViewerController < ApplicationController
       return
     end
 
+    if content.bytesize > MAX_FILE_SIZE
+      render json: { error: "Content too large (max #{MAX_FILE_SIZE / 1024}KB)" }, status: :content_too_large
+      return
+    end
+
     # For new files, we need to handle the case where the file doesn't exist yet
     resolved = resolve_safe_path(relative)
 

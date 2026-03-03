@@ -67,9 +67,36 @@ class CherryPickServiceTest < ActiveSupport::TestCase
     assert_equal false, result.success
   end
 
+  test "cherry_pick! rejects non factory commits" do
+    CherryPickService.stub(:factory_commit?, false) do
+      result = CherryPickService.cherry_pick!(["abcdef1"])
+      assert_equal false, result.success
+      assert_match(/Only \[factory\] commits are allowed/, result.message)
+    end
+  end
+
+  test "cherry_pick! deduplicates rejected hashes" do
+    CherryPickService.stub(:factory_commit?, false) do
+      result = CherryPickService.cherry_pick!(["abcdef1", "abcdef1"])
+      assert_equal false, result.success
+      assert_equal ["abcdef1"], result.data[:rejected_hashes]
+    end
+  end
+
   test "cherry_pick! rejects non-hex strings" do
     result = CherryPickService.cherry_pick!(["hello-world"])
     assert_equal false, result.success
+  end
+
+  test "cherry_pick! rejects requests above commit safety limit" do
+    valid_hashes = (1..(CherryPickService::MAX_CHERRY_PICK_COMMITS + 1)).map { |i| format("%07x", i) }
+
+    result = CherryPickService.cherry_pick!(valid_hashes)
+
+    assert_equal false, result.success
+    assert_equal "Too many commits requested", result.message
+    assert_equal CherryPickService::MAX_CHERRY_PICK_COMMITS, result.data[:max_commits]
+    assert_equal valid_hashes.size, result.data[:requested]
   end
 
   test "Result struct has expected attributes" do

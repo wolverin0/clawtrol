@@ -1,0 +1,32 @@
+<h1>Mission Control Health Dashboard</h1>
+
+<div class="mission-control-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+  <div class="card" style="padding: 1rem; border: 1px solid #ccc; border-radius: 8px;">
+    <h3>Environment</h3>
+    <p><strong>Ruby:</strong> <%= @ruby_version %></p>
+    <p><strong>Rails:</strong> <%= @rails_version %></p>
+    <p><strong>Env:</strong> <%= @environment %></p>
+  </div>
+
+  <div class="card" style="padding: 1rem; border: 1px solid #ccc; border-radius: 8px;">
+    <h3>Database</h3>
+    <p>
+      <strong>Status:</strong>
+      <span style="color: <%= @database_connected ? 'green' : 'red' %>">
+        <%= @database_connected ? 'Connected' : 'Disconnected' %>
+      </span>
+    </p>
+    <p>
+      <strong>Migrations:</strong>
+      <span style="color: <%= @pending_migrations.nil? ? 'gray' : (@pending_migrations ? 'orange' : 'green') %>">
+        <%= @pending_migrations.nil? ? 'Unknown' : (@pending_migrations ? 'Pending' : 'Up to Date') %>
+      </span>
+    </p>
+  </div>
+
+  <div class="card" style="padding: 1rem; border: 1px solid #ccc; border-radius: 8px;">
+    <h3>System</h3>
+    <p><strong>Uptime:</strong> <%= @uptime %></p>
+    <p><strong>Memory:</strong> <%= @memory_usage %></p>
+  </div>
+</div>

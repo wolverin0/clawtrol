@@ -24,7 +24,7 @@ class SubAgentOutputContract
   end
 
   def summary
-    @raw["summary"].to_s.presence
+    normalized_text(@raw["summary"])
   end
 
   def changes
@@ -35,7 +35,7 @@ class SubAgentOutputContract
     val = @raw["validation"]
     return val if val.is_a?(Hash)
 
-    val.to_s.presence
+    normalized_text(val)
   end
 
   def follow_up
@@ -43,7 +43,7 @@ class SubAgentOutputContract
   end
 
   def recommended_action
-    @raw["recommended_action"].to_s.presence
+    normalized_text(@raw["recommended_action"])
   end
 
   def to_payload
@@ -94,6 +94,10 @@ class SubAgentOutputContract
     else
       []
     end
+  end
+
+  def normalized_text(value)
+    value.to_s.strip.presence
   end
 
   def self.extract_contract(params)

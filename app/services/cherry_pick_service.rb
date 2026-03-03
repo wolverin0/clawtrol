@@ -3,8 +3,9 @@
 # Service for cherry-picking commits from playground repo to production ~/clawdeck.
 # Provides safe, audited git operations with conflict detection and rollback.
 class CherryPickService
-  PLAYGROUND_PATH = File.expand_path("~/.openclaw/workspace/clawtrolplayground")
+  PLAYGROUND_PATH = File.expand_path(ENV.fetch("CHERRY_PICK_PLAYGROUND_PATH", "~/.openclaw/workspace/clawtrolplayground"))
   PRODUCTION_PATH = File.expand_path("~/clawdeck")
+  MAX_CHERRY_PICK_COMMITS = 20
 
   Result = Struct.new(:success, :message, :data, keyword_init: true)
 
@@ -12,10 +13,12 @@ class CherryPickService
     # Returns commits in playground that are NOT in production (cherry-pickable).
     # Only includes [factory] commits for safety.
     def pickable_commits(limit: 50)
+      safe_limit = [[limit.to_i, 1].max, 200].min
+
       # Get commits in playground not in production/main
       output = git_playground(
         "log", "--oneline", "--format=%H|%h|%s|%ai|%an",
-        "production/main..HEAD", "-#{limit}"
+        "production/main..HEAD", "-#{safe_limit}"
       )
       return Result.new(success: false, message: "Failed to list commits") if output.nil?
 
@@ -28,7 +31,7 @@ class CherryPickService
           message: parts[2],
           date: parts[3],
           author: parts[4],
-          factory: parts[2].start_with?("[factory]")
+          factory: parts[2].include?("[factory]")
         }
       end
 
@@ -59,8 +62,25 @@ class CherryPickService
     # Execute cherry-pick of one or more commits into production.
     # Returns success/failure with details.
     def cherry_pick!(commit_hashes, dry_run: false)
-      hashes = Array(commit_hashes).select { |h| valid_hash?(h) }
+      hashes = Array(commit_hashes).map(&:to_s).uniq.select { |h| valid_hash?(h) }
       return Result.new(success: false, message: "No valid commit hashes provided") if hashes.empty?
+
+      if hashes.size > MAX_CHERRY_PICK_COMMITS
+        return Result.new(
+          success: false,
+          message: "Too many commits requested",
+          data: { max_commits: MAX_CHERRY_PICK_COMMITS, requested: hashes.size }
+        )
+      end
+
+      non_factory_hashes = hashes.reject { |hash| factory_commit?(hash) }
+      if non_factory_hashes.any?
+        return Result.new(
+          success: false,
+          message: "Only [factory] commits are allowed",
+          data: { rejected_hashes: non_factory_hashes }
+        )
+      end
 
       # Verify production repo is clean
       status = git_production("status", "--porcelain")
@@ -106,30 +126,27 @@ class CherryPickService
       )
     end
 
-    # Run tests in production after cherry-pick
+    # Run promotion gate checks in production after cherry-pick
     def verify_production!
-      output = nil
-      IO.popen(
-        ["bash", "-c", "cd #{PRODUCTION_PATH} && bin/rails test 2>&1 | tail -20"],
-        err: [:child, :out]
-      ) do |io|
-        output = io.read(50_000)
-      end
-
-      passed = output&.include?("0 failures, 0 errors") || output&.include?("0 failures")
+      gate_result = FactoryPromotionGateService.verify!(PRODUCTION_PATH)
       Result.new(
-        success: passed,
-        message: passed ? "All tests pass in production" : "Tests failed in production",
-        data: { output: output }
+        success: gate_result[:success],
+        message: gate_result[:message],
+        data: gate_result
       )
     rescue StandardError => e
-      Result.new(success: false, message: "Test execution failed: #{e.message}")
+      Result.new(success: false, message: "Promotion gate execution failed: #{e.message}")
     end
 
     private
 
     def valid_hash?(hash)
       hash.is_a?(String) && hash.match?(/\A[a-f0-9]{7,40}\z/)
+    end
+
+    def factory_commit?(hash)
+      message = git_playground("log", "--format=%s", "-1", hash)&.strip
+      message.present? && message.include?("[factory]")
     end
 
     def git_playground(*args)

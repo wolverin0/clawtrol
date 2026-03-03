@@ -12,7 +12,7 @@ class ApiToken < ApplicationRecord
   scope :active, -> { where("expires_at IS NULL OR expires_at > ?", Time.current) }
   scope :expired, -> { where("expires_at IS NOT NULL AND expires_at <= ?", Time.current) }
   scope :recently_used, -> { where.not(last_used_at: nil).order(last_used_at: :desc) }
-  scope :by_user, ->(user) { where(user_id: user.id) if user.present? }
+  scope :by_user, ->(user) { user.present? ? where(user_id: user.id) : none }
 
   # The raw token is only available immediately after creation
   attr_accessor :raw_token
@@ -29,6 +29,7 @@ class ApiToken < ApplicationRecord
     digest = Digest::SHA256.hexdigest(token)
     api_token = find_by(token_digest: digest)
     return nil unless api_token
+    return nil if api_token.expires_at.present? && api_token.expires_at <= Time.current
 
     # Debounce last_used_at writes to reduce DB load under high request volume
     if api_token.last_used_at.nil? || api_token.last_used_at < LAST_USED_DEBOUNCE.ago

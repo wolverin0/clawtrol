@@ -7,6 +7,7 @@ class FactoryGithubService
   GH_BIN = "/home/ggorbalan/.local/bin/gh"
   GIT_BIN = "/usr/bin/git"
   WORKSPACE_ROOT = File.expand_path("~/factory-workspaces")
+  DEFAULT_WORK_BRANCH = "factory/auto"
 
   Result = Struct.new(:success, :message, :data, keyword_init: true) do
     def success? = success
@@ -40,7 +41,7 @@ class FactoryGithubService
 
     # Create and checkout work branch
     default_branch = @loop.github_default_branch.presence || "main"
-    work_branch = @loop.work_branch.presence || "factory/auto"
+    work_branch = configured_work_branch
 
     # Fetch and ensure we're up to date
     run_git(clone_dir, "fetch", "origin")
@@ -74,7 +75,7 @@ class FactoryGithubService
     return Result.new(success: false, message: "Workspace does not exist") unless Dir.exist?(@loop.workspace_path)
 
     default_branch = @loop.github_default_branch.presence || "main"
-    work_branch = @loop.work_branch.presence || "factory/auto"
+    work_branch = configured_work_branch
 
     # Fetch latest
     stdout, stderr, status = run_git(@loop.workspace_path, "fetch", "origin")
@@ -97,7 +98,7 @@ class FactoryGithubService
   def push!
     return Result.new(success: false, message: "No workspace_path set") unless @loop.workspace_path.present?
 
-    work_branch = @loop.work_branch.presence || "factory/auto"
+    work_branch = configured_work_branch
 
     stdout, stderr, status = run_git(@loop.workspace_path, "push", "-u", "origin", work_branch)
     unless status.success?
@@ -119,7 +120,7 @@ class FactoryGithubService
     return push_result unless push_result.success?
 
     default_branch = @loop.github_default_branch.presence || "main"
-    work_branch = @loop.work_branch.presence || "factory/auto"
+    work_branch = configured_work_branch
 
     title ||= generate_pr_title
     body ||= generate_pr_body
@@ -149,7 +150,7 @@ class FactoryGithubService
     owner_repo = extract_owner_repo(@loop.github_url)
     return false unless owner_repo
 
-    work_branch = @loop.work_branch.presence || "factory/auto"
+    work_branch = configured_work_branch
 
     stdout, _stderr, status = run_gh(
       "pr", "list",
@@ -207,6 +208,10 @@ class FactoryGithubService
 
   def run_gh(*args)
     Open3.capture3(GH_BIN, *args)
+  end
+
+  def configured_work_branch
+    @loop.work_branch.presence || DEFAULT_WORK_BRANCH
   end
 
   def generate_pr_title

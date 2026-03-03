@@ -19,9 +19,9 @@ class TaskDependency < ApplicationRecord
   private
 
   def no_self_dependency
-    if task_id == depends_on_id
-      errors.add(:base, "cannot depend on itself")
-    end
+    return if task_id.blank? || depends_on_id.blank?
+
+    errors.add(:base, "cannot depend on itself") if task_id == depends_on_id
   end
 
   def no_circular_dependency
@@ -38,9 +38,11 @@ class TaskDependency < ApplicationRecord
   def would_create_cycle?
     visited = Set.new
     queue = [depends_on_id]
+    index = 0
 
-    while queue.any?
-      current_id = queue.shift
+    while index < queue.length
+      current_id = queue[index]
+      index += 1
       return true if current_id == task_id
       next if visited.include?(current_id)
 

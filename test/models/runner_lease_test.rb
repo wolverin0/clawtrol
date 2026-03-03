@@ -153,7 +153,8 @@ class RunnerLeaseTest < ActiveSupport::TestCase
       expires_at: same_time
     )
     # Technically this is equal, not after - let's see what happens
-    lease.valid? # Just ensure no crash
+    assert_not lease.valid?
+    assert_includes lease.errors[:expires_at], "must be after started_at"
   end
 
   test "last_heartbeat_at must be after started_at" do

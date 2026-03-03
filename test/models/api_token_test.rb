@@ -40,6 +40,12 @@ class ApiTokenTest < ActiveSupport::TestCase
     assert_nil user
   end
 
+  test "authenticate returns nil for expired token" do
+    user = users(:one)
+    token = user.api_tokens.create!(name: "Expired Token", expires_at: 1.hour.ago)
+    assert_nil ApiToken.authenticate(token.raw_token)
+  end
+
   test "authenticate returns nil for blank token" do
     assert_nil ApiToken.authenticate(nil)
     assert_nil ApiToken.authenticate("")
@@ -165,5 +171,9 @@ class ApiTokenTest < ActiveSupport::TestCase
     user = users(:one)
     tokens = ApiToken.by_user(user)
     assert tokens.all? { |t| t.user_id == user.id }
+  end
+
+  test "scope by_user returns empty relation for nil user" do
+    assert_equal 0, ApiToken.by_user(nil).count
   end
 end

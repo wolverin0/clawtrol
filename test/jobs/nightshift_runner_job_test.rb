@@ -410,6 +410,8 @@ class NightshiftRunnerJobTest < ActiveJob::TestCase
     stub_request(:post, %r{/hooks/wake}).to_return(status: 200)
 
     # Should not raise
-    NightshiftRunnerJob.perform_now
+    assert_nothing_raised do
+      NightshiftRunnerJob.perform_now
+    end
   end
 end

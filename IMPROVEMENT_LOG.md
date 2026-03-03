@@ -1,5 +1,234 @@
 # ClawTrol Playground — Improvement Log
 
+## [2026-02-25 06:56] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened `DeadRouteScanner` to scan only relative in-app paths (must start with `/`) and added regression coverage for absolute URL-like route specs.
+**Why:** Route scanning should never attempt to request non-relative/externally-shaped paths; enforcing a leading slash keeps scanner behavior bounded to app routes and avoids malformed request targets.
+**Files:**
+- `app/services/dead_route_scanner.rb`
+- `test/services/dead_route_scanner_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2470 runs, 5664 assertions, 0 failures)
+**Commit:** aa60002
+**Risk:** low — additive route guard + regression test.
+
+[CONFIDENCE: 84] Security — app/services/dead_route_scanner.rb:48
+Scanner accepted any GET-like path spec, including non-relative values, which could expand request targets beyond intended in-app routes.
+Require route paths to start with `/` before scanning and cover with a regression test for absolute URL-like specs.
+
+## [2026-02-25 05:25] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Allowed root route (`/`) to be scanned by `DeadRouteScanner` and added regression coverage.
+**Why:** Scanner excluded any path shorter than 3 chars, which unintentionally dropped the homepage route (`/`) from health scans. That could hide 500/empty-response failures on the most critical endpoint.
+**Files:**
+- `app/services/dead_route_scanner.rb`
+- `test/services/dead_route_scanner_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2469 runs, 5658 assertions, 0 failures)
+**Risk:** low — narrow path-filter fix with test coverage.
+
+[CONFIDENCE: 88] Correctness — app/services/dead_route_scanner.rb:46
+Path-length filtering treated `/` as non-scannable, skipping homepage checks entirely.
+Allow `/` as a special-case scannable route while keeping the short-path filter for other endpoints.
+
+## [2026-02-25 02:58] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added regression coverage for git worktree repository detection in `FactoryPromotionGateService`.
+**Why:** The promotion gate now allows repositories where `.git` is a file (git worktree), but tests only covered standard `.git` directories. This left a gap that could regress worktree support silently.
+**Files:**
+- `test/services/factory_promotion_gate_service_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅
+**Risk:** low — test-only change.
+
+[CONFIDENCE: 82] Testing — test/services/factory_promotion_gate_service_test.rb:174
+Worktree support (`.git` marker file) was implemented but not protected by a direct regression test.
+Add a temporary directory fixture with a `.git` file marker and assert `normalize_repo_path` accepts it.
+
+## [2026-02-25 02:29] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened `FactoryPromotionGateService` repository validation to only accept git repositories (`.git` directory or worktree `.git` file), and added regression coverage.
+**Why:** Promotion gate commands are shell-executed against `repo_path`. Previously, any existing directory was accepted, which widened command execution surface and made accidental misuse easier.
+**Files:**
+- `app/services/factory_promotion_gate_service.rb`
+- `test/services/factory_promotion_gate_service_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2463 runs, 5633 assertions, 0 failures)
+**Risk:** low — invalid/non-repo paths now fail closed; valid git repos (including worktrees) remain supported.
+
+[CONFIDENCE: 87] Security — app/services/factory_promotion_gate_service.rb:56
+`verify!` previously accepted any directory as `repo_path`, allowing gate shell commands to execute outside a git repository boundary.
+Require a `.git` marker (`dir` or `file`) during path normalization and return a structured repo-path failure for non-repo directories.
+
+## [2026-02-25 01:45] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added fail-fast behavior to `FactoryPromotionGateService.verify!` (default `fail_fast: true`) so promotion checks stop after the first failed gate, with opt-out support (`fail_fast: false`) when full check visibility is needed.
+**Why:** Promotion gate currently runs expensive checks sequentially (including full test suite and optional system tests). Continuing after an early failure wastes runtime and slows feedback loops during cherry-pick verification.
+**Files:**
+- `app/services/factory_promotion_gate_service.rb`
+- `test/services/factory_promotion_gate_service_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2461 runs, 5629 assertions, 0 failures)
+**Commit:** b62ef42
+**Risk:** low — default execution is faster on first failure; callers can preserve full-run behavior by passing `fail_fast: false`.
+
+[CONFIDENCE: 82] Performance — app/services/factory_promotion_gate_service.rb:34
+Gate verification executed all checks even after an early hard failure, including expensive test commands.
+Short-circuit on first failed check by default, and expose `fail_fast: false` for diagnostics.
+
+## [2026-02-25 00:51] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Hardened `DeadRouteScanner.route_paths` against nil route path specs.
+**Why:** Some Rails route objects (especially engine/mount edge cases) can expose nil `path`/`spec`. The scanner previously assumed `route.path.spec` always existed, which could raise and abort route collection.
+**Files:**
+- `app/services/dead_route_scanner.rb`
+- `test/services/dead_route_scanner_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2459 runs, 5622 assertions, 0 failures)
+**Risk:** low — defensive nil-guard only, behavior unchanged for valid routes.
+
+[CONFIDENCE: 79] Correctness — app/services/dead_route_scanner.rb:36
+`normalized_path` assumed every route had a non-nil `path.spec`, which can raise on malformed/mounted route entries.
+Guard nil path/spec early and skip non-normalizable routes before scannable checks.
+
+## [2026-02-25 00:25] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added a hard safety cap for cherry-pick batch size in `CherryPickService` (`MAX_CHERRY_PICK_COMMITS = 20`) and test coverage for over-limit rejection.
+**Why:** `cherry_pick!` accepted an unbounded list of hashes. A large payload could trigger long-running git operations and create avoidable operational risk during promotion.
+**Files:**
+- `app/services/cherry_pick_service.rb`
+- `test/services/cherry_pick_service_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2459 runs, 5622 assertions, 0 failures)
+**Risk:** low — additive guardrail; normal cherry-pick behavior unchanged for valid batches.
+
+[CONFIDENCE: 86] Security — app/services/cherry_pick_service.rb:67
+`cherry_pick!` previously allowed arbitrary batch sizes, which can amplify operational impact if misused.
+Reject requests above a fixed safe limit and return structured metadata (`max_commits`, `requested`) so callers can recover gracefully.
+
+## [2026-02-24 23:20] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Refactored Daily Executive Digest into a user-scoped service instance and updated the scheduled job to iterate users explicitly.
+**Why:** The digest service mixed cross-user iteration with rendering/sending logic. Separating concerns makes the service easier to test, avoids hidden global iteration, and improves failure isolation per user run.
+**Files:**
+- `app/jobs/daily_executive_digest_job.rb`
+- `app/services/daily_executive_digest_service.rb`
+- `test/jobs/daily_executive_digest_job_test.rb`
+- `test/services/daily_executive_digest_service_test.rb`
+- `test/models/swarm_idea_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2458 runs, 5618 assertions, 0 failures)
+**Risk:** low — behavior-preserving refactor with expanded coverage for per-user execution path.
+
+[CONFIDENCE: 83] Maintainability — app/services/daily_executive_digest_service.rb:8
+Service now has a single responsibility (format+send for one user) instead of internal global iteration.
+Keep the per-user loop in the job layer and keep the service user-scoped for clearer ownership and testability.
+
+## [2026-02-24 20:38] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Expanded `NavigationHelper` coverage to assert `primary_navigation` board-link behavior for owned vs unowned `last_board_id` values.
+**Why:** Unified navbar registry logic now drives both desktop and mobile menus, but helper tests only covered `last_board_navigation_path` in isolation. These regressions lock URL resolution through the real `primary_navigation` payload used by both nav surfaces.
+**Files:**
+- `test/helpers/navigation_helper_test.rb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2453 runs, 5568 assertions, 0 failures)
+**Risk:** low (test-only)
+
+[CONFIDENCE: 84] Testing — test/helpers/navigation_helper_test.rb:66
+`primary_navigation` URL behavior for the shared "Board" nav item was untested.
+Add regression tests that assert owned-board routing and fallback-to-boards behavior from the built navigation structure.
+
+## [2026-02-24 20:25] - Category: UX — STATUS: ✅ VERIFIED
+**What:** Deleted unused `_nav_icons.html.erb` partial.
+**Why:** The partial was 19KB of hardcoded SVGs and links, completely dead code superseded by `_desktop_nav.html.erb` and `_mobile_nav.html.erb` which both correctly consume the `primary_navigation` registry from `NavigationHelper`. Removing it eliminates parity drift risks and reduces codebase size.
+**Files:**
+- `app/views/shared/_nav_icons.html.erb` (deleted)
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2451 runs, 5566 assertions, 0 failures)
+**Risk:** low (deleting unused code)
+
+[CONFIDENCE: 90] Maintainability — app/views/shared/_nav_icons.html.erb:1
+File contained hardcoded SVGs and paths, but was not rendered by any view.
+Removed the file entirely as the application uses `_desktop_nav.html.erb` and `_mobile_nav.html.erb` with `NavigationHelper`.
+
+## [2026-02-24 17:20] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Tightened GET route detection in `DeadRouteScanner` to avoid false positives from verbs that merely contain the substring `GET`.
+**Why:** `supports_get_verb?` used `/GET/`, which could incorrectly classify non-GET verb strings (e.g., `"TARGET"`) as scannable GET routes.
+**Files:**
+- `app/services/dead_route_scanner.rb`
+- `test/services/dead_route_scanner_test.rb`
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2448 runs, 0 failures, 0 errors)
+**Risk:** Low — narrows route matching logic, preserving valid GET formats (`GET`, `GET|POST`, regex-style GET strings).
+
+## [2026-02-24 16:25] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Expanded roadmap markdown checkbox parsing to support `* [ ]`, `+ [ ]`, and ordered list (`1. [ ]`) items, with regression tests.
+**Why:** Roadmap-to-task generation depended on `BoardRoadmap#unchecked_items`, but it only recognized `- [ ]` lines. Common markdown task list variants were silently ignored, causing missing task generation from valid roadmap content.
+**Files:**
+- `app/models/board_roadmap.rb`
+- `test/models/board_roadmap_test.rb` (NEW)
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2448 runs, 0 failures, 0 errors)
+**Risk:** Low — parser is more permissive for unchecked markdown list formats; checked items and dedup behavior unchanged.
+
+## [2026-02-24 15:50] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Hardened Mission Control shell metric collection to fail closed when `uptime`/`ps` commands fail or return invalid output.
+**Why:** Backtick calls in `MissionControlHealthSnapshotService` treated command errors as valid values (`"0.0 MB"` on bad `ps` output), which could silently mask runtime failures in the health dashboard.
+**Files:**
+- `app/services/mission_control_health_snapshot_service.rb`
+- `test/services/mission_control_health_snapshot_service_test.rb`
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2446 runs, 0 failures, 0 errors)
+**Risk:** Low — read-only dashboard metrics now report `"Unknown"` on shell-command failure instead of misleading values.
+
+## [2026-02-24 15:25] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added Mission Control controller regression test to verify cache TTL expiration behavior.
+**Why:** Existing test only covered cache hits within the TTL window. It did not verify recomputation after the 30-second TTL expires, which is the key freshness contract for the dashboard snapshot cache.
+**Files:**
+- `test/controllers/mission_control_controller_test.rb`
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2444 runs, 0 failures, 0 errors)
+**Risk:** Low — test-only change, no production code modified.
+
+## [2026-02-24 14:55] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** WorkflowExecutionEngine now uses its injected logger (`@logger`) for expression warnings instead of hard-coding `Rails.logger`. Added regression test to verify warnings are emitted through the injected logger.
+**Why:** The service already accepts a logger dependency, but `evaluate_simple_expression` bypassed it in two places. This made behavior inconsistent and harder to test/route logs in non-default environments.
+**Files:**
+- `app/services/workflow_execution_engine.rb`
+- `test/services/workflow_execution_engine_test.rb`
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2443 runs, 0 failures, 0 errors)
+**Risk:** Low — logging path consistency only, no execution semantics changed.
+
+## [2026-02-24 14:22] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added expression length guard to `WorkflowExecutionEngine#evaluate_simple_expression` and regression test coverage.
+**Why:** Workflow expressions are user-controlled text. Extremely large payloads can cause avoidable CPU/memory pressure during repeated regex evaluation. Added a hard ceiling (`MAX_EXPRESSION_LENGTH = 1000`) with safe failure (`false`) and warning log when exceeded.
+**Files:**
+- `app/services/workflow_execution_engine.rb`
+- `test/services/workflow_execution_engine_test.rb`
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2442 runs, 0 failures, 0 errors)
+**Risk:** Low — overlong expressions now fail closed instead of being evaluated.
+
+## [2026-02-24 14:05] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Added short-lived caching for Mission Control health snapshot in `MissionControlController` (30s TTL) to avoid repeated DB/shell checks on rapid refresh.
+**Why:** The dashboard recalculated uptime/memory and DB migration status on every request. This is unnecessarily expensive when users auto-refresh or reopen the page repeatedly.
+**Files:**
+- `app/controllers/mission_control_controller.rb` (cache key + TTL constants, `Rails.cache.fetch` wrapping service call)
+- `test/controllers/mission_control_controller_test.rb` (new cache behavior regression test using MemoryStore)
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2441 runs, 0 failures, 0 errors)
+**Risk:** Low — read-only dashboard data, bounded 30-second freshness window.
+
+## [2026-02-24 13:25] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Hardened `FactoryRunnerV2Job` cycle log creation against duplicate cycle numbers under concurrent execution.
+**Why:** `create_cycle_log!` calculated `maximum(:cycle_number) + 1` without a row lock. If overlapping job runs happen (worker restart, concurrency edge), two jobs can race and attempt the same cycle number.
+**Files:**
+- `app/jobs/factory_runner_v2_job.rb` (wrapped cycle-number allocation in `loop.with_lock` + retry on `ActiveRecord::RecordNotUnique`)
+**Verify:**
+- `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅
+- `bin/rails test` ✅ (2440 runs, 0 failures, 0 errors)
+**Risk:** Low — defensive locking/retry around existing behavior.
+
+## [2026-02-24 00:20] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Added Mission Control Health Dashboard
+**Why:** Needed a centralized place to view Ruby/Rails versions, environment status, database connection, pending migrations, system uptime, and memory usage.
+**Files:**
+- `app/controllers/mission_control_controller.rb` (NEW)
+- `app/views/mission_control/index.html.erb` (NEW)
+- `config/routes.rb` (MODIFIED)
+- `test/controllers/mission_control_controller_test.rb` (NEW)
+**Verify:** `ruby -c` on all Ruby files passed. `bin/rails test test/controllers/mission_control_controller_test.rb` passed.
+**Risk:** Low — read-only dashboard.
+
 ## [2026-02-14 13:10] - Category: Code Quality — STATUS: ✅ VERIFIED
 **What:** Extracted `OpenclawCliRunnable` concern from 3 controllers (CommandController, CronjobsController, TokensController)
 **Why:** All three duplicated `openclaw_timeout_seconds`, `ms_to_time`, `run_openclaw_sessions`, Open3+Timeout CLI execution, and error hash construction. DRY extraction reduces ~163 lines and centralizes CLI interaction patterns.
@@ -3100,3 +3329,410 @@
 **Files:** test/models/session_test.rb (72→154 lines, 13→34 tests), test/models/task_diff_test.rb (82→182 lines, 12→40 tests)
 **Verify:** Ruby syntax OK on both files
 **Risk:** low (test-only additions)
+- 2026-02-23: Add /health endpoint for Mission Control Dashboard (Architecture)
+
+## [2026-02-24 02:21] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Enforce maximum payload size for file edits in FileViewerController
+**Why:** `update` accepted unbounded request content, which could allow oversized writes and memory/disk abuse. It now rejects edits larger than 2MB using `:content_too_large`, matching existing viewer read limits.
+**Files:** app/controllers/file_viewer_controller.rb, test/controllers/file_viewer_controller_test.rb
+**Verify:** Ruby syntax OK; `bin/rails test` passed (2413 runs, 0 failures)
+**Risk:** low (adds input guard; preserves current behavior for normal-sized edits)
+
+## [2026-02-24 03:12] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened Telegram Mini App account linking: single-tenant fallback is now disabled by default and must be explicitly enabled with `TELEGRAM_MINI_APP_SINGLE_TENANT_FALLBACK=true`.
+**Why:** The implicit fallback to `User.first` could misattribute actions when Telegram ID mapping was missing. Default-deny linking reduces cross-account risk and enforces explicit `telegram_chat_id` binding unless the operator intentionally opts into fallback mode.
+**Files:** app/controllers/telegram_mini_app_controller.rb, test/controllers/telegram_mini_app_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2415 runs, 5469 assertions, 0 failures)
+**Risk:** Low — fallback behavior is preserved behind explicit env opt-in.
+
+## [2026-02-24 03:30] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added focused test coverage for Dead/Empty Route Scanner and extracted scanner logic into `DeadRouteScanner` service.
+**Why:** The scanner task had no automated coverage. Extracting route filtering + scan result shaping into a service enabled deterministic unit tests for route eligibility, 404/500 failure detection, and exception handling.
+**Files:** app/services/dead_route_scanner.rb, lib/tasks/scanner.rake, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2418 runs, 5475 assertions, 0 failures)
+**Risk:** low (behavior preserved; adds tests and isolates scanner logic for safer future changes)
+
+## [2026-02-24 03:48] - Category: Bug Fixes — STATUS: ✅ VERIFIED
+**What:** Fixed DeadRouteScanner GET route detection to include multi-verb routes (e.g., `GET|POST`) instead of only exact `GET` matches.
+**Why:** Some Rails routes expose GET plus additional verbs. The previous `route.verb == "GET"` check skipped those paths, creating false negatives in dead/empty route scans.
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2418 runs, 5475 assertions, 0 failures)
+**Risk:** low (scanner selection fix + targeted test coverage)
+
+## [2026-02-24 04:19] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Excluded wildcard/glob routes from DeadRouteScanner eligibility.
+**Why:** Paths like `/files/*path` are dynamic catch-alls that cannot be deterministically scanned as concrete pages; including them causes noisy failures and wasted requests during route scanning. Filtering them reduces scanner workload and improves signal quality.
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2418 runs, 5475 assertions, 0 failures)
+**Risk:** low (route filter tightening for scanner-only logic)
+
+## [2026-02-24 04:44] - Category: Bug Fixes — STATUS: ✅ VERIFIED
+**What:** Fixed Mission Control migration status reporting when database is disconnected.
+**Why:** Dashboard previously rescued migration checks to `false`, incorrectly showing "Up to Date" even when DB connection was down. It now reports migration status as `Unknown` unless DB connectivity is confirmed.
+**Files:** app/controllers/mission_control_controller.rb, app/views/mission_control/index.html.erb, test/controllers/mission_control_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2419 runs, 5477 assertions, 0 failures)
+**Risk:** low (UI/status accuracy improvement + regression test)
+
+## [2026-02-24 05:20] - Category: Bug Fixes — STATUS: ✅ VERIFIED
+**What:** Mark empty 2xx responses as failed in `DeadRouteScanner` and expose `:empty` in scan results.
+**Why:** Dead/Empty Route Scanner previously treated any `<400` status as healthy, allowing blank pages to pass silently. Empty successful responses are now flagged as failed to surface missing-content routes.
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2420 runs, 5481 assertions, 0 failures)
+**Risk:** low (scanner-only detection tightening with targeted tests)
+
+## [2026-02-24 05:50] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Sanitized `DeadRouteScanner` exception output to avoid exposing raw error messages in scan results.
+**Why:** Route scan exceptions were returned as `e.message`, which can leak internal details (paths, secrets, stack-derived text) into UI/API consumers. Scanner now reports a generic class-based message (`<ErrorClass>: request failed`).
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2420 runs, 5483 assertions, 0 failures)
+**Risk:** low (error reporting hardening in scanner-only path)
+
+## [2026-02-24 06:20] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Extracted Mission Control health snapshot gathering into `MissionControlHealthSnapshotService`.
+**Why:** Controller was handling health-data collection inline (DB, migrations, uptime, memory), mixing presentation and infrastructure checks. Service extraction centralizes health logic for easier extension of the Mission Control Health Dashboard and adds focused unit coverage for disconnected/connected DB migration states.
+**Files:** app/controllers/mission_control_controller.rb, app/services/mission_control_health_snapshot_service.rb, test/services/mission_control_health_snapshot_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2422 runs, 5487 assertions, 0 failures)
+**Risk:** low (refactor + tests; dashboard behavior preserved)
+
+## [2026-02-24 06:44] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Centralized Factory GitHub default work-branch handling in `FactoryGithubService`.
+**Why:** The service repeated the fallback string `"factory/auto"` in five methods, creating stringly-typed duplication and higher drift risk. Introduced `DEFAULT_WORK_BRANCH` + `configured_work_branch` helper and added regression tests for configured and fallback behavior.
+**Files:** app/services/factory_github_service.rb, test/services/factory_github_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2424 runs, 5489 assertions, 0 failures)
+**Risk:** low (DRY refactor, behavior preserved)
+
+## [2026-02-24 07:14] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Replaced placeholder `ModelCatalogService` test with real service coverage for aggregation, gateway fallback, and nil-user defaults.
+**Why:** Cross-model catalog behavior is core to model selection flows but previously had no assertions (`skip`). Added deterministic tests for merged sources (gateway payload, tasks, personas, limits, fallback chain), graceful gateway failure handling, and default behavior when user is absent.
+**Files:** test/services/model_catalog_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2426 runs, 5507 assertions, 0 failures)
+**Risk:** low (test-only change)
+
+## [2026-02-24 07:58] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Added `FactoryPromotionGateService` and wired cherry-pick verification to use it.
+**Why:** Backlog item "Factory Promotion Gate (tests/lint/e2e before promote)" needed a dedicated gate abstraction instead of ad-hoc `bin/rails test` output parsing. The new service runs a structured syntax check + test command gate (with optional e2e check), returns per-check results, and gives deterministic pass/fail data for promotion workflows.
+**Files:** app/services/factory_promotion_gate_service.rb, app/services/cherry_pick_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2429 runs, 5515 assertions, 0 failures)
+**Risk:** low (additive service + existing verify endpoint now returns richer gate details)
+
+## [2026-02-24 08:20] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened `FactoryPromotionGateService` error output to avoid leaking raw exception messages from shell execution checks.
+**Why:** The promotion gate previously returned `e.message` on check execution errors, which could expose sensitive command/runtime details in API responses. Errors are now class-only with a generic message, and coverage was added to ensure secrets are not echoed.
+**Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2430 runs, 5529 assertions, 0 failures)
+**Risk:** low (defensive output sanitization + targeted regression test)
+
+## [2026-02-24 08:42] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Reduced shell overhead in `FactoryPromotionGateService#run_check` by executing commands with `Open3.capture3(..., chdir: repo_path)` instead of prepending `cd ... &&` in a composed shell string.
+**Why:** Avoids extra command composition/parsing per gate check and keeps working-directory handling native to `Open3`.
+**Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2431 runs, 5532 assertions, 0 failures)
+**Commit:** c7460a4
+**Risk:** low (behavior preserved, command execution path simplified)
+
+[CONFIDENCE: 78] Performance — app/services/factory_promotion_gate_service.rb:48
+Used `chdir:` execution context instead of shell `cd &&` string composition.
+Keep `command` source controlled/trusted as currently designed; avoid passing user input directly.
+
+## [2026-02-24 09:07] - Category: Bug Fixes — STATUS: ✅ VERIFIED
+**What:** Removed implicit `User.first` fallback from `FactoryEngineService` initialization.
+**Why:** Service methods do not use user context; keeping the fallback performed unnecessary user lookup and preserved a risky attribution pattern.
+**Files:** app/services/factory_engine_service.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2431 runs, 5532 assertions, 0 failures)
+**Commit:** 7818ce4
+**Risk:** low (no runtime behavior change in service methods)
+
+[CONFIDENCE: 73] Bug Fixes — app/services/factory_engine_service.rb:6
+Initialization previously hit `User.first` despite no user usage in this service.
+Keep constructor parameter as compatibility shim until all call sites are explicitly updated.
+
+## [2026-02-24 09:22] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added regression test proving `FactoryEngineService` initialization no longer performs implicit user fallback queries.
+**Why:** Guards against reintroducing `User.first`-style lookup behavior in this service's constructor.
+**Files:** test/services/factory_engine_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2432 runs, 5533 assertions, 0 failures)
+**Commit:** (set after commit)
+**Risk:** low (test-only coverage)
+
+[CONFIDENCE: 80] Testing — test/services/factory_engine_service_test.rb:28
+Constructor behavior is now pinned with a no-lookup regression test.
+If constructor semantics expand later, add explicit collaborator injection tests rather than implicit DB fallbacks.
+
+## [2026-02-24 09:34] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Centralized promotion gate check definitions in constants (`BASE_CHECKS`, `E2E_CHECK`) and added a private `check_definitions` builder.
+**Why:** `verify!` repeated check hashes inline, making the check list stringly-typed and harder to extend safely. Extracting definitions reduces duplication and keeps command catalog in one place.
+**Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2433 runs, 5536 assertions, 0 failures)
+**Risk:** low (refactor only, no behavioral change in executed commands)
+
+[CONFIDENCE: 74] Code Quality — app/services/factory_promotion_gate_service.rb:6
+Check definitions were duplicated inline inside `verify!`, increasing drift risk when adding/removing gate steps.
+Keep check catalog centralized and append optional checks through a dedicated builder method.
+
+
+## [2026-02-24 09:50] - Category: Bug Fixes — STATUS: ✅ VERIFIED
+**What:** Fixed GET-route detection in `DeadRouteScanner` to handle Rails route verb regex serialization (e.g. `(?-mix:^GET$)`) and added regression coverage.
+**Why:** `supports_get_verb?` previously split on `|` and only matched exact `"GET"`, which misses regex-serialized GET verbs and can silently skip valid routes during scans.
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2433 runs, 5536 assertions, 0 failures)
+**Risk:** low (bug fix + test coverage)
+
+[CONFIDENCE: 85] Correctness — app/services/dead_route_scanner.rb:56
+GET route detection required exact token matching and could exclude regex-serialized GET verbs.
+Use regex presence matching (`/GET/`) to correctly include Rails route verb representations.
+
+## [2026-02-24 10:20] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added repository-path accessibility guard to `FactoryPromotionGateService.verify!` with fail-fast result when the target path is invalid.
+**Why:** Promotion gate execution previously attempted shell checks with any provided path. A missing/invalid directory produced noisy command errors instead of a deterministic gate failure. Guarding path accessibility tightens execution safety and avoids accidental command runs against unexpected locations.
+**Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2434 runs, 5539 assertions, 0 failures)
+**Risk:** low (fail-fast validation + targeted regression test)
+
+[CONFIDENCE: 82] Security — app/services/factory_promotion_gate_service.rb:17
+Promotion gate accepted non-directory repo paths and delegated failure to shell command execution.
+Validate and normalize the repo path up front, then return a deterministic failed check when inaccessible.
+
+## [2026-02-24 10:53] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Optimized `DeadRouteScanner.route_paths` to deduplicate paths during collection instead of `filter_map + uniq` post-processing.
+**Why:** Route scans iterate over all Rails routes. Avoiding an additional full-array deduplication pass reduces allocations and improves throughput on larger route sets while preserving order.
+**Files:** app/services/dead_route_scanner.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2434 runs, 5539 assertions, 0 failures)
+**Risk:** low (internal iteration refactor, behavior preserved by existing route_paths regression test)
+
+[CONFIDENCE: 72] Performance — app/services/dead_route_scanner.rb:9
+`route_paths` previously built an intermediate array and then deduplicated with `.uniq`, adding an extra traversal and allocations.
+Deduplicate inline with a seen-path lookup while collecting to keep stable ordering and reduce overhead.
+
+## [2026-02-24 11:22] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Unified last-board navigation resolution behind `NavigationHelper#last_board_navigation_path` and wired desktop nav to use it.
+**Why:** Desktop sidebar and mobile registry had diverging last-board logic. Centralizing path resolution prevents drift and ensures both navigation surfaces respect user-owned board lookup with safe fallback.
+**Files:** app/helpers/navigation_helper.rb, app/views/shared/_nav_icons.html.erb, test/helpers/navigation_helper_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2437 runs, 5542 assertions, 0 failures)
+**Risk:** low (shared helper extraction + regression tests)
+
+[CONFIDENCE: 78] Architecture — app/helpers/navigation_helper.rb:2
+Last-board path computation existed in multiple places with inconsistent fallback behavior.
+Centralize ownership-aware path resolution in a single helper method and reuse across navigation views.
+
+## [2026-02-24 11:50] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added timeout and path-normalization regression tests for `FactoryPromotionGateService` private execution helpers.
+**Why:** Promotion gate logic had coverage for success/failure flows but lacked direct tests for timeout handling and relative-path normalization, both critical for reliable gate behavior.
+**Files:** test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2439 runs, 5545 assertions, 0 failures)
+**Risk:** low (test-only coverage)
+
+[CONFIDENCE: 76] Testing — test/services/factory_promotion_gate_service_test.rb:97
+Timeout fallback behavior in `run_check` was previously unpinned and could regress silently.
+Keep a dedicated timeout regression test so gate failures remain deterministic under long-running checks.
+
+## [2026-02-24 12:14] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Added no-store cache policy to Mission Control dashboard responses
+**Why:** Mission Control exposes sensitive runtime metadata (environment, DB connectivity, uptime, memory). Browsers/proxies should not cache this page on shared machines.
+**Files:** app/controllers/mission_control_controller.rb, test/controllers/mission_control_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅; `bin/rails test` ✅ (2440 runs, 5547 assertions, 0 failures, 0 errors)
+**Risk:** Low — response header hardening only.
+
+## [2026-02-24 12:50] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Fixed desktop navbar active-state mismatches for Dashboard and Skills icons.
+**Why:** Two nav icons were using stale controller checks, so active highlighting was incorrect: Dashboard checked `controller_name == 'dashboard'` (controller no longer exists) and Skills checked `controller_name == 'skills'` (actual controller is `skill_manager`). This caused visual parity drift versus mobile nav state logic.
+**Files:**
+- `app/views/shared/_nav_icons.html.erb`
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` (no modified Ruby files). `bin/rails test` passed (2440 runs, 0 failures, 0 errors).
+**Risk:** Low — view-only active class condition updates.
+
+## [2026-02-24 16:50] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Extracted `DeadRouteScanner.scan` result payload builders into dedicated private helpers (`success_result`, `failure_result`).
+**Why:** The method duplicated hash construction inline for success and error paths, increasing noise and making future field changes easier to miss. Helper extraction keeps scan flow focused on request execution while preserving behavior.
+**Files:** app/services/dead_route_scanner.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2448 runs, 5548 assertions, 0 failures)
+**Risk:** low (internal refactor, no behavior change)
+
+[CONFIDENCE: 70] Maintainability — app/services/dead_route_scanner.rb:19
+`scan` previously built two near-duplicate result hashes inline, making the method harder to read and edit safely.
+Extract shared payload construction into private helpers and keep `scan` focused on control flow.
+
+
+## [2026-02-24 17:55] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened Mission Control anti-caching headers by adding legacy proxy directives (`Pragma`, `Expires`) while preserving no-store semantics.
+**Why:** `Cache-Control: no-store` is primary, but some intermediary/legacy clients still honor `Pragma`/`Expires`. Adding both reduces accidental retention of sensitive health dashboard metadata.
+**Files:** app/controllers/mission_control_controller.rb, test/controllers/mission_control_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2448 runs, 5551 assertions, 0 failures)
+**Commit:** 8b7b97c
+**Risk:** low (response header hardening + controller test update)
+
+[CONFIDENCE: 81] Security — app/controllers/mission_control_controller.rb:24
+Mission Control responses only enforced `Cache-Control`, which can be inconsistently interpreted by older intermediaries.
+Set complementary `Pragma` and `Expires` headers and keep regression coverage for all anti-cache directives.
+
+## [2026-02-24 18:20] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Deduplicated session keys before task-link lookup in `SessionsExplorerController#index`.
+**Why:** Session payloads can include repeated keys across snapshots/reconnects. Passing duplicates into `WHERE agent_session_id IN (...)` unnecessarily increases bind parameters and query overhead with no result benefit.
+**Files:** app/controllers/sessions_explorer_controller.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2448 runs, 5551 assertions, 0 failures)
+**Risk:** low (query-input reduction only, behavior unchanged)
+
+[CONFIDENCE: 71] Performance — app/controllers/sessions_explorer_controller.rb:20
+Task-link lookup built an `IN` list from raw session keys without deduplication, which can inflate query work on repeated keys.
+Normalize to unique keys before querying to reduce query parameter count while preserving output.
+Roadmap Executor Sync completed
+
+## [2026-02-24 22:59] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added targeted `NavigationHelper#nav_item_active?` regression tests for action matching, id matching, and `exact_action: false` roster exclusion behavior.
+**Why:** Active-state highlighting logic had implicit branching but no direct helper-level tests, which made navbar parity regressions easy to miss when changing controller/action routing.
+**Files:** test/helpers/navigation_helper_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2458 runs, 5618 assertions, 0 failures)
+**Risk:** low (test-only coverage)
+
+[CONFIDENCE: 74] Testing — test/helpers/navigation_helper_test.rb:75
+`nav_item_active?` contains multi-branch conditions (`action`, `id_param`, `exact_action`) that were not fully covered by focused unit tests.
+Pin each branch with direct helper regression tests to prevent desktop/mobile active-state drift during future nav changes.
+
+## [2026-02-25 03:25] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Hardened `FactoryPromotionGateService` repo-path normalization to reject blank inputs before path expansion, and added regression tests for `nil`/empty/whitespace values.
+**Why:** `File.expand_path(repo_path.to_s)` treats blank input as current working directory, which can unintentionally validate and run gate commands against an unintended repository when callers pass missing input.
+**Files:** app/services/factory_promotion_gate_service.rb, test/services/factory_promotion_gate_service_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2465 runs, 5637 assertions, 0 failures)
+**Risk:** low (input validation hardening + targeted tests)
+
+[CONFIDENCE: 87] Security — app/services/factory_promotion_gate_service.rb:53
+Blank `repo_path` values were normalized via `File.expand_path` to the current directory, allowing accidental gate execution in the wrong repository context.
+Guard blank/nil/whitespace paths before expansion and keep explicit regression coverage for those inputs.
+
+## [2026-02-25 03:55] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Scoped Mission Control health snapshot cache key by environment.
+**Why:** The dashboard cache key was global (`mission_control/health_snapshot/v1`) and could collide across environments when sharing a cache backend, causing stale or cross-environment health data to be reused.
+**Files:** app/controllers/mission_control_controller.rb, test/controllers/mission_control_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2466 runs, 5638 assertions, 0 failures)
+**Risk:** low (cache-key namespacing + regression test)
+
+[CONFIDENCE: 84] Correctness — app/controllers/mission_control_controller.rb:8
+Mission Control used a single static cache key for health snapshots, which can leak stale data between environments if they share cache storage.
+Namespace the key with `Rails.env` and keep regression coverage that verifies separate recomputation per environment.
+
+## [2026-02-25 05:00] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Replaced placeholder `SubAgentOutputContract` test stub with focused regression coverage and normalized scalar text fields (`summary`, `validation`, `recommended_action`) during payload parsing.
+**Why:** The contract previously preserved leading/trailing whitespace in scalar fields, which produced noisy markdown/payload output and made test assertions brittle. There was also no service-level test coverage, so regressions in nested extraction/normalization could slip through.
+**Files:** app/services/sub_agent_output_contract.rb, test/services/sub_agent_output_contract_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2469 runs, 5658 assertions, 0 failures)
+**Risk:** low (string normalization hardening + test coverage)
+
+[CONFIDENCE: 78] Testing — test/services/sub_agent_output_contract_test.rb:5
+`SubAgentOutputContract` had no behavioral tests, leaving nested contract extraction and output formatting paths unguarded.
+Replace the skipped placeholder with regression tests that validate normalization, validation payload handling, and markdown rendering.
+
+[CONFIDENCE: 67] Correctness — app/services/sub_agent_output_contract.rb:24
+Scalar fields were not trimmed, so user-visible summaries and recommended actions could retain accidental whitespace.
+Normalize scalar text through a shared `normalized_text` helper before serializing payload/markdown output.
+
+## [2026-02-25 05:56] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Reduced repeated relation hits in `DailyExecutiveDigestService#format_digest` by extracting shared section rendering and reusing bounded pluck/count access patterns.
+**Why:** Digest generation previously called `count`/`any?` multiple times per section and instantiated AR objects for list rendering, which increased avoidable query churn and allocations on every run.
+**Files:** app/services/daily_executive_digest_service.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2469 runs, 5658 assertions, 0 failures)
+**Risk:** low (output-preserving refactor for query/object reduction)
+
+[CONFIDENCE: 73] Performance — app/services/daily_executive_digest_service.rb:28
+Digest rendering was issuing redundant relation checks/counts and loading full records where only task names were needed.
+Consolidate section rendering with a helper that counts once and fetches only bounded `name` fields via `pluck`.
+
+## [2026-02-25 06:27] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Updated `DeadRouteScanner` to flag Turbo Frame mismatch bodies as failed scans and expose `turbo_frame_mismatch` in scan output.
+**Why:** The scanner previously treated any non-empty 2xx response as healthy, so Turbo mismatch responses (`did not contain the expected <turbo-frame`) were incorrectly reported as successful routes.
+**Files:** app/services/dead_route_scanner.rb, test/services/dead_route_scanner_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2470 runs, 5664 assertions, 0 failures)
+**Commit:** 43ecff0
+**Risk:** low (narrow failure-condition detection + regression test)
+
+[CONFIDENCE: 85] Correctness — app/services/dead_route_scanner.rb:57
+Scanner success criteria only failed on 404/500/empty body and missed Turbo Frame mismatch responses that are logically broken despite returning HTTP 200.
+Detect the canonical Turbo mismatch marker in successful response bodies and mark those routes as failed for accurate dead-route reporting.
+
+## [2026-02-25 07:40] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Hardened `FactoryController#playground` file-change stats to avoid invalid `HEAD~10` ranges on shallow/new repositories by using a bounded commit span helper.
+**Why:** The previous implementation always diffed `HEAD~10..HEAD`, which emits `fatal: bad revision 'HEAD'` when the repo has insufficient history. This polluted logs/test output and can mask real issues.
+**Files:** app/controllers/factory_controller.rb, test/controllers/factory_controller_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2471 runs, 5668 assertions, 0 failures)
+**Risk:** low (defensive range calculation + focused controller unit tests)
+
+[CONFIDENCE: 82] Correctness — app/controllers/factory_controller.rb:34
+Playground stats used a fixed `HEAD~10` diff range, which is invalid on repositories with fewer than 11 commits and causes noisy fatal git errors.
+Compute a bounded span (`min(total_commits - 1, 10)`) and return `N/A` when there is not enough history.
+
+[CONFIDENCE: 72] Testing — test/controllers/factory_controller_test.rb:5
+FactoryController had only a skipped placeholder test, so regressions in git range selection could ship unnoticed.
+Replace the placeholder with focused tests that verify both the no-history path and the bounded range command arguments.
+
+## [2026-02-25 07:58] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Removed a duplicate `strict_loading` declaration in `Task` to keep model configuration single-sourced.
+**Why:** The repeated call was redundant and made the model definition noisier without adding behavior.
+**Files:** app/models/task.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2471 runs, 5668 assertions, 0 failures)
+**Commit:** 1eaa141
+**Risk:** low (no behavior change; configuration cleanup)
+
+## [2026-02-25 08:08] - Category: Testing — STATUS: ✅ VERIFIED
+**What:** Added coverage ensuring task validation commands must start with an allowed prefix.
+**Why:** The model enforces prefix restrictions, but we did not have a regression test guarding the error path.
+**Files:** test/models/task_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2472 runs, 5671 assertions, 0 failures)
+**Commit:** 63159f4
+**Risk:** low (test-only change)
+
+## [2026-02-25 08:13] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Reused a single `Time.current` value when formatting model limit reset windows.
+**Why:** The method previously queried the clock multiple times, which can skew comparisons and adds unnecessary calls during frequent status rendering.
+**Files:** app/models/model_limit.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2472 runs, 5671 assertions, 0 failures)
+**Commit:** 3d1536e
+**Risk:** low (no behavior change beyond consistent timing)
+
+## [2026-02-25 08:19] - Category: Security — STATUS: ✅ VERIFIED
+**What:** Prevented expired API tokens from authenticating and added regression coverage.
+**Why:** `ApiToken.authenticate` accepted any matching digest without honoring `expires_at`, allowing stale tokens to authenticate.
+**Files:** app/models/api_token.rb, test/models/api_token_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2473 runs, 5672 assertions, 0 failures)
+**Commit:** 55173c8
+**Risk:** low (expiry check + targeted test)
+
+## [2026-02-25 08:25] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Refactored `RoadmapExecutorSync` to preload roadmap links/tasks and sync from in-memory maps instead of issuing per-item queries.
+**Why:** The previous implementation did two `find_by` lookups for every unchecked roadmap item, increasing query chatter as roadmap size grows.
+**Files:** app/services/roadmap_executor_sync.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2474 runs, 5676 assertions, 0 failures)
+**Risk:** low (query reduction refactor, behavior preserved)
+
+[CONFIDENCE: 74] Performance — app/services/roadmap_executor_sync.rb:12
+Sync loop performed repetitive `find_by` queries for links and tasks on every roadmap item, creating avoidable N+1-like query overhead on larger checklists.
+Preload existing links/tasks with `where(...).index_by` once, then resolve/create in-memory during the transaction.
+
+## [2026-02-25 08:24] - Category: Bug Fix — STATUS: ✅ VERIFIED
+**What:** Avoided adding self-dependency errors when dependency IDs are missing, with regression coverage.
+**Why:** The validation was firing on nil IDs and producing misleading base errors before association validations ran.
+**Files:** app/models/task_dependency.rb, test/models/task_dependency_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2474 runs, 5676 assertions, 0 failures)
+**Commit:** 101af88
+**Risk:** low (guarded validation + focused test)
+
+## [2026-02-25 08:30] - Category: Architecture — STATUS: ✅ VERIFIED
+**What:** Centralized validation-command safety checks in a shared concern for tasks and templates.
+**Why:** The same safety logic lived in two models, which risked drifting behavior and duplicated maintenance.
+**Files:** app/models/concerns/validation_command_safety.rb, app/models/task.rb, app/models/task_template.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2474 runs, 5676 assertions, 0 failures)
+**Commit:** 45d2a6a
+**Risk:** low (behavior-preserving refactor with shared helpers)
+
+## [2026-02-25 08:36] - Category: Code Quality — STATUS: ✅ VERIFIED
+**What:** Made `ApiToken.by_user(nil)` return an empty relation instead of nil and added coverage.
+**Why:** Returning nil breaks scope chaining and can raise errors when optional users are passed through.
+**Files:** app/models/api_token.rb, test/models/api_token_test.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2475 runs, 5677 assertions, 0 failures)
+**Commit:** 3027eb1
+**Risk:** low (nil-safe scope behavior + test)
+
+## [2026-02-25 08:41] - Category: Performance — STATUS: ✅ VERIFIED
+**What:** Switched dependency-cycle traversal to an indexed queue to avoid repeated array shifts.
+**Why:** `Array#shift` is O(n) and can amplify work in deep dependency graphs, while index iteration preserves behavior with lower overhead.
+**Files:** app/models/task_dependency.rb
+**Verify:** `git diff --name-only -- '*.rb' | xargs -r ruby -c` ✅, `bin/rails test` ✅ (2475 runs, 5677 assertions, 0 failures)
+**Commit:** d21cc19
+**Risk:** low (behavior-preserving traversal)

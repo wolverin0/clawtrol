@@ -97,6 +97,13 @@ class TaskTest < ActiveSupport::TestCase
     assert task.valid?
   end
 
+  test "rejects validation command without allowed prefix" do
+    task = Task.new(name: "Test", board: boards(:one), user: users(:one),
+                    validation_command: "arbitrary_tool test")
+    assert_not task.valid?
+    assert_includes task.errors[:validation_command].join, "must start with an allowed prefix"
+  end
+
   # --- Associations ---
 
   test "belongs to user" do

@@ -16,6 +16,7 @@ class TelegramMiniAppControllerTest < ActionDispatch::IntegrationTest
 
   teardown do
     ENV.delete("TELEGRAM_BOT_TOKEN")
+    ENV.delete("TELEGRAM_MINI_APP_SINGLE_TENANT_FALLBACK")
   end
 
   # --- Show (GET) ---
@@ -47,6 +48,37 @@ class TelegramMiniAppControllerTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
     data = JSON.parse(response.body)
     assert_includes data["error"], "linked"
+  end
+
+  test "tasks links by telegram_chat_id when mapping exists" do
+    skip "telegram_chat_id column not present" unless User.column_names.include?("telegram_chat_id")
+
+    @user.update!(telegram_chat_id: "12345")
+    init_data = build_init_data({ "id" => 12345 })
+
+    post telegram_app_tasks_path, params: { init_data: init_data }, as: :json
+
+    assert_response :success
+    data = JSON.parse(response.body)
+    assert_equal @user.email_address, data.dig("user", "name")
+  end
+
+  test "tasks can use single-tenant fallback only when explicitly enabled" do
+    skip "telegram_chat_id column not present" unless User.column_names.include?("telegram_chat_id")
+
+    @user.update!(telegram_chat_id: nil)
+    init_data = build_init_data({ "id" => 77777 })
+
+    post telegram_app_tasks_path, params: { init_data: init_data }, as: :json
+    assert_response :forbidden
+
+    ENV["TELEGRAM_MINI_APP_SINGLE_TENANT_FALLBACK"] = "true"
+
+    Rails.cache.stub(:fetch, true) do
+      post telegram_app_tasks_path, params: { init_data: init_data }, as: :json
+    end
+
+    assert_response :success
   end
 
   # --- Create Task (POST) ---

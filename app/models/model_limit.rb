@@ -35,9 +35,10 @@ class ModelLimit < ApplicationRecord
   end
 
   def time_until_reset
-    return nil unless resets_at.present? && resets_at > Time.current
+    now = Time.current
+    return nil unless resets_at.present? && resets_at > now
 
-    seconds = (resets_at - Time.current).to_i
+    seconds = (resets_at - now).to_i
     if seconds < 60
       "#{seconds}s"
     elsif seconds < 3600
