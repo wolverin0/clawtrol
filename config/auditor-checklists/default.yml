@@ -1,0 +1,38 @@
+name: default
+required_signals:
+  - acceptance_criteria_present
+  - executor_output_present
+  - output_files_present
+  - summary_present
+critical_signals:
+  - executor_output_present
+weights:
+  dod: 40
+  evidence: 30
+  policy: 20
+  handoff: 10
+fix_instructions:
+  acceptance_criteria_present:
+    severity: major
+    instruction: Document explicit Definition of Done / acceptance criteria.
+    expected_proof: Add criteria list to task contract or task description.
+  executor_output_present:
+    severity: critical
+    instruction: Provide a concrete executor output section with what was done.
+    expected_proof: ## Agent Output section with factual results.
+  output_files_present:
+    severity: major
+    instruction: Attach at least one artifact file or verifiable output path.
+    expected_proof: Add paths under output_files.
+  output_files_accessible:
+    severity: major
+    instruction: Ensure referenced files exist and are readable from runtime.
+    expected_proof: Existing file paths or reachable report links.
+  summary_present:
+    severity: minor
+    instruction: Add a short executive summary of outcome and next action.
+    expected_proof: 2-4 summary lines in output.
+  no_forbidden_claims:
+    severity: major
+    instruction: Remove unresolved placeholders (TODO/TBD/fix later).
+    expected_proof: Clean output without unresolved placeholders.

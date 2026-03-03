@@ -1,0 +1,4 @@
+<% frame_id = request.headers["Turbo-Frame"].presence || "task_#{@task.id}_context_menu_frame" %>
+<%= turbo_frame_tag frame_id, target: "_top" do %>
+  <%= render partial: "boards/tasks/context_menu", locals: { task: @task, user_boards: @user_boards } %>
+<% end %>

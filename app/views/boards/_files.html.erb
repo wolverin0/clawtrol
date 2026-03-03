@@ -1,0 +1,46 @@
+<% return if @board.aggregator? %>
+
+<div class="px-4 md:px-6 py-3 border-b border-border bg-bg-surface">
+  <div class="rounded-lg border border-border bg-bg-base p-4 space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="text-sm font-semibold text-content">📎 Files</h3>
+      <span class="text-xs text-content-muted"><%= @file_refs&.size.to_i %> refs</span>
+    </div>
+
+    <%= form_with model: [@board, @new_file_ref], url: board_file_refs_path(@board), method: :post, class: "grid grid-cols-1 md:grid-cols-4 gap-2" do |f| %>
+      <%= f.text_field :path, placeholder: "Path (e.g. clawdeck/docs/plan.md)", class: "md:col-span-2 rounded-md border border-border bg-bg-surface px-3 py-2 text-sm" %>
+      <%= f.text_field :label, placeholder: "Label (optional)", class: "rounded-md border border-border bg-bg-surface px-3 py-2 text-sm" %>
+      <div class="flex gap-2">
+        <%= f.text_field :category, value: "general", placeholder: "Category", class: "w-full rounded-md border border-border bg-bg-surface px-3 py-2 text-sm" %>
+        <%= f.submit "Add", class: "rounded-md bg-accent px-3 py-2 text-sm font-medium text-white hover:opacity-90" %>
+      </div>
+    <% end %>
+
+    <% grouped = (@file_refs || []).group_by(&:category) %>
+    <% if grouped.any? %>
+      <div class="space-y-3">
+        <% grouped.sort_by { |category, _| category }.each do |category, refs| %>
+          <div>
+            <div class="text-xs uppercase tracking-wide text-content-muted mb-1"><%= category %></div>
+            <ul class="space-y-1">
+              <% refs.each do |ref| %>
+                <li class="flex items-center justify-between gap-2 text-sm">
+                  <div class="min-w-0">
+                    <div class="font-medium text-content truncate"><%= ref.display_label %></div>
+                    <div class="text-xs text-content-muted truncate"><%= ref.path %></div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <%= link_to "Open", "/view?file=#{ERB::Util.url_encode(ref.path)}", class: "text-xs text-accent hover:underline" %>
+                    <%= button_to "Remove", board_file_ref_path(@board, ref), method: :delete, form: { data: { turbo_confirm: "Remove file reference?" } }, class: "text-xs text-red-400 hover:underline bg-transparent border-0 p-0" %>
+                  </div>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="text-xs text-content-muted">No file references yet.</p>
+    <% end %>
+  </div>
+</div>

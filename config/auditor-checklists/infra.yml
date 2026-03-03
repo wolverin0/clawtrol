@@ -1,0 +1,20 @@
+name: infra
+required_signals:
+  - acceptance_criteria_present
+  - executor_output_present
+  - output_files_present
+  - rollback_plan_present
+  - summary_present
+critical_signals:
+  - executor_output_present
+  - rollback_plan_present
+weights:
+  dod: 40
+  evidence: 30
+  policy: 20
+  handoff: 10
+fix_instructions:
+  rollback_plan_present:
+    severity: critical
+    instruction: Provide rollback steps before approving infra changes.
+    expected_proof: Explicit rollback command/steps in output.

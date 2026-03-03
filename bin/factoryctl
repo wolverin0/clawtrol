@@ -1,0 +1,295 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "fileutils"
+require "json"
+require "open3"
+require "pathname"
+require "shellwords"
+
+module Factoryctl
+  BACKLOG_PATTERN = /^\s*-\s\[(?<state>[ x-])\]\s+(?<text>.+)$/
+  STATE_TO_MARKER = {
+    "todo" => " ",
+    "in_progress" => "-",
+    "done" => "x"
+  }.freeze
+  MARKER_TO_STATE = {
+    " " => "todo",
+    "-" => "in_progress",
+    "x" => "done"
+  }.freeze
+
+  BacklogItem = Struct.new(:line, :state, :text, keyword_init: true)
+
+  class CLI
+    def self.run(argv)
+      command = argv.shift
+
+      case command
+      when "clone"
+        run_clone(argv)
+      when "worktree-add"
+        run_worktree_add(argv)
+      when "backlog-next"
+        run_backlog_next(argv)
+      when "backlog-mark"
+        run_backlog_mark(argv)
+      when "backlog-run"
+        run_backlog_run(argv)
+      else
+        puts usage
+        exit(command.nil? ? 0 : 1)
+      end
+    end
+
+    def self.run_clone(argv)
+      repo_url = argv.shift
+      abort("Usage: factoryctl clone <repo_url> [--dest PATH] [--branch BRANCH]") unless repo_url
+
+      dest = nil
+      branch = nil
+
+      while (arg = argv.shift)
+        case arg
+        when "--dest"
+          dest = argv.shift
+        when "--branch"
+          branch = argv.shift
+        else
+          abort("Unknown option: #{arg}")
+        end
+      end
+
+      repo_name = repo_url.split("/").last.to_s.sub(/\.git\z/, "")
+      dest ||= File.expand_path("~/factory-workspaces/#{repo_name}")
+
+      if Dir.exist?(dest) && Dir.exist?(File.join(dest, ".git"))
+        run_cmd!("git", "-C", dest, "fetch", "--all", "--prune")
+        if branch
+          run_cmd!("git", "-C", dest, "checkout", branch)
+          run_cmd!("git", "-C", dest, "pull", "--ff-only", "origin", branch)
+        end
+        puts JSON.pretty_generate({ action: "updated", repo_url: repo_url, dest: dest, branch: branch })
+      elsif Dir.exist?(dest)
+        abort("Destination exists but is not a git repo: #{dest}")
+      else
+        FileUtils.mkdir_p(File.dirname(dest))
+        cmd = ["git", "clone"]
+        cmd += ["--branch", branch] if branch
+        cmd += [repo_url, dest]
+        run_cmd!(*cmd)
+        puts JSON.pretty_generate({ action: "cloned", repo_url: repo_url, dest: dest, branch: branch })
+      end
+    end
+
+    def self.run_worktree_add(argv)
+      repo_path = argv.shift
+      branch = argv.shift
+      abort("Usage: factoryctl worktree-add <repo_path> <branch> [--path PATH]") unless repo_path && branch
+
+      worktree_path = nil
+      while (arg = argv.shift)
+        case arg
+        when "--path"
+          worktree_path = argv.shift
+        else
+          abort("Unknown option: #{arg}")
+        end
+      end
+
+      repo_path = File.expand_path(repo_path)
+      abort("Repo path not found: #{repo_path}") unless Dir.exist?(repo_path)
+
+      worktree_path ||= begin
+        base = File.join(File.dirname(repo_path), "worktrees", File.basename(repo_path))
+        File.join(base, branch.tr("/", "-"))
+      end
+      worktree_path = File.expand_path(worktree_path)
+
+      has_branch = run_cmd("git", "-C", repo_path, "rev-parse", "--verify", branch)
+      run_cmd!("git", "-C", repo_path, "branch", branch) unless has_branch[:success]
+
+      if Dir.exist?(worktree_path)
+        puts JSON.pretty_generate({ action: "exists", repo_path: repo_path, branch: branch, worktree_path: worktree_path })
+        return
+      end
+
+      FileUtils.mkdir_p(File.dirname(worktree_path))
+      run_cmd!("git", "-C", repo_path, "worktree", "add", worktree_path, branch)
+
+      puts JSON.pretty_generate({ action: "created", repo_path: repo_path, branch: branch, worktree_path: worktree_path })
+    end
+
+    def self.run_backlog_next(argv)
+      file = extract_file_arg!(argv)
+      items = read_backlog_items(file)
+      next_item = items.find { |item| item.state == "todo" }
+
+      if next_item
+        puts JSON.pretty_generate({ found: true, file: file, item: next_item.to_h })
+      else
+        puts JSON.pretty_generate({ found: false, file: file })
+      end
+    end
+
+    def self.run_backlog_mark(argv)
+      line = argv.shift
+      state = argv.shift
+      abort("Usage: factoryctl backlog-mark <line> <todo|in_progress|done> [--file PATH]") unless line && state
+
+      file = extract_file_arg!(argv)
+      mark_backlog_line!(file, Integer(line), state)
+      puts JSON.pretty_generate({ success: true, file: file, line: Integer(line), state: state })
+    end
+
+    def self.run_backlog_run(argv)
+      command = nil
+      file = nil
+
+      until argv.empty?
+        arg = argv.shift
+        case arg
+        when "--cmd"
+          command = argv.shift
+        when "--file"
+          file = argv.shift
+        else
+          abort("Unknown option: #{arg}")
+        end
+      end
+
+      abort("Usage: factoryctl backlog-run --cmd \"<command with {task}>\" [--file PATH]") if command.to_s.strip.empty?
+
+      file ||= default_backlog_file
+      items = read_backlog_items(file)
+      next_item = items.find { |item| item.state == "todo" }
+
+      unless next_item
+        puts JSON.pretty_generate({ success: true, message: "No pending backlog items", file: file })
+        return
+      end
+
+      mark_backlog_line!(file, next_item.line, "in_progress")
+
+      rendered_command = command.dup
+      rendered_command.gsub!("{task}", next_item.text)
+      rendered_command.gsub!("{line}", next_item.line.to_s)
+      rendered_command.gsub!("{file}", file)
+
+      result = run_cmd("bash", "-lc", rendered_command)
+
+      if result[:success]
+        mark_backlog_line!(file, next_item.line, "done")
+      else
+        mark_backlog_line!(file, next_item.line, "todo")
+      end
+
+      puts JSON.pretty_generate(
+        {
+          success: result[:success],
+          file: file,
+          item: next_item.to_h,
+          command: rendered_command,
+          exit_code: result[:exit_code],
+          stdout: result[:stdout],
+          stderr: result[:stderr]
+        }
+      )
+
+      exit(result[:success] ? 0 : 1)
+    end
+
+    def self.extract_file_arg!(argv)
+      file = nil
+
+      until argv.empty?
+        arg = argv.shift
+        case arg
+        when "--file"
+          file = argv.shift
+        else
+          abort("Unknown option: #{arg}")
+        end
+      end
+
+      file ||= default_backlog_file
+      file = File.expand_path(file)
+      abort("Backlog file not found: #{file}") unless File.exist?(file)
+
+      file
+    end
+
+    def self.default_backlog_file
+      File.expand_path("FACTORY_BACKLOG.md", Dir.pwd)
+    end
+
+    def self.read_backlog_items(file)
+      File.readlines(file, chomp: true).each_with_index.filter_map do |line, idx|
+        match = BACKLOG_PATTERN.match(line)
+        next unless match
+
+        BacklogItem.new(
+          line: idx + 1,
+          state: MARKER_TO_STATE.fetch(match[:state], "todo"),
+          text: match[:text].strip
+        )
+      end
+    end
+
+    def self.mark_backlog_line!(file, target_line, state)
+      marker = STATE_TO_MARKER[state]
+      abort("Invalid backlog state: #{state}") unless marker
+
+      lines = File.readlines(file, chomp: false)
+      index = target_line - 1
+      abort("Line out of range: #{target_line}") unless index >= 0 && index < lines.length
+
+      line = lines[index]
+      match = BACKLOG_PATTERN.match(line)
+      abort("Line #{target_line} is not a backlog checkbox item") unless match
+
+      replaced = line.sub(BACKLOG_PATTERN, "- [#{marker}] #{match[:text]}")
+      replaced += "\n" unless replaced.end_with?("\n")
+      lines[index] = replaced
+
+      tmp = "#{file}.tmp"
+      File.write(tmp, lines.join)
+      FileUtils.mv(tmp, file)
+    end
+
+    def self.run_cmd!(*command)
+      result = run_cmd(*command)
+      return result if result[:success]
+
+      warn(result[:stdout]) unless result[:stdout].to_s.empty?
+      warn(result[:stderr]) unless result[:stderr].to_s.empty?
+      abort("Command failed (#{result[:exit_code]}): #{command.join(' ')}")
+    end
+
+    def self.run_cmd(*command)
+      stdout, stderr, status = Open3.capture3(*command)
+      {
+        success: status.success?,
+        exit_code: status.exitstatus,
+        stdout: stdout,
+        stderr: stderr
+      }
+    end
+
+    def self.usage
+      <<~TEXT
+        Usage: factoryctl <command> [options]
+
+        Commands:
+          clone <repo_url> [--dest PATH] [--branch BRANCH]
+          worktree-add <repo_path> <branch> [--path PATH]
+          backlog-next [--file PATH]
+          backlog-mark <line> <todo|in_progress|done> [--file PATH]
+          backlog-run --cmd "<command with {task}>" [--file PATH]
+      TEXT
+    end
+  end
+end
+
+Factoryctl::CLI.run(ARGV)

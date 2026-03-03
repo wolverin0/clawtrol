@@ -1,0 +1,75 @@
+<turbo-frame id="board_files_modal">
+  <div data-controller="board-files-modal"
+       data-board-files-modal-board-id-value="<%= @board.id %>">
+    <div class="fixed inset-0 z-[9998] bg-black/45 pointer-events-auto" data-action="click->board-files-modal#close"></div>
+
+    <div data-board-files-modal-target="modal"
+         class="fixed z-[9999] md:block pointer-events-auto"
+         style="left:5vw; top:7vh; width:90vw; height:85vh;">
+      <div data-board-files-modal-target="dragHandle"
+           class="h-full bg-bg-surface border border-border shadow-2xl flex flex-col rounded-xl overflow-hidden"
+           style="resize: both; min-width: 680px; min-height: 460px;">
+
+        <div class="px-4 py-3 border-b border-border flex items-center justify-between bg-bg-elevated">
+          <div class="text-sm font-semibold text-content">📁 Board Files</div>
+          <button type="button"
+                  data-action="click->board-files-modal#close"
+                  class="p-1.5 rounded text-content-muted hover:text-content hover:bg-bg-hover transition-colors"
+                  aria-label="Close files modal">✕</button>
+        </div>
+
+        <div data-board-files-modal-target="error"
+             class="hidden mx-4 mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300"></div>
+
+        <div class="flex-1 min-h-0 flex">
+          <aside class="w-72 border-r border-border bg-bg-elevated overflow-y-auto p-3">
+            <% if @tree.any? %>
+              <% @tree.each do |group| %>
+                <div class="mb-2">
+                  <% if group[:dir] != "." %>
+                    <div class="text-[10px] text-content-muted font-mono px-1 py-0.5 truncate"><%= group[:dir] %>/</div>
+                  <% end %>
+                  <% group[:files].each do |file| %>
+                    <button type="button"
+                            data-testid="board-file-button"
+                            data-action="click->board-files-modal#selectFile"
+                            data-board-files-modal-target="fileButton"
+                            data-path="<%= j file[:path] %>"
+                            class="w-full text-left px-2 py-1 text-xs text-content-secondary hover:text-content hover:bg-bg-hover rounded truncate">
+                      <%= file[:name] %>
+                    </button>
+                  <% end %>
+                </div>
+              <% end %>
+            <% else %>
+              <p class="text-xs text-content-muted p-2">No se encontraron archivos para este board.</p>
+            <% end %>
+          </aside>
+
+          <main class="flex-1 min-h-0 flex flex-col">
+            <div class="border-b border-border px-4 py-2 bg-bg-elevated flex items-center gap-2">
+              <span data-board-files-modal-target="filename" class="text-xs text-content-muted font-mono truncate flex-1">Seleccioná un archivo</span>
+              <button type="button"
+                      data-action="click->board-files-modal#save"
+                      data-board-files-modal-target="saveButton"
+                      class="hidden text-xs px-3 py-1 rounded bg-accent text-content hover:bg-accent/80 transition-colors">
+                💾 Guardar
+              </button>
+            </div>
+            <div data-board-files-modal-target="content" class="flex-1 overflow-y-auto p-4">
+              <% if @active_file %>
+                <% if @active_file[:editable] %>
+                  <textarea data-role="editor" class="w-full h-full min-h-[56vh] font-mono text-xs bg-transparent text-content border-none outline-none resize-none leading-relaxed"><%= @active_file[:content] %></textarea>
+                <% else %>
+                  <pre class="text-xs font-mono text-content leading-relaxed whitespace-pre-wrap break-words"><%= h @active_file[:content] %></pre>
+                <% end %>
+              <% else %>
+                <div class="h-full flex items-center justify-center text-sm text-content-muted">Seleccioná un archivo para ver su contenido</div>
+              <% end %>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  </div>
+</turbo-frame>
