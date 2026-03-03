@@ -4,6 +4,7 @@ class TaskTemplate < ApplicationRecord
   # Enforce eager loading to prevent N+1 queries in views
   # Use strict_loading_mode :strict to raise on N+1, :n_plus_one to only warn
   strict_loading :n_plus_one
+  include ValidationCommandSafety
 
   belongs_to :user, optional: true, inverse_of: :task_templates
 
@@ -104,20 +105,4 @@ class TaskTemplate < ApplicationRecord
   end
 
   private
-
-  # Same validation as Task model for safety
-  def validation_command_is_safe
-    cmd = validation_command.to_s.strip
-    unsafe_pattern = /[;|&$`\\!\(\)\{\}<>]|(\$\()|(\|\|)|(&&)/
-
-    if cmd.match?(unsafe_pattern)
-      errors.add(:validation_command, "contains unsafe shell metacharacters")
-      return
-    end
-
-    allowed_prefixes = Task::ALLOWED_VALIDATION_PREFIXES
-    unless allowed_prefixes.any? { |prefix| cmd.start_with?(prefix) }
-      errors.add(:validation_command, "must start with an allowed prefix")
-    end
-  end
 end

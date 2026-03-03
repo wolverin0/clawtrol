@@ -153,20 +153,25 @@ class TelegramMiniAppController < ActionController::Base
   end
 
   # Find the ClawTrol user linked to this Telegram user.
-  # We match by telegram_chat_id stored on the user record,
-  # or fall back to the first user (single-tenant mode).
+  # By default we only match explicit telegram_chat_id bindings.
+  # Optional single-tenant fallback is opt-in via env var.
   def find_linked_user
     return nil unless @tg_user
 
     tg_id = @tg_user["id"].to_s
 
-    # Try matching by stored telegram ID
-    user = User.find_by(telegram_chat_id: tg_id) if User.column_names.include?("telegram_chat_id")
+    if User.column_names.include?("telegram_chat_id")
+      user = User.find_by(telegram_chat_id: tg_id)
+      return user if user
+    end
 
-    # Single-tenant fallback: if only one user exists, use them (cached 5 min)
-    user ||= User.first if Rails.cache.fetch("telegram_mini_app/single_tenant", expires_in: 5.minutes) { User.count == 1 }
+    return nil unless single_tenant_fallback_enabled?
 
-    user
+    User.first if Rails.cache.fetch("telegram_mini_app/single_tenant", expires_in: 5.minutes) { User.count == 1 }
+  end
+
+  def single_tenant_fallback_enabled?
+    ActiveModel::Type::Boolean.new.cast(ENV["TELEGRAM_MINI_APP_SINGLE_TENANT_FALLBACK"])
   end
 
   def mini_task_json(task)

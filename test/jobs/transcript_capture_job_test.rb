@@ -63,7 +63,9 @@ class TranscriptCaptureJobTest < ActiveJob::TestCase
       description: "## Agent Output\n\nAgent completed (no findings provided)"
     )
 
-    TranscriptCaptureJob.perform_now(@task.id)
+    assert_nothing_raised do
+      TranscriptCaptureJob.perform_now(@task.id)
+    end
 
     @task.reload
     # Should still try to capture real output (not skip)
