@@ -121,7 +121,9 @@ class ExternalNotificationServiceTest < ActiveSupport::TestCase
       service = ExternalNotificationService.new(@task)
       assert service.send(:telegram_configured?)
       # send_telegram catches all exceptions
-      assert_nothing_raised { service.send(:send_telegram) }
+      Kernel.stub(:sleep, nil) do
+        assert_nothing_raised { service.send(:send_telegram) }
+      end
     else
       skip "Task does not have origin_chat_id column"
     end

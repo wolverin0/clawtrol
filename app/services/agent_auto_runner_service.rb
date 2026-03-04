@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "net/http"
+require "uri"
+
 class AgentAutoRunnerService
   NO_FAKE_IN_PROGRESS_GRACE = 10.minutes
   ZOMBIE_STALE_AFTER = 30.minutes
@@ -37,6 +40,16 @@ class AgentAutoRunnerService
       plan = selector.plan
       plan.skip_reasons.each { |reason, amount| stats[:queue_skip_reasons][reason] += amount.to_i }
 
+      unless gateway_ready?(user)
+        cache_key = "openclaw_health_alert:#{user.id}"
+        unless @cache.exist?(cache_key)
+          @cache.write(cache_key, Time.current.to_i, expires_in: 30.minutes)
+        end
+        @logger.warn("[AgentAutoRunner] gateway not ready user=#{user.id}, skipping")
+        stats[:queue_skip_reasons][:gateway_not_ready] += 1
+        next
+      end
+
 woke = 0
 if plan.tasks.any?
   woke = wake_tasks!(user, plan.tasks)
@@ -61,6 +74,35 @@ end
   def openclaw_configured?(user)
     hooks_token = user.respond_to?(:openclaw_hooks_token) ? user.openclaw_hooks_token : nil
     user.openclaw_gateway_url.present? && (hooks_token.present? || user.openclaw_gateway_token.present?)
+  end
+
+  def gateway_ready?(user)
+    return true if Rails.env.test? && ENV["OPENCLAW_GATEWAY_HEALTHCHECK"] != "true"
+
+    base_url = gateway_base_url(user)
+    return false if base_url.blank?
+
+    uri = URI.parse(base_url)
+    uri.path = "/ready"
+    uri.query = nil
+
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = uri.scheme == "https"
+    http.open_timeout = 3
+    http.read_timeout = 3
+
+    response = http.request(Net::HTTP::Get.new(uri.request_uri))
+    code = response.code.to_i
+    code >= 200 && code < 300
+  rescue StandardError
+    false
+  end
+
+  def gateway_base_url(user)
+    url = user.respond_to?(:openclaw_gateway_url) ? user.openclaw_gateway_url.to_s.strip : ""
+    url = ENV["OPENCLAW_GATEWAY_URL"].to_s.strip if url.blank?
+    url = "http://192.168.100.186:18789" if url.blank?
+    url
   end
 
   # Pipeline: process tasks that need pipeline advancement
