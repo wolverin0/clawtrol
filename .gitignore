@@ -52,3 +52,10 @@ tpush/
 # Large local artifacts (do not commit)
 public/*.apk
 app/assets/images/*.mp4
+
+# Internal planning and Codex artifacts
+/.planning/
+/.codex-backups/
+/handoff.md
+/docs/reports/2026-*
+/docs/artifacts/

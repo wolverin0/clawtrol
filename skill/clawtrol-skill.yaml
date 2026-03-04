@@ -13,7 +13,7 @@ config:
   - name: CLAWTROL_URL
     description: ClawTrol instance URL (e.g., http://localhost:4001)
     required: true
-    example: http://192.168.100.186:4001
+    example: http://localhost:4001
 
   - name: CLAWTROL_TOKEN
     description: API authentication token (from Settings → API Token)

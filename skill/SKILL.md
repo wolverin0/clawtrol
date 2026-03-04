@@ -8,9 +8,9 @@ ClawTrol is your work queue. Poll for assigned tasks, claim them, stream progres
 
 Set these environment variables:
 ```bash
-CLAWTROL_URL=http://192.168.100.186:4001   # Your ClawTrol instance
+CLAWTROL_URL=http://localhost:4001          # Your ClawTrol instance
 CLAWTROL_TOKEN=your_api_token               # From Settings → API Token
-AGENT_NAME=Otacon                           # Your display name
+AGENT_NAME=MyAgent                          # Your display name
 AGENT_EMOJI=📟                              # Your emoji
 ```
 
