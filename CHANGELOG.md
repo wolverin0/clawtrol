@@ -3,7 +3,32 @@
 All notable changes to ClawTrol are documented here.
 Generated automatically from [conventional commits](https://www.conventionalcommits.org/).
 
-## [Unreleased]
+## [v2026.3.1] — 2026-03-03
+
+### 🚀 Features
+
+- health gate before autopull + delivery backoff retry (closes #22) (`5eb6d3e`)
+### 🐛 Bug Fixes
+
+### 📚 Documentation
+
+- update CHANGELOG.md [skip ci] (`b74c81c`)
+### ♻️  Refactoring
+
+### ⚡ Performance
+
+### 🧪 Tests
+
+### 👷 CI
+
+### 💄 Style
+
+### 📦 Build
+
+### 🔧 Chores
+
+
+## [v2026.3.0] — 2026-03-03
 
 ### 🚀 Features
 
