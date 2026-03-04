@@ -11,6 +11,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 📚 Documentation
 
+- rewrite features section — ZeroBitch fleet, factory, nightshift, personas, roadmaps, swarm, saved links all properly described (`57cdd1f`)
+- update CHANGELOG.md [skip ci] (`528427e`)
 - clean README with collapsible sections, fix skill IP/name, remove internal files (`a5fa06e`)
 - update CHANGELOG.md [skip ci] (`297c232`)
 ### ♻️  Refactoring
