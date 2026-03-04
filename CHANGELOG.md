@@ -3,6 +3,31 @@
 All notable changes to ClawTrol are documented here.
 Generated automatically from [conventional commits](https://www.conventionalcommits.org/).
 
+## [Unreleased]
+
+### 🚀 Features
+
+### 🐛 Bug Fixes
+
+### 📚 Documentation
+
+- clean README with collapsible sections, fix skill IP/name, remove internal files (`a5fa06e`)
+- update CHANGELOG.md [skip ci] (`297c232`)
+### ♻️  Refactoring
+
+### ⚡ Performance
+
+### 🧪 Tests
+
+### 👷 CI
+
+### 💄 Style
+
+### 📦 Build
+
+### 🔧 Chores
+
+
 ## [v2026.3.1] — 2026-03-03
 
 ### 🚀 Features
