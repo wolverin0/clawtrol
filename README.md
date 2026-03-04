@@ -19,16 +19,54 @@ ClawTrol is a kanban-style dashboard for managing AI coding agents. Track tasks,
 
 ## Features
 
-- Webhook integration with OpenClaw Gateway (instant wake on assignment, no polling delay)
-- ZeroClaw Auditor automated QA gate (coding, infra, report, research, default)
-- Learning Effectiveness advisory scoring and import proposals
-- Sessions Explorer live transcript viewer
-- Board File Refs for project file attachments
-- Delivery Target Resolver for routing completion output
-- Health gate before autopull
-- Delivery backoff retry for delivery failures
-- Security hardening: command injection prevention (Shellwords + allowlist), API token hashing (SHA-256), AI key encryption via Rails credentials
-- Settings page with tabbed layout (Profile / Agent / AI / Integration)
+### 🤖 ZeroBitch Fleet
+Spin up and manage a Docker-based fleet of AI agents. Each agent has its own name, emoji, model, role, and mode. The auto-scaler provisions new workers on demand; the registry tracks who's alive, idle, or busy. This is the layer that turns ClawTrol from a task board into a multi-agent factory floor.
+
+### 🏭 Factory Loops
+Autonomous coding loops that run without human intervention. An agent cycles through: find → improve → test → commit → repeat. Configurable finding patterns, connected agents per loop, and cycle logs that show what each pass accomplished. Hit play and let it run overnight.
+
+### 🌙 Nightshift
+Schedule missions to run during quiet hours. Define frequency (always / weekly / one-time / auto-generated), select which tasks to launch, and ClawTrol wakes your agents at the right time. Includes a morning briefing hook so you see what ran while you slept.
+
+### 🎭 Agent Personas
+Named personas per board with their own model, emoji, and behavioral profile. Security Bot, Feature Dev, Researcher, Reviewer — each picks up tasks tagged for it and responds in character. The Persona Selector lets you switch or assign on the fly.
+
+### 📋 Kanban Boards
+Multi-board workspace with real-time WebSocket updates, drag & drop, context menus, and board tabs. Tasks move through `inbox → up_next → in_progress → in_review → done`. Each board can have its own roadmap, recurring task templates, and nightly missions.
+
+### 🗺️ Roadmap per Board
+Every board has a dedicated roadmap view. Link tasks to milestones, track progress per project, and keep long-term goals visible without mixing them into the daily queue.
+
+### 🔁 Recurring Tasks
+Define task templates that regenerate automatically. Set frequency, board, model, and description once — ClawTrol keeps the queue filled without manual work.
+
+### 🔒 Dependency Blocking
+Tasks can declare dependencies on other tasks. A 🔒 badge appears on blocked cards. The auto-runner skips blocked tasks until their dependencies are resolved.
+
+### 💡 Swarm Ideas
+A scratchpad for batch work. Drop ideas with a category and preferred model, then launch them as real tasks with one click. Good for capturing work during a planning session and executing later.
+
+### 🔗 Saved Links
+Research pipeline. Save links from anywhere, mark them as pending, and process them in batch. Agents can pull from the saved links queue for summarization or analysis tasks.
+
+### 🖥️ Terminal — Live Agent Streaming
+Tabbed terminal panel that streams agent activity via WebSocket in real time. Pin a task to keep its output visible. Full session transcript with role icons, tool calls, and file diffs. Sessions Explorer lets you inspect raw OpenClaw `.jsonl` transcripts.
+
+### 📎 Board File Refs
+Attach project files directly to boards. Agents can read them as context; humans can browse them from the task modal file viewer with syntax highlighting.
+
+### ✅ ZeroClaw Auditor
+Automated QA gate with structured checklists (coding, infra, report, research, default). Runs as a sweep job after task completion to validate agent output before human review.
+
+### 📈 Learning Effectiveness
+Tracks which agent advisories actually prevented mistakes. Scores effectiveness over time, surfaces recurring failure patterns, and graduates proven learnings into permanent agent rules.
+
+### 🛡️ Reliability & Integration
+- **OpenClaw Webhook** — instant wake on task assignment, no polling delay
+- **Health gate** — checks gateway `/ready` before dispatching work
+- **Delivery backoff** — retries Telegram delivery with 1s → 5s → 30s backoff
+- **Delivery Target Resolver** — routes completion output back to the exact origin chat/thread
+- **Security** — command injection prevention (Shellwords + allowlist), API token hashing (SHA-256), AI key encryption at rest
 
 ## How It Works
 
@@ -762,30 +800,16 @@ GET /api/v1/tasks/recurring
 
 </details>
 
-## UI Features
-
-### Terminal Panel
-- **Tabbed Interface** — Multiple agent sessions in tabs
-- **Hover Preview** — Quick preview on card hover
-- **Pin to Terminal** — Lock a task's output in view
-- **Live Streaming** — Real-time agent activity via WebSocket
-- **Session Transcript** — Full conversation log with role icons and tool calls
-
-### Kanban Board
-- **WebSocket Updates** — Real-time via ActionCable (polling fallback)
-- **Spinner Indicator** — Shows active agent on card
-- **Context Menu** — Right-click to move between boards/statuses
-- **Board Tabs** — Quick navigation between projects
-- **Drag & Drop** — SortableJS with delete drop zone
-- **Dependency Blocking** — 🔒 badge prevents moving blocked tasks
+## UI Details
 
 ### Task Modal
 - **Two-Column Layout** — Details left, agent activity + files right (desktop)
 - **Auto-Save** — Debounced 500ms save on field changes
-- **File Viewer** — Browse output files with syntax highlighting + fullscreen
+- **File Viewer** — Syntax highlighting + fullscreen for output files
 - **Agent Activity** — Live session log with WebSocket updates
 - **Priority Selector** — Visual fire icon buttons
 - **Validation Output** — View command results inline
+- **Context Menu** — Right-click cards to move between boards or statuses
 
 ## Commit Convention
 
