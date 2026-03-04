@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "json"
 require "net/http"
 require "uri"
 
@@ -68,9 +69,24 @@ class ExternalNotificationService
     thread_id = telegram_thread_id
     params[:message_thread_id] = thread_id if thread_id.present?
 
-    Net::HTTP.post_form(uri, params)
-  rescue StandardError => e
-    Rails.logger.warn("[ExternalNotification] Telegram failed: #{e.message}")
+    delays = [1, 5, 30]
+    retries = 0
+
+    loop do
+      begin
+        response = Net::HTTP.post_form(uri, params)
+        message_id = extract_telegram_message_id(response)
+        return response if message_id.present?
+      rescue StandardError
+      end
+
+      break if retries >= delays.length
+      Kernel.sleep(delays[retries])
+      retries += 1
+    end
+
+    Rails.logger.warn("[DeliveryBackoff] failed after 3 attempts")
+    nil
   end
 
   def send_webhook
@@ -121,5 +137,14 @@ class ExternalNotificationService
     end
   rescue StandardError => e
     Rails.logger.warn("[ExternalNotification] Webhook failed: #{e.message}")
+  end
+
+  def extract_telegram_message_id(response)
+    return nil unless response.respond_to?(:body)
+
+    payload = JSON.parse(response.body.to_s) rescue nil
+    return nil unless payload.is_a?(Hash)
+
+    payload.dig("result", "message_id") || payload["message_id"]
   end
 end
