@@ -4,45 +4,31 @@
 
 **Open source mission control for your AI agents.**
 
+![Release](https://img.shields.io/badge/release-v2026.3.1-blue)
+
+Current release: **v2026.3.1**
+
 ClawTrol is a kanban-style dashboard for managing AI coding agents. Track tasks, assign work to agents, monitor their activity in real-time, and collaborate asynchronously. Forked from [ClawDeck](https://github.com/clawdeckio/clawdeck) with extended agent integration features.
 
 > 🚧 **Early Development** — ClawTrol is under active development. Expect breaking changes.
 
-## Get Started
+## Quick Get Started
 
-**Self-host (recommended)**  
-Clone this repo and run your own instance. See [Self-Hosting](#self-hosting) below.
-
-**Contribute**  
-PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
-
----
+- Self-host (recommended): clone this repo and run your own instance. See [Self-Hosting](#self-hosting).
+- Contribute: PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Features
 
-### 🪝 Webhook Integration
-- **OpenClaw Gateway** — Instant wake via webhook when tasks are assigned
-- **Real-time Triggers** — No polling delay for agent activation
-
-### ✅ ZeroClaw Auditor
-- **Automated QA Gate** — Checklist-driven audits (coding, infra, report, research, default)
-
-### 📈 Learning Effectiveness
-- **Advisory Scoring** — Track effectiveness and import proposals
-
-### 🧭 Sessions Explorer
-- **Live Transcript Viewer** — Inspect raw OpenClaw session transcripts
-
-### 📎 Board File Refs
-- **Project File Attachments** — Attach and review files on boards
-
-### 🔐 Security
-- **Command Injection Prevention** — Validation commands sandboxed with Shellwords + allowlist
-- **API Token Hashing** — Tokens stored as SHA-256 hashes, never plaintext
-- **AI Key Encryption** — `ai_api_key` encrypted at rest with Rails credentials
-- **Settings Page** — Tabbed layout (Profile / Agent / AI / Integration)
-
----
+- Webhook integration with OpenClaw Gateway (instant wake on assignment, no polling delay)
+- ZeroClaw Auditor automated QA gate (coding, infra, report, research, default)
+- Learning Effectiveness advisory scoring and import proposals
+- Sessions Explorer live transcript viewer
+- Board File Refs for project file attachments
+- Delivery Target Resolver for routing completion output
+- Health gate before autopull
+- Delivery backoff retry for delivery failures
+- Security hardening: command injection prevention (Shellwords + allowlist), API token hashing (SHA-256), AI key encryption via Rails credentials
+- Settings page with tabbed layout (Profile / Agent / AI / Integration)
 
 ## How It Works
 
@@ -56,7 +42,20 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 8. If follow-up is needed, requeue happens only after explicit human approval, using the same card (`POST /api/v1/tasks/:id/requeue`).
 9. If no follow-up is needed, task remains in `in_review` and the human decides next action.
 
-## OpenClaw Onboarding and Self-Heal
+## Tech Stack
+
+- **Ruby** 3.3.1 / **Rails** 8.1
+- **PostgreSQL** with Solid Queue, Cache, and Cable
+- **Solid Queue** — Background jobs for validation, async processing, and webhook-driven workflows
+- **ActionCable** — WebSocket for real-time kanban + agent activity
+- **Hotwire** (Turbo + Stimulus) + **Tailwind CSS v4**
+- **Propshaft** — Asset pipeline with importmap-rails
+- **45+ Stimulus Controllers** — Full client-side interactivity
+- **Authentication** via GitHub OAuth or email/password
+- **Docker Compose** — Production-ready setup with `install.sh`
+
+<details>
+<summary>OpenClaw Onboarding and Self-Heal</summary>
 
 - Main guide: `docs/OPENCLAW_ONBOARDING.md`
 - Fast path in UI: `Settings -> Integration -> Agent Install Prompt`
@@ -66,6 +65,8 @@ PRs welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
   - Follow-up recommendation is mandatory (`needs_follow_up: true|false`).
   - Same-task follow-up is preferred to avoid kanban bloat.
   - Nightly window for Argentina: `23:00-08:00` (`America/Argentina/Buenos_Aires`, UTC-3).
+
+</details>
 
 ## Agent Install Prompt (OpenClaw / Telegram Orchestrator)
 
@@ -85,19 +86,205 @@ If you're integrating manually:
 
 ---
 
-## Tech Stack
+## 🤖 AI-Assisted Installation & Onboarding
 
-- **Ruby** 3.3.1 / **Rails** 8.1
-- **PostgreSQL** with Solid Queue, Cache, and Cable
-- **Solid Queue** — Background jobs for validation, async processing, and webhook-driven workflows
-- **ActionCable** — WebSocket for real-time kanban + agent activity
-- **Hotwire** (Turbo + Stimulus) + **Tailwind CSS v4**
-- **Propshaft** — Asset pipeline with importmap-rails
-- **45+ Stimulus Controllers** — Full client-side interactivity
-- **Authentication** via GitHub OAuth or email/password
-- **Docker Compose** — Production-ready setup with `install.sh`
+Have an AI assistant with shell access (OpenClaw, Claude Code, Codex)? Give it the prompt below to install ClawTrol **and** fully configure itself as your agent — API tokens, webhook hooks, heartbeat polling, and auto-runner included.
 
----
+<details>
+<summary>One-Prompt Install</summary>
+
+**Copy this entire prompt to your AI assistant:**
+
+> Install and configure ClawTrol (AI agent mission control) for me. Do ALL steps — don't stop until you've verified everything works.
+>
+> **Step 1 — Clone & Install**
+> ```bash
+> cd ~ && git clone https://github.com/wolverin0/clawtrol.git clawdeck
+> cd clawdeck
+> chmod +x install.sh && ./install.sh
+> ```
+> If Docker isn't available, fall back to manual:
+> ```bash
+> bundle install && bin/rails db:prepare && bin/dev
+> ```
+>
+> **Step 2 — Wait for server**
+> - Docker: port 4001
+> - Manual: port 3000
+> - Health check: `curl -sf http://localhost:PORT/up` (retry up to 30s)
+>
+> **Step 3 — Create user account**
+> ```bash
+> cd ~/clawdeck && bin/rails runner "
+>   User.create!(
+>     email: 'MY_EMAIL',
+>     password: 'MY_PASSWORD',
+>     name: 'MY_NAME'
+>   )
+>   puts '✅ User created'
+> "
+> ```
+>
+> **Step 4 — Generate API token + Hooks token**
+> ```bash
+> cd ~/clawdeck && bin/rails runner "
+>   user = User.find_by!(email: 'MY_EMAIL')
+>   api_token = user.api_tokens.create!(name: 'Agent')
+>   puts 'API_TOKEN=' + api_token.token
+>   puts 'HOOKS_TOKEN=' + Rails.application.config.hooks_token.to_s
+> "
+> ```
+> Save both tokens — the API token is only shown once.
+>
+> **Step 5 — Create a default board**
+> ```bash
+> curl -s -X POST http://localhost:PORT/api/v1/boards \
+>   -H "Authorization: Bearer API_TOKEN" \
+>   -H "Content-Type: application/json" \
+>   -d '{"name": "Main", "icon": "🚀"}' | jq .
+> ```
+>
+> **Step 6 — Configure yourself as the ClawTrol agent**
+>
+> Add these to your workspace TOOLS.md (or equivalent config):
+> ```
+> ### ClawTrol (Task Dashboard)
+> | Key | Value |
+> |-----|-------|
+> | URL | http://HOST:PORT |
+> | API Token | API_TOKEN |
+> | Hooks Token | HOOKS_TOKEN |
+> | Agent Name | YOUR_AGENT_NAME |
+> | Agent Emoji | YOUR_EMOJI |
+> ```
+>
+> Add these env vars (e.g., `~/.openclaw/.env` or your agent's env):
+> ```bash
+> CLAWTROL_API_TOKEN=API_TOKEN
+> CLAWTROL_HOOKS_TOKEN=HOOKS_TOKEN
+> APP_BASE_URL=http://HOST:PORT  # Used for webhook callbacks and links
+> ```
+>
+> **Step 7 — Set up heartbeat polling**
+>
+> Add to your HEARTBEAT.md (or equivalent periodic check):
+> ```markdown
+> ### ClawTrol Tasks
+> # Health check first
+> curl -sf http://HOST:PORT/up >/dev/null 2>&1 || echo "⚠️ ClawTrol DOWN"
+>
+> # Poll for assigned tasks
+> source ~/.openclaw/.env  # or wherever your env is
+> curl -s -H "Authorization: Bearer $CLAWTROL_API_TOKEN" \
+>   http://HOST:PORT/api/v1/tasks?assigned=true&status=up_next
+> ```
+>
+> **Step 7b — Origin routing (optional)**
+>
+> When creating tasks from a specific Telegram context, pass origin headers so output routes back correctly:
+> ```bash
+> curl -X POST http://HOST:PORT/api/v1/tasks \
+>   -H "Authorization: Bearer API_TOKEN" \
+>   -H "X-Origin-Chat-Id: YOUR_TELEGRAM_CHAT_ID" \
+>   -H "X-Origin-Thread-Id: YOUR_TELEGRAM_THREAD_ID" \
+>   -H "Content-Type: application/json" \
+>   -d '{"task": {"name": "My task"}}'
+> ```
+> ClawTrol auto-detects: group chat IDs (negative) can use a default thread when none is provided; DM chat IDs (positive) use no thread.
+>
+> **Step 8 — Set up the completion contract**
+>
+> After EVERY task you complete, fire these two hooks IN ORDER:
+>
+> Hook 1 — `task_outcome` (structured result):
+> ```bash
+> curl -s -X POST http://HOST:PORT/api/v1/hooks/task_outcome \
+>   -H "X-Hook-Token: $CLAWTROL_HOOKS_TOKEN" \
+>   -H "Content-Type: application/json" \
+>   -d '{
+>     "version": "1",
+>     "task_id": TASK_ID,
+>     "run_id": "SESSION_UUID",
+>     "ended_at": "ISO8601_TIMESTAMP",
+>     "needs_follow_up": false,
+>     "recommended_action": "in_review",
+>     "summary": "What was accomplished",
+>     "achieved": ["item 1", "item 2"],
+>     "evidence": ["proof 1"],
+>     "remaining": []
+>   }'
+> ```
+>
+> Hook 2 — `agent_complete` (saves output to TaskRun + transitions status):
+> ```bash
+> curl -s -X POST http://HOST:PORT/api/v1/hooks/agent_complete \
+>   -H "X-Hook-Token: $CLAWTROL_HOOKS_TOKEN" \
+>   -H "Content-Type: application/json" \
+>   -d '{
+>     "task_id": TASK_ID,
+>     "session_id": "SESSION_UUID",
+>     "findings": "Detailed summary of work done",
+>     "output_files": ["file1.rb", "file2.js"]
+>   }'
+> ```
+>
+> **Step 9 — Verify the full loop**
+>
+> Create a test task, execute it, fire both hooks, confirm it reaches `done` (or `in_review`):
+> ```bash
+> # Create
+> TASK=$(curl -s -X POST http://HOST:PORT/api/v1/tasks \
+>   -H "Authorization: Bearer $CLAWTROL_API_TOKEN" \
+>   -H "Content-Type: application/json" \
+>   -d '{"name":"Test: onboarding verification","board_id":BOARD_ID,"status":"up_next","tags":["test","quick-fix"],"assigned_to_agent":true}')
+> TASK_ID=$(echo $TASK | jq -r .id)
+>
+> # Move to in_progress
+> curl -s -X PATCH http://HOST:PORT/api/v1/tasks/$TASK_ID \
+>   -H "Authorization: Bearer $CLAWTROL_API_TOKEN" \
+>   -H "Content-Type: application/json" \
+>   -d '{"status":"in_progress"}'
+>
+> # Fire hooks (use a random UUID as run_id)
+> # ... (fire task_outcome + agent_complete as above)
+>
+> # Verify final status
+> curl -s -H "Authorization: Bearer $CLAWTROL_API_TOKEN" \
+>   http://HOST:PORT/api/v1/tasks/$TASK_ID | jq .status
+> # Should be "done" (auto-review: quick-fix + output) or "in_review"
+> ```
+>
+> **Step 10 — Report to me**
+>
+> Tell me:
+> - ✅ Dashboard URL
+> - ✅ Board created
+> - ✅ API + Hooks tokens saved
+> - ✅ Heartbeat configured
+> - ✅ Completion hooks tested
+> - ✅ Test task verified end-to-end
+
+**Replace before pasting:**
+
+| Placeholder | Description |
+|-------------|-------------|
+| `MY_EMAIL` | Your login email |
+| `MY_PASSWORD` | Secure password (12+ chars) |
+| `MY_NAME` | Display name |
+| `HOST:PORT` | Your server address (e.g., `localhost:4001`) |
+| `YOUR_AGENT_NAME` | What your agent calls itself |
+| `YOUR_EMOJI` | Agent's signature emoji |
+| `BOARD_ID` | Board ID from Step 5 (usually `1`) |
+
+**Requirements:**
+- Docker (recommended) or Ruby 3.3+ with PostgreSQL
+- AI assistant with shell/exec access (OpenClaw, Claude Code, Codex CLI, etc.)
+- 5 minutes
+
+</details>
+
+<details>
+<summary>Self-Hosting</summary>
 
 ## Self-Hosting
 
@@ -181,209 +368,12 @@ bin/rails test:system
 bin/rubocop
 ```
 
----
+</details>
 
-## 🤖 AI-Assisted Installation & Onboarding
+<details>
+<summary>API Reference</summary>
 
-Have an AI assistant with shell access (OpenClaw, Claude Code, Codex)? Give it the prompt below to install ClawTrol **and** fully configure itself as your agent — API tokens, webhook hooks, heartbeat polling, and auto-runner included.
-
----
-
-### One-Prompt Install
-
-**Copy this entire prompt to your AI assistant:**
-
-> Install and configure ClawTrol (AI agent mission control) for me. Do ALL steps — don't stop until you've verified everything works.
->
-> **Step 1 — Clone & Install**
-> ```bash
-> cd ~ && git clone https://github.com/wolverin0/clawtrol.git clawdeck
-> cd clawdeck
-> chmod +x install.sh && ./install.sh
-> ```
-> If Docker isn't available, fall back to manual:
-> ```bash
-> bundle install && bin/rails db:prepare && bin/dev
-> ```
->
-> **Step 2 — Wait for server**
-> - Docker: port 4001
-> - Manual: port 3000
-> - Health check: `curl -sf http://localhost:PORT/up` (retry up to 30s)
->
-> **Step 3 — Create user account**
-> ```bash
-> cd ~/clawdeck && bin/rails runner "
->   User.create!(
->     email: 'MY_EMAIL',
->     password: 'MY_PASSWORD',
->     name: 'MY_NAME'
->   )
->   puts '✅ User created'
-> "
-> ```
->
-> **Step 4 — Generate API token + Hooks token**
-> ```bash
-> cd ~/clawdeck && bin/rails runner "
->   user = User.find_by!(email: 'MY_EMAIL')
->   api_token = user.api_tokens.create!(name: 'Agent')
->   puts 'API_TOKEN=' + api_token.token
->   puts 'HOOKS_TOKEN=' + Rails.application.config.hooks_token.to_s
-> "
-> ```
-> Save both tokens — the API token is only shown once.
->
-> **Step 5 — Create a default board**
-> ```bash
-> curl -s -X POST http://localhost:PORT/api/v1/boards \
->   -H "Authorization: Bearer API_TOKEN" \
->   -H "Content-Type: application/json" \
->   -d '{"name": "Main", "icon": "🚀"}' | jq .
-> ```
->
-> **Step 6 — Configure yourself as the ClawTrol agent**
->
-> Add these to your workspace TOOLS.md (or equivalent config):
-> ```
-> ### ClawTrol (Task Dashboard / Mission Control)
-> | Key | Value |
-> |-----|-------|
-> | URL | http://HOST:PORT |
-> | API Token | API_TOKEN |
-> | Hooks Token | HOOKS_TOKEN |
-> | Agent Name | YOUR_AGENT_NAME |
-> | Agent Emoji | YOUR_EMOJI |
-> ```
->
-> Add these env vars (e.g., `~/.openclaw/.env` or your agent's env):
-> ```bash
-> CLAWTROL_API_TOKEN=API_TOKEN
-> CLAWTROL_HOOKS_TOKEN=HOOKS_TOKEN
-APP_BASE_URL=http://HOST:PORT  # Used for webhook callbacks and links
-> ```
->
-> **Step 7 — Set up heartbeat polling**
->
-> Add to your HEARTBEAT.md (or equivalent periodic check):
-> ```markdown
-> ### ClawTrol Tasks
-> # Health check first
-> curl -sf http://HOST:PORT/up >/dev/null 2>&1 || echo "⚠️ ClawTrol DOWN"
->
-> # Poll for assigned tasks
-> source ~/.openclaw/.env  # or wherever your env is
-> curl -s -H "Authorization: Bearer $CLAWTROL_API_TOKEN" \
->   http://HOST:PORT/api/v1/tasks?assigned=true&status=up_next
-> ```
->
-> **Step 7b — Origin routing (optional)**
->
-> When creating tasks from a specific Telegram context, pass origin headers so output routes back correctly:
-> ```bash
-> curl -X POST http://HOST:PORT/api/v1/tasks \
->   -H "Authorization: Bearer API_TOKEN" \
->   -H "X-Origin-Chat-Id: YOUR_TELEGRAM_CHAT_ID" \
->   -H "X-Origin-Thread-Id: 25" \
->   -H "Content-Type: application/json" \
->   -d '{"task": {"name": "My task"}}'
-> ```
-> ClawTrol auto-detects: group chat IDs (negative) get default thread 25; DM chat IDs (positive) get no thread.
->
-> **Step 8 — Set up the completion contract**
->
-> After EVERY task you complete, fire these two hooks IN ORDER:
->
-> Hook 1 — `task_outcome` (structured result):
-> ```bash
-> curl -s -X POST http://HOST:PORT/api/v1/hooks/task_outcome \
->   -H "X-Hook-Token: $CLAWTROL_HOOKS_TOKEN" \
->   -H "Content-Type: application/json" \
->   -d '{
->     "version": "1",
->     "task_id": TASK_ID,
->     "run_id": "SESSION_UUID",
->     "ended_at": "ISO8601_TIMESTAMP",
->     "needs_follow_up": false,
->     "recommended_action": "in_review",
->     "summary": "What was accomplished",
->     "achieved": ["item 1", "item 2"],
->     "evidence": ["proof 1"],
->     "remaining": []
->   }'
-> ```
->
-> Hook 2 — `agent_complete` (saves output to TaskRun + transitions status):
-> ```bash
-> curl -s -X POST http://HOST:PORT/api/v1/hooks/agent_complete \
->   -H "X-Hook-Token: $CLAWTROL_HOOKS_TOKEN" \
->   -H "Content-Type: application/json" \
->   -d '{
->     "task_id": TASK_ID,
->     "session_id": "SESSION_UUID",
->     "findings": "Detailed summary of work done",
->     "output_files": ["file1.rb", "file2.js"]
->   }'
-> ```
->
-> **Step 9 — Verify the full loop**
->
-> Create a test task, execute it, fire both hooks, confirm it reaches `done` (or `in_review`):
-> ```bash
-> # Create
-> TASK=$(curl -s -X POST http://HOST:PORT/api/v1/tasks \
->   -H "Authorization: Bearer $CLAWTROL_API_TOKEN" \
->   -H "Content-Type: application/json" \
->   -d '{"name":"Test: onboarding verification","board_id":BOARD_ID,"status":"up_next","tags":["test","quick-fix"],"assigned_to_agent":true}')
-> TASK_ID=$(echo $TASK | jq -r .id)
->
-> # Move to in_progress
-> curl -s -X PATCH http://HOST:PORT/api/v1/tasks/$TASK_ID \
->   -H "Authorization: Bearer $CLAWTROL_API_TOKEN" \
->   -H "Content-Type: application/json" \
->   -d '{"status":"in_progress"}'
->
-> # Fire hooks (use a random UUID as run_id)
-> # ... (fire task_outcome + agent_complete as above)
->
-> # Verify final status
-> curl -s -H "Authorization: Bearer $CLAWTROL_API_TOKEN" \
->   http://HOST:PORT/api/v1/tasks/$TASK_ID | jq .status
-> # Should be "done" (auto-review: quick-fix + output) or "in_review"
-> ```
->
-> **Step 10 — Report to me**
->
-> Tell me:
-> - ✅ Dashboard URL
-> - ✅ Board created
-> - ✅ API + Hooks tokens saved
-> - ✅ Heartbeat configured
-> - ✅ Completion hooks tested
-> - ✅ Test task verified end-to-end
-
----
-
-**Replace before pasting:**
-
-| Placeholder | Description |
-|-------------|-------------|
-| `MY_EMAIL` | Your login email |
-| `MY_PASSWORD` | Secure password (12+ chars) |
-| `MY_NAME` | Display name |
-| `HOST:PORT` | Your server address (e.g., `localhost:4001`) |
-| `YOUR_AGENT_NAME` | What your agent calls itself |
-| `YOUR_EMOJI` | Agent's signature emoji |
-| `BOARD_ID` | Board ID from Step 5 (usually `1`) |
-
-**Requirements:**
-- Docker (recommended) or Ruby 3.3+ with PostgreSQL
-- AI assistant with shell/exec access (OpenClaw, Claude Code, Codex CLI, etc.)
-- 5 minutes
-
----
-
-## API
+## API Reference
 
 ClawTrol exposes a REST API for agent integrations. Get your API token from Settings.
 
@@ -396,8 +386,8 @@ Authorization: Bearer YOUR_TOKEN
 
 Include agent identity headers:
 ```
-X-Agent-Name: Otacon
-X-Agent-Emoji: 📟
+X-Agent-Name: YourAgent
+X-Agent-Emoji: 🤖
 ```
 
 ---
@@ -655,7 +645,6 @@ PATCH /api/v1/saved_links/:id
 GET /api/v1/saved_links/pending
 ```
 
-
 ### Swarm Ideas
 
 ```bash
@@ -771,7 +760,7 @@ GET /api/v1/tasks/recurring
 ### Models
 `opus`, `codex`, `gemini`, `glm`, `sonnet`, `flash`
 
----
+</details>
 
 ## UI Features
 
@@ -797,8 +786,6 @@ GET /api/v1/tasks/recurring
 - **Agent Activity** — Live session log with WebSocket updates
 - **Priority Selector** — Visual fire icon buttons
 - **Validation Output** — View command results inline
-
----
 
 ## Commit Convention
 
