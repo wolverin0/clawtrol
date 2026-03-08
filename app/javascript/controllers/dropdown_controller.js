@@ -191,7 +191,13 @@ export default class extends Controller {
     if (frame.dataset.loaded === "true") return
 
     await new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        frame.removeEventListener("turbo:frame-load", done)
+        resolve() // Resolve anyway so menu still opens with "Loading…" fallback
+      }, 3000)
+
       const done = () => {
+        clearTimeout(timeoutId)
         frame.dataset.loaded = "true"
         frame.removeEventListener("turbo:frame-load", done)
         resolve()
