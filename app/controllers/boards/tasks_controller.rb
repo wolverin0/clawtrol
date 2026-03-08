@@ -150,7 +150,7 @@ class Boards::TasksController < ApplicationController
 
   def context_menu
     @user_boards = current_user.boards.order(position: :asc).to_a
-    render partial: "boards/tasks/context_menu", locals: { task: @task, user_boards: @user_boards }, layout: false
+    render layout: false
   end
 
   def agent_modal

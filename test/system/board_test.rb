@@ -353,15 +353,23 @@ class BoardContextMenuTest < ApplicationSystemTestCase
     visit board_path(@board)
     assert_selector "h2", text: "Inbox", wait: 5
 
-    # Find the task card
-    card = find("#task_#{@task.id}", wait: 5)
+    # Wait for Stimulus controllers to connect
+    assert_selector "#task_#{@task.id}[data-controller*='dropdown']", wait: 5
 
-    # Right-click the card
-    card.right_click
+    # Dispatch contextmenu event via JS (more reliable than Capybara right_click in headless)
+    page.execute_script(<<~JS)
+      (function() {
+        var card = document.getElementById('task_#{@task.id}');
+        var rect = card.getBoundingClientRect();
+        var event = new MouseEvent('contextmenu', {
+          bubbles: true, cancelable: true,
+          clientX: rect.left + 10, clientY: rect.top + 10
+        });
+        card.dispatchEvent(event);
+      })();
+    JS
 
-    # The dropdown menu should become visible (no longer hidden)
-    within "#task_#{@task.id}" do
-      assert_selector "[data-dropdown-target='menu']:not(.hidden)", wait: 5
-    end
+    # Context menu loads async via turbo frame
+    assert_selector "#task_#{@task.id} [data-dropdown-target='menu']:not(.hidden)", wait: 8
   end
 end
