@@ -59,3 +59,7 @@ app/assets/images/*.mp4
 /handoff.md
 /docs/reports/2026-*
 /docs/artifacts/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
