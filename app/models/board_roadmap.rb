@@ -2,6 +2,7 @@
 
 class BoardRoadmap < ApplicationRecord
   CHECKLIST_REGEX = /^\s*(?:[-*+]|\d+\.)\s\[\s\]\s+(.+?)\s*$/.freeze
+  CHECKED_REGEX   = /^\s*(?:[-*+]|\d+\.)\s\[[xX]\]\s+(.+?)\s*$/.freeze
 
   belongs_to :board
   has_many :task_links, class_name: "BoardRoadmapTaskLink", dependent: :destroy, inverse_of: :board_roadmap
@@ -18,6 +19,30 @@ class BoardRoadmap < ApplicationRecord
 
       { text: text, key: item_key_for(text) }
     end.uniq { |item| item[:key] }
+  end
+
+  def checked_items
+    body.to_s.each_line.filter_map do |line|
+      match = line.match(CHECKED_REGEX)
+      next unless match
+
+      text = match[1].to_s.strip
+      next if text.blank?
+
+      { text: text, key: item_key_for(text) }
+    end.uniq { |item| item[:key] }
+  end
+
+  def total_checklist_items
+    unchecked_items.size + checked_items.size
+  end
+
+  def progress_summary
+    total = total_checklist_items
+    return nil if total.zero?
+
+    done = checked_items.size
+    "#{done}/#{total}"
   end
 
   def item_key_for(text)

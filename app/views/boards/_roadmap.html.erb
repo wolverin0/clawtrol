@@ -5,7 +5,12 @@
 <div class="px-4 sm:px-6 py-3 border-b border-border bg-bg-base">
   <div class="rounded-xl border border-border bg-bg-surface px-4 py-3 flex items-center justify-between gap-3">
     <div class="min-w-0">
-      <h3 class="text-sm font-semibold text-content">🗺️ Roadmap</h3>
+      <h3 class="text-sm font-semibold text-content">
+        🗺️ Roadmap
+        <% if roadmap.persisted? && roadmap.progress_summary %>
+          <span class="ml-2 text-xs font-normal text-content-muted">(<%= roadmap.progress_summary %> items done)</span>
+        <% end %>
+      </h3>
       <p class="text-xs text-content-muted truncate">Nota mental del board. Abrilo en modal para editar rápido.</p>
     </div>
     <div class="flex items-center gap-2 shrink-0">
