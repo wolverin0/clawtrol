@@ -288,3 +288,80 @@ class BoardPerformanceTest < ApplicationSystemTestCase
     assert load_time < 10.0, "Board took #{load_time}s to load"
   end
 end
+
+class BoardRoadmapTest < ApplicationSystemTestCase
+  setup do
+    @user = users(:one)
+    @board = boards(:one)
+    @task = tasks(:one)
+    @task.update!(user: @user, board: @board)
+
+    sign_in_as(@user)
+  end
+
+  test "roadmap modal opens above task cards using showModal" do
+    skip "Requires JavaScript support" unless ApplicationSystemTestCase::CHROME_AVAILABLE
+
+    visit board_path(@board)
+    assert_selector "h2", text: "Inbox", wait: 5
+
+    # Open roadmap modal
+    click_button "Open Roadmap"
+
+    # Dialog should be open (showModal sets the open attribute)
+    assert_selector "dialog[open]", wait: 5
+
+    # Verify dialog is visible and in the top layer (showModal behavior)
+    dialog = find("dialog[open]")
+    assert dialog[:id].start_with?("roadmap-modal-"), "Expected roadmap dialog"
+
+    # Close it
+    within dialog do
+      click_button "Close"
+    end
+
+    # Dialog should be closed
+    assert_no_selector "dialog[open]", wait: 3
+  end
+
+  test "roadmap shows progress when checklist items exist" do
+    # Create a roadmap with checklist items
+    roadmap = @board.roadmap || @board.build_roadmap
+    roadmap.update!(body: "# Roadmap\n- [x] Done item\n- [ ] Pending item\n- [x] Another done\n- [ ] Another pending")
+
+    visit board_path(@board)
+    assert_selector "h2", text: "Inbox", wait: 5
+
+    # Should show progress summary (2/4 items done)
+    assert_text "2/4 items done"
+  end
+end
+
+class BoardContextMenuTest < ApplicationSystemTestCase
+  setup do
+    @user = users(:one)
+    @board = boards(:one)
+    @task = tasks(:one)
+    @task.update!(user: @user, board: @board)
+
+    sign_in_as(@user)
+  end
+
+  test "right-click on task card opens context menu" do
+    skip "Requires JavaScript support" unless ApplicationSystemTestCase::CHROME_AVAILABLE
+
+    visit board_path(@board)
+    assert_selector "h2", text: "Inbox", wait: 5
+
+    # Find the task card
+    card = find("#task_#{@task.id}", wait: 5)
+
+    # Right-click the card
+    card.right_click
+
+    # The dropdown menu should become visible (no longer hidden)
+    within "#task_#{@task.id}" do
+      assert_selector "[data-dropdown-target='menu']:not(.hidden)", wait: 5
+    end
+  end
+end
