@@ -9,6 +9,12 @@ class AgentAutoRunnerService
   SPAWN_COOLDOWN = 1.minute
   ZOMBIE_NOTIFY_COOLDOWN = 60.minutes
 
+  # Aggressive reaper: claimed but never got a session — agent spawn clearly failed.
+  # Overridable via AUTO_RUNNER_ZOMBIE_NO_SESSION_MINUTES env var.
+  def self.zombie_no_session_grace
+    ENV.fetch("AUTO_RUNNER_ZOMBIE_NO_SESSION_MINUTES", "5").to_i.minutes
+  end
+
   def initialize(logger: Rails.logger, cache: Rails.cache, openclaw_webhook_service: OpenclawWebhookService, openclaw_gateway_client: nil)
     @logger = logger
     @cache = cache
@@ -152,18 +158,38 @@ end
       message: "Auto-pull ready: ##{task.id} #{task.name.truncate(60)}"
     )
 
+    webhook_ok = false
     begin
       service = @openclaw_webhook_service.new(user)
-      if task.pipeline_ready?
+      response = if task.pipeline_ready?
         service.notify_auto_pull_ready_with_pipeline(task)
       else
         service.notify_auto_pull_ready(task)
       end
+      # OpenclawWebhookService returns nil on failure, Net::HTTPResponse on success
+      webhook_ok = response.is_a?(Net::HTTPResponse) && response.code.to_i < 400
     rescue StandardError => e
-      @logger.warn("[AgentAutoRunner] wake failed user_id=#{user.id} task_id=#{task.id} err=#{e.class}: #{e.message}")
+      @logger.warn("[AgentAutoRunner] wake webhook failed user_id=#{user.id} task_id=#{task.id} err=#{e.class}: #{e.message}")
+    end
+
+    unless webhook_ok
+      # Don't write cooldown — allow retry on next run.
+      # Record the failure on the task so circuit breaker can track it.
+      task.update_columns(
+        auto_pull_last_error_at: Time.current,
+        auto_pull_last_error: "Wake webhook failed",
+        auto_pull_failures: task.auto_pull_failures.to_i + 1
+      )
+      @logger.warn("[AgentAutoRunner] wake webhook failed — skipping cooldown for retry user_id=#{user.id} task_id=#{task.id}")
+      return false
     end
 
     @cache.write(cache_key, Time.current.to_i, expires_in: SPAWN_COOLDOWN)
+
+    # Clear any previous wake errors on success
+    if task.auto_pull_failures.to_i > 0
+      task.update_columns(auto_pull_failures: 0, auto_pull_last_error: nil, auto_pull_last_error_at: nil)
+    end
 
     @logger.info("[AgentAutoRunner] wake sent user_id=#{user.id} task_id=#{task.id} pipeline_ready=#{task.pipeline_ready?} orchestration_mode=#{user.orchestration_mode}")
     true
@@ -320,6 +346,86 @@ end
       @logger.warn("[AgentAutoRunner] demoted missing-lease task_id=#{task.id}")
     rescue StandardError => e
       @logger.error("[AgentAutoRunner] failed to demote missing-lease task_id=#{task.id} err=#{e.class}: #{e.message}")
+    end
+
+    # Check 4: tasks in_progress WITH agent_session_id but NO lease at all (orphan zombies)
+    # Happens when agent was spawned but died before creating a lease — invisible to checks 1-3
+    orphan_cutoff = Time.current - ZOMBIE_STALE_AFTER
+    any_lease_task_ids = RunnerLease.where(task_id: user.tasks.select(:id)).select(:task_id)
+
+    orphaned_tasks = user.tasks
+      .where(status: :in_progress, assigned_to_agent: true)
+      .where.not(agent_session_id: nil)
+      .where.not(id: any_lease_task_ids)
+      .where("tasks.updated_at < ?", orphan_cutoff)
+
+    orphaned_tasks.find_each do |task|
+      old_status = task.status
+      task.activity_source = "system"
+      task.actor_name = "Auto-Runner"
+      task.actor_emoji = "🧟"
+      task.activity_note = "Auto-demoted: orphan zombie — had session_id but no lease for > #{ZOMBIE_STALE_AFTER.inspect}"
+
+      demote_to_up_next!(task)
+      broadcast_update(task, old_status: old_status)
+
+      if HeartbeatAlertGuard.allow?(key: "task:#{task.id}:orphan_zombie", state: task.updated_at.to_i)
+        Notification.create_deduped!(
+          user: user,
+          task: task,
+          event_type: "orphan_zombie_demoted",
+          message: "Guardrail: demoted orphan zombie (session, no lease) → Up Next: #{task.name.truncate(60)}",
+          event_id: "orphan_zombie:task:#{task.id}:#{task.updated_at.to_i}"
+        )
+      end
+
+      count += 1
+      @logger.warn("[AgentAutoRunner] demoted orphan-zombie task_id=#{task.id} session_id=#{task.agent_session_id}")
+    rescue StandardError => e
+      @logger.error("[AgentAutoRunner] failed orphan-zombie demotion task_id=#{task.id} err=#{e.class}: #{e.message}")
+    end
+
+    # Check 5: Zombie Reaper — claimed but never got a session_id.
+    # This is the most aggressive check: if agent_claimed_at is older than the
+    # grace period and agent_session_id is still nil, the spawn clearly failed.
+    # We demote REGARDLESS of lease status because the lease is meaningless
+    # without a live agent session behind it.
+    no_session_cutoff = Time.current - self.class.zombie_no_session_grace
+
+    no_session_zombies = user.tasks
+      .where(status: :in_progress, assigned_to_agent: true, agent_session_id: nil)
+      .where.not(agent_claimed_at: nil)
+      .where("tasks.agent_claimed_at < ?", no_session_cutoff)
+
+    no_session_zombies.find_each do |task|
+      old_status = task.status
+      active_lease = task.runner_leases.active.first
+
+      task.activity_source = "system"
+      task.actor_name = "Zombie Reaper"
+      task.actor_emoji = "💀"
+      task.activity_note = "Zombie Reaper: claimed #{task.agent_claimed_at&.iso8601} but no session_id after #{self.class.zombie_no_session_grace.inspect} — spawn failed"
+
+      claimed_at_iso = task.agent_claimed_at&.iso8601
+      claimed_at_i = task.agent_claimed_at&.to_i
+
+      demote_to_up_next!(task, release_lease: active_lease)
+      broadcast_update(task, old_status: old_status)
+      count += 1
+
+      @logger.warn("[AgentAutoRunner] Zombie Reaper demoted no-session task_id=#{task.id} claimed_at=#{claimed_at_iso}")
+
+      if HeartbeatAlertGuard.allow?(key: "task:#{task.id}:zombie_no_session", state: claimed_at_i)
+        Notification.create_deduped!(
+          user: user,
+          task: task,
+          event_type: "zombie_no_session_reaped",
+          message: "💀 Zombie Reaper: claimed but no session → Up Next: #{task.name.truncate(60)}",
+          event_id: "zombie_no_session:task:#{task.id}:#{claimed_at_i}"
+        )
+      end
+    rescue StandardError => e
+      @logger.error("[AgentAutoRunner] Zombie Reaper failed task_id=#{task.id} err=#{e.class}: #{e.message}")
     end
 
     count

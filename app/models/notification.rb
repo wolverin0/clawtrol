@@ -33,6 +33,8 @@ class Notification < ApplicationRecord
     zombie_detected
     runner_lease_expired
     runner_lease_missing
+    orphan_zombie_demoted
+    zombie_no_session_reaped
     catastrophic_guardrail
   ].freeze
 

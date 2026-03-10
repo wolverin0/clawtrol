@@ -45,6 +45,28 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
   end
 end
 
+# Webhook service that simulates failures (returns nil like OpenclawWebhookService does on error)
+class FailingWebhookService
+  cattr_accessor :wakes, default: []
+  cattr_accessor :summaries, default: []
+
+  def initialize(_user)
+  end
+
+  def notify_auto_pull_ready(_task)
+    nil # Simulates webhook failure
+  end
+
+  def notify_auto_pull_ready_with_pipeline(_task)
+    nil
+  end
+
+  def notify_runner_summary(message)
+    self.class.summaries << message
+    true
+  end
+end
+
 test "demotes in_progress tasks with expired runner leases" do
     user = User.create!(
       email_address: "auto_runner_demote_#{SecureRandom.hex(4)}@example.test",
@@ -646,6 +668,208 @@ end
 
 # --- Stats reporting ---
 
+
+  # --- Zombie Reaper: claimed but no session_id ---
+
+  test "zombie reaper demotes task claimed > 5 min ago with no session_id even if lease is active" do
+    user = User.create!(
+      email_address: "zombie_reaper_#{SecureRandom.hex(4)}@example.test",
+      password: "password123",
+      password_confirmation: "password123",
+      agent_auto_mode: true,
+      openclaw_gateway_url: "http://example.test",
+      openclaw_gateway_token: "tok"
+    )
+
+    board = Board.create!(user: user, name: "Reaper Board")
+
+    task = Task.create!(
+      user: user,
+      board: board,
+      name: "Zombie no session",
+      status: :up_next,
+      assigned_to_agent: true,
+      pipeline_enabled: false
+    )
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      now = Time.current
+
+      # Create an active lease (would normally protect the task)
+      RunnerLease.create!(
+        task: task,
+        agent_name: "Ghost Agent",
+        lease_token: SecureRandom.hex(16),
+        source: "test",
+        started_at: now - 7.minutes,
+        last_heartbeat_at: now - 7.minutes,
+        expires_at: now + 8.minutes  # Still active!
+      )
+
+      # Simulate: task was claimed 7 minutes ago but never got a session_id
+      task.update_columns(
+        status: Task.statuses[:in_progress],
+        agent_claimed_at: now - 7.minutes,
+        agent_session_id: nil,
+        updated_at: now - 7.minutes
+      )
+
+      cache = ActiveSupport::Cache::MemoryStore.new
+      stats = AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+
+      assert stats[:tasks_demoted] > 0, "expected zombie reaper to demote, got stats=#{stats.inspect}"
+    end
+
+    task.reload
+    assert_equal "up_next", task.status
+    assert_nil task.agent_claimed_at
+    assert_nil task.agent_session_id
+
+    # Lease should be released
+    assert task.runner_leases.where(released_at: nil).none?, "expected lease to be released"
+
+    notif = Notification.order(created_at: :desc).find_by(task: task, event_type: "zombie_no_session_reaped")
+    assert notif.present?, "expected a zombie_no_session_reaped notification"
+    assert_match(/Zombie Reaper/, notif.message)
+  end
+
+  test "zombie reaper does NOT demote task claimed < 5 min ago" do
+    user = User.create!(
+      email_address: "zombie_reaper_safe_#{SecureRandom.hex(4)}@example.test",
+      password: "password123",
+      password_confirmation: "password123",
+      agent_auto_mode: true,
+      openclaw_gateway_url: "http://example.test",
+      openclaw_gateway_token: "tok"
+    )
+
+    board = Board.create!(user: user, name: "Safe Board")
+
+    task = Task.create!(
+      user: user,
+      board: board,
+      name: "Fresh claim no session yet",
+      status: :up_next,
+      assigned_to_agent: true,
+      pipeline_enabled: false
+    )
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      now = Time.current
+
+      RunnerLease.create!(
+        task: task,
+        agent_name: "Active Agent",
+        lease_token: SecureRandom.hex(16),
+        source: "test",
+        started_at: now - 2.minutes,
+        last_heartbeat_at: now - 1.minute,
+        expires_at: now + 13.minutes
+      )
+
+      # Claimed 2 minutes ago — within grace period
+      task.update_columns(
+        status: Task.statuses[:in_progress],
+        agent_claimed_at: now - 2.minutes,
+        agent_session_id: nil,
+        updated_at: now - 2.minutes
+      )
+
+      cache = ActiveSupport::Cache::MemoryStore.new
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+    end
+
+    task.reload
+    assert_equal "in_progress", task.status, "task should NOT be demoted within grace period"
+  end
+
+  test "zombie reaper does NOT demote task that has a session_id" do
+    user = User.create!(
+      email_address: "zombie_reaper_session_#{SecureRandom.hex(4)}@example.test",
+      password: "password123",
+      password_confirmation: "password123",
+      agent_auto_mode: true,
+      openclaw_gateway_url: "http://example.test",
+      openclaw_gateway_token: "tok"
+    )
+
+    board = Board.create!(user: user, name: "Session Board")
+
+    task = Task.create!(
+      user: user,
+      board: board,
+      name: "Has session",
+      status: :up_next,
+      assigned_to_agent: true,
+      pipeline_enabled: false
+    )
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      now = Time.current
+
+      RunnerLease.create!(
+        task: task,
+        agent_name: "Active Agent",
+        lease_token: SecureRandom.hex(16),
+        source: "test",
+        started_at: now - 10.minutes,
+        last_heartbeat_at: now - 1.minute,
+        expires_at: now + 5.minutes
+      )
+
+      # Has agent_session_id — should NOT be reaped
+      task.update_columns(
+        status: Task.statuses[:in_progress],
+        agent_claimed_at: now - 10.minutes,
+        agent_session_id: "session-abc-123",
+        updated_at: now - 1.minute
+      )
+
+      cache = ActiveSupport::Cache::MemoryStore.new
+      AgentAutoRunnerService.new(openclaw_webhook_service: FakeWebhookService, cache: cache).run!
+    end
+
+    task.reload
+    assert_equal "in_progress", task.status, "task with session_id should NOT be demoted by zombie reaper"
+  end
+
+  # --- Wake webhook failure handling ---
+
+  test "wake does not write cooldown cache when webhook fails" do
+    user = users(:one)
+    user.update!(agent_auto_mode: true, openclaw_gateway_url: "http://example.test", openclaw_gateway_token: "tok")
+
+    board = boards(:one)
+    task = Task.create!(
+      user: user,
+      board: board,
+      name: "Webhook fail task",
+      status: :up_next,
+      assigned_to_agent: true,
+      blocked: false,
+      pipeline_enabled: false,
+      model: "gemini"
+    )
+
+    FailingWebhookService.wakes = []
+    cache = ActiveSupport::Cache::MemoryStore.new
+
+    travel_to Time.find_zone!("America/Argentina/Buenos_Aires").local(2026, 2, 8, 23, 30, 0) do
+      stats = AgentAutoRunnerService.new(openclaw_webhook_service: FailingWebhookService, cache: cache).run!
+
+      # Should NOT have woken since webhook failed
+      assert_equal 0, stats[:tasks_woken], "webhook failed, should not count as woken"
+
+      # Task should have auto_pull error recorded
+      task.reload
+      assert task.auto_pull_failures.to_i > 0, "expected auto_pull_failures to be incremented"
+      assert_equal "Wake webhook failed", task.auto_pull_last_error
+
+      # Cooldown cache should NOT be set — allowing retry on next run
+      cooldown_key = "agent_auto_runner:last_wake:user:#{user.id}:task:#{task.id}"
+      assert_nil cache.read(cooldown_key), "cooldown should NOT be set when webhook fails"
+    end
+  end
 
   test "run! returns accurate stats hash" do
     user = users(:one)
