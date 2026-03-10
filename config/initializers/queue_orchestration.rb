@@ -21,6 +21,7 @@ Rails.application.configure do
   config.x.auto_runner.stale_heartbeat_minutes = ENV.fetch("AUTO_RUNNER_STALE_HEARTBEAT_MINUTES", "20").to_i
   config.x.auto_runner.rate_limit_cooldown_minutes = ENV.fetch("AUTO_RUNNER_RATE_LIMIT_COOLDOWN_MINUTES", "10").to_i
   config.x.auto_runner.summary_interval_minutes = ENV.fetch("AUTO_RUNNER_SUMMARY_INTERVAL_MINUTES", "10").to_i
+  config.x.auto_runner.zombie_no_session_minutes = ENV.fetch("AUTO_RUNNER_ZOMBIE_NO_SESSION_MINUTES", "5").to_i
 
   config.x.auto_runner.model_max_inflight = parse_limit_map.call(ENV["AUTO_RUNNER_MODEL_MAX_INFLIGHT"])
   config.x.auto_runner.provider_max_inflight = parse_limit_map.call(ENV["AUTO_RUNNER_PROVIDER_MAX_INFLIGHT"])
