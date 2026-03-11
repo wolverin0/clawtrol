@@ -14,18 +14,15 @@ class ProcessRecurringTasksJob < ApplicationJob
       begin
         Rails.logger.info "[RecurringTasks] Processing recurring task ##{task.id}: #{task.name}"
 
-        # Create a new instance of the recurring task
-        instance = task.create_recurring_instance!
+        instance = nil
+        Task.transaction do
+          instance = task.create_recurring_instance!
+          task.schedule_next_recurrence!
+        end
+
         instances_created += 1
-
-        Rails.logger.info "[RecurringTasks] Created instance ##{instance.id} for recurring task ##{task.id}"
-
-        # Schedule the next recurrence
-        task.schedule_next_recurrence!
-
-        Rails.logger.info "[RecurringTasks] Next recurrence for ##{task.id} scheduled at #{task.next_recurrence_at}"
-
         tasks_processed += 1
+        Rails.logger.info "[RecurringTasks] Created instance ##{instance.id} and scheduled next at #{task.next_recurrence_at} for recurring task ##{task.id}"
       rescue StandardError => e
         Rails.logger.error "[RecurringTasks] Error processing task ##{task.id}: #{e.message}"
         Rails.logger.error e.backtrace.first(5).join("\n")

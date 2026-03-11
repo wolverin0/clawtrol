@@ -360,15 +360,22 @@ def pending_attention
 
         run_id = @task.agent_session_id.presence || "external-#{@task.id}"
 
-        event = @task.agent_activity_events.create!(
-          run_id:     run_id,
-          source:     "agent_push",
-          level:      event_type == "error" ? "error" : "info",
-          event_type: event_type,
-          message:    message.to_s.truncate(4000),
-          seq:        (@task.agent_activity_events.maximum(:seq) || 0) + 1,
-          payload:    data.present? ? { data: data } : {}
-        )
+        retries = 0
+        event = begin
+          @task.agent_activity_events.create!(
+            run_id:     run_id,
+            source:     "agent_push",
+            level:      event_type == "error" ? "error" : "info",
+            event_type: event_type,
+            message:    message.to_s.truncate(4000),
+            seq:        (@task.agent_activity_events.maximum(:seq) || 0) + 1,
+            payload:    data.present? ? { data: data } : {}
+          )
+        rescue ActiveRecord::RecordNotUnique
+          retries += 1
+          retry if retries < 3
+          raise
+        end
 
         # Broadcast to any open Transcript tabs in real time
         AgentActivityChannel.broadcast_event(@task.id, {

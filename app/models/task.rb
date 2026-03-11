@@ -137,7 +137,7 @@ class Task < ApplicationRecord
   after_create :auto_assign_to_agent
   after_update :record_update_activities
   # Auto-spawn is opt-in only. Default behavior is manual spawn by operator/assistant.
-  after_update :fire_openclaw_on_in_progress, if: -> {
+  after_commit :fire_openclaw_on_in_progress, on: :update, if: -> {
     saved_change_to_status? && status == "in_progress" && ENV["OPENCLAW_AUTO_SPAWN_ON_IN_PROGRESS"].to_s.downcase == "true"
   }
   after_update :create_status_notification, if: :saved_change_to_status?

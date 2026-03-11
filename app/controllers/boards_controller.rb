@@ -38,14 +38,14 @@ class BoardsController < ApplicationController
     @columns = {}
     @columns_has_more = {}
 
-    statuses.each do |status|
-      scope = @tasks.where(status: status).ordered_for_column(status)
+    statuses.each do |status_key|
+      scope = @tasks.where(status: status_key).ordered_for_column(status_key)
       first_page_plus_one = scope.limit(PER_COLUMN_ITEMS + 1).to_a
 
-      @columns[status] = first_page_plus_one.first(PER_COLUMN_ITEMS)
-      @columns_has_more[status] = first_page_plus_one.length > PER_COLUMN_ITEMS
+      @columns[status_key] = first_page_plus_one.first(PER_COLUMN_ITEMS)
+      @columns_has_more[status_key] = first_page_plus_one.length > PER_COLUMN_ITEMS
       # group(:status).count returns string keys ("inbox", "up_next", etc.) in Rails 8
-      @column_counts[status] = all_counts[status.to_s] || 0
+      @column_counts[status_key] = all_counts[status_key.to_s] || 0
     end
 
     @blocking_task_ids_by_task_id = build_blocking_task_ids(@columns.values.flatten)
@@ -236,6 +236,7 @@ class BoardsController < ApplicationController
           @board.tasks.where(id: task_ids).update_all(
             Arel.sql("position = CASE id #{when_clauses} END")
           )
+          KanbanChannel.broadcast_refresh(@board.id) rescue nil
         end
       end
     end
