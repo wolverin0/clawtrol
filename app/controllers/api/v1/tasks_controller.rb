@@ -9,7 +9,7 @@ module Api
       include Api::TaskPipelineManagement
       include Api::TaskAgentLifecycle
       include Api::TaskValidationManagement
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :requeue, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health, :run_lobster, :resume_lobster, :spawn_via_gateway ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :requeue, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :log_event, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health, :run_lobster, :resume_lobster, :spawn_via_gateway ]
 
       # GET /api/v1/tasks/:id/agent_log - get agent transcript for this task
       # Returns parsed messages from the OpenClaw session transcript
@@ -224,6 +224,13 @@ def pending_attention
         set_task_activity_info(@task)
         @task.activity_note = "Handoff from #{@task.model || 'default'} to #{new_model}"
         @task.handoff!(new_model: new_model, include_transcript: include_transcript)
+        # Create a lease so AutoRunner doesn't demote the task before the new agent picks it up
+        begin
+          RunnerLease.create_for_task!(task: @task, agent_name: "handoff-#{new_model}", source: "handoff")
+          @task.update_columns(agent_claimed_at: Time.current)
+        rescue RunnerLease::LeaseConflictError
+          # Existing active lease is fine — agent is already running
+        end
 
         render json: {
           task: task_json(@task),
@@ -324,6 +331,52 @@ def pending_attention
         else
           render json: { errors: @task.errors }, status: :unprocessable_entity
         end
+      end
+
+      # POST /api/v1/tasks/:id/log_event
+      # Allows agents (especially ACP/remote like Codex) to push step-level events
+      # during execution, giving visibility into what the agent is doing in real-time.
+      #
+      # Body params:
+      #   message   - (required) Human-readable description of what happened
+      #   type      - (optional) Event type: "progress", "tool_call", "output", "error" (default: "progress")
+      #   data      - (optional) Arbitrary JSON payload (tool inputs, output snippet, etc.)
+      #   session_id - (optional) Agent session ID to auto-link if not yet set
+      def log_event
+        message = params[:message].presence || params[:msg].presence
+        return render json: { error: "message is required" }, status: :unprocessable_entity if message.blank?
+
+        raw_type    = params[:type].presence || "progress"
+        event_type  = AgentActivityEvent::EVENT_TYPES.include?(raw_type) ? raw_type : "agent_push"
+        data        = params[:data].presence
+        session_id  = params[:session_id].presence
+
+        # Auto-link session if provided and not yet set
+        if session_id.present? && @task.agent_session_id.blank?
+          @task.update_column(:agent_session_id, session_id)
+        end
+
+        run_id = @task.agent_session_id.presence || "external-#{@task.id}"
+
+        event = @task.agent_activity_events.create!(
+          run_id:     run_id,
+          source:     "agent_push",
+          level:      event_type == "error" ? "error" : "info",
+          event_type: event_type,
+          message:    message.to_s.truncate(4000),
+          seq:        (@task.agent_activity_events.maximum(:seq) || 0) + 1,
+          payload:    data.present? ? { data: data } : {}
+        )
+
+        # Broadcast to any open Transcript tabs in real time
+        AgentActivityChannel.broadcast_event(@task.id, {
+          id:         event.id,
+          type:       event.event_type,
+          message:    event.message,
+          created_at: event.created_at.iso8601
+        }) rescue nil
+
+        render json: { ok: true, event_id: event.id, seq: event.seq }
       end
 
       # POST /api/v1/tasks/:id/create_followup - create a followup task
@@ -915,7 +968,7 @@ end
       end
 
       def task_params
-        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :pipeline_stage, :execution_prompt, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, :origin_chat_id, :origin_thread_id, :origin_session_id, :origin_session_key, tags: [], output_files: [], review_config: {}, review_result: {})
+        params.require(:task).permit(:name, :description, :priority, :due_date, :status, :blocked, :board_id, :model, :pipeline_stage, :execution_prompt, :recurring, :recurrence_rule, :recurrence_time, :agent_session_id, :agent_session_key, :session_type, :acpx_session_id, :context_usage_percent, :nightly, :nightly_delay_hours, :error_message, :error_at, :retry_count, :validation_command, :review_type, :review_status, :agent_persona_id, :origin_chat_id, :origin_thread_id, :origin_session_id, :origin_session_key, tags: [], output_files: [], review_config: {}, review_result: {})
       end
 
       # Validation command execution delegated to ValidationRunnerService

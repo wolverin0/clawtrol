@@ -42,7 +42,7 @@ class NightshiftRunnerJob < ApplicationJob
 
       When done, report results to:
       curl -X POST http://192.168.100.186:4001/api/v1/nightshift/report_execution \\
-        -H "X-Hook-Token: $CLAWTROL_HOOKS_TOKEN" \\
+        -H "X-Hook-Token: otacon_hooks_f0xh0und_2026" \\
         -H "Content-Type: application/json" \\
         -d '{"mission_name": "#{mission.name}", "status": "completed", "result": "summary of what was done"}'
     TEXT

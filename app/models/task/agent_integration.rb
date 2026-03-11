@@ -201,18 +201,20 @@ module Task::AgentIntegration
     if status == "failed" && result[:error_summary].present?
       create_followup_task!(
         followup_name: "Fix: #{name.truncate(40)}",
-        followup_description: "## Review Failed\n\n#{result[:error_summary]}\n\n---\n\n### Original Task\n#{description}"
+        followup_description: "## Review Failed\n\n#{result[:error_summary]}\n\n---\n\n### Original Task\n#{description}",
+        auto_queue: true
       )
     end
   end
 
-  def create_followup_task!(followup_name:, followup_description: nil)
+  def create_followup_task!(followup_name:, followup_description: nil, auto_queue: false)
     followup = board.tasks.new(
       user: user,
       name: followup_name,
       description: followup_description,
       parent_task_id: id,
-      status: :inbox,
+      status: auto_queue ? :up_next : :inbox,
+      assigned_to_agent: auto_queue,
       priority: priority,
       model: model  # Inherit model from parent
     )

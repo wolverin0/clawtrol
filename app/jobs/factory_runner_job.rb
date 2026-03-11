@@ -72,8 +72,8 @@ class FactoryRunnerJob < ApplicationJob
       FactoryCycleTimeoutJob.set(wait: FactoryEngineService::TIMEOUT_MINUTES.minutes).perform_later(cycle_log.id)
     end
 
-    # Guard: reload to check current status before re-enqueueing
-    return unless loop.reload.playing?
+    # Guard: only re-enqueue if wake succeeded; failed wakes should not self-perpetuate
+    return unless wake_succeeded && loop.reload.playing?
 
     # Re-enqueue self for next cycle
     self.class.set(wait: (loop.interval_ms / 1000.0).seconds).perform_later(loop_id)
