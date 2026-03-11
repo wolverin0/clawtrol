@@ -4,7 +4,7 @@ module Task::AgentIntegration
   extend ActiveSupport::Concern
 
   included do
-    after_update :notify_openclaw_if_urgent, if: -> { saved_change_to_status? || saved_change_to_assigned_to_agent? }
+    after_commit :notify_openclaw_if_urgent, on: :update, if: -> { saved_change_to_status? || saved_change_to_assigned_to_agent? }
     after_update :warn_if_review_without_session, if: :saved_change_to_status?
     after_update :heartbeat_lease_from_activity_evidence
     after_update :reset_auto_pull_guardrails_if_manual_change

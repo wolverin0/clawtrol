@@ -50,7 +50,7 @@ class ValidationRunnerService
         @task.status = "in_review"
       else
         @task.validation_status = "failed"
-        @task.status = "in_progress"
+        @task.status = "up_next"
       end
 
       @task.save!
@@ -64,14 +64,14 @@ class ValidationRunnerService
       @task.update!(
         validation_status: "failed",
         validation_output: "Validation command timed out after #{@timeout} seconds",
-        status: "in_progress"
+        status: "up_next"
       )
       Result.new(success?: false, output: "Validation command timed out after #{@timeout} seconds", exit_code: -1, error: "timeout")
     rescue StandardError => e
       @task.update!(
         validation_status: "failed",
         validation_output: "Error running validation: #{e.message}",
-        status: "in_progress"
+        status: "up_next"
       )
       Result.new(success?: false, output: "Error running validation: #{e.message}", exit_code: -1, error: e.message)
     end
