@@ -279,13 +279,15 @@ def pending_attention
         if @task.save
           now = Time.current
 
-          RunnerLease.create_for_task!(
-            task: @task,
-            agent_name: current_user.agent_name,
-            source: "spawn_ready"
-          )
-
-          @task.update!(status: :in_progress, agent_claimed_at: now)
+          Task.transaction do
+            @task.lock!
+            RunnerLease.create_for_task!(
+              task: @task,
+              agent_name: current_user.agent_name,
+              source: "spawn_ready"
+            )
+            @task.update!(status: :in_progress, agent_claimed_at: now)
+          end
 
           Rails.logger.info(
             "[spawn_ready] task_id=#{@task.id} requested_model=#{requested_model.inspect} " \

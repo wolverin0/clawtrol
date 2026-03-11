@@ -20,14 +20,17 @@ module Api
 
         findings = params[:findings].presence || params[:output].presence
 
-        # If no findings provided, try to extract from transcript
+        # If no findings provided (or trivially short), try to extract from transcript
         transcript_files = []
-        if findings.blank?
-          sid = params[:session_id].presence || params[:agent_session_id].presence || task.agent_session_id
-          if sid.present?
-            tpath = TranscriptParser.transcript_path(sid)
+        sid_for_extract = params[:session_id].presence || params[:agent_session_id].presence ||
+                          task.agent_session_id
+        if findings.blank? || findings.length < 80
+          if sid_for_extract.present?
+            clean_sid = sid_for_extract.include?(":") ? sid_for_extract.split(":").last : sid_for_extract
+            tpath = TranscriptParser.transcript_path(clean_sid)
             if tpath
-              findings = TranscriptParser.extract_summary(tpath)
+              extracted = TranscriptParser.extract_summary(tpath)
+              findings = extracted if extracted.present? && extracted.length > (findings.to_s.length)
               transcript_files = TranscriptParser.extract_output_files(tpath)
             end
           end
@@ -53,6 +56,11 @@ module Api
 
         # Persist agent transcript into a stable file within the Rails app (storage/agent_activity)
         activity = persist_agent_activity(task, effective_session_id)
+
+        # P0 — Archive full transcript to AgentActivityEvent records immediately.
+        # This runs synchronously before the JSONL can be deleted by OpenClaw,
+        # ensuring the Transcript tab always has data regardless of file lifecycle.
+        TranscriptArchiveService.call(task: task, session_id: effective_session_id)
 
         provided_files = params[:output_files].presence || params[:files].presence
         extracted_from_findings = task.extract_output_files_from_findings(findings)
@@ -414,9 +422,9 @@ task.update!(updates)
 
         # Common rate limit patterns from various providers
         rate_limit_patterns = [
-          /usage\s+limit.*?\((\w+)\s+plan\)/i,          # "usage limit (plus plan)"
-          /rate\s+limit.*?model[:\s]+(\w+)/i,            # "rate limit... model: codex"
-          /hit\s+.*?limit/i                              # "hit your ... limit"
+          /usage\s+limit.*?\((\w+)\s+plan\)/i,                              # "usage limit (plus plan)"
+          /rate\s+limit.*?model[:\s]+(\w+)/i,                               # "rate limit... model: codex"
+          /hit\s+(your|the|a|our)\s+(rate|usage|api|daily|monthly|plan)\s+limit/i  # "hit your rate limit"
         ]
 
         is_rate_limit = rate_limit_patterns.any? { |p| findings.match?(p) }
