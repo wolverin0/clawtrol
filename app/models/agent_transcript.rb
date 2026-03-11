@@ -24,8 +24,23 @@ class AgentTranscript < ApplicationRecord
   scope :with_prompt, -> { where.not(prompt_text: nil) }
 
   def self.capture_from_jsonl!(path, task: nil, task_run: nil, session_id: nil)
-    content = File.read(path, encoding: "UTF-8")
     sid = session_id || File.basename(path, ".jsonl").sub(/\.jsonl\.deleted.*/, "")
+
+    # Guard against oversized files — reading a 100MB+ transcript would OOM the Rails process.
+    # raw_jsonl already has a 2MB cap but the full content was already in RAM by then.
+    max_bytes = 50_000_000 # 50MB
+    file_size = File.size(path)
+    if file_size > max_bytes
+      Rails.logger.warn("[AgentTranscript] Skipping oversized transcript (#{file_size} bytes): #{path}")
+      return create!(
+        session_id: sid,
+        task: task,
+        status: "failed",
+        metadata: { error: "oversized_file", file_size: file_size, source_path: path.to_s }
+      )
+    end
+
+    content = File.read(path, encoding: "UTF-8")
 
     return find_by(session_id: sid) if exists?(session_id: sid)
 

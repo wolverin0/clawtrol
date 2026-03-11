@@ -108,7 +108,8 @@ module Api
         hook_token = request.headers["X-Hook-Token"].to_s
         configured_token = Rails.application.config.hooks_token.to_s
         if configured_token.present? && hook_token.present? && ActiveSupport::SecurityUtils.secure_compare(hook_token, configured_token)
-          @current_user = User.first
+          @current_user = User.where(admin: true).first || User.first
+          Rails.logger.warn("[PipelineController] Hook auth: resolved to user ##{@current_user&.id} — consider per-user API token auth for multi-tenant setups") if User.count > 1
           return
         end
 

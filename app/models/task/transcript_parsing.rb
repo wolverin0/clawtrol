@@ -6,7 +6,7 @@ module Task::TranscriptParsing
   extend ActiveSupport::Concern
 
   included do
-    after_update :try_transcript_capture, if: :saved_change_to_status?
+    after_commit :try_transcript_capture, on: :update, if: :saved_change_to_status?
   end
 
   def transcript_path
@@ -18,8 +18,9 @@ module Task::TranscriptParsing
   end
 
   def transcript_exists?
-    path = transcript_path
-    path.present? && File.exist?(path)
+    # Use TranscriptParser which checks active, .deleted, and storage/agent_activity backups
+    return false if agent_session_id.blank?
+    TranscriptParser.transcript_path(agent_session_id).present?
   end
 
   def normalized_output_files(files)

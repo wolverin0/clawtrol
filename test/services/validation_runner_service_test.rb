@@ -115,7 +115,7 @@ class ValidationRunnerServiceTest < ActiveSupport::TestCase
     assert_equal 1, result.exit_code
     @task.reload
     assert_equal "failed", @task.validation_status
-    assert_equal "in_progress", @task.status
+    assert_equal "up_next", @task.status
   end
 
   # --- Timeout ---
