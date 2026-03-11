@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Concern for agent lifecycle operations on tasks:
-# claim, unclaim, requeue, assign, unassign, link_session, spawn_ready, session_health
+# claim, unclaim, requeue, assign, unassign, link_session, session_health
 #
 # Extracted from Api::V1::TasksController to reduce its size (-270 lines).
 # Requires the host controller to define:
@@ -170,69 +170,7 @@ module Api
       end
     end
 
-    # POST /api/v1/tasks/spawn_ready - create + claim + start task in one call
-    def spawn_ready
-      @task = current_user.tasks.new(spawn_ready_params)
-
-      @task.status = :up_next
-      @task.assigned_to_agent = true
-      @task.board_id ||= detect_board_for_task(@task.name, current_user)&.id || current_user.boards.order(position: :asc).first&.id
-      set_task_activity_info(@task)
-      OriginRoutingService.apply!(@task, params: params, headers: request.headers)
-
-      @task.model ||= Task::DEFAULT_MODEL
-      requested_model = @task.model
-      fallback_note = nil
-
-      if requested_model.present?
-        ModelLimit.clear_expired_limits!
-
-        actual_model, fallback_note = ModelLimit.best_available_model(current_user, requested_model)
-
-        if actual_model != requested_model
-          @task.model = actual_model
-          if fallback_note.present?
-            # Store fallback note in pipeline_log instead of polluting description (P0 contract)
-        @task.pipeline_log = (@task.pipeline_log || {}).merge("model_fallback" => fallback_note)
-          end
-        end
-      end
-
-      if @task.save
-        now = Time.current
-
-        RunnerLease.create_for_task!(
-          task: @task,
-          agent_name: current_user.agent_name,
-          source: "spawn_ready"
-        )
-
-        @task.update!(status: :in_progress, agent_claimed_at: now)
-        if @task.pipeline_enabled? && @task.pipeline_stage == "routed"
-          sync_pipeline_stage_for_task!(@task, target_stage: "executing", source: "api#spawn_ready")
-        end
-
-        Rails.logger.info(
-          "[spawn_ready] task_id=#{@task.id} requested_model=#{requested_model.inspect} " \
-          "applied_model=#{@task.model.inspect} openclaw_spawn_model=#{@task.openclaw_spawn_model.inspect} " \
-          "fallback_used=#{fallback_note.present?}"
-        )
-
-        response = task_json(@task)
-        response[:fallback_used] = fallback_note.present?
-        response[:fallback_note] = fallback_note
-        response[:requested_model] = requested_model
-        render json: response, status: :created
-      else
-        render json: { errors: @task.errors }, status: :unprocessable_entity
-      end
-    end
-
     private
-
-    def spawn_ready_params
-      params.require(:task).permit(:name, :description, :model, :priority, :board_id, :origin_chat_id, :origin_thread_id, :origin_session_id, :origin_session_key, tags: [])
-    end
 
     # Auto-detect which board a task belongs to based on its name
     def detect_board_for_task(name, user)

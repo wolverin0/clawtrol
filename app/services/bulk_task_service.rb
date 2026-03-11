@@ -60,10 +60,15 @@ class BulkTaskService
       return Result.new(success: false, error: "Invalid status: #{value}")
     end
 
-    count = tasks.update_all(
-      status: Task.statuses[value],
-      updated_at: Time.current
-    )
+    now = Time.current
+    extra = { updated_at: now }
+    extra[:completed] = (value == "done")
+    extra[:completed_at] = value == "done" ? now : nil
+    extra[:archived_at] = value == "archived" ? now : nil
+
+    count = tasks.update_all(extra.merge(status: Task.statuses[value]))
+
+    KanbanChannel.broadcast_refresh(board.id) rescue nil
 
     affected_statuses << value
     Result.new(success: true, affected_count: count, affected_statuses: affected_statuses.uniq)
@@ -83,10 +88,15 @@ class BulkTaskService
   end
 
   def archive_tasks(tasks, affected_statuses)
+    now = Time.current
     count = tasks.update_all(
       status: Task.statuses["archived"],
-      updated_at: Time.current
+      archived_at: now,
+      completed: false,
+      updated_at: now
     )
+
+    KanbanChannel.broadcast_refresh(board.id) rescue nil
 
     affected_statuses << "archived"
     Result.new(success: true, affected_count: count, affected_statuses: affected_statuses.uniq)
