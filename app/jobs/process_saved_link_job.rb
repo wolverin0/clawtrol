@@ -126,9 +126,13 @@ class ProcessSavedLinkJob < ApplicationJob
 
   def call_gemini_cli(prompt_text)
     # Pass prompt via stdin to avoid shell injection and temp file cleanup issues
-    output, status = Open3.capture2("gemini", "-m", "gemini-3-flash-preview", stdin_data: prompt_text)
-    raise "Gemini CLI failed (exit #{status.exitstatus}): #{output[0..300]}" unless status.success?
-    raise "Empty response from Gemini CLI" if output.strip.empty?
-    output.strip
+    Timeout::timeout(120) do
+      output, status = Open3.capture2("gemini", "-m", "gemini-3-flash-preview", stdin_data: prompt_text)
+      raise "Gemini CLI failed (exit #{status.exitstatus}): #{output[0..300]}" unless status.success?
+      raise "Empty response from Gemini CLI" if output.strip.empty?
+      output.strip
+    end
+  rescue Timeout::Error
+    raise "Gemini CLI timed out after 120s"
   end
 end

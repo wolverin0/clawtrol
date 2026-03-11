@@ -206,9 +206,13 @@ class FactoryRunnerV2Job < ApplicationJob
     agent.public_send(attr).presence || fallback
   end
 
-  def shell_out(workspace_path, command, env: {})
-    stdout, stderr, status = Open3.capture3(env, "bash", "-lc", command.to_s, chdir: workspace_path.to_s)
-    { success: status.success?, stdout: stdout.to_s, stderr: stderr.to_s, command: command }
+  def shell_out(workspace_path, command, env: {}, timeout: 300)
+    Timeout::timeout(timeout) do
+      stdout, stderr, status = Open3.capture3(env, "bash", "-lc", command.to_s, chdir: workspace_path.to_s)
+      { success: status.success?, stdout: stdout.to_s, stderr: stderr.to_s, command: command }
+    end
+  rescue Timeout::Error
+    { success: false, stdout: "", stderr: "Command timed out after #{timeout}s", command: command, timed_out: true }
   rescue StandardError => e
     { success: false, stdout: "", stderr: e.message, command: command }
   end
