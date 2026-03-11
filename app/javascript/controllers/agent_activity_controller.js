@@ -1,6 +1,28 @@
 import { Controller } from "@hotwired/stimulus"
 import { subscribeToAgentActivity } from "channels"
 
+// ========================================
+// TOOL COLOR PALETTE (PinchChat-inspired)
+// ========================================
+const TOOL_COLORS = {
+  exec:          { r: 245, g: 158, b: 11 },   // amber
+  web_search:    { r: 16,  g: 185, b: 129 },   // emerald
+  web_fetch:     { r: 16,  g: 185, b: 129 },   // emerald
+  Read:          { r: 14,  g: 165, b: 233 },   // sky
+  read:          { r: 14,  g: 165, b: 233 },   // sky
+  Write:         { r: 139, g: 92,  b: 246 },   // violet
+  write:         { r: 139, g: 92,  b: 246 },   // violet
+  Edit:          { r: 139, g: 92,  b: 246 },   // violet
+  edit:          { r: 139, g: 92,  b: 246 },   // violet
+  browser:       { r: 6,   g: 182, b: 212 },   // cyan
+  image:         { r: 236, g: 72,  b: 153 },   // pink
+  message:       { r: 99,  g: 102, b: 241 },   // indigo
+  memory_recall: { r: 244, g: 63,  b: 94  },   // rose
+  cron:          { r: 249, g: 115, b: 22  },   // orange
+  sessions_spawn:{ r: 20,  g: 184, b: 166 },   // teal
+}
+const DEFAULT_RGB = { r: 161, g: 161, b: 170 } // zinc
+
 /**
  * Agent Activity Controller - Enhanced terminal view with filtering, search, and timeline
  * 
@@ -9,6 +31,8 @@ import { subscribeToAgentActivity } from "channels"
  * - Progress indicators with meaningful icons
  * - Mini timeline showing agent steps
  * - In-terminal search (Ctrl+F)
+ * - PinchChat-inspired colored tool badges
+ * - Collapsible thinking blocks
  */
 export default class extends Controller {
   static targets = [
@@ -287,6 +311,25 @@ export default class extends Controller {
   }
 
   // ========================================
+  // PINCHCHAT-INSPIRED TOGGLE METHODS
+  // ========================================
+
+  toggleToolCall(event) {
+    const btn = event.currentTarget
+    const panel = btn.nextElementSibling
+    if (!panel) return
+    panel.classList.toggle('hidden')
+  }
+
+  toggleThinking(event) {
+    const btn = event.currentTarget
+    const content = btn.nextElementSibling
+    const chevron = btn.querySelector('.thinking-chevron')
+    content.classList.toggle('hidden')
+    chevron.style.transform = content.classList.contains('hidden') ? '' : 'rotate(90deg)'
+  }
+
+  // ========================================
   // TIMELINE FUNCTIONALITY
   // ========================================
 
@@ -417,55 +460,46 @@ export default class extends Controller {
   }
 
   // Handle incoming WebSocket messages
-  // If messages are present, render them directly (no polling needed)
-  // Falls back to poll() for legacy/status messages
   handleWebSocketMessage(data) {
     if (data.type === "activity" && data.messages && data.messages.length > 0) {
-      // Stream mode: render messages directly without polling
       console.log(`[AgentActivity] Streaming ${data.messages.length} messages via WebSocket`)
       
       this.hideEmptyState()
       this.hideLoadingState()
       
-      // Add to all messages and render
       data.messages.forEach(msg => {
         this.allMessages.push(msg)
         this.renderMessage(msg)
       })
       
-      // Update position tracker
       if (data.total_lines) {
         this.lastLine = data.total_lines
       }
       
       this.scrollToBottom()
-      
-      // Update timeline
       this.parseTimelineSteps()
       
-      // Re-apply search if active
       if (this.searchQueryValue && this.searchQueryValue.length >= 2) {
         this.performSearch()
       }
+    } else if (data.type === "agent_event") {
+      console.log("[AgentActivity] agent_event push received — triggering poll")
+      this.poll()
     } else if (data.type === "activity") {
-      // Legacy: activity without messages, fall back to poll
       this.poll()
     } else if (data.type === "status") {
-      // Status update (task started, completed, etc.)
       if (data.status) {
         this.taskStatusValue = data.status
         this.updateStatusBadge(data.status)
       }
       
-      // If session just linked, start watching for content
       if (data.session_linked) {
         this.poll()
       }
       
-      // Update polling state based on new status
       if (!this.shouldPoll()) {
         this.stopPolling()
-        this.parseTimelineSteps()  // Final timeline update
+        this.parseTimelineSteps()
       }
     }
   }
@@ -498,7 +532,6 @@ export default class extends Controller {
     console.log("[AgentActivity] Polling stopped")
   }
 
-  // Single poll attempt for tasks without session ID (fallback content)
   async pollOnce() {
     try {
       const response = await fetch(`/api/v1/tasks/${this.taskIdValue}/agent_log?since=0`)
@@ -545,7 +578,7 @@ export default class extends Controller {
         this.updateStatusBadge(data.task_status)
       }
 
-      if (!data.has_session) {
+      if (!data.has_session && !(data.persisted_count > 0)) {
         this.showEmptyState()
         this.stopPolling()
         return
@@ -555,7 +588,6 @@ export default class extends Controller {
         this.hideEmptyState()
         this.hideLoadingState()
         
-        // Add to all messages and render
         data.messages.forEach(msg => {
           this.allMessages.push(msg)
           this.renderMessage(msg)
@@ -563,11 +595,8 @@ export default class extends Controller {
         
         this.lastLine = data.total_lines
         this.scrollToBottom()
-        
-        // Update timeline
         this.parseTimelineSteps()
         
-        // Re-apply search if active
         if (this.searchQueryValue && this.searchQueryValue.length >= 2) {
           this.performSearch()
         }
@@ -582,7 +611,6 @@ export default class extends Controller {
 
       if (!this.shouldPoll()) {
         this.stopPolling()
-        // Update timeline one more time for completion
         this.parseTimelineSteps()
         return
       }
@@ -600,7 +628,7 @@ export default class extends Controller {
   }
 
   // ========================================
-  // MESSAGE RENDERING (enhanced)
+  // MESSAGE RENDERING (PinchChat-enhanced)
   // ========================================
 
   rerenderAllMessages() {
@@ -610,74 +638,157 @@ export default class extends Controller {
     this.scrollToBottom()
   }
 
+  // Get color for a tool name
+  getToolColor(toolName) {
+    if (!toolName) return DEFAULT_RGB
+    return TOOL_COLORS[toolName] || DEFAULT_RGB
+  }
+
+  // Get emoji for tool
+  getToolEmoji(toolName) {
+    if (!toolName) return '⚙️'
+    const name = toolName.toLowerCase()
+    if (name === 'exec') return '⚡'
+    if (name.includes('read') || name === 'file') return '📄'
+    if (name.includes('write')) return '✏️'
+    if (name.includes('edit')) return '✏️'
+    if (name.includes('web_search') || name.includes('search')) return '🔍'
+    if (name.includes('web_fetch') || name.includes('fetch')) return '🌐'
+    if (name === 'browser') return '🌐'
+    if (name.includes('message') || name.includes('send')) return '📨'
+    if (name.includes('image') || name.includes('screenshot')) return '🖼️'
+    if (name.includes('memory')) return '💾'
+    if (name.includes('cron')) return '⏰'
+    if (name.includes('sessions_spawn') || name.includes('spawn')) return '🤖'
+    if (name.includes('node') || name.includes('camera')) return '📱'
+    if (name.includes('canvas')) return '🎨'
+    if (name.includes('tts') || name.includes('speech')) return '🔊'
+    return '🔧'
+  }
+
+  // Get context hint for a tool (PinchChat getContextHint)
+  getContextHint(toolName, input) {
+    if (!input || !toolName) return ''
+    const name = toolName.toLowerCase()
+    try {
+      const params = typeof input === 'string' ? JSON.parse(input) : input
+      if (name === 'exec') return (params.command || '').substring(0, 60)
+      if (['read', 'write', 'edit', 'Read', 'Write', 'Edit'].includes(toolName)) {
+        return params.file_path || params.path || ''
+      }
+      if (name === 'web_search') return (params.query || '').substring(0, 50)
+      if (name === 'web_fetch') return (params.url || '').substring(0, 60)
+      if (name === 'browser') return params.action || ''
+      if (name === 'sessions_spawn') return (params.task || '').substring(0, 50)
+    } catch (e) {
+      // ignore parse errors
+    }
+    return ''
+  }
+
+  // Render a colored tool badge (PinchChat ToolCall-inspired)
+  renderToolBadge(toolName, input, result) {
+    const { r, g, b } = this.getToolColor(toolName)
+    const emoji = this.getToolEmoji(toolName)
+    const hint = this.getContextHint(toolName, input)
+    const hintHtml = hint ? ` <span class="opacity-60 font-normal truncate max-w-[200px] inline-block align-bottom">${this.escapeHtml(hint)}</span>` : ''
+
+    const inputJson = typeof input === 'string' ? input : JSON.stringify(input, null, 2)
+    const resultText = result ? (result.length > 3000 ? result.substring(0, 3000) + '...' : result) : '(no result)'
+
+    return `
+      <div class="my-0.5">
+        <button 
+          class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-mono font-semibold cursor-pointer hover:brightness-125 transition-all"
+          style="border-color: rgba(${r},${g},${b},0.3); background: rgba(${r},${g},${b},0.10); color: rgb(${r},${g},${b})"
+          data-action="click->agent-activity#toggleToolCall"
+          data-r="${r}" data-g="${g}" data-b="${b}"
+        >${emoji} ${this.escapeHtml(toolName)}${hintHtml}</button>
+        <div class="hidden mt-1 rounded-xl border p-2 text-xs font-mono" style="border-color: rgba(${r},${g},${b},0.2); background: rgba(${r},${g},${b},0.05)">
+          <div class="text-[11px] opacity-70 mb-1">Parameters</div>
+          <pre class="whitespace-pre-wrap break-words max-h-48 overflow-y-auto bg-black/20 rounded p-2">${this.escapeHtml(inputJson)}</pre>
+          <div class="text-[11px] opacity-70 mb-1 mt-2">Result</div>
+          <pre class="whitespace-pre-wrap break-words max-h-48 overflow-y-auto bg-black/20 rounded p-2">${this.escapeHtml(resultText)}</pre>
+        </div>
+      </div>
+    `
+  }
+
   renderMessage(msg) {
     const container = this.logTarget
     const div = document.createElement('div')
     div.className = 'agent-log-entry mb-3'
     
-    // Determine icon and styling based on content
     const { icon, roleClass, isToolCall } = this.getMessageStyle(msg)
     
     let contentHtml = ''
-    let toolCallSummary = ''
-    let toolCallContent = ''
+    
+    // We need to pair tool_calls with their results - collect them first
+    const toolCallMap = {}  // name -> { input, result }
     
     if (msg.content && Array.isArray(msg.content)) {
+      // First pass: collect tool results
+      msg.content.forEach(item => {
+        if (item.type === 'tool_result' && item.tool_call_id) {
+          toolCallMap[item.tool_call_id] = { result: item.text || '' }
+        }
+      })
+
+      // Second pass: render items
       msg.content.forEach(item => {
         if (item.type === 'text' && item.text) {
           const text = item.text.length > 5000 ? item.text.substring(0, 5000) + '...' : item.text
           contentHtml += `<div class="text-sm text-content whitespace-pre-wrap break-words">${this.escapeHtml(text)}</div>`
         }
+
         if (item.type === 'thinking' && item.text) {
+          // PinchChat-style thinking block
           const thinking = item.text.length > 1500 ? item.text.substring(0, 1500) + '...' : item.text
-          const thinkingIcon = '🧠'
-          if (this.compactModeValue) {
-            contentHtml += `<div class="text-xs text-purple-400 italic mt-1 cursor-pointer hover:text-purple-300" data-action="click->agent-activity#expandToolCall">${thinkingIcon} Thinking... (click to expand)</div>`
-            contentHtml += `<div class="hidden tool-call-content text-xs text-content-muted italic bg-bg-surface/50 rounded px-2 py-1 mt-1">${this.escapeHtml(thinking)}</div>`
-          } else {
-            contentHtml += `<div class="text-xs text-content-muted italic bg-bg-surface/50 rounded px-2 py-1 mt-1">${thinkingIcon} ${this.escapeHtml(thinking)}</div>`
-          }
+          contentHtml += `
+            <div class="my-1">
+              <button class="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-2.5 py-1 text-xs text-purple-300 hover:brightness-125 transition-all cursor-pointer"
+                      data-action="click->agent-activity#toggleThinking">
+                🧠 <span class="font-medium">Thinking</span> <span class="thinking-chevron transition-transform duration-200">▶</span>
+              </button>
+              <div class="thinking-content hidden mt-1 rounded-xl border border-purple-500/20 bg-purple-500/5 p-2 text-xs italic text-content-muted whitespace-pre-wrap max-h-64 overflow-y-auto">${this.escapeHtml(thinking)}</div>
+            </div>
+          `
         }
+
         if (item.type === 'tool_call') {
-          const toolIcon = this.getToolIcon(item.name)
+          // PinchChat-style colored badge
           const toolName = item.name || 'tool'
-          toolCallSummary = `<div class="text-xs font-mono text-accent mt-1">${toolIcon} <span class="font-semibold">${this.escapeHtml(toolName)}</span></div>`
+          const input = item.input || item.params || {}
+          // Look for result by tool_use_id
+          const resultData = toolCallMap[item.id] || {}
+          const result = resultData.result || ''
+          contentHtml += this.renderToolBadge(toolName, input, result)
         }
-        if (item.type === 'tool_result' && item.text) {
-          const result = item.text.length > 3000 ? item.text.substring(0, 3000) + '...' : item.text
-          
-          if (this.compactModeValue) {
-            // Compact: show one-liner with expand option
-            const preview = result.split('\n')[0].substring(0, 80)
-            toolCallContent = `
-              <div class="tool-call-entry">
-                <div class="flex items-center gap-2 text-xs font-mono text-content-muted mt-1 cursor-pointer hover:text-content-secondary" data-action="click->agent-activity#expandToolCall">
-                  <span class="tool-call-chevron transition-transform duration-200">▶</span>
-                  <span class="truncate">${this.escapeHtml(preview)}${result.length > 80 ? '...' : ''}</span>
-                </div>
-                <div class="hidden tool-call-content text-xs font-mono text-content-muted bg-bg-surface rounded px-2 py-1 mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap">${this.escapeHtml(result)}</div>
-              </div>
-            `
-          } else {
-            // Expanded: show full content
-            toolCallContent = `<div class="text-xs font-mono text-content-muted bg-bg-surface rounded px-2 py-1 mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap">${this.escapeHtml(result)}</div>`
-          }
+
+        if (item.type === 'tool_result' && !item.tool_call_id) {
+          // Standalone tool result (toolResult role messages)
+          const result = item.text || ''
+          const trimmedResult = result.length > 3000 ? result.substring(0, 3000) + '...' : result
+          const toolName = msg.tool_name || 'result'
+          contentHtml += this.renderToolBadge(toolName, {}, trimmedResult)
         }
       })
     }
-    
-    // Build final HTML
-    const hasToolContent = toolCallSummary || toolCallContent
-    const entryClass = hasToolContent ? 'tool-call-entry' : ''
+
+    // For toolResult role messages (legacy format)
+    if (msg.role === 'toolResult' && !contentHtml) {
+      const toolName = msg.tool_name || 'result'
+      const result = (msg.content && typeof msg.content === 'string') ? msg.content : 
+                     (msg.content && Array.isArray(msg.content) ? msg.content.map(c => c.text || '').join('') : '')
+      const trimmedResult = result.length > 3000 ? result.substring(0, 3000) + '...' : result
+      contentHtml += this.renderToolBadge(toolName, {}, trimmedResult)
+    }
     
     div.innerHTML = `
-      <div class="flex items-start gap-2 p-2 rounded-lg bg-bg-elevated border-l-2 ${roleClass} ${entryClass}">
+      <div class="flex items-start gap-2 p-2 rounded-lg bg-bg-elevated border-l-2 ${roleClass}">
         <span class="text-sm flex-shrink-0">${icon}</span>
         <div class="flex-1 min-w-0">
-          ${contentHtml || ''}
-          ${toolCallSummary}
-          ${toolCallContent}
-          ${!contentHtml && !toolCallSummary && !toolCallContent ? '<span class="text-xs text-content-muted">...</span>' : ''}
+          ${contentHtml || '<span class="text-xs text-content-muted">...</span>'}
         </div>
       </div>
     `
@@ -696,7 +807,6 @@ export default class extends Controller {
       icon = '🤖'
       roleClass = 'border-purple-500'
       
-      // Check content for specific types
       if (msg.content && Array.isArray(msg.content)) {
         const hasThinking = msg.content.some(c => c.type === 'thinking')
         const hasToolCall = msg.content.some(c => c.type === 'tool_call')
@@ -707,16 +817,15 @@ export default class extends Controller {
         }
         if (hasToolCall) {
           isToolCall = true
-          // Get specific tool icon
           const toolItem = msg.content.find(c => c.type === 'tool_call')
           if (toolItem) {
-            icon = this.getToolIcon(toolItem.name)
+            icon = this.getToolEmoji(toolItem.name)
             roleClass = 'border-amber-500'
           }
         }
       }
     } else if (msg.role === 'toolResult') {
-      icon = this.getToolIcon(msg.tool_name)
+      icon = this.getToolEmoji(msg.tool_name)
       roleClass = 'border-green-500'
       isToolCall = true
     }
@@ -725,37 +834,7 @@ export default class extends Controller {
   }
 
   getToolIcon(toolName) {
-    if (!toolName) return '⚙️'
-    
-    const name = toolName.toLowerCase()
-    
-    // File operations
-    if (name.includes('read') || name === 'file') return '📄'
-    if (name.includes('write') || name.includes('edit')) return '✏️'
-    
-    // Execution
-    if (name.includes('exec') || name.includes('shell') || name.includes('process')) return '⚙️'
-    
-    // Web
-    if (name.includes('web_search') || name.includes('search')) return '🔍'
-    if (name.includes('web_fetch') || name.includes('fetch') || name.includes('browser')) return '🌐'
-    
-    // Message/Communication
-    if (name.includes('message') || name.includes('send')) return '📨'
-    
-    // Image
-    if (name.includes('image') || name.includes('screenshot')) return '🖼️'
-    
-    // Nodes/Devices
-    if (name.includes('node') || name.includes('camera')) return '📱'
-    
-    // Canvas
-    if (name.includes('canvas')) return '🎨'
-    
-    // TTS
-    if (name.includes('tts') || name.includes('speech')) return '🔊'
-    
-    return '🔧'
+    return this.getToolEmoji(toolName)
   }
 
   scrollToBottom() {
@@ -812,7 +891,7 @@ export default class extends Controller {
 
   escapeHtml(text) {
     const div = document.createElement('div')
-    div.textContent = text
+    div.textContent = String(text)
     return div.innerHTML
   }
 

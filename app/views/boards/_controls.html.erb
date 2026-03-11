@@ -106,6 +106,15 @@
         </button>
       </div>
 
+      <%# Split View Toggle %>
+      <button id="split-view-toggle"
+              data-controller="split-view"
+              data-action="click->split-view#toggle"
+              title="Split view (two tasks side by side)"
+              class="p-1.5 rounded-lg text-content-muted hover:text-content hover:bg-bg-elevated transition-colors cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="18" x="3" y="3" rx="1"/><rect width="7" height="18" x="14" y="3" rx="1"/></svg>
+      </button>
+
       <%# Board Settings %>
       <button type="button"
               data-action="click->board-modal#open"
