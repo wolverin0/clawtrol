@@ -56,6 +56,20 @@
       </p>
     </div>
 
+    <%# Context Usage Progress Bar %>
+    <% if task.context_usage_percent.to_i > 0 %>
+      <div class="px-4 pb-2 pt-1.5 border-b border-border/50">
+        <div class="flex items-center justify-between text-[10px] text-content-muted mb-0.5">
+          <span>Context</span>
+          <span><%= task.context_usage_percent %>%</span>
+        </div>
+        <div class="h-1 rounded-full bg-bg-elevated overflow-hidden">
+          <div class="h-full rounded-full transition-all duration-500 <%= task.context_usage_percent.to_i > 80 ? 'bg-red-500' : task.context_usage_percent.to_i > 60 ? 'bg-amber-500' : 'bg-accent' %>"
+               style="width: <%= [task.context_usage_percent.to_i, 100].min %>%"></div>
+        </div>
+      </div>
+    <% end %>
+
     <%# Activity Log (scrollable) %>
     <div data-agent-modal-target="log" 
          class="flex-1 overflow-y-auto px-4 py-3 min-h-[150px] max-h-[40vh]">

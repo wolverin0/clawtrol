@@ -323,3 +323,32 @@ body.overflow-hidden {
     animation: swipe-hint 1s ease-in-out 2;
   }
 }
+
+/* ================================================
+   Split view: two task panels side by side
+   Activated by body.split-view-active
+   ================================================ */
+body.split-view-active [data-task-modal-target="modal"] {
+  width: 50% !important;
+  max-width: 50vw !important;
+  right: 0 !important;
+  left: auto !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: flex-end !important;
+  padding: 0 !important;
+}
+
+body.split-view-active [data-task-modal-target="modal"]:first-of-type {
+  right: 50% !important;
+  border-right: 1px solid var(--color-border, rgba(255,255,255,0.1));
+}
+
+body.split-view-active [data-task-modal-target="dragHandle"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  resize: none !important;
+}
