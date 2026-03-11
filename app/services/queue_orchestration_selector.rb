@@ -11,7 +11,8 @@ class QueueOrchestrationSelector
     "sonnet" => 2,
     "gemini3" => 3,
     "gemini3_flash" => 4,
-    "glm" => 4
+    "glm" => 4,
+    "minimax" => 2
   }.freeze
 
   DEFAULT_PROVIDER_MAX_INFLIGHT = {
@@ -220,6 +221,7 @@ class QueueOrchestrationSelector
     return "glm" if raw.include?("glm")
     return "grok" if raw.include?("grok") || raw.include?("xai")
     return "ollama" if raw.include?("ollama")
+    return "minimax" if raw.include?("minimax")
     return "cerebras" if raw.include?("cerebras")
     raw
   end
@@ -242,6 +244,8 @@ class QueueOrchestrationSelector
       "ollama"
     when /\A(cerebras)/
       "cerebras"
+    when /\A(minimax)/
+      "minimax"
     else
       "other"
     end

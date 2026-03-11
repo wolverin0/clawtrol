@@ -37,7 +37,7 @@ class Task < ApplicationRecord
   has_many :dependents, through: :inverse_dependencies, source: :task
 
   enum :priority, { none: 0, low: 1, medium: 2, high: 3 }, default: :none, prefix: true
-  enum :status, { inbox: 0, up_next: 1, in_progress: 2, in_review: 3, done: 4, archived: 5 }, default: :inbox
+  enum :status, { inbox: 0, up_next: 1, in_progress: 2, in_review: 3, done: 4, archived: 5, needs_decision: 6 }, default: :inbox
   # Pipeline stages - production pipeline services use these values.
   PIPELINE_STAGES = %w[unstarted triaged context_ready routed executing verifying completed failed].freeze
 
@@ -125,6 +125,7 @@ class Task < ApplicationRecord
   validates :origin_chat_id, length: { maximum: 200 }, allow_nil: true
   validates :origin_session_id, length: { maximum: 200 }, allow_nil: true
   validates :origin_session_key, length: { maximum: 200 }, allow_nil: true
+  validates :session_type, inclusion: { in: ['oneshot', 'persistent'] }, allow_nil: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
   validate :pipeline_stage_transition_is_valid, if: :will_save_change_to_pipeline_stage?
   validate :dispatched_requires_plan, if: :will_save_change_to_pipeline_stage?
@@ -153,7 +154,7 @@ class Task < ApplicationRecord
   scope :completed, -> { where(completed: true).order(Arel.sql("#{table_name}.completed_at DESC")) }
   scope :assigned_to_agent, -> { where(assigned_to_agent: true).order(assigned_at: :asc) }
   scope :unassigned, -> { where(assigned_to_agent: false) }
-  scope :recurring_templates, -> { where(recurring: true, parent_task_id: nil) }
+  scope :recurring_templates, -> { where(recurring: true, parent_task_id: nil).where.not(status: :archived) }
   scope :due_for_recurrence, -> { recurring_templates.where("next_recurrence_at <= ?", Time.current) }
   scope :nightly, -> { where(nightly: true) }
   scope :errored, -> { where.not(error_at: nil) }
