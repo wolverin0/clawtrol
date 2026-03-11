@@ -119,7 +119,9 @@ module Zeroclaw
       when "PASS"
         updates[:status] = "done" if AuditorConfig.auto_done?
       when "FAIL_REWORK"
-        updates[:status] = "in_progress"
+        updates[:status] = "up_next"
+        updates[:assigned_to_agent] = true
+        updates[:assigned_at] = Time.current
         updates[:agent_claimed_at] = nil
       when "NEEDS_HUMAN"
         updates[:status] = "in_review"

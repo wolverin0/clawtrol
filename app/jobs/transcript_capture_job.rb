@@ -68,6 +68,10 @@ class TranscriptCaptureJob < ApplicationJob
 
     recent_files.each do |path|
       # Quick check: does this file mention our task ID?
+      max_bytes = 20_000_000 # 20MB — sufficient for pattern matching; prevents OOM on large transcripts
+      file_size = (File.size(path) rescue next)
+      next if file_size > max_bytes
+
       content = File.read(path, encoding: "UTF-8") rescue next
       task_ref = "tasks/#{task.id}"
       task_ref_hash = "##{task.id}"

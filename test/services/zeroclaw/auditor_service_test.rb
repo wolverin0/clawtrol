@@ -71,7 +71,8 @@ module Zeroclaw
 
       assert_equal "FAIL_REWORK", result[:verdict]
       assert_equal "failed", task.review_status
-      assert_equal "in_progress", task.status
+      assert_equal "up_next", task.status
+      assert task.assigned_to_agent, "task should be flagged assigned_to_agent for re-queue"
       assert_equal 1, task.state_data.dig("auditor", "rework_count")
       assert result[:required_fixes].any?
     end
