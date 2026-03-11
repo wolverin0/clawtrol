@@ -191,6 +191,11 @@ end
       task.update_columns(auto_pull_failures: 0, auto_pull_last_error: nil, auto_pull_last_error_at: nil)
     end
 
+    # Schedule session auto-linker to run after grace period.
+    # If the agent forgets to call link_session, this job will scan JSONL files
+    # and auto-link the correct session — permanent observability fix.
+    SessionAutoLinkerJob.set(wait: 4.minutes).perform_later
+
     @logger.info("[AgentAutoRunner] wake sent user_id=#{user.id} task_id=#{task.id} pipeline_ready=#{task.pipeline_ready?} orchestration_mode=#{user.orchestration_mode}")
     true
   rescue StandardError => e
@@ -264,7 +269,7 @@ end
 
       task.activity_source = "system"
       task.actor_name = "Auto-Runner"
-      task.actor_emoji = "??"
+      task.actor_emoji = "⚡"
       task.activity_note = "Auto-demoted: stale lease heartbeat (last hb #{lease.last_heartbeat_at&.iso8601})"
 
       demote_to_up_next!(task, release_lease: lease)
@@ -292,7 +297,7 @@ end
 
       task.activity_source = "system"
       task.actor_name = "Auto-Runner"
-      task.actor_emoji = "??"
+      task.actor_emoji = "⚡"
       task.activity_note = "Auto-demoted: Runner Lease expired (last hb #{lease.last_heartbeat_at&.iso8601})"
 
       demote_to_up_next!(task, release_lease: lease)
@@ -326,7 +331,7 @@ end
       old_status = task.status
       task.activity_source = "system"
       task.actor_name = "Auto-Runner"
-      task.actor_emoji = "??"
+      task.actor_emoji = "⚡"
       task.activity_note = "Auto-demoted: in_progress without Runner Lease for > #{NO_FAKE_IN_PROGRESS_GRACE.inspect}"
 
       demote_to_up_next!(task)
@@ -350,6 +355,8 @@ end
 
     # Check 4: tasks in_progress WITH agent_session_id but NO lease at all (orphan zombies)
     # Happens when agent was spawned but died before creating a lease — invisible to checks 1-3
+    # NOTE: uses created_at (immutable), NOT updated_at — updated_at gets refreshed by
+    # AUTO-PULL processing and would cause the zombie timer to reset every ~30min indefinitely.
     orphan_cutoff = Time.current - ZOMBIE_STALE_AFTER
     any_lease_task_ids = RunnerLease.where(task_id: user.tasks.select(:id)).select(:task_id)
 
@@ -357,7 +364,7 @@ end
       .where(status: :in_progress, assigned_to_agent: true)
       .where.not(agent_session_id: nil)
       .where.not(id: any_lease_task_ids)
-      .where("tasks.updated_at < ?", orphan_cutoff)
+      .where("tasks.created_at < ?", orphan_cutoff)
 
     orphaned_tasks.find_each do |task|
       old_status = task.status
@@ -383,6 +390,46 @@ end
       @logger.warn("[AgentAutoRunner] demoted orphan-zombie task_id=#{task.id} session_id=#{task.agent_session_id}")
     rescue StandardError => e
       @logger.error("[AgentAutoRunner] failed orphan-zombie demotion task_id=#{task.id} err=#{e.class}: #{e.message}")
+    end
+
+    # Check 4b: Pre-claimed zombies — nightshift (or orchestrator) set agent_session_id
+    # BEFORE the normal claim flow ran, so agent_claimed_at is nil forever.
+    # These bypass Check 4 only if updated_at stays fresh (AUTO-PULL keeps touching it).
+    # Fix: use created_at anchor + short grace (5 min). A task with session_id, no lease,
+    # and no claimed_at is ALWAYS a zombie — there's no legitimate path to that state.
+    pre_claim_grace = 5.minutes
+    pre_claim_cutoff = Time.current - pre_claim_grace
+
+    pre_claimed_zombies = user.tasks
+      .where(status: :in_progress, agent_claimed_at: nil)
+      .where.not(agent_session_id: nil)
+      .where.not(id: any_lease_task_ids)
+      .where("tasks.created_at < ?", pre_claim_cutoff)
+
+    pre_claimed_zombies.find_each do |task|
+      old_status = task.status
+      task.activity_source = "system"
+      task.actor_name = "Zombie Reaper"
+      task.actor_emoji = "🧟"
+      task.activity_note = "Auto-demoted: pre-claim zombie — session_id set without claim (nightshift path), no lease, no claimed_at for > #{pre_claim_grace.inspect}"
+
+      demote_to_up_next!(task)
+      broadcast_update(task, old_status: old_status)
+
+      if HeartbeatAlertGuard.allow?(key: "task:#{task.id}:pre_claim_zombie", state: task.created_at.to_i)
+        Notification.create_deduped!(
+          user: user,
+          task: task,
+          event_type: "pre_claim_zombie_demoted",
+          message: "🧟 Pre-claim zombie demoted → Up Next: #{task.name.truncate(60)}",
+          event_id: "pre_claim_zombie:task:#{task.id}:#{task.created_at.to_i}"
+        )
+      end
+
+      count += 1
+      @logger.warn("[AgentAutoRunner] demoted pre-claim-zombie task_id=#{task.id} session_id=#{task.agent_session_id}")
+    rescue StandardError => e
+      @logger.error("[AgentAutoRunner] failed pre-claim-zombie demotion task_id=#{task.id} err=#{e.class}: #{e.message}")
     end
 
     # Check 5: Zombie Reaper — claimed but never got a session_id.
@@ -437,7 +484,7 @@ end
     zombie_count = user.tasks
       .where(status: :in_progress)
       .where.not(agent_claimed_at: nil)
-      .where("updated_at < ?", cutoff)
+      .where("agent_claimed_at < ?", cutoff)
       .count
 
     return 0 if zombie_count.zero?
