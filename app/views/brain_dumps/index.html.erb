@@ -1,0 +1,14 @@
+<div class="max-w-3xl mx-auto py-8">
+  <h1 class="text-2xl font-bold text-content mb-6">🧠 Brain Dumps</h1>
+
+  <div id="brain_dumps" class="space-y-3">
+    <%= render @brain_dumps %>
+  </div>
+
+  <% if @brain_dumps.empty? %>
+    <%= render "shared/empty_state",
+      icon: "🧠",
+      title: "No brain dumps yet",
+      description: "Use the quick-capture input in the navbar to jot down ideas, tasks, or anything on your mind." %>
+  <% end %>
+</div>

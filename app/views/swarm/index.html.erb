@@ -1,35 +1,35 @@
 <%# app/views/swarm/index.html.erb %>
 <%# Swarm Launcher - Terminal/hacker aesthetic with emerald/sky monospace design %>
 
-<div class="min-h-screen bg-[#0a0a0f] font-mono text-emerald-300"
+<div class="min-h-screen bg-bg-base font-mono text-content"
      data-controller="swarm"
      data-swarm-target="container">
 
   <%# ═══ HEADER ═══ %>
-  <div class="border-b border-emerald-900/60 bg-[#0d0d14] px-6 py-4">
+  <div class="border-b border-border bg-bg-surface px-6 py-4">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold tracking-wider text-emerald-400">
-          <span class="text-emerald-600">[</span>SWARM LAUNCHER<span class="text-emerald-600">]</span>
+        <h1 class="text-2xl font-bold tracking-wider text-accent">
+          <span class="text-content-muted">[</span>SWARM LAUNCHER<span class="text-content-muted">]</span>
         </h1>
-        <p class="mt-1 text-xs text-emerald-700">
+        <p class="mt-1 text-xs text-content-muted">
           <%= Time.current.strftime("%Y-%m-%d %H:%M") %> UTC
-          <span class="mx-2 text-emerald-900">|</span>
-          <span class="text-emerald-500"><%= @ideas.count %></span> ideas loaded
+          <span class="mx-2 text-content-muted">|</span>
+          <span class="text-content-secondary"><%= @ideas.count %></span> ideas loaded
         </p>
       </div>
       <button data-action="click->swarm#openModal"
-              class="rounded border border-emerald-700 bg-emerald-900/30 px-4 py-2 text-sm font-bold text-emerald-400 transition hover:bg-emerald-800/40 hover:text-emerald-300">
+              class="rounded border border-accent bg-accent-muted px-4 py-2 text-sm font-bold text-accent transition hover:bg-bg-hover hover:text-content">
         + ADD IDEA
       </button>
     </div>
   </div>
 
   <%# ═══ TOOLBAR / FILTERS ═══ %>
-  <div class="flex flex-wrap items-center gap-2 border-b border-emerald-900/40 bg-[#0b0b12] px-6 py-3">
+  <div class="flex flex-wrap items-center gap-2 border-b border-border bg-bg-surface px-6 py-3">
     <button data-action="click->swarm#filterAll"
             data-swarm-target="filterBtn"
-            class="sw-filter-btn sw-filter-active rounded px-3 py-1 text-xs font-bold uppercase tracking-wide text-emerald-400 transition hover:bg-emerald-900/40">
+            class="sw-filter-btn sw-filter-active rounded px-3 py-1 text-xs font-bold uppercase tracking-wide text-accent transition hover:bg-bg-hover">
       All
     </button>
     <button data-action="click->swarm#filterFavorites"
@@ -38,13 +38,13 @@
       Favorites &#9733;
     </button>
 
-    <span class="mx-1 text-emerald-900">|</span>
+    <span class="mx-1 text-content-muted">|</span>
 
     <% @categories.each do |category| %>
       <button data-action="click->swarm#filterCategory"
               data-category="<%= category %>"
               data-swarm-target="filterBtn"
-              class="sw-filter-btn rounded px-3 py-1 text-xs font-medium uppercase tracking-wide text-emerald-500 transition hover:bg-emerald-900/40">
+              class="sw-filter-btn rounded px-3 py-1 text-xs font-medium uppercase tracking-wide text-content-secondary transition hover:bg-bg-hover">
         <%= category %>
       </button>
     <% end %>
@@ -53,7 +53,7 @@
   <%# ═══ CARD GRID ═══ %>
   <div class="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
     <% @ideas.each do |idea| %>
-      <div class="sw-card group relative rounded-lg border border-emerald-900/50 bg-[#0d0d16] p-4 transition hover:border-emerald-700/60 hover:bg-[#101020]"
+      <div class="sw-card group relative rounded-lg border border-border bg-bg-surface p-4 transition hover:border-border-accent hover:bg-bg-hover"
            data-swarm-target="card"
            data-idea-id="<%= idea.id %>"
            data-category="<%= idea.category %>"
@@ -64,12 +64,12 @@
         <%# Top row: checkbox + star + title %>
         <div class="flex items-start gap-2">
           <%# Checkbox %>
-          <div class="sw-checkbox mt-1 flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border border-emerald-800 bg-emerald-950/50 text-[10px] text-emerald-400 transition"
+          <div class="sw-checkbox mt-1 flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded border border-border bg-bg-elevated text-[10px] text-accent transition"
                data-action="click->swarm#toggle">
           </div>
 
           <%# Star (favorite) %>
-          <button class="sw-star mt-0.5 shrink-0 text-lg leading-none transition <%= idea.favorite? ? 'sw-star-active text-amber-400' : 'text-emerald-900 hover:text-amber-600' %>"
+          <button class="sw-star mt-0.5 shrink-0 text-lg leading-none transition <%= idea.favorite? ? 'sw-star-active text-amber-400' : 'text-content-muted hover:text-amber-600' %>"
                   data-action="click->swarm#toggleFavorite"
                   title="Toggle favorite">
             <%= idea.favorite? ? "\u2605" : "\u2606" %>
@@ -77,7 +77,7 @@
 
           <%# Title + icon %>
           <div class="min-w-0 flex-1">
-            <h3 class="truncate text-sm font-bold text-emerald-300">
+            <h3 class="truncate text-sm font-bold text-content">
               <% if idea.icon.present? %><span class="mr-1"><%= idea.icon %></span><% end %>
               <%= idea.title %>
             </h3>
@@ -87,7 +87,7 @@
         <%# Launch badges %>
         <div class="mt-2 flex flex-wrap gap-1.5">
           <% if idea.launch_count_display %>
-            <span class="inline-block rounded bg-sky-900/40 px-1.5 py-0.5 text-[10px] font-bold text-sky-400">
+            <span class="inline-block rounded bg-status-info/20 px-1.5 py-0.5 text-[10px] font-bold text-status-info">
               Launched <%= idea.launch_count_display %>
             </span>
           <% end %>
@@ -100,14 +100,14 @@
 
         <%# Description %>
         <% if idea.description.present? %>
-          <p class="mt-2 line-clamp-2 text-xs text-emerald-600">
+          <p class="mt-2 line-clamp-2 text-xs text-content-muted">
             <%= idea.description %>
           </p>
         <% end %>
 
         <%# Model override dropdown %>
         <div class="mt-3">
-          <select class="sw-model-select w-full rounded border border-emerald-900/60 bg-[#08080e] px-2 py-1 text-[11px] text-emerald-400 focus:border-emerald-600 focus:outline-none">
+          <select class="sw-model-select w-full rounded border border-border bg-bg-base px-2 py-1 text-[11px] text-accent focus:border-accent focus:outline-none">
             <option value="">Model: <%= idea.suggested_model || "default" %></option>
             <% @models.each do |model| %>
               <option value="<%= model %>" <%= 'selected' if idea.suggested_model == model %>><%= model %></option>
@@ -117,7 +117,7 @@
 
         <%# Board selection dropdown %>
         <div class="mt-2">
-          <select class="sw-board-select w-full rounded border border-emerald-900/60 bg-[#08080e] px-2 py-1 text-[11px] text-sky-400 focus:border-sky-600 focus:outline-none">
+          <select class="sw-board-select w-full rounded border border-border bg-bg-base px-2 py-1 text-[11px] text-status-info focus:border-status-info focus:outline-none">
             <option value="">Board: <%= idea.board&.name || "default" %></option>
             <% @boards.each do |board| %>
               <option value="<%= board.id %>" <%= 'selected' if idea.board_id == board.id %>><%= board.name %></option>
@@ -159,7 +159,7 @@
 
           <%# Estimated time %>
           <% if idea.estimated_minutes.present? %>
-            <span class="ml-auto text-[10px] text-emerald-700">
+            <span class="ml-auto text-[10px] text-content-muted">
               ~<%= idea.estimated_minutes %>m
             </span>
           <% end %>
@@ -179,30 +179,30 @@
   </div>
 
   <%# ═══ BOTTOM PANEL ═══ %>
-  <div class="sticky bottom-0 z-10 flex items-center justify-between border-t border-emerald-900/60 bg-[#0a0a0f]/95 px-6 py-3 backdrop-blur">
+  <div class="sticky bottom-0 z-10 flex items-center justify-between border-t border-border bg-bg-base/95 px-6 py-3 backdrop-blur">
     <div class="flex items-center gap-4">
       <button data-action="click->swarm#toggleAll"
               data-swarm-target="selectAllBtn"
-              class="rounded border border-emerald-800 bg-emerald-950/50 px-3 py-1 text-xs font-bold text-emerald-500 transition hover:bg-emerald-900/40">
+              class="rounded border border-border bg-bg-elevated px-3 py-1 text-xs font-bold text-content-secondary transition hover:bg-bg-hover">
         SELECT ALL
       </button>
       <button data-action="click->swarm#deselectAll"
-              class="rounded border border-emerald-900/50 px-3 py-1 text-xs text-emerald-700 transition hover:bg-emerald-950 hover:text-emerald-500">
+              class="rounded border border-border px-3 py-1 text-xs text-content-muted transition hover:bg-bg-elevated hover:text-content-secondary">
         CLEAR
       </button>
     </div>
 
     <div class="flex items-center gap-6">
-      <div class="text-xs text-emerald-600">
-        Selected: <span data-swarm-target="selectedCount" class="font-bold text-emerald-400">0</span>
+      <div class="text-xs text-content-muted">
+        Selected: <span data-swarm-target="selectedCount" class="font-bold text-accent">0</span>
       </div>
-      <div class="text-xs text-emerald-600">
-        Est: <span data-swarm-target="totalTime" class="font-bold text-sky-400">0m</span>
+      <div class="text-xs text-content-muted">
+        Est: <span data-swarm-target="totalTime" class="font-bold text-status-info">0m</span>
       </div>
       <button data-action="click->swarm#launch"
               data-swarm-target="launchBtn"
               disabled
-              class="rounded bg-emerald-700 px-6 py-2 text-sm font-bold tracking-wider text-black transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40">
+              class="rounded bg-accent px-6 py-2 text-sm font-bold tracking-wider text-black transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40">
         LAUNCH
       </button>
     </div>
@@ -213,46 +213,46 @@
        data-action="click->swarm#backdropClick"
        style="display: none;"
        class="fixed inset-0 z-50 items-center justify-center bg-black/70 backdrop-blur-sm">
-    <div class="mx-4 w-full max-w-lg rounded-lg border border-emerald-900/60 bg-[#0d0d16] p-6 shadow-2xl shadow-emerald-900/20">
+    <div class="mx-4 w-full max-w-lg rounded-lg border border-border bg-bg-surface p-6 shadow-2xl shadow-black/20">
       <div class="mb-4 flex items-center justify-between">
-        <h2 class="text-lg font-bold tracking-wide text-emerald-400">
-          <span class="text-emerald-700">[</span>NEW IDEA<span class="text-emerald-700">]</span>
+        <h2 class="text-lg font-bold tracking-wide text-accent">
+          <span class="text-content-muted">[</span>NEW IDEA<span class="text-content-muted">]</span>
         </h2>
         <button data-action="click->swarm#closeModal"
-                class="text-emerald-700 transition hover:text-emerald-400">&times;</button>
+                class="text-content-muted transition hover:text-accent">&times;</button>
       </div>
 
       <%= form_with url: create_swarm_idea_path, scope: :swarm_idea, method: :post, local: true, class: "space-y-3" do |f| %>
         <%# Title %>
         <div>
-          <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-emerald-600">Title</label>
+          <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-content-muted">Title</label>
           <%= f.text_field :title, required: true,
-              class: "w-full rounded border border-emerald-900/60 bg-[#08080e] px-3 py-2 text-sm text-emerald-300 placeholder-emerald-800 focus:border-emerald-600 focus:outline-none",
+              class: "w-full rounded border border-border bg-bg-base px-3 py-2 text-sm text-content placeholder-content-muted focus:border-accent focus:outline-none",
               placeholder: "What should the swarm do?" %>
         </div>
 
         <%# Description %>
         <div>
-          <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-emerald-600">Description</label>
+          <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-content-muted">Description</label>
           <%= f.text_area :description, rows: 3,
-              class: "w-full rounded border border-emerald-900/60 bg-[#08080e] px-3 py-2 text-sm text-emerald-300 placeholder-emerald-800 focus:border-emerald-600 focus:outline-none",
+              class: "w-full rounded border border-border bg-bg-base px-3 py-2 text-sm text-content placeholder-content-muted focus:border-accent focus:outline-none",
               placeholder: "Detailed task description..." %>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <%# Category %>
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-emerald-600">Category</label>
+            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-content-muted">Category</label>
             <%= f.text_field :category,
-                class: "w-full rounded border border-emerald-900/60 bg-[#08080e] px-3 py-2 text-sm text-emerald-300 placeholder-emerald-800 focus:border-emerald-600 focus:outline-none",
+                class: "w-full rounded border border-border bg-bg-base px-3 py-2 text-sm text-content placeholder-content-muted focus:border-accent focus:outline-none",
                 placeholder: "e.g. devops, feature" %>
           </div>
 
           <%# Project %>
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-emerald-600">Project</label>
+            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-content-muted">Project</label>
             <%= f.text_field :project,
-                class: "w-full rounded border border-emerald-900/60 bg-[#08080e] px-3 py-2 text-sm text-emerald-300 placeholder-emerald-800 focus:border-emerald-600 focus:outline-none",
+                class: "w-full rounded border border-border bg-bg-base px-3 py-2 text-sm text-content placeholder-content-muted focus:border-accent focus:outline-none",
                 placeholder: "e.g. clawdeck" %>
           </div>
         </div>
@@ -260,27 +260,27 @@
         <div class="grid grid-cols-3 gap-3">
           <%# Model %>
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-emerald-600">Model</label>
+            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-content-muted">Model</label>
             <%= f.select :suggested_model,
                 options_for_select(@models),
                 { include_blank: "Default" },
-                class: "w-full rounded border border-emerald-900/60 bg-[#08080e] px-3 py-2 text-sm text-emerald-300 focus:border-emerald-600 focus:outline-none" %>
+                class: "w-full rounded border border-border bg-bg-base px-3 py-2 text-sm text-content focus:border-accent focus:outline-none" %>
           </div>
 
           <%# Difficulty %>
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-emerald-600">Difficulty</label>
+            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-content-muted">Difficulty</label>
             <%= f.select :difficulty,
                 options_for_select(%w[easy medium hard]),
                 { include_blank: "Select" },
-                class: "w-full rounded border border-emerald-900/60 bg-[#08080e] px-3 py-2 text-sm text-emerald-300 focus:border-emerald-600 focus:outline-none" %>
+                class: "w-full rounded border border-border bg-bg-base px-3 py-2 text-sm text-content focus:border-accent focus:outline-none" %>
           </div>
 
           <%# Est. Minutes %>
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-emerald-600">Est. Min</label>
+            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-content-muted">Est. Min</label>
             <%= f.number_field :estimated_minutes, min: 1, max: 480,
-                class: "w-full rounded border border-emerald-900/60 bg-[#08080e] px-3 py-2 text-sm text-emerald-300 placeholder-emerald-800 focus:border-emerald-600 focus:outline-none",
+                class: "w-full rounded border border-border bg-bg-base px-3 py-2 text-sm text-content placeholder-content-muted focus:border-accent focus:outline-none",
                 placeholder: "15" %>
           </div>
         </div>
@@ -288,34 +288,34 @@
         <div class="grid grid-cols-3 gap-3">
           <%# Icon %>
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-emerald-600">Icon</label>
+            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-content-muted">Icon</label>
             <%= f.text_field :icon,
-                class: "w-full rounded border border-emerald-900/60 bg-[#08080e] px-3 py-2 text-sm text-emerald-300 placeholder-emerald-800 focus:border-emerald-600 focus:outline-none",
+                class: "w-full rounded border border-border bg-bg-base px-3 py-2 text-sm text-content placeholder-content-muted focus:border-accent focus:outline-none",
                 placeholder: "emoji" %>
           </div>
 
           <%# Pipeline Type %>
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-emerald-600">Pipeline</label>
+            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-content-muted">Pipeline</label>
             <%= f.select :pipeline_type,
                 options_for_select(%w[quick-fix bug-fix feature research architecture]),
                 { include_blank: "None" },
-                class: "w-full rounded border border-emerald-900/60 bg-[#08080e] px-3 py-2 text-sm text-emerald-300 focus:border-emerald-600 focus:outline-none" %>
+                class: "w-full rounded border border-border bg-bg-base px-3 py-2 text-sm text-content focus:border-accent focus:outline-none" %>
           </div>
 
           <%# Board %>
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-emerald-600">Board</label>
+            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-content-muted">Board</label>
             <%= f.select :board_id,
                 options_for_select(@boards.map { |b| [b.name, b.id] }),
                 { include_blank: "Default" },
-                class: "w-full rounded border border-emerald-900/60 bg-[#08080e] px-3 py-2 text-sm text-sky-400 focus:border-sky-600 focus:outline-none" %>
+                class: "w-full rounded border border-border bg-bg-base px-3 py-2 text-sm text-status-info focus:border-status-info focus:outline-none" %>
           </div>
         </div>
 
         <%# Favorite checkbox %>
         <div class="flex items-center gap-2">
-          <%= f.check_box :favorite, class: "h-4 w-4 rounded border-emerald-800 bg-emerald-950 text-amber-500 focus:ring-emerald-600" %>
+          <%= f.check_box :favorite, class: "h-4 w-4 rounded border-border bg-bg-elevated text-amber-500 focus:ring-accent" %>
           <label class="text-xs text-amber-400">&#9733; Mark as favorite</label>
         </div>
 
@@ -323,11 +323,11 @@
         <div class="flex justify-end gap-2 pt-2">
           <button type="button"
                   data-action="click->swarm#closeModal"
-                  class="rounded border border-emerald-900 px-4 py-2 text-xs text-emerald-600 transition hover:bg-emerald-950 hover:text-emerald-400">
+                  class="rounded border border-border px-4 py-2 text-xs text-content-muted transition hover:bg-bg-elevated hover:text-accent">
             CANCEL
           </button>
           <%= f.submit "CREATE IDEA",
-              class: "rounded bg-emerald-700 px-4 py-2 text-xs font-bold tracking-wider text-black transition hover:bg-emerald-500 cursor-pointer" %>
+              class: "rounded bg-accent px-4 py-2 text-xs font-bold tracking-wider text-black transition hover:bg-accent-hover cursor-pointer" %>
         </div>
       <% end %>
     </div>
