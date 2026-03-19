@@ -12,6 +12,9 @@ module Task::Broadcasting
     after_create_commit :broadcast_create
     after_update_commit :broadcast_update
     after_destroy_commit :broadcast_destroy
+
+    # Cross-board real-time updates via TaskUpdatesChannel
+    after_commit :broadcast_to_task_updates_channel, on: [:create, :update]
   end
 
   private
@@ -183,6 +186,20 @@ module Task::Broadcasting
 
   def board_stream_name
     "board_#{board_id}"
+  end
+
+  def broadcast_to_task_updates_channel
+    return unless user_id
+    old_status = saved_change_to_status? ? saved_change_to_status.first : nil
+    action_name = previously_new_record? ? "created" : "updated"
+    TaskUpdatesChannel.broadcast_task_change(
+      user_id,
+      task: self,
+      action: action_name,
+      old_status: old_status
+    )
+  rescue => e
+    Rails.logger.warn "[TaskUpdatesChannel] Broadcast failed: #{e.message}"
   end
 
   def broadcast_to_board(action:, target:, **options)

@@ -67,30 +67,30 @@
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <%# Cost by Model — Chartkick horizontal bar chart %>
     <div class="bg-bg-surface border border-border rounded-lg p-4">
       <div class="flex items-center justify-between pb-2 border-b border-border">
         <h2 class="text-sm font-semibold text-content">Cost by model</h2>
-        <span class="text-[10px] text-content-muted">Bar chart</span>
       </div>
 
       <% if @cost_by_model.present? %>
-        <div class="mt-4 space-y-3">
-          <% @cost_by_model.each do |model, cost| %>
-            <% pct = @max_model_cost.to_f > 0 ? ((cost.to_f / @max_model_cost.to_f) * 100.0) : 0 %>
-            <div class="flex items-center gap-3">
-              <div class="w-28 text-xs text-content-muted font-mono truncate" title="<%= model %>"><%= model %></div>
-              <div class="flex-1 h-6 bg-bg-elevated rounded overflow-hidden">
-                <div class="h-full bg-accent/70" style="width:<%= pct.round(2) %>%"></div>
-              </div>
-              <div class="w-20 text-right text-xs font-mono text-content"><%= number_to_currency(cost.to_f, unit: "$", precision: 4) %></div>
-            </div>
-          <% end %>
+        <div class="mt-4" style="height: <%= [(@cost_by_model.size * 40), 200].max %>px;">
+          <%= bar_chart @cost_by_model, prefix: "$", library: {
+            indexAxis: "y",
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: "rgba(136,146,176,0.1)" }, ticks: { color: "#8892b0" } },
+              y: { grid: { display: false }, ticks: { color: "#8892b0", font: { family: "monospace", size: 11 } } }
+            },
+            elements: { bar: { borderRadius: 4 } }
+          }, colors: ["#ff4d4d"] %>
         </div>
       <% else %>
         <%= render "shared/empty_state", icon: "📊", title: "No usage data", description: "No model usage found for this period. Try selecting a longer time range.", action_text: "View 30 days", action_path: analytics_path(period: "30d") %>
       <% end %>
     </div>
 
+    <%# Cost over Time — Chartkick area chart %>
     <div class="bg-bg-surface border border-border rounded-lg p-4">
       <div class="flex items-center justify-between pb-2 border-b border-border">
         <h2 class="text-sm font-semibold text-content">Cost over time</h2>
@@ -98,23 +98,40 @@
       </div>
 
       <% if @daily_cost.present? %>
-        <div class="mt-4 space-y-2">
-          <% @daily_cost.each do |day, cost| %>
-            <% pct = @max_daily_cost.to_f > 0 ? ((cost.to_f / @max_daily_cost.to_f) * 100.0) : 0 %>
-            <div class="flex items-center gap-3">
-              <div class="w-20 text-[11px] text-content-muted font-mono"><%= day.strftime("%m-%d") %></div>
-              <div class="flex-1 h-5 bg-bg-elevated rounded overflow-hidden">
-                <div class="h-full bg-status-success/60" style="width:<%= pct.round(2) %>%"></div>
-              </div>
-              <div class="w-20 text-right text-[11px] font-mono text-content"><%= number_to_currency(cost.to_f, unit: "$", precision: 4) %></div>
-            </div>
-          <% end %>
+        <div class="mt-4" style="height: 250px;">
+          <%= area_chart @daily_cost, prefix: "$", library: {
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: "rgba(136,146,176,0.1)" }, ticks: { color: "#8892b0", font: { size: 10 } } },
+              y: { grid: { color: "rgba(136,146,176,0.1)" }, ticks: { color: "#8892b0", callback: "function(v){return '$'+v.toFixed(4)}" } }
+            },
+            elements: { point: { radius: 3 }, line: { tension: 0.3 } }
+          }, colors: ["#22c55e"] %>
         </div>
       <% else %>
         <%= render "shared/empty_state", icon: "📈", title: "No daily usage", description: "No cost data available for this period." %>
       <% end %>
     </div>
   </div>
+
+  <%# Model Distribution — Pie chart %>
+  <% if @cost_by_model.present? && @cost_by_model.size > 1 %>
+    <div class="bg-bg-surface border border-border rounded-lg p-4">
+      <div class="flex items-center justify-between pb-2 border-b border-border">
+        <h2 class="text-sm font-semibold text-content">Model cost distribution</h2>
+      </div>
+      <div class="mt-4 max-w-md mx-auto" style="height: 280px;">
+        <%= pie_chart @cost_by_model, prefix: "$", donut: true, library: {
+          plugins: {
+            legend: {
+              position: "right",
+              labels: { color: "#8892b0", font: { size: 11 } }
+            }
+          }
+        } %>
+      </div>
+    </div>
+  <% end %>
 
   <div class="bg-bg-surface border border-border rounded-lg overflow-hidden">
     <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between">
