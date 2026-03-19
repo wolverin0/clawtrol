@@ -24,3 +24,7 @@ pin "d3", to: "https://cdn.jsdelivr.net/npm/d3@7/+esm"
 
 # Shared JS utilities
 pin_all_from "app/javascript/utilities", under: "utilities"
+
+# Chartkick + Chart.js for analytics charts
+pin "chartkick", to: "chartkick.js"
+pin "Chart.js", to: "https://ga.jspm.io/npm:chart.js@4.4.8/dist/chart.js"

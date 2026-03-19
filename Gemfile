@@ -88,3 +88,6 @@ gem "pagy"
 gem "redcarpet"
 gem "diffy"
 gem "httparty"
+
+gem "chartkick", "~> 5.2"
+gem "groupdate", "~> 6.7"

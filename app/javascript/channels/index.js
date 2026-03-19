@@ -67,3 +67,23 @@ export function subscribeToAgentActivity(taskId, callbacks = {}) {
     }
   )
 }
+
+export function subscribeToTaskUpdates(callbacks = {}) {
+  return consumer.subscriptions.create(
+    { channel: "TaskUpdatesChannel" },
+    {
+      connected() {
+        console.log("[TaskUpdatesChannel] Connected")
+        callbacks.onConnected?.()
+      },
+      disconnected() {
+        console.log("[TaskUpdatesChannel] Disconnected")
+        callbacks.onDisconnected?.()
+      },
+      received(data) {
+        console.log("[TaskUpdatesChannel] Received:", data)
+        callbacks.onReceived?.(data)
+      }
+    }
+  )
+}

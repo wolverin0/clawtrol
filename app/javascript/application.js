@@ -4,3 +4,7 @@ import "controllers"
 
 // ActionCable channels for WebSocket communication
 import "channels"
+
+// Chartkick for analytics charts
+import "chartkick"
+import "Chart.js"
