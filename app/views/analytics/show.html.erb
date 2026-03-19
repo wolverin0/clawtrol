@@ -2,25 +2,25 @@
   Analytics
 <% end %>
 
-<div class="min-h-screen bg-background text-text p-6 space-y-6">
-  <div class="flex items-center justify-between pb-4 border-b border-white/5">
-    <h1 class="text-2xl font-bold tracking-tight flex items-center gap-3 text-white">📊 COST ANALYTICS</h1>
-    <div class="text-xs text-muted font-mono">
+<div class="min-h-screen bg-bg-base text-content p-6 space-y-6">
+  <div class="flex items-center justify-between pb-4 border-b border-border">
+    <h1 class="text-2xl font-bold tracking-tight flex items-center gap-3 text-content">📊 COST ANALYTICS</h1>
+    <div class="text-xs text-content-muted font-mono">
       Updated: <%= @generated_at&.strftime("%Y-%m-%d %H:%M") || "—" %>
     </div>
   </div>
 
   <%# Tab navigation %>
-  <div class="flex items-center gap-4 border-b border-white/10">
+  <div class="flex items-center gap-4 border-b border-border">
     <%= link_to analytics_path(tab: "overview", period: @period),
-        class: "px-4 py-2 text-sm font-medium border-b-2 transition-colors #{@tab == 'overview' ? 'border-accent text-accent' : 'border-transparent text-muted hover:text-content'}" do %>
+        class: "px-4 py-2 text-sm font-medium border-b-2 transition-colors #{@tab == 'overview' ? 'border-accent text-accent' : 'border-transparent text-content-muted hover:text-content'}" do %>
       📈 Overview
     <% end %>
     <%= link_to analytics_path(tab: "budget", period: @period),
-        class: "px-4 py-2 text-sm font-medium border-b-2 transition-colors #{@tab == 'budget' ? 'border-accent text-accent' : 'border-transparent text-muted hover:text-content'}" do %>
+        class: "px-4 py-2 text-sm font-medium border-b-2 transition-colors #{@tab == 'budget' ? 'border-accent text-accent' : 'border-transparent text-content-muted hover:text-content'}" do %>
       💰 Budget & Trends
       <% if defined?(@budget_alerts) && @budget_alerts&.any? %>
-        <span class="ml-1 px-1.5 py-0.5 text-[10px] bg-red-500/20 text-red-300 rounded-full"><%= @budget_alerts.count %></span>
+        <span class="ml-1 px-1.5 py-0.5 text-[10px] bg-status-error/20 text-status-error rounded-full"><%= @budget_alerts.count %></span>
       <% end %>
     <% end %>
   </div>
@@ -33,44 +33,44 @@
     <div class="flex gap-2">
       <% %w[24h 7d 30d all].each do |p| %>
         <%= link_to p, analytics_path(period: p),
-          class: "px-3 py-1 rounded-lg text-sm transition-colors #{@period == p ? 'bg-accent text-white' : 'bg-bg-elevated text-content-muted hover:text-content'}" %>
+          class: "px-3 py-1 rounded-lg text-sm transition-colors #{@period == p ? 'bg-accent text-content-inverse' : 'bg-bg-elevated text-content-muted hover:text-content'}" %>
       <% end %>
     </div>
-    <div class="text-xs text-muted">Since <span class="font-mono text-text"><%= @start_time.strftime("%Y-%m-%d") %></span></div>
+    <div class="text-xs text-content-muted">Since <span class="font-mono text-content"><%= @start_time.strftime("%Y-%m-%d") %></span></div>
   </div>
 
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    <div class="bg-card border border-border rounded-xl p-4">
-      <div class="text-2xl font-bold text-green-300"><%= number_to_currency(@total_cost || 0, unit: "$", precision: 4) %></div>
-      <div class="text-sm text-muted">Total cost</div>
+    <div class="bg-bg-surface border border-border rounded-xl p-4">
+      <div class="text-2xl font-bold text-status-success"><%= number_to_currency(@total_cost || 0, unit: "$", precision: 4) %></div>
+      <div class="text-sm text-content-muted">Total cost</div>
       <% if @projected_monthly %>
-        <div class="text-[10px] text-muted mt-1">~<%= number_to_currency(@projected_monthly, unit: "$", precision: 2) %>/mo projected</div>
+        <div class="text-[10px] text-content-muted mt-1">~<%= number_to_currency(@projected_monthly, unit: "$", precision: 2) %>/mo projected</div>
       <% end %>
     </div>
-    <div class="bg-card border border-border rounded-xl p-4">
-      <div class="text-2xl font-bold text-text"><%= number_with_delimiter(@total_tokens || 0) %></div>
-      <div class="text-sm text-muted">Total tokens</div>
-      <div class="text-[10px] text-muted mt-1"><%= @api_calls %> API calls</div>
+    <div class="bg-bg-surface border border-border rounded-xl p-4">
+      <div class="text-2xl font-bold text-content"><%= number_with_delimiter(@total_tokens || 0) %></div>
+      <div class="text-sm text-content-muted">Total tokens</div>
+      <div class="text-[10px] text-content-muted mt-1"><%= @api_calls %> API calls</div>
     </div>
-    <div class="bg-card border border-border rounded-xl p-4">
-      <div class="text-2xl font-bold text-cyan-300"><%= number_with_delimiter(@total_input || 0) %></div>
-      <div class="text-sm text-muted">Input tokens</div>
-      <div class="text-[10px] text-muted mt-1"><%= @cache_hit_rate %>% cache hit</div>
+    <div class="bg-bg-surface border border-border rounded-xl p-4">
+      <div class="text-2xl font-bold text-status-info"><%= number_with_delimiter(@total_input || 0) %></div>
+      <div class="text-sm text-content-muted">Input tokens</div>
+      <div class="text-[10px] text-content-muted mt-1"><%= @cache_hit_rate %>% cache hit</div>
     </div>
-    <div class="bg-card border border-border rounded-xl p-4">
-      <div class="text-2xl font-bold text-purple-300"><%= number_with_delimiter(@total_output || 0) %></div>
-      <div class="text-sm text-muted">Output tokens</div>
+    <div class="bg-bg-surface border border-border rounded-xl p-4">
+      <div class="text-2xl font-bold text-accent"><%= number_with_delimiter(@total_output || 0) %></div>
+      <div class="text-sm text-content-muted">Output tokens</div>
       <% if @total_cache_read.to_i > 0 %>
-        <div class="text-[10px] text-muted mt-1"><%= number_with_delimiter(@total_cache_read) %> cached</div>
+        <div class="text-[10px] text-content-muted mt-1"><%= number_with_delimiter(@total_cache_read) %> cached</div>
       <% end %>
     </div>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="bg-card border border-border rounded-lg p-4">
-      <div class="flex items-center justify-between pb-2 border-b border-white/5">
-        <h2 class="text-sm font-semibold text-text">Cost by model</h2>
-        <span class="text-[10px] text-muted">CSS bar chart</span>
+    <div class="bg-bg-surface border border-border rounded-lg p-4">
+      <div class="flex items-center justify-between pb-2 border-b border-border">
+        <h2 class="text-sm font-semibold text-content">Cost by model</h2>
+        <span class="text-[10px] text-content-muted">Bar chart</span>
       </div>
 
       <% if @cost_by_model.present? %>
@@ -78,23 +78,23 @@
           <% @cost_by_model.each do |model, cost| %>
             <% pct = @max_model_cost.to_f > 0 ? ((cost.to_f / @max_model_cost.to_f) * 100.0) : 0 %>
             <div class="flex items-center gap-3">
-              <div class="w-28 text-xs text-muted font-mono truncate" title="<%= model %>"><%= model %></div>
-              <div class="flex-1 h-6 bg-black/30 rounded overflow-hidden">
+              <div class="w-28 text-xs text-content-muted font-mono truncate" title="<%= model %>"><%= model %></div>
+              <div class="flex-1 h-6 bg-bg-elevated rounded overflow-hidden">
                 <div class="h-full bg-accent/70" style="width:<%= pct.round(2) %>%"></div>
               </div>
-              <div class="w-20 text-right text-xs font-mono text-text"><%= number_to_currency(cost.to_f, unit: "$", precision: 4) %></div>
+              <div class="w-20 text-right text-xs font-mono text-content"><%= number_to_currency(cost.to_f, unit: "$", precision: 4) %></div>
             </div>
           <% end %>
         </div>
       <% else %>
-        <div class="mt-4 text-xs text-muted italic">No usage found for this period.</div>
+        <%= render "shared/empty_state", icon: "📊", title: "No usage data", description: "No model usage found for this period. Try selecting a longer time range.", action_text: "View 30 days", action_path: analytics_path(period: "30d") %>
       <% end %>
     </div>
 
-    <div class="bg-card border border-border rounded-lg p-4">
-      <div class="flex items-center justify-between pb-2 border-b border-white/5">
-        <h2 class="text-sm font-semibold text-text">Cost over time</h2>
-        <span class="text-[10px] text-muted">Last <%= @period %></span>
+    <div class="bg-bg-surface border border-border rounded-lg p-4">
+      <div class="flex items-center justify-between pb-2 border-b border-border">
+        <h2 class="text-sm font-semibold text-content">Cost over time</h2>
+        <span class="text-[10px] text-content-muted">Last <%= @period %></span>
       </div>
 
       <% if @daily_cost.present? %>
@@ -102,42 +102,44 @@
           <% @daily_cost.each do |day, cost| %>
             <% pct = @max_daily_cost.to_f > 0 ? ((cost.to_f / @max_daily_cost.to_f) * 100.0) : 0 %>
             <div class="flex items-center gap-3">
-              <div class="w-20 text-[11px] text-muted font-mono"><%= day.strftime("%m-%d") %></div>
-              <div class="flex-1 h-5 bg-black/30 rounded overflow-hidden">
-                <div class="h-full bg-green-500/60" style="width:<%= pct.round(2) %>%"></div>
+              <div class="w-20 text-[11px] text-content-muted font-mono"><%= day.strftime("%m-%d") %></div>
+              <div class="flex-1 h-5 bg-bg-elevated rounded overflow-hidden">
+                <div class="h-full bg-status-success/60" style="width:<%= pct.round(2) %>%"></div>
               </div>
-              <div class="w-20 text-right text-[11px] font-mono text-text"><%= number_to_currency(cost.to_f, unit: "$", precision: 4) %></div>
+              <div class="w-20 text-right text-[11px] font-mono text-content"><%= number_to_currency(cost.to_f, unit: "$", precision: 4) %></div>
             </div>
           <% end %>
         </div>
       <% else %>
-        <div class="mt-4 text-xs text-muted italic">No daily usage.</div>
+        <%= render "shared/empty_state", icon: "📈", title: "No daily usage", description: "No cost data available for this period." %>
       <% end %>
     </div>
   </div>
 
-  <div class="bg-card border border-border rounded-lg overflow-hidden">
-    <div class="px-4 py-3 bg-white/5 border-b border-white/5 flex items-center justify-between">
-      <h2 class="text-sm font-semibold text-text">Top expensive sessions</h2>
-      <span class="text-[10px] text-muted">Tap to copy session id</span>
+  <div class="bg-bg-surface border border-border rounded-lg overflow-hidden">
+    <div class="px-4 py-3 bg-bg-elevated border-b border-border flex items-center justify-between">
+      <h2 class="text-sm font-semibold text-content">Top expensive sessions</h2>
+      <span class="text-[10px] text-content-muted">Tap to copy session id</span>
     </div>
-    <div class="divide-y divide-white/5">
+    <div class="divide-y divide-border">
       <% Array(@top_sessions).each do |s| %>
-        <div class="px-4 py-3 hover:bg-white/5 transition-colors" data-controller="clipboard">
+        <div class="px-4 py-3 hover:bg-bg-hover transition-colors" data-controller="clipboard">
           <div class="flex items-center justify-between gap-3">
             <div class="min-w-0">
-              <div data-clipboard-target="source" class="text-xs font-mono text-text truncate"><%= s[:sessionId] %></div>
-              <div class="text-[10px] text-muted">Tap copy</div>
+              <div data-clipboard-target="source" class="text-xs font-mono text-content truncate"><%= s[:sessionId] %></div>
+              <div class="text-[10px] text-content-muted">Tap copy</div>
             </div>
             <div class="flex items-center gap-3">
-              <div class="text-xs font-mono text-green-300"><%= number_to_currency(s[:cost].to_f, unit: "$", precision: 4) %></div>
-              <button type="button" data-action="click->clipboard#copy" class="text-xs px-2 py-1 rounded border border-border bg-white/5 hover:bg-white/10">Copy</button>
+              <div class="text-xs font-mono text-status-success"><%= number_to_currency(s[:cost].to_f, unit: "$", precision: 4) %></div>
+              <button type="button" data-action="click->clipboard#copy" aria-label="Copy session ID" class="text-xs px-2 py-1 rounded border border-border bg-bg-elevated hover:bg-bg-hover">Copy</button>
             </div>
           </div>
         </div>
       <% end %>
       <% if Array(@top_sessions).empty? %>
-        <div class="px-4 py-6 text-xs text-muted italic">No sessions with usage found.</div>
+        <div class="px-4 py-6">
+          <%= render "shared/empty_state", icon: "💤", title: "No sessions", description: "No sessions with usage found for this period." %>
+        </div>
       <% end %>
     </div>
   </div>

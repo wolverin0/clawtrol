@@ -1,6 +1,26 @@
-<div class="fixed bottom-4 right-4 z-50 animate-fade-in" data-controller="flash" data-flash-timeout-value="3000">
-  <div class="px-4 py-2 rounded-lg shadow-lg text-sm font-medium
-    <%= type == 'success' ? 'bg-emerald-500/90 text-white' : 'bg-red-500/90 text-white' %>">
-    <%= message %>
-  </div>
+<%# Flash Toast Notification
+    Rendered in the layout for consistent toast notifications across all pages.
+    Supports: notice (success) and alert (error) flash messages.
+    Auto-dismisses after 5 seconds. %>
+<div id="toast-container" class="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 pointer-events-none" aria-live="polite">
+  <% if flash[:notice] %>
+    <div class="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-bg-elevated border border-status-success/30 text-sm text-content animate-slide-in"
+         data-controller="auto-dismiss"
+         data-auto-dismiss-delay-value="5000"
+         role="status">
+      <span class="text-status-success text-base">✅</span>
+      <span class="flex-1"><%= flash[:notice] %></span>
+      <button data-action="click->auto-dismiss#dismiss" class="text-content-muted hover:text-content p-1" aria-label="Dismiss notification">✕</button>
+    </div>
+  <% end %>
+  <% if flash[:alert] %>
+    <div class="pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg bg-bg-elevated border border-status-error/30 text-sm text-content animate-slide-in"
+         data-controller="auto-dismiss"
+         data-auto-dismiss-delay-value="7000"
+         role="alert">
+      <span class="text-status-error text-base">❌</span>
+      <span class="flex-1"><%= flash[:alert] %></span>
+      <button data-action="click->auto-dismiss#dismiss" class="text-content-muted hover:text-content p-1" aria-label="Dismiss notification">✕</button>
+    </div>
+  <% end %>
 </div>

@@ -74,7 +74,7 @@
     <% end %>
 
     <%= render "layouts/mobile_bottom_nav" %>
-    <div id="flash-messages"></div>
+    <%= render "shared/flash_toast" %>
 
     <%# ARIA live regions for screen reader announcements %>
     <div data-controller="live-region" class="sr-only">
@@ -82,5 +82,6 @@
       <div data-live-region-target="assertive" aria-live="assertive" aria-atomic="true"></div>
     </div>
     <%= render "shared/command_palette" if current_user %>
+    <%= render "shared/keyboard_help" if current_user %>
   </body>
 </html>
