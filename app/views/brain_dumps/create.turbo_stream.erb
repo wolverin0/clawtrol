@@ -1,0 +1,9 @@
+<%# Prepend new brain dump to list %>
+<%= turbo_stream.prepend "brain_dumps" do %>
+  <%= render @brain_dump %>
+<% end %>
+
+<%# Clear the input form %>
+<%= turbo_stream.update "new_brain_dump_form" do %>
+  <%= render "brain_dumps/form", brain_dump: BrainDump.new %>
+<% end %>

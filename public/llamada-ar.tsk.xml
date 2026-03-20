@@ -1,0 +1,11 @@
+<TaskerData sr="" dvi="1" tv="6.3.3">
+	<Task sr="task1" ve="2">
+		<id>1</id>
+		<nme>Llamada AR</nme>
+		<Action sr="act0" ve="7">
+			<code>90</code>
+			<Str sr="arg0" ve="3">%arcomm</Str>
+			<Int sr="arg1" val="1"/>
+		</Action>
+	</Task>
+</TaskerData>

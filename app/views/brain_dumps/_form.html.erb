@@ -1,0 +1,17 @@
+<%# Brain dump input form (for header) %>
+<div id="new_brain_dump_form">
+  <%= form_with model: brain_dump,
+      url: brain_dumps_path,
+      data: { turbo_frame: "new_brain_dump_form" },
+      class: "flex items-center gap-2" do |form| %>
+    <%= form.text_field :content,
+        placeholder: "Brain dump...",
+        class: "w-full text-xs bg-bg-elevated border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-accent text-content placeholder-content-muted px-2.5 py-1.5",
+        data: {
+          controller: "submit-on-enter",
+          action: "keydown->submit-on-enter#submit"
+        } %>
+    <%= form.submit "Capture",
+        class: "hidden" %>
+  <% end %>
+</div>

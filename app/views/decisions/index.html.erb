@@ -1,0 +1,20 @@
+<div class="max-w-4xl mx-auto py-8">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-content">⚖️ Decisions Queue</h1>
+    <span class="text-sm text-content-muted"><%= @tasks.count %> tasks need decision</span>
+  </div>
+
+  <div id="decisions_queue" class="space-y-4">
+    <%= render @tasks %>
+  </div>
+
+  <% if @tasks.empty? %>
+    <div class="text-center py-12 text-content-muted">
+      <svg class="w-16 h-16 mx-auto mb-4 opacity-30" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+      </svg>
+      <p class="text-lg mb-2">No tasks need attention</p>
+      <p class="text-sm">Tasks that fail 3 times will appear here</p>
+    </div>
+  <% end %>
+</div>

@@ -1,0 +1,133 @@
+<% content_for :breadcrumb_standalone do %>
+  System Health
+<% end %>
+
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold tracking-tight text-white">🖥️ SYSTEM HEALTH</h1>
+    <div class="text-xs text-muted font-mono">
+      Updated: <%= Time.current.strftime("%Y-%m-%d %H:%M:%S") %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <%# CPU Usage %>
+    <div class="bg-card border border-border rounded-xl p-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-muted">CPU Usage</span>
+        <span class="text-xs font-mono text-accent"><%= @stats[:cpu] %>%</span>
+      </div>
+      <div class="h-2 w-full bg-bg-elevated rounded-full overflow-hidden">
+        <div class="h-full bg-accent rounded-full" style="width: <%= @stats[:cpu] %>%"></div>
+      </div>
+    </div>
+
+    <%# RAM Usage %>
+    <div class="bg-card border border-border rounded-xl p-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-muted">RAM (Used/Total)</span>
+        <span class="text-xs font-mono text-green-400"><%= @stats[:memory][:percent] %>%</span>
+      </div>
+      <div class="h-2 w-full bg-bg-elevated rounded-full overflow-hidden">
+        <div class="h-full bg-green-400 rounded-full" style="width: <%= @stats[:memory][:percent] %>%"></div>
+      </div>
+      <div class="mt-2 text-[10px] text-muted text-right font-mono">
+        <%= number_to_human_size(@stats[:memory][:used] * 1024 * 1024) %> / <%= number_to_human_size(@stats[:memory][:total] * 1024 * 1024) %>
+      </div>
+    </div>
+
+    <%# Disk Usage %>
+    <div class="bg-card border border-border rounded-xl p-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-muted">Disk Usage</span>
+        <span class="text-xs font-mono text-purple-400"><%= @stats[:disk][:percent] %>%</span>
+      </div>
+      <div class="h-2 w-full bg-bg-elevated rounded-full overflow-hidden">
+        <div class="h-full bg-purple-400 rounded-full" style="width: <%= @stats[:disk][:percent] %>%"></div>
+      </div>
+      <div class="mt-2 text-[10px] text-muted text-right font-mono">
+        <%= number_to_human_size(@stats[:disk][:used] * 1024 * 1024) %> / <%= number_to_human_size(@stats[:disk][:total] * 1024 * 1024) %>
+      </div>
+    </div>
+
+    <%# Load Average %>
+    <div class="bg-card border border-border rounded-xl p-4">
+      <div class="text-sm font-medium text-muted mb-2">Load Average</div>
+      <div class="flex gap-4">
+        <div>
+          <div class="text-[10px] text-muted uppercase">1m</div>
+          <div class="text-sm font-mono text-white"><%= @stats[:load_avg][:'1m'] %></div>
+        </div>
+        <div>
+          <div class="text-[10px] text-muted uppercase">5m</div>
+          <div class="text-sm font-mono text-white"><%= @stats[:load_avg][:'5m'] %></div>
+        </div>
+        <div>
+          <div class="text-[10px] text-muted uppercase">15m</div>
+          <div class="text-sm font-mono text-white"><%= @stats[:load_avg][:'15m'] %></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# API Quotas & Usage %>
+  <div class="space-y-4">
+    <div class="flex items-center gap-2">
+      <span class="text-lg font-bold text-white uppercase tracking-wider">🔋 API QUOTAS & USAGE</span>
+      <div class="h-px flex-1 bg-border/50"></div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <%# Anthropic (Claude) %>
+      <div class="bg-card border border-border rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-muted">Anthropic (Claude)</span>
+          <span class="text-xs font-mono text-blue-400"><%= @api_stats[:anthropic][:percent] %>%</span>
+        </div>
+        <div class="h-2 w-full bg-bg-elevated rounded-full overflow-hidden">
+          <div class="h-full bg-blue-400 rounded-full" style="width: <%= @api_stats[:anthropic][:percent] %>%"></div>
+        </div>
+        <div class="mt-2 text-[10px] text-muted text-right font-mono">
+          Tokens: <%= number_to_human(@api_stats[:anthropic][:used]) %> / <%= @api_stats[:anthropic][:limit] == 'N/A' ? '∞' : number_to_human(@api_stats[:anthropic][:limit]) %>
+        </div>
+      </div>
+
+      <%# Google (Gemini) %>
+      <div class="bg-card border border-border rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-muted">Google (Gemini)</span>
+          <span class="text-xs font-mono text-yellow-400"><%= @api_stats[:google][:percent] %>%</span>
+        </div>
+        <div class="h-2 w-full bg-bg-elevated rounded-full overflow-hidden">
+          <div class="h-full bg-yellow-400 rounded-full" style="width: <%= @api_stats[:google][:percent] %>%"></div>
+        </div>
+        <div class="mt-2 text-[10px] text-muted text-right font-mono">
+          Tokens: <%= number_to_human(@api_stats[:google][:used]) %> / <%= @api_stats[:google][:limit] == 'N/A' ? '∞' : number_to_human(@api_stats[:google][:limit]) %>
+        </div>
+      </div>
+
+      <%# OpenAI (Codex) %>
+      <div class="bg-card border border-border rounded-xl p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-muted">OpenAI (Codex)</span>
+          <span class="text-xs font-mono text-green-400"><%= @api_stats[:openai][:percent] %>%</span>
+        </div>
+        <div class="h-2 w-full bg-bg-elevated rounded-full overflow-hidden">
+          <div class="h-full bg-green-400 rounded-full" style="width: <%= @api_stats[:openai][:percent] %>%"></div>
+        </div>
+        <div class="mt-2 text-[10px] text-muted text-right font-mono">
+          Tokens: <%= number_to_human(@api_stats[:openai][:used]) %> / <%= @api_stats[:openai][:limit] == 'N/A' ? '∞' : number_to_human(@api_stats[:openai][:limit]) %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# Sparklines Placeholder / Note %>
+  <div class="bg-card border border-border rounded-lg p-6 text-center">
+    <div class="text-4xl mb-4">📈</div>
+    <h3 class="text-sm font-semibold text-text mb-2">Historical Metrics</h3>
+    <p class="text-xs text-muted max-w-md mx-auto">
+      Real-time sparklines and historical charts will be implemented in the next phase using Chart.js or Stimulus-sparklines.
+    </p>
+  </div>
+</div>

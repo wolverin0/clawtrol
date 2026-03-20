@@ -1,0 +1,37 @@
+<%# Decision queue task card %>
+<div id="task_<%= task.id %>" class="bg-bg-elevated border border-border rounded-lg p-4">
+  <div class="flex items-start justify-between gap-4">
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-xs font-mono text-content-muted">#<%= task.id %></span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-red-500/20 text-red-400">
+          Failed <%= task.consecutive_failures %> times
+        </span>
+      </div>
+      <h3 class="text-sm font-medium text-content mb-1 truncate"><%= task.name %></h3>
+      <% if task.error_message.present? %>
+        <p class="text-xs text-red-300 mt-2 line-clamp-2"><%= task.error_message %></p>
+      <% end %>
+    </div>
+
+    <div class="flex flex-col gap-2 flex-shrink-0">
+      <%= button_to "Retry",
+          decision_path(task, action_type: 'retry'),
+          method: :patch,
+          data: { turbo_frame: "task_#{task.id}" },
+          class: "px-3 py-1.5 text-xs font-medium bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors w-24" %>
+
+      <%= button_to "Skip",
+          decision_path(task, action_type: 'skip'),
+          method: :patch,
+          data: { turbo_frame: "task_#{task.id}" },
+          class: "px-3 py-1.5 text-xs font-medium bg-bg-surface hover:bg-bg-hover text-content-secondary rounded-lg border border-border transition-colors w-24" %>
+
+      <%= button_to "Stop",
+          decision_path(task, action_type: 'stop'),
+          method: :patch,
+          data: { turbo_frame: "task_#{task.id}" },
+          class: "px-3 py-1.5 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors w-24" %>
+    </div>
+  </div>
+</div>
