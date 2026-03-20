@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_26_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_09_235719) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -269,6 +269,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_000000) do
     t.index ["user_id", "name"], name: "index_boards_on_user_id_and_name", unique: true
     t.index ["user_id", "position"], name: "index_boards_on_user_id_and_position"
     t.index ["user_id"], name: "index_boards_on_user_id"
+  end
+
+  create_table "brain_dumps", force: :cascade do |t|
+    t.text "content", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "metadata", default: {}, null: false
+    t.boolean "processed", default: false, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["processed"], name: "index_brain_dumps_on_processed"
+    t.index ["user_id"], name: "index_brain_dumps_on_user_id"
   end
 
   create_table "cost_snapshots", force: :cascade do |t|
@@ -844,15 +855,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_000000) do
     t.jsonb "achieved", default: [], null: false
     t.text "agent_activity_md"
     t.text "agent_output"
+    t.decimal "cost_usd", precision: 12, scale: 6
     t.datetime "created_at", null: false
     t.datetime "ended_at"
     t.jsonb "evidence", default: [], null: false
     t.text "follow_up_prompt"
+    t.integer "input_tokens"
+    t.string "model_name"
     t.string "model_used"
     t.boolean "needs_follow_up", default: false, null: false
     t.text "next_prompt"
     t.string "openclaw_session_id"
     t.string "openclaw_session_key"
+    t.integer "output_tokens"
     t.text "prompt_used"
     t.jsonb "raw_payload", default: {}, null: false
     t.string "recommended_action", default: "in_review", null: false
@@ -890,6 +905,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_000000) do
   end
 
   create_table "tasks", force: :cascade do |t|
+    t.string "acpx_session_id"
     t.datetime "agent_claimed_at"
     t.jsonb "agent_context"
     t.bigint "agent_persona_id"
@@ -908,6 +924,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_000000) do
     t.text "compiled_prompt"
     t.boolean "completed", default: false, null: false
     t.datetime "completed_at"
+    t.integer "consecutive_failures", default: 0, null: false
     t.integer "context_usage_percent"
     t.datetime "created_at", null: false
     t.boolean "deep_research", default: false, null: false
@@ -926,6 +943,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_000000) do
     t.integer "lock_version", default: 0, null: false
     t.string "model"
     t.string "name"
+    t.boolean "needs_decision", default: false, null: false
     t.datetime "next_recurrence_at"
     t.boolean "nightly", default: false, null: false
     t.integer "nightly_delay_hours"
@@ -949,6 +967,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_000000) do
     t.string "review_type"
     t.string "routed_model"
     t.integer "run_count", default: 0, null: false
+    t.string "session_type", default: "oneshot"
     t.boolean "showcase_winner", default: false, null: false
     t.boolean "skip_agent_persona", default: false, null: false
     t.jsonb "state_data", default: {}, null: false
@@ -977,6 +996,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_000000) do
     t.index ["followup_task_id"], name: "index_tasks_on_followup_task_id_partial", where: "(followup_task_id IS NOT NULL)"
     t.index ["last_run_id"], name: "index_tasks_on_last_run_id_partial", where: "(last_run_id IS NOT NULL)"
     t.index ["name"], name: "index_tasks_on_name_trigram", opclass: :gin_trgm_ops, using: :gin
+    t.index ["needs_decision"], name: "index_tasks_on_needs_decision", where: "(needs_decision = true)"
     t.index ["next_recurrence_at"], name: "index_tasks_on_next_recurrence_at"
     t.index ["nightly"], name: "index_tasks_on_nightly"
     t.index ["parent_task_id"], name: "index_tasks_on_parent_task_id"
@@ -1112,6 +1132,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_000000) do
   add_foreign_key "board_roadmap_task_links", "tasks"
   add_foreign_key "board_roadmaps", "boards"
   add_foreign_key "boards", "users"
+  add_foreign_key "brain_dumps", "users"
   add_foreign_key "cost_snapshots", "users"
   add_foreign_key "factory_agent_runs", "factory_agents"
   add_foreign_key "factory_agent_runs", "factory_cycle_logs"
