@@ -1,3 +1,4 @@
+import { FocusTrap } from "helpers/focus_trap"
 import { Controller } from "@hotwired/stimulus"
 
 // Enhanced command palette with quick actions + task search
@@ -80,6 +81,11 @@ export default class extends Controller {
       }
       this.selectedIndex = -1
       this._showQuickActions()
+      // Activate focus trap for accessibility
+      if (!this._focusTrap) {
+        this._focusTrap = new FocusTrap(this.dialogTarget, { onEscape: () => this.close() })
+      }
+      this._focusTrap.activate()
     }
   }
 
@@ -91,6 +97,8 @@ export default class extends Controller {
       this.inputTarget.setAttribute("aria-expanded", "false")
       this.selectedIndex = -1
       if (this.hasResultsTarget) this.resultsTarget.innerHTML = ""
+      // Deactivate focus trap
+      if (this._focusTrap) this._focusTrap.deactivate()
     }
   }
 

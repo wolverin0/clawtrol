@@ -39,7 +39,7 @@
     <div class="text-xs text-content-muted">Since <span class="font-mono text-content"><%= @start_time.strftime("%Y-%m-%d") %></span></div>
   </div>
 
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <div class="bg-bg-surface border border-border rounded-xl p-4">
       <div class="text-2xl font-bold text-status-success"><%= number_to_currency(@total_cost || 0, unit: "$", precision: 4) %></div>
       <div class="text-sm text-content-muted">Total cost</div>
