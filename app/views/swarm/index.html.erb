@@ -71,7 +71,7 @@
           <%# Star (favorite) %>
           <button class="sw-star mt-0.5 shrink-0 text-lg leading-none transition <%= idea.favorite? ? 'sw-star-active text-amber-400' : 'text-content-muted hover:text-amber-600' %>"
                   data-action="click->swarm#toggleFavorite"
-                  title="Toggle favorite">
+                  title="Toggle favorite" aria-label="Toggle favorite">
             <%= idea.favorite? ? "\u2605" : "\u2606" %>
           </button>
 
@@ -179,7 +179,7 @@
   </div>
 
   <%# ═══ BOTTOM PANEL ═══ %>
-  <div class="sticky bottom-0 z-10 flex items-center justify-between border-t border-border bg-bg-base/95 px-6 py-3 backdrop-blur">
+  <div class="sticky bottom-0 z-10 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-bg-base/95 px-4 sm:px-6 py-3 backdrop-blur">
     <div class="flex items-center gap-4">
       <button data-action="click->swarm#toggleAll"
               data-swarm-target="selectAllBtn"
