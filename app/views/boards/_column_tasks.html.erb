@@ -13,14 +13,14 @@
       data-sortable-status-value="<%= status %>"
       data-sortable-url-value="<%= update_task_status_board_path(board) %>"
       data-infinite-scroll-target="entries">
-    <% if tasks.empty? %>
+    <% if (tasks || []).empty? %>
       <li class="flex flex-col items-center justify-center py-8 text-center">
         <span class="text-2xl mb-2 opacity-40">📋</span>
         <p class="text-xs text-content-muted">No tasks yet</p>
         <p class="text-xs text-content-muted/60 mt-0.5">Drag here or click + to add</p>
       </li>
     <% end %>
-    <% tasks.each do |task| %>
+    <% (tasks || []).each do |task| %>
       <%= render "boards/task_card", task: task, blocking_task_ids: (local_assigns[:blocking_task_ids_by_task_id] || {})[task.id] %>
     <% end %>
   </ul>
