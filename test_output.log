@@ -1,0 +1,636 @@
+≈ tailwindcss v4.1.13
+
+Done in 535ms
+
+Run options: --seed 49909
+
+# Running:
+
+S...............................SS...............................S........................................S................SSS............................................................S.................S.............S..............................................................................F
+
+Failure:
+AgentCompletionServiceTest#test_extracts_output_from_multiple_param_aliases [test/services/agent_completion_service_test.rb:48]:
+Expected "" to include "Output from output".
+
+bin/rails test test/services/agent_completion_service_test.rb:42
+
+...F
+
+Failure:
+AgentCompletionServiceTest#test_appends_agent_output_to_description [test/services/agent_completion_service_test.rb:31]:
+Expected "Original description" to include "## Agent Output".
+
+bin/rails test test/services/agent_completion_service_test.rb:26
+
+......................................................................................S.............................S........................S.......................................S............................................................S................S.........SSSS......S................F
+
+Failure:
+AgentAutoRunnerServiceTest#test_notifies_about_zombie_tasks_stale_for_over_30_minutes [test/services/agent_auto_runner_service_test.rb:274]:
+expected zombies, got stats={:users_considered=>1, :users_woken=>0, :tasks_woken=>0, :tasks_demoted=>1, :zombie_tasks=>0, :pipeline_processed=>0, :queue_skip_reasons=>{}, :queue_summaries_sent=>0}
+
+bin/rails test test/services/agent_auto_runner_service_test.rb:238
+
+....F
+
+Failure:
+AgentAutoRunnerServiceTest#test_wakes_for_tasks_with_old_auto_pull_errors_past_cooldown [test/services/agent_auto_runner_service_test.rb:547]:
+stats={:users_considered=>1, :users_woken=>0, :tasks_woken=>0, :tasks_demoted=>0, :zombie_tasks=>0, :pipeline_processed=>0, :queue_skip_reasons=>{}, :queue_summaries_sent=>0}.
+Expected: 1
+  Actual: 0
+
+bin/rails test test/services/agent_auto_runner_service_test.rb:527
+
+F
+
+Failure:
+AgentAutoRunnerServiceTest#test_sends_periodic_queue_summary_while_queue_is_active [test/services/agent_auto_runner_service_test.rb:665]:
+Expected: 1
+  Actual: 0
+
+bin/rails test test/services/agent_auto_runner_service_test.rb:635
+
+.F
+
+Failure:
+AgentAutoRunnerServiceTest#test_wakes_at_most_one_task_per_board_and_respects_FIFO_id_order [test/services/agent_auto_runner_service_test.rb:624]:
+Expected: 1
+  Actual: 0
+
+bin/rails test test/services/agent_auto_runner_service_test.rb:601
+
+.............S.......SS...........................E
+
+Error:
+Api::V1::HooksControllerTest#test_task_outcome_creates_task_run_and_moves_to_in_review:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    app/controllers/api/v1/hooks_controller.rb:184:in `task_outcome'
+    test/controllers/api/v1/hooks_controller_test.rb:93:in `block in <class:HooksControllerTest>'
+
+bin/rails test test/controllers/api/v1/hooks_controller_test.rb:89
+
+..E
+
+Error:
+Api::V1::HooksControllerTest#test_agent_complete_replaces_existing_top_agent_block_on_duplicate_calls:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/controllers/api/v1/hooks_controller.rb:104:in `agent_complete'
+    test/controllers/api/v1/hooks_controller_test.rb:54:in `block in <class:HooksControllerTest>'
+
+bin/rails test test/controllers/api/v1/hooks_controller_test.rb:51
+
+E
+
+Error:
+Api::V1::HooksControllerTest#test_agent_complete_updates_task_and_prepends_agent_activity_+_output_(and_persists_transcript_file):
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/controllers/api/v1/hooks_controller.rb:104:in `agent_complete'
+    test/controllers/api/v1/hooks_controller_test.rb:29:in `block in <class:HooksControllerTest>'
+
+bin/rails test test/controllers/api/v1/hooks_controller_test.rb:20
+
+....E
+
+Error:
+Api::V1::HooksControllerTest#test_agent_complete_finds_task_by_session_key:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/controllers/api/v1/hooks_controller.rb:104:in `agent_complete'
+    test/controllers/api/v1/hooks_controller_test.rb:153:in `block in <class:HooksControllerTest>'
+
+bin/rails test test/controllers/api/v1/hooks_controller_test.rb:150
+
+E
+
+Error:
+Api::V1::HooksControllerTest#test_task_outcome_is_idempotent_on_duplicate_run_id:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    app/controllers/api/v1/hooks_controller.rb:184:in `task_outcome'
+    test/controllers/api/v1/hooks_controller_test.rb:113:in `block (2 levels) in <class:HooksControllerTest>'
+    test/controllers/api/v1/hooks_controller_test.rb:112:in `times'
+    test/controllers/api/v1/hooks_controller_test.rb:112:in `block in <class:HooksControllerTest>'
+
+bin/rails test test/controllers/api/v1/hooks_controller_test.rb:108
+
+.............................................................................................S.................F
+
+Failure:
+AgentAutoRunnerHealthGateTest#test_gateway_200_allows_wakes [test/services/agent_auto_runner_health_gate_test.rb:78]:
+Expected false to be truthy.
+
+bin/rails test test/services/agent_auto_runner_health_gate_test.rb:69
+
+.................S....................................................................SSS......F
+
+Failure:
+RuntimeEventsIngestionServiceTest#test_skips_codemap_events_from_persistence [test/services/runtime_events_ingestion_service_test.rb:43]:
+Expected: 0
+  Actual: 1
+
+bin/rails test test/services/runtime_events_ingestion_service_test.rb:33
+
+..................................................................S...........................................................S......fatal: bad revision 'HEAD'
+.fatal: bad revision 'HEAD'
+fatal: bad revision 'HEAD'
+.........S..................................................................................................................................S...................S.......................................................................................S....................................................................................................................F
+
+Failure:
+Api::V1::HooksZeroclawAuditorTest#test_rejects_webhook_trigger_with_invalid_token [test/controllers/api/v1/hooks_zeroclaw_auditor_test.rb:22]:
+Expected response to be a <401: unauthorized>, but was a <404: Not Found>.
+Expected: 401
+  Actual: 404
+
+bin/rails test test/controllers/api/v1/hooks_zeroclaw_auditor_test.rb:16
+
+F
+
+Failure:
+Api::V1::HooksZeroclawAuditorTest#test_enqueues_auditor_job_from_webhook_for_eligible_task [test/controllers/api/v1/hooks_zeroclaw_auditor_test.rb:33]:
+1 jobs expected, but 0 were enqueued.
+Expected: 1
+  Actual: 0
+
+bin/rails test test/controllers/api/v1/hooks_zeroclaw_auditor_test.rb:25
+
+.......................................SSS.......................................SS..............................................................S..S.........E
+
+Error:
+QuickAddControllerTest#test_create_merges_user-provided_tags_with_auto_tags:
+ActiveRecord::Deadlocked: PG::TRDeadlockDetected: ERROR:  deadlock detected
+DETAIL:  Process 4914 waits for ShareLock on transaction 3280913; blocked by process 4899.
+Process 4899 waits for ShareLock on transaction 3280921; blocked by process 4914.
+HINT:  See server log for query details.
+CONTEXT:  while updating tuple (0,32) in relation "boards"
+
+    app/controllers/quick_add_controller.rb:39:in `create'
+    test/controllers/quick_add_controller_test.rb:89:in `block in <class:QuickAddControllerTest>'
+
+bin/rails test test/controllers/quick_add_controller_test.rb:87
+
+...........................................S........................................S..........................................S.......................................................S...........................S.E
+
+Error:
+Api::V1::HooksControllerExpandedTest#test_agent_complete_with_valid_token_updates_task_to_in_review:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/controllers/api/v1/hooks_controller.rb:104:in `agent_complete'
+    test/controllers/api/v1/hooks_controller_expanded_test.rb:121:in `block in <class:HooksControllerExpandedTest>'
+
+bin/rails test test/controllers/api/v1/hooks_controller_expanded_test.rb:120
+
+.......E
+
+Error:
+Api::V1::HooksControllerExpandedTest#test_task_outcome_is_idempotent_on_same_run_id:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    app/controllers/api/v1/hooks_controller.rb:184:in `task_outcome'
+    test/controllers/api/v1/hooks_controller_expanded_test.rb:70:in `block (2 levels) in <class:HooksControllerExpandedTest>'
+    test/controllers/api/v1/hooks_controller_expanded_test.rb:69:in `times'
+    test/controllers/api/v1/hooks_controller_expanded_test.rb:69:in `block in <class:HooksControllerExpandedTest>'
+
+bin/rails test test/controllers/api/v1/hooks_controller_expanded_test.rb:67
+
+E
+
+Error:
+Api::V1::HooksControllerExpandedTest#test_task_outcome_with_valid_params_creates_TaskRun:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    app/controllers/api/v1/hooks_controller.rb:184:in `task_outcome'
+    test/controllers/api/v1/hooks_controller_expanded_test.rb:47:in `block (2 levels) in <class:HooksControllerExpandedTest>'
+    test/controllers/api/v1/hooks_controller_expanded_test.rb:46:in `block in <class:HooksControllerExpandedTest>'
+
+bin/rails test test/controllers/api/v1/hooks_controller_expanded_test.rb:44
+
+E
+
+Error:
+Api::V1::HooksControllerExpandedTest#test_agent_complete_finds_task_by_session_key:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/controllers/api/v1/hooks_controller.rb:104:in `agent_complete'
+    test/controllers/api/v1/hooks_controller_expanded_test.rb:132:in `block in <class:HooksControllerExpandedTest>'
+
+bin/rails test test/controllers/api/v1/hooks_controller_expanded_test.rb:130
+
+..............................................................S.........SS..SE
+
+Error:
+TaskRunTest#test_requires_recommended_action:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:38:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:37
+
+E
+
+Error:
+TaskRunTest#test_in_progress_scope_returns_only_runs_without_ended_at:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:146:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:145
+
+E
+
+Error:
+TaskRunTest#test_stores_summary_and_evidence:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:87:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:86
+
+E
+
+Error:
+TaskRunTest#test_for_task_scope_filters_by_task_id:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:127:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:125
+
+E
+
+Error:
+TaskRunTest#test_requires_run_id:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:28:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:27
+
+E
+
+Error:
+TaskRunTest#test_by_model_scope_filters_by_model_used:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:156:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:155
+
+E
+
+Error:
+TaskRunTest#test_needs_follow_up_scope_returns_runs_with_flag:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:166:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:165
+
+E
+
+Error:
+TaskRunTest#test_stores_achieved_and_remaining_arrays:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:95:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:94
+
+E
+
+Error:
+TaskRunTest#test_stores_model_used:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:109:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:108
+
+E
+
+Error:
+TaskRunTest#test_recommended_action_must_be_in_RECOMMENDED_ACTIONS:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:51:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:50
+
+E
+
+Error:
+TaskRunTest#test_task_has_many_task_runs_with_dependent_destroy:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:71:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:70
+
+E
+
+Error:
+TaskRunTest#test_belongs_to_task:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:65:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:64
+
+E
+
+Error:
+TaskRunTest#test_requires_run_number:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:33:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:32
+
+E
+
+Error:
+TaskRunTest#test_completed_scope_excludes_in-progress_runs:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:136:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:135
+
+E
+
+Error:
+TaskRunTest#test_run_id_must_be_unique:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:44:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:42
+
+E
+
+Error:
+TaskRunTest#test_needs_follow_up_defaults_to_false:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:103:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:102
+
+E
+
+Error:
+TaskRunTest#test_run_number_unique_per_task:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:80:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:79
+
+E
+
+Error:
+TaskRunTest#test_valid_with_required_fields:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:23:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:22
+
+E
+
+Error:
+TaskRunTest#test_accepts_all_valid_recommended_actions:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:58:in `block (2 levels) in <class:TaskRunTest>'
+    test/models/task_run_test.rb:57:in `each'
+    test/models/task_run_test.rb:57:in `each_with_index'
+    test/models/task_run_test.rb:57:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:56
+
+E
+
+Error:
+TaskRunTest#test_recent_scope_orders_by_created_at_desc:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    test/models/task_run_test.rb:13:in `build_run'
+    test/models/task_run_test.rb:116:in `block in <class:TaskRunTest>'
+
+bin/rails test test/models/task_run_test.rb:115
+
+.......S............E
+
+Error:
+TaskLifecycleTest#test_agent_workflow:_assign,_hooks_fire,_task_goes_to_in_review:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    app/controllers/api/v1/hooks_controller.rb:184:in `task_outcome'
+    test/integration/task_lifecycle_test.rb:48:in `block in <class:TaskLifecycleTest>'
+
+bin/rails test test/integration/task_lifecycle_test.rb:38
+
+........................S............fatal: cannot change to '/home/ggorbalan/.openclaw/workspace/clawtrolplayground': No such file or directory
+S...................E
+
+Error:
+TaskOutcomeServiceTest#test_increments_run_count:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:97:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:96
+
+E
+
+Error:
+TaskOutcomeServiceTest#test_stores_standardized_contract_fields_in_raw_payload:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:129:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:123
+
+E
+
+Error:
+TaskOutcomeServiceTest#test_idempotent_on_duplicate_run_id:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:151:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:149
+
+E
+
+Error:
+TaskOutcomeServiceTest#test_requeue_same_task_moves_task_back_to_up_next:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:86:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:79
+
+E
+
+Error:
+TaskOutcomeServiceTest#test_defaults_ended_at_to_current_time_when_blank:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:167:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:165
+
+.E
+
+Error:
+TaskOutcomeServiceTest#test_sets_task_to_in_review:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:74:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:73
+
+E
+
+Error:
+TaskOutcomeServiceTest#test_result_responds_to_success?_and_idempotent?:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:182:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:181
+
+E
+
+Error:
+TaskOutcomeServiceTest#test_stores_summary_in_TaskRun:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:111:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:109
+
+E
+
+Error:
+TaskOutcomeServiceTest#test_creates_TaskRun_on_success:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:67:in `block (2 levels) in <class:TaskOutcomeServiceTest>'
+    test/services/task_outcome_service_test.rb:66:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:64
+
+E
+
+Error:
+TaskOutcomeServiceTest#test_stores_achieved_and_evidence_arrays:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:117:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:116
+
+.E
+
+Error:
+TaskOutcomeServiceTest#test_defaults_recommended_action_to_in_review:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:174:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:172
+
+E
+
+Error:
+TaskOutcomeServiceTest#test_uses_output_contract_summary_when_provided:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:142:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:138
+
+E
+
+Error:
+TaskOutcomeServiceTest#test_clears_agent_claimed_at:
+ActiveRecord::DangerousAttributeError: model_name is defined by Active Record. Check to make sure that you don't have an attribute or method with the same name.
+    app/services/task_outcome_service.rb:152:in `block in process_outcome'
+    app/services/task_outcome_service.rb:140:in `process_outcome'
+    app/services/task_outcome_service.rb:48:in `call'
+    app/services/task_outcome_service.rb:30:in `call'
+    test/services/task_outcome_service_test.rb:104:in `block in <class:TaskOutcomeServiceTest>'
+
+bin/rails test test/services/task_outcome_service_test.rb:102
+
+.............S....F
+
+Failure:
+AgentLogServiceTest#test_returns_no_session_when_mapped_transcript_does_not_match_task_scope [test/services/agent_log_service_test.rb:86]:
+--- expected
++++ actual
+@@ -1 +1 @@
+-[]
++[{:id=>nil, :line=>1, :timestamp=>nil, :role=>"user", :content=>[{:type=>"text", :text=>"http://192.168.100.186:4001/zerobitch is broken now"}]}]
+
+
+bin/rails test test/services/agent_log_service_test.rb:73
+
+.......................................#<Thread:0x00007689fee16168 /usr/lib/ruby/3.2.0/open3.rb:404 run> terminated with exception (report_on_exception is true):
+/usr/lib/ruby/3.2.0/open3.rb:404:in `read': stream closed in another thread (IOError)
+	from /usr/lib/ruby/3.2.0/open3.rb:404:in `block (2 levels) in capture2e'
+.........................S.........................................S..............................S.........S............................................................................................................S............................SS...S................................................................................................................................................S............................................................................................SSS..........................S
+
+Finished in 327.205624s, 7.7230 runs/s, 17.8298 assertions/s.
+2527 runs, 5834 assertions, 11 failures, 44 errors, 69 skips
+
+You have skipped tests. Run with --verbose for details.

@@ -551,6 +551,10 @@ def pending_attention
         OriginRoutingService.apply!(@task, params: params, headers: request.headers)
 
         # Apply template if specified
+        # Auto-fill origin_chat_id from user profile if not provided
+        if @task.origin_chat_id.blank? && current_user.telegram_chat_id.present?
+          @task.origin_chat_id = current_user.telegram_chat_id
+        end
         if params.dig(:task, :template_slug).present?
           template = TaskTemplate.find_for_user(params[:task][:template_slug], current_user)
           if template

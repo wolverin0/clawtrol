@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_09_235719) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_20_132833) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -861,7 +861,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_235719) do
     t.jsonb "evidence", default: [], null: false
     t.text "follow_up_prompt"
     t.integer "input_tokens"
-    t.string "model_name"
+    t.string "llm_model"
     t.string "model_used"
     t.boolean "needs_follow_up", default: false, null: false
     t.text "next_prompt"
