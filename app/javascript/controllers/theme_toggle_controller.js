@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static values = {
-    themes: { type: Array, default: ["default", "light", "vaporwave"] }
+    themes: { type: Array, default: ["default", "light", "vaporwave", "synthwave", "nord", "dracula"] }
   }
 
   connect() {
@@ -34,8 +34,8 @@ export default class extends Controller {
 
   updateLabel() {
     const theme = document.body.getAttribute("data-theme") || "default"
-    const icons = { default: "\uD83C\uDF19", light: "\u2600\uFE0F", vaporwave: "\uD83C\uDF08" }
-    const labels = { default: "Dark", light: "Light", vaporwave: "Vapor" }
+    const icons = { default: "\uD83C\uDF19", light: "\u2600\uFE0F", vaporwave: "\uD83C\uDF08", synthwave: "\uD83C\uDF06", nord: "\u2744\uFE0F", dracula: "\uD83E\uDDDB" }
+    const labels = { default: "Dark", light: "Light", vaporwave: "Vapor", synthwave: "Synth", nord: "Nord", dracula: "Dracula" }
 
     const iconEl = this.element.querySelector("[data-theme-icon]")
     const labelEl = this.element.querySelector("[data-theme-label]")
