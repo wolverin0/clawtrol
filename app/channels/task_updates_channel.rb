@@ -20,7 +20,7 @@ class TaskUpdatesChannel < ApplicationCable::Channel
       {
         type: "task_#{action}",
         task_id: task.id,
-        task_title: task.title,
+        task_title: task.name,
         status: task.status,
         old_status: old_status,
         board_id: task.board_id,
