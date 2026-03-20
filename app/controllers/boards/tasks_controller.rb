@@ -124,7 +124,14 @@ class Boards::TasksController < ApplicationController
   def move_to_board
     target_board = current_user.boards.find(params[:target_board_id])
 
-    @task.update!(board_id: target_board.id)
+    unless @task.update(board_id: target_board.id)
+      respond_to do |format|
+        format.turbo_stream { head :unprocessable_entity }
+        format.html { redirect_to board_path(@board), alert: @task.errors.full_messages.join(", ") }
+        format.json { render json: { error: @task.errors.full_messages }, status: :unprocessable_entity }
+      end
+      return
+    end
 
     respond_to do |format|
       format.turbo_stream do
