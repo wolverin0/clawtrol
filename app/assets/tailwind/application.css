@@ -1036,3 +1036,90 @@
 [data-theme="light"] .task-card-nightly .text-content-muted {
   color: #475569 !important;
 }
+
+/* ========================================
+   SYNTHWAVE THEME
+   Neon-drenched futuristic aesthetic
+   ======================================== */
+[data-theme="synthwave"] {
+  --color-bg-base: #0b0b1a;
+  --color-bg-surface: #13132b;
+  --color-bg-elevated: #1e1e3f;
+  --color-bg-hover: #2a2a50;
+
+  --color-accent: #f72585;
+  --color-accent-hover: #ff5da0;
+  --color-accent-dark: #b5179e;
+  --color-accent-muted: rgba(247, 37, 133, 0.3);
+
+  --color-content: #e0e0ff;
+  --color-content-secondary: #a0a0d0;
+  --color-content-muted: #7070a0;
+  --color-content-inverse: #0b0b1a;
+
+  --color-border: rgba(112, 112, 160, 0.2);
+  --color-border-accent: rgba(247, 37, 133, 0.3);
+
+  --color-status-success: #7DF9FF;
+  --color-status-warning: #FFD700;
+  --color-status-error: #f72585;
+  --color-status-info: #4CC9F0;
+}
+
+/* ========================================
+   NORD THEME
+   Arctic, north-bluish color palette
+   ======================================== */
+[data-theme="nord"] {
+  --color-bg-base: #2E3440;
+  --color-bg-surface: #3B4252;
+  --color-bg-elevated: #434C5E;
+  --color-bg-hover: #4C566A;
+
+  --color-accent: #88C0D0;
+  --color-accent-hover: #8FBCBB;
+  --color-accent-dark: #5E81AC;
+  --color-accent-muted: rgba(136, 192, 208, 0.3);
+
+  --color-content: #ECEFF4;
+  --color-content-secondary: #D8DEE9;
+  --color-content-muted: #81A1C1;
+  --color-content-inverse: #2E3440;
+
+  --color-border: rgba(76, 86, 106, 0.5);
+  --color-border-accent: rgba(136, 192, 208, 0.3);
+
+  --color-status-success: #A3BE8C;
+  --color-status-warning: #EBCB8B;
+  --color-status-error: #BF616A;
+  --color-status-info: #81A1C1;
+}
+
+/* ========================================
+   DRACULA THEME
+   Dark theme with vibrant colors
+   ======================================== */
+[data-theme="dracula"] {
+  --color-bg-base: #282A36;
+  --color-bg-surface: #2D2F3D;
+  --color-bg-elevated: #44475A;
+  --color-bg-hover: #515473;
+
+  --color-accent: #BD93F9;
+  --color-accent-hover: #CAA9FA;
+  --color-accent-dark: #9B6DD7;
+  --color-accent-muted: rgba(189, 147, 249, 0.3);
+
+  --color-content: #F8F8F2;
+  --color-content-secondary: #CCC8D8;
+  --color-content-muted: #6272A4;
+  --color-content-inverse: #282A36;
+
+  --color-border: rgba(98, 114, 164, 0.3);
+  --color-border-accent: rgba(189, 147, 249, 0.3);
+
+  --color-status-success: #50FA7B;
+  --color-status-warning: #F1FA8C;
+  --color-status-error: #FF5555;
+  --color-status-info: #8BE9FD;
+}
