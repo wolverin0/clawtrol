@@ -35,6 +35,10 @@ class Api::V1::HooksControllerTest < ActionDispatch::IntegrationTest
     @task.reload
     assert_equal "in_review", @task.status
     assert_equal session_id, @task.agent_session_id
+    task_run = @task.task_runs.order(created_at: :desc).first
+    assert_match(/\A[0-9a-f\-]{36}\z/, task_run.run_id)
+    assert_equal session_id, task_run.openclaw_session_id
+    assert_equal "in_review", task_run.recommended_action
 
     assert_match(/\A## Agent Activity\n/m, @task.description)
     assert_match(/## Agent Output\n\nHook findings/m, @task.description)

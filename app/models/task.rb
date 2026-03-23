@@ -76,13 +76,16 @@ class Task < ApplicationRecord
 
   # Model options for agent LLM selection
   # NOTE: These values are the *ClawTrol* UI/task-level model choices.
-  # They intentionally stay small and stable (opus/codex/gemini/glm/sonnet).
-  MODELS = %w[opus codex gemini glm sonnet groq grok ollama cerebras minimax flash].freeze
+  # They intentionally stay small and stable (opus/codex/gemini/glm/sonnet plus a few fixed aliases).
+  MODELS = %w[opus codex gemini glm sonnet groq grok ollama cerebras minimax flash gpt5.4mini gpt5.4nano].freeze
   DEFAULT_MODEL = "opus".freeze
 
   # Map ClawTrol task.model -> OpenClaw sessions_spawn model alias.
   OPENCLAW_MODEL_ALIASES = {
-    "gemini" => "gemini3"
+    "codex" => "gpt-5.4",
+    "gemini" => "gemini3",
+    "gpt5.4mini" => "gpt-5.4-mini",
+    "gpt5.4nano" => "gpt-5.4-nano"
   }.freeze
 
   # Review types
@@ -154,7 +157,7 @@ class Task < ApplicationRecord
   scope :completed, -> { where(completed: true).order(Arel.sql("#{table_name}.completed_at DESC")) }
   scope :assigned_to_agent, -> { where(assigned_to_agent: true).order(assigned_at: :asc) }
   scope :unassigned, -> { where(assigned_to_agent: false) }
-  scope :recurring_templates, -> { where(recurring: true, parent_task_id: nil).where.not(status: :archived) }
+  scope :recurring_templates, -> { where(recurring: true, parent_task_id: nil).where.not(status: [:archived, :needs_decision]) }
   scope :due_for_recurrence, -> { recurring_templates.where("next_recurrence_at <= ?", Time.current) }
   scope :nightly, -> { where(nightly: true) }
   scope :errored, -> { where.not(error_at: nil) }

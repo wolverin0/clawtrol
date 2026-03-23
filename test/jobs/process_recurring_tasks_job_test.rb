@@ -62,6 +62,20 @@ class ProcessRecurringTasksJobTest < ActiveSupport::TestCase
     end
   end
 
+  test "skips recurring tasks waiting for decision" do
+    task = create_recurring_task("Needs decision recurring task", "daily")
+    task.update!(status: :needs_decision)
+    task.update_columns(next_recurrence_at: 1.hour.ago)
+
+    assert_no_difference("Task.count") do
+      result = ProcessRecurringTasksJob.perform_now
+      assert_equal 0, result[:tasks_processed]
+      assert_equal 0, result[:instances_created]
+    end
+
+    assert_nil Task.find_by(parent_task_id: task.id)
+  end
+
   test "handles errors in individual tasks gracefully" do
     task = create_recurring_task("Good recurring task", "daily")
     task.update_columns(next_recurrence_at: 1.hour.ago)

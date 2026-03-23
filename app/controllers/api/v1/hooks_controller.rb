@@ -88,15 +88,23 @@ module Api
           end
         end
 
+        updates[:description] = build_agent_description(
+          task,
+          findings: findings,
+          activity_markdown: activity[:activity_markdown],
+          original_description: updates[:original_description]
+        )
 
-# --- P0: persist structured output to TaskRun ---
-        hook_run_id = resolved_run_id.presence || effective_session_id.presence || SecureRandom.uuid
+        # --- P0: persist structured output to TaskRun ---
+        hook_run_id = resolved_hook_run_id(task, effective_session_id)
         task_run = task.task_runs.find_by(run_id: hook_run_id)
         if task_run
           run_updates = {}
           run_updates[:agent_output] = findings if findings.present? && task_run.agent_output.blank?
           run_updates[:agent_activity_md] = activity[:activity_markdown] if activity[:activity_markdown].present? && task_run.agent_activity_md.blank?
           run_updates[:prompt_used] = task.effective_prompt if task_run.prompt_used.blank?
+          run_updates[:openclaw_session_id] = effective_session_id if effective_session_id.present? && task_run.openclaw_session_id.blank?
+          run_updates[:openclaw_session_key] = session_key if session_key.present? && task_run.openclaw_session_key.blank?
           task_run.update_columns(run_updates) if run_updates.any?
         else
           # No matching TaskRun — create one for this completion
@@ -104,15 +112,22 @@ module Api
           task.task_runs.create!(
             run_id: hook_run_id,
             run_number: next_num,
+            ended_at: Time.current,
+            recommended_action: "in_review",
             agent_output: findings,
             agent_activity_md: activity[:activity_markdown],
             prompt_used: task.effective_prompt,
+            openclaw_session_id: effective_session_id,
+            openclaw_session_key: session_key,
             summary: findings.to_s.truncate(500)
           )
         end
 
-old_status = task.status
-task.update!(updates)
+        updates[:last_run_id] = hook_run_id
+        updates[:run_count] = (task.task_runs.maximum(:run_number) || 0)
+
+        old_status = task.status
+        task.update!(updates)
 
 
         # Generate diffs for output files (async to avoid blocking the response)
@@ -312,6 +327,25 @@ task.update!(updates)
         params[:run_id].presence || params.dig(:hook, :run_id).presence
       end
 
+      def valid_task_run_id?(value)
+        value.to_s.match?(TaskOutcomeService::RUN_ID_PATTERN)
+      end
+
+      def resolved_hook_run_id(task, session_id)
+        explicit_run_id = resolved_run_id.to_s
+        return explicit_run_id if valid_task_run_id?(explicit_run_id)
+
+        if session_id.present?
+          existing = task.task_runs.find_by(openclaw_session_id: session_id)
+          return existing.run_id if existing&.run_id.present?
+        end
+
+        last_run_id = task.last_run_id.to_s
+        return last_run_id if valid_task_run_id?(last_run_id)
+
+        SecureRandom.uuid
+      end
+
       def find_task_from_params
         session_key = params[:session_key].presence || params[:agent_session_key].presence
         session_id = params[:session_id].presence || params[:agent_session_id].presence
@@ -338,6 +372,32 @@ task.update!(updates)
         return [single] if single.present?
 
         []
+      end
+
+      def build_agent_description(task, findings:, activity_markdown:, original_description:)
+        sections = []
+
+        if activity_markdown.present?
+          sections << "## Agent Activity\n\n#{activity_markdown.to_s.strip}"
+        end
+
+        sections << "## Agent Output\n\n#{findings.to_s.strip}"
+
+        base_description = original_description.presence || task.original_description.presence
+        if base_description.blank?
+          current = task.description.to_s
+          if current.include?("\n\n---\n\n")
+            _top, rest = current.split("\n\n---\n\n", 2)
+            base_description = rest
+          elsif !current.start_with?("## Agent Activity") && !current.start_with?("## Agent Output")
+            base_description = current
+          end
+        end
+
+        content = sections.join("\n\n")
+        return content if base_description.blank?
+
+        "#{content}\n\n---\n\n#{base_description}"
       end
 
       def persist_agent_activity(task, session_id)
