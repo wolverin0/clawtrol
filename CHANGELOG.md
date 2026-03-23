@@ -7,20 +7,45 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- add gpt5.4mini/nano models, fix recurrence scope, fix hooks test (`8fe86d5`)
+- Phase 4 — mobile responsiveness + accessibility improvements (`fae0465`)
+- Phase 3 — memory editor controller + 3 new themes (Synthwave, Nord, Dracula) (`54f256e`)
+- Phase 2 — ActionCable TaskUpdatesChannel + Chartkick analytics charts (`ef63043`)
+- Phase 1 — fix hardcoded colors, keyboard help modal, empty states, loading frames, toast notifications (`8399c22`)
+- PinchChat-inspired UI — tool badges, thinking blocks, token bar, split view (`d1da3c0`)
+- Zombie Reaper + reliable wake webhook (`39d43f3`)
+- show roadmap progress in board header (#692) (`7e3e669`)
 ### 🐛 Bug Fixes
 
+- auto-fill origin_chat_id from user.telegram_chat_id when not provided (`01b877a`)
+- post-audit #858 — task.title NoMethodError, update! without rescue, nil guards (`dd4f609`)
+- nil guard for tasks in board column views (`e729809`)
+- chartkick importmap pin to CDN (was missing local asset) (`ab2e28f`)
+- 4 bugs — auditor FAIL_REWORK up_next, shell_out timeout, gemini_cli timeout, transcript OOM guard (`cee8c7e`)
+- 4 bugs — recurring job atomic tx, fire_openclaw after_commit, log_event seq retry, kanban broadcast on reorder (`06139ba`)
+- 4 bugs — after_update to after_commit, validation runner up_next on fail, pipeline User.first, AgentTranscript OOM guard (`79da0fd`)
+- 4 bugs — bulk update_all callbacks, spawn_ready race, rate-limit false positive, dead spawn_ready in concern (`935aa43`)
+- 4 bugs — nightshift env var, handoff lease, factory wake loop, review followup auto-queue (`da015cd`)
+- 4 bugs — recurring archived leak, zombie agent_claimed_at, garbled emoji, minimax quota (`e6dda98`)
+- context menu renders view template with turbo-frame wrapper (#692) (`9f8aae4`)
+- add timeout to context menu turbo frame loading (#692) (`780a753`)
+- roadmap modal uses showModal() for proper top-layer stacking (#692) (`5144dcd`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`ba9f4ee`)
 - rewrite features section — ZeroBitch fleet, factory, nightshift, personas, roadmaps, swarm, saved links all properly described (`57cdd1f`)
 - update CHANGELOG.md [skip ci] (`528427e`)
 - clean README with collapsible sections, fix skill IP/name, remove internal files (`a5fa06e`)
 - update CHANGELOG.md [skip ci] (`297c232`)
 ### ♻️  Refactoring
 
+- remove dead pipeline code from Task, AutoRunner, WebhookService (`a94d48b`)
 ### ⚡ Performance
 
 ### 🧪 Tests
 
+- add unit tests for BoardRoadmap checked_items and progress_summary (#692) (`06f8778`)
+- add system tests for roadmap modal, progress, and context menu (#692) (`22f14c5`)
 ### 👷 CI
 
 ### 💄 Style
