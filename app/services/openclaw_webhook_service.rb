@@ -40,29 +40,6 @@ class OpenclawWebhookService
     )
   end
 
-  # Pipeline-enriched wake: includes routing/context details only.
-  # OpenClaw stays responsible for claim/spawn/execution.
-  def notify_auto_pull_ready_with_pipeline(task)
-    return unless configured?
-    return notify_auto_pull_ready(task) unless task.pipeline_ready?
-
-    persona =
-      if task.agent_persona
-        "#{task.agent_persona.emoji || "bot"} #{task.agent_persona.name}"
-      else
-        "none"
-      end
-
-    model = task.routed_model.presence || task.model.presence || Task::DEFAULT_MODEL
-    prompt_len = task.compiled_prompt.to_s.length
-
-    send_wake_message(
-      "Auto-pull ready: ##{task.id} #{task.name} (model: #{model}, persona: #{persona}, pipeline: #{task.pipeline_stage}, prompt_chars: #{prompt_len})",
-      task: task,
-      tag: "auto_pull_ready_pipeline"
-    )
-  end
-
   def notify_runner_summary(message)
     return unless configured?
 
