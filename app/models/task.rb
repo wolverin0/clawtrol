@@ -38,38 +38,6 @@ class Task < ApplicationRecord
 
   enum :priority, { none: 0, low: 1, medium: 2, high: 3 }, default: :none, prefix: true
   enum :status, { inbox: 0, up_next: 1, in_progress: 2, in_review: 3, done: 4, archived: 5, needs_decision: 6 }, default: :inbox
-  # Pipeline stages - production pipeline services use these values.
-  PIPELINE_STAGES = %w[unstarted triaged context_ready routed executing verifying completed failed].freeze
-
-  # NOTE: Some deployments may lag migrations; declare explicit attribute types so model boot
-  # remains safe even when pipeline columns are absent.
-  attribute :pipeline_enabled, :boolean, default: false
-  attribute :pipeline_type, :string
-  attribute :pipeline_log, :json, default: []
-  attribute :pipeline_stage, :string
-  # Use string-backed enum to match the DB schema.
-  enum :pipeline_stage, {
-    unstarted: "unstarted",
-    triaged: "triaged",
-    context_ready: "context_ready",
-    routed: "routed",
-    executing: "executing",
-    verifying: "verifying",
-    completed: "completed",
-    failed: "failed"
-  }, default: :unstarted, prefix: :pipeline
-
-  # Pipeline stage transition rules: each stage lists valid predecessors
-  PIPELINE_TRANSITIONS = {
-    "unstarted"     => [],
-    "triaged"       => %w[unstarted failed],
-    "context_ready" => %w[triaged],
-    "routed"        => %w[context_ready],
-    "executing"     => %w[routed],
-    "verifying"     => %w[executing],
-    "completed"     => %w[verifying executing],
-    "failed"        => %w[unstarted triaged context_ready routed executing verifying]
-  }.freeze
 
   # Kanban paging
   KANBAN_PER_COLUMN_ITEMS = 25
@@ -118,7 +86,6 @@ class Task < ApplicationRecord
   validates :name, presence: true, length: { maximum: 500 }
   validates :priority, inclusion: { in: priorities.keys }
   validates :status, inclusion: { in: statuses.keys }
-  validates :pipeline_stage, inclusion: { in: pipeline_stages.keys }
   validates :model, length: { maximum: 120 }, allow_nil: true, allow_blank: true
   validates :recurrence_rule, inclusion: { in: %w[daily weekly monthly] }, allow_nil: true, allow_blank: true
   validates :description, length: { maximum: 500_000 }, allow_nil: true
@@ -130,9 +97,6 @@ class Task < ApplicationRecord
   validates :origin_session_key, length: { maximum: 200 }, allow_nil: true
   validates :session_type, inclusion: { in: ['oneshot', 'persistent'] }, allow_nil: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
-  validate :pipeline_stage_transition_is_valid, if: :will_save_change_to_pipeline_stage?
-  validate :dispatched_requires_plan, if: :will_save_change_to_pipeline_stage?
-
   # Activity tracking - must be declared before callbacks that use it
   attr_accessor :activity_source, :actor_name, :actor_emoji, :activity_note
 
@@ -170,12 +134,6 @@ class Task < ApplicationRecord
       .where("description IS NULL OR description NOT LIKE ?", "%## Agent Output%")
   }
 
-# Pipeline scopes
-scope :pipeline_enabled, -> { none }
-scope :pipeline_pending, -> { none }
-scope :pipeline_triaged, -> { none }
-scope :pipeline_routed, -> { none }
-
   scope :ordered_for_column, ->(column_status) {
     case column_status.to_s
     when "in_review"
@@ -191,24 +149,6 @@ scope :pipeline_routed, -> { none }
   def openclaw_spawn_model
     OPENCLAW_MODEL_ALIASES.fetch(model.to_s, model.presence || DEFAULT_MODEL)
   end
-
-# Pipeline helpers
-def pipeline_active?
-  pipeline_enabled? && pipeline_stage.present? && !pipeline_stage.in?(%w[completed failed])
-end
-
-def pipeline_ready?
-  pipeline_stage == "routed" && routed_model.present? && compiled_prompt.present?
-end
-
-def advance_pipeline_stage!(new_stage, log_entry = nil)
-  updates = { pipeline_stage: new_stage }
-  if log_entry
-    current_log = pipeline_log || []
-    updates[:pipeline_log] = current_log + [log_entry.merge(timestamp: Time.current.iso8601)]
-  end
-  update!(updates)
-end
 
 # --- P0 Data Contract Helpers ---
 
@@ -256,31 +196,6 @@ end
     return unless saved_change_to_status? && status == "up_next" && !assigned_to_agent?
 
     update_columns(assigned_to_agent: true, assigned_at: Time.current)
-  end
-
-  # Pipeline: executing stage should have compiled_prompt
-  def dispatched_requires_plan
-    return unless pipeline_stage == "executing"
-    return if compiled_prompt.present? || !pipeline_enabled?
-
-    errors.add(:pipeline_stage, "cannot move to executing without a compiled_prompt when pipeline is enabled")
-  end
-
-  # Pipeline: validate stage transitions follow the defined order
-  def pipeline_stage_transition_is_valid
-    return if new_record? # Allow any initial stage on creation
-
-    old_stage = pipeline_stage_was.to_s
-    new_stage = pipeline_stage.to_s
-
-    return if old_stage == new_stage # No change
-
-    valid_predecessors = PIPELINE_TRANSITIONS[new_stage]
-    return if valid_predecessors.nil? # Unknown stage — inclusion validation catches this
-
-    unless valid_predecessors.include?(old_stage)
-      errors.add(:pipeline_stage, "cannot transition from '#{old_stage}' to '#{new_stage}'. Valid predecessors: #{valid_predecessors.join(', ')}")
-    end
   end
 
   def validation_command_unsafe_message

@@ -29,7 +29,6 @@ class AgentAutoRunnerService
       tasks_woken: 0,
       tasks_demoted: 0,
       zombie_tasks: 0,
-      pipeline_processed: 0,
       queue_skip_reasons: Hash.new(0),
       queue_summaries_sent: 0
     }
@@ -111,32 +110,6 @@ end
     url
   end
 
-  # Pipeline: process tasks that need pipeline advancement
-  # Simplified: skip triage, go straight to context compilation + routing
-  def process_pipeline_tasks!(user)
-    return 0 # pipeline removed
-    count = 0
-    tasks = user.tasks.where(pipeline_enabled: true, status: :up_next)
-                      .where(pipeline_stage: [nil, "", "unstarted", "triaged", "context_ready"])
-                      .limit(5)
-
-    tasks.find_each do |task|
-      Task.transaction(requires_new: true) do
-        if task.model.blank?
-          task.update_columns(model: Task::DEFAULT_MODEL)
-        end
-
-        Pipeline::Orchestrator.new(task, user: user).process_to_completion!
-
-        count += 1
-      end
-    rescue StandardError => e
-      @logger.warn("[AgentAutoRunner] pipeline processing failed task_id=#{task.id} err=#{e.class}: #{e.message}")
-    end
-
-    count
-  end
-
   def wake_tasks!(user, tasks)
     woke = 0
     tasks.each do |task|
@@ -161,11 +134,7 @@ end
     webhook_ok = false
     begin
       service = @openclaw_webhook_service.new(user)
-      response = if task.pipeline_ready?
-        service.notify_auto_pull_ready_with_pipeline(task)
-      else
-        service.notify_auto_pull_ready(task)
-      end
+      response = service.notify_auto_pull_ready(task)
       # OpenclawWebhookService returns nil on failure, Net::HTTPResponse on success
       webhook_ok = response.is_a?(Net::HTTPResponse) && response.code.to_i < 400
     rescue StandardError => e
@@ -196,7 +165,7 @@ end
     # and auto-link the correct session — permanent observability fix.
     SessionAutoLinkerJob.set(wait: 4.minutes).perform_later
 
-    @logger.info("[AgentAutoRunner] wake sent user_id=#{user.id} task_id=#{task.id} pipeline_ready=#{task.pipeline_ready?} orchestration_mode=#{user.orchestration_mode}")
+    @logger.info("[AgentAutoRunner] wake sent user_id=#{user.id} task_id=#{task.id} orchestration_mode=#{user.orchestration_mode}")
     true
   rescue StandardError => e
     @logger.error("[AgentAutoRunner] auto-pull wake failed user_id=#{user.id} task_id=#{task&.id} err=#{e.class}: #{e.message}")
