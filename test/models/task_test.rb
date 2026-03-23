@@ -270,6 +270,21 @@ class TaskTest < ActiveSupport::TestCase
     assert_equal "gemini3", task.openclaw_spawn_model
   end
 
+  test "openclaw_spawn_model returns alias for codex" do
+    task = Task.new(model: "codex")
+    assert_equal "gpt-5.4", task.openclaw_spawn_model
+  end
+
+  test "openclaw_spawn_model returns alias for gpt5.4mini" do
+    task = Task.new(model: "gpt5.4mini")
+    assert_equal "gpt-5.4-mini", task.openclaw_spawn_model
+  end
+
+  test "openclaw_spawn_model returns alias for gpt5.4nano" do
+    task = Task.new(model: "gpt5.4nano")
+    assert_equal "gpt-5.4-nano", task.openclaw_spawn_model
+  end
+
   test "openclaw_spawn_model returns model as-is for opus" do
     task = Task.new(model: "opus")
     assert_equal "opus", task.openclaw_spawn_model
@@ -288,11 +303,7 @@ class TaskTest < ActiveSupport::TestCase
   # --- Constants ---
 
   test "MODELS contains expected models" do
-    assert_includes Task::MODELS, "opus"
-    assert_includes Task::MODELS, "codex"
-    assert_includes Task::MODELS, "gemini"
-    assert_includes Task::MODELS, "glm"
-    assert_includes Task::MODELS, "sonnet"
+    assert_equal %w[opus codex gemini glm sonnet groq grok ollama cerebras minimax flash gpt5.4mini gpt5.4nano], Task::MODELS
   end
 
   test "DEFAULT_MODEL is opus" do
