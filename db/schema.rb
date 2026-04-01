@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_20_132833) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_01_201244) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -85,6 +85,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_132833) do
     t.datetime "created_at", null: false
     t.text "description"
     t.string "emoji", default: "🤖"
+    t.string "exec_ask", default: "off"
+    t.string "exec_host", default: "auto"
+    t.string "exec_security", default: "full"
+    t.integer "exec_timeout", default: 300
     t.string "fallback_model"
     t.string "model", default: "sonnet"
     t.string "name", null: false
@@ -177,6 +181,40 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_132833) do
     t.jsonb "worst_moments", default: []
     t.index ["user_id", "report_type", "created_at"], name: "index_audit_reports_on_user_id_and_report_type_and_created_at"
     t.index ["user_id"], name: "index_audit_reports_on_user_id"
+  end
+
+  create_table "background_runs", force: :cascade do |t|
+    t.string "agent_id"
+    t.datetime "completed_at"
+    t.float "cost_usd"
+    t.datetime "created_at", null: false
+    t.integer "duration_seconds"
+    t.text "error_message"
+    t.string "label"
+    t.jsonb "metadata", default: {}
+    t.string "model"
+    t.bigint "openclaw_flow_id"
+    t.string "run_id", null: false
+    t.string "run_type", null: false
+    t.string "session_key"
+    t.datetime "started_at"
+    t.string "status", default: "running"
+    t.text "summary"
+    t.bigint "task_id"
+    t.integer "tokens_in", default: 0
+    t.integer "tokens_out", default: 0
+    t.string "trigger"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["openclaw_flow_id"], name: "index_background_runs_on_openclaw_flow_id"
+    t.index ["run_id"], name: "index_background_runs_on_run_id", unique: true
+    t.index ["run_type"], name: "index_background_runs_on_run_type"
+    t.index ["session_key"], name: "index_background_runs_on_session_key"
+    t.index ["started_at"], name: "index_background_runs_on_started_at"
+    t.index ["status"], name: "index_background_runs_on_status"
+    t.index ["task_id"], name: "index_background_runs_on_task_id"
+    t.index ["user_id", "status"], name: "index_background_runs_on_user_id_and_status"
+    t.index ["user_id"], name: "index_background_runs_on_user_id"
   end
 
   create_table "behavioral_interventions", force: :cascade do |t|
@@ -597,6 +635,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_132833) do
     t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
+  create_table "openclaw_flows", force: :cascade do |t|
+    t.string "agent_id"
+    t.string "blocked_reason"
+    t.integer "child_count", default: 0
+    t.datetime "completed_at"
+    t.integer "completed_count", default: 0
+    t.datetime "created_at", null: false
+    t.string "flow_id", null: false
+    t.string "flow_type"
+    t.datetime "last_sync_at"
+    t.jsonb "metadata", default: {}
+    t.string "model"
+    t.string "parent_session_key"
+    t.string "session_key"
+    t.datetime "started_at"
+    t.string "status", default: "active"
+    t.bigint "task_id"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["flow_id"], name: "index_openclaw_flows_on_flow_id", unique: true
+    t.index ["session_key"], name: "index_openclaw_flows_on_session_key"
+    t.index ["status"], name: "index_openclaw_flows_on_status"
+    t.index ["task_id"], name: "index_openclaw_flows_on_task_id"
+    t.index ["user_id"], name: "index_openclaw_flows_on_user_id"
+  end
+
   create_table "openclaw_integration_statuses", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "memory_search_last_checked_at"
@@ -855,13 +919,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_132833) do
     t.jsonb "achieved", default: [], null: false
     t.text "agent_activity_md"
     t.text "agent_output"
-    t.decimal "cost_usd", precision: 12, scale: 6
+    t.decimal "cost"
     t.datetime "created_at", null: false
     t.datetime "ended_at"
     t.jsonb "evidence", default: [], null: false
     t.text "follow_up_prompt"
     t.integer "input_tokens"
-    t.string "llm_model"
+    t.string "model"
     t.string "model_used"
     t.boolean "needs_follow_up", default: false, null: false
     t.text "next_prompt"
@@ -947,6 +1011,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_132833) do
     t.datetime "next_recurrence_at"
     t.boolean "nightly", default: false, null: false
     t.integer "nightly_delay_hours"
+    t.bigint "openclaw_flow_id"
     t.string "origin_chat_id"
     t.string "origin_session_id"
     t.string "origin_session_key"
@@ -999,6 +1064,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_132833) do
     t.index ["needs_decision"], name: "index_tasks_on_needs_decision", where: "(needs_decision = true)"
     t.index ["next_recurrence_at"], name: "index_tasks_on_next_recurrence_at"
     t.index ["nightly"], name: "index_tasks_on_nightly"
+    t.index ["openclaw_flow_id"], name: "index_tasks_on_openclaw_flow_id"
     t.index ["parent_task_id"], name: "index_tasks_on_parent_task_id"
     t.index ["position"], name: "index_tasks_on_position"
     t.index ["recurring"], name: "index_tasks_on_recurring"
@@ -1124,6 +1190,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_132833) do
   add_foreign_key "agent_transcripts", "tasks"
   add_foreign_key "api_tokens", "users"
   add_foreign_key "audit_reports", "users"
+  add_foreign_key "background_runs", "openclaw_flows"
+  add_foreign_key "background_runs", "tasks"
+  add_foreign_key "background_runs", "users"
   add_foreign_key "behavioral_interventions", "audit_reports"
   add_foreign_key "behavioral_interventions", "users"
   add_foreign_key "board_file_refs", "boards"
@@ -1151,6 +1220,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_132833) do
   add_foreign_key "nightshift_selections", "nightshift_missions"
   add_foreign_key "notifications", "tasks"
   add_foreign_key "notifications", "users"
+  add_foreign_key "openclaw_flows", "tasks"
+  add_foreign_key "openclaw_flows", "users"
   add_foreign_key "openclaw_integration_statuses", "users"
   add_foreign_key "runner_leases", "tasks"
   add_foreign_key "saved_links", "users"
@@ -1171,6 +1242,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_20_132833) do
   add_foreign_key "task_templates", "users"
   add_foreign_key "tasks", "agent_personas"
   add_foreign_key "tasks", "boards"
+  add_foreign_key "tasks", "openclaw_flows"
   add_foreign_key "tasks", "tasks", column: "followup_task_id", on_delete: :nullify
   add_foreign_key "tasks", "tasks", column: "parent_task_id", on_delete: :nullify
   add_foreign_key "tasks", "users"

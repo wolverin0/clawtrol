@@ -135,6 +135,7 @@ class AgentPersonasController < ApplicationController
     params.require(:agent_persona).permit(
       :name, :role, :description, :model, :fallback_model,
       :tier, :project, :emoji, :system_prompt, :active,
+      :exec_security, :exec_host, :exec_timeout, :exec_ask,
       tools: []
     ).tap do |p|
       # Handle tools as comma-separated string from form

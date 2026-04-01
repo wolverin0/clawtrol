@@ -80,6 +80,7 @@ module Api
         params.permit(
           :name, :role, :description, :model, :fallback_model,
           :tier, :project, :emoji, :system_prompt, :active,
+          :exec_security, :exec_host, :exec_timeout, :exec_ask,
           tools: []
         )
       end
@@ -97,6 +98,11 @@ module Api
           project: persona.project,
           tools: persona.tools_list,
           active: persona.active,
+          exec_security: persona.exec_security,
+          exec_host: persona.exec_host,
+          exec_timeout: persona.exec_timeout,
+          exec_ask: persona.exec_ask,
+          exec_config: persona.exec_config,
           created_at: persona.created_at,
           updated_at: persona.updated_at
         }

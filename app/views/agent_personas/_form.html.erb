@@ -101,6 +101,40 @@
         <p class="text-xs text-content-muted mt-1">"global" for shared, or project code (e.g., WAPP, DASH)</p>
       </div>
     </div>
+
+    <%# Exec Policy Section %>
+    <div class="space-y-3 pt-4 border-t border-border">
+      <h3 class="text-sm font-semibold text-content">⚙️ Exec Policy</h3>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Security</label>
+          <%= form.select :exec_security,
+              AgentPersona::EXEC_SECURITY_OPTIONS.map { |o| [o.titleize, o] },
+              { include_blank: false },
+              class: "w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-content" %>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Host</label>
+          <%= form.select :exec_host,
+              AgentPersona::EXEC_HOST_OPTIONS.map { |o| [o.titleize, o] },
+              { include_blank: false },
+              class: "w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-content" %>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Ask Mode</label>
+          <%= form.select :exec_ask,
+              AgentPersona::EXEC_ASK_OPTIONS.map { |o| [o.titleize, o] },
+              { include_blank: false },
+              class: "w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-content" %>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-content-muted mb-1">Timeout (seconds)</label>
+          <%= form.number_field :exec_timeout, min: 1, max: 3600, step: 1,
+              class: "w-full px-3 py-1.5 text-sm bg-bg-elevated border border-border rounded-lg text-content" %>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Tools -->
