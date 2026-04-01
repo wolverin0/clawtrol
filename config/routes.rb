@@ -161,6 +161,20 @@ Rails.application.routes.draw do
       post "hooks/agent_done", to: "hooks#agent_done"
       post "hooks/runtime_events", to: "hooks#runtime_events"
 
+      resources :openclaw_flows, only: [:index, :show] do
+        collection do
+          post :sync
+          get :active
+        end
+      end
+
+      resources :background_runs, only: [:index, :show, :update] do
+        collection do
+          post :sync
+          get :stats
+        end
+      end
+
       resources :tasks, only: [ :index, :show, :create, :update, :destroy ] do
         collection do
           get :next

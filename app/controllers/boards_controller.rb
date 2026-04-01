@@ -233,7 +233,13 @@ class BoardsController < ApplicationController
           when_clauses = task_ids.each_with_index.map { |id, idx|
             "WHEN #{id.to_i} THEN #{idx + 1}"
           }.join(" ")
-          @board.tasks.where(id: task_ids).update_all(
+          # Aggregator board: tasks may span multiple child boards
+          scope = if @board.aggregator?
+                    Task.joins(:board).where(boards: { user_id: current_user.id, is_aggregator: false })
+                  else
+                    @board.tasks
+                  end
+          scope.where(id: task_ids).update_all(
             Arel.sql("position = CASE id #{when_clauses} END")
           )
           KanbanChannel.broadcast_refresh(@board.id) rescue nil
@@ -247,7 +253,12 @@ class BoardsController < ApplicationController
         return render json: { error: "Invalid status: #{params[:status]}" }, status: :unprocessable_entity
       end
 
-      @task = @board.tasks.find(params[:task_id])
+      # Aggregator board: task may belong to any child board
+      @task = if @board.aggregator?
+                Task.joins(:board).where(boards: { user_id: current_user.id, is_aggregator: false }).find(params[:task_id])
+              else
+                @board.tasks.find(params[:task_id])
+              end
       @task.activity_source = "web"
 
       if @task.update(status: params[:status])

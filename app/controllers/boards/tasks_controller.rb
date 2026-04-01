@@ -537,7 +537,13 @@ class Boards::TasksController < ApplicationController
   end
 
   def set_task
-    @task = @board.tasks.includes(:activities, :parent_task, :followup_task, :task_runs, :dependencies).find(params[:id])
+    # Aggregator board: task may belong to any child board
+    scope = if @board.aggregator?
+              Task.joins(:board).where(boards: { user_id: current_user.id, is_aggregator: false })
+            else
+              @board.tasks
+            end
+    @task = scope.includes(:activities, :parent_task, :followup_task, :task_runs, :dependencies).find(params[:id])
   end
 
   def task_params

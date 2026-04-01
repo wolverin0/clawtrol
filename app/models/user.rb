@@ -13,6 +13,8 @@ class User < ApplicationRecord
   has_many :sessions, dependent: :destroy, inverse_of: :user
   has_many :boards, dependent: :destroy, inverse_of: :user
   has_many :tasks, dependent: :destroy, inverse_of: :user
+  has_many :openclaw_flows, dependent: :destroy
+  has_many :background_runs, dependent: :destroy
   has_many :task_templates, dependent: :destroy, inverse_of: :user
   has_many :api_tokens, dependent: :destroy, inverse_of: :user
   has_many :saved_links, dependent: :destroy, inverse_of: :user

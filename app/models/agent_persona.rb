@@ -15,12 +15,20 @@ class AgentPersona < ApplicationRecord
   # Default tools available
   DEFAULT_TOOLS = %w[Read Write Edit exec web_search web_fetch browser nodes message].freeze
 
+  EXEC_SECURITY_OPTIONS = %w[deny allowlist full].freeze
+  EXEC_HOST_OPTIONS = %w[auto sandbox gateway node].freeze
+  EXEC_ASK_OPTIONS = %w[off on-miss always].freeze
+
   # Validations
   validates :name, presence: true
   validates :name, uniqueness: { scope: :user_id, message: "already exists for this user" }
   validates :model, length: { maximum: 120 }, allow_blank: true
   validates :fallback_model, length: { maximum: 120 }, allow_blank: true
   validates :tier, inclusion: { in: TIERS, allow_blank: true }
+  validates :exec_security, inclusion: { in: EXEC_SECURITY_OPTIONS }, allow_blank: true
+  validates :exec_host, inclusion: { in: EXEC_HOST_OPTIONS }, allow_blank: true
+  validates :exec_ask, inclusion: { in: EXEC_ASK_OPTIONS }, allow_blank: true
+  validates :exec_timeout, numericality: { greater_than: 0, less_than_or_equal_to: 3600 }, allow_nil: true
 
   # Scopes
   scope :active, -> { where(active: true) }
@@ -90,6 +98,16 @@ class AgentPersona < ApplicationRecord
     when "sonnet" then "orange"
     else "gray"
     end
+  end
+
+  # Build exec config hash for OpenClaw per-agent tools.exec
+  def exec_config
+    {
+      security: exec_security.presence || "full",
+      host: exec_host.presence || "auto",
+      ask: exec_ask.presence || "off",
+      timeout: exec_timeout || 300
+    }.compact
   end
 
   # Import from YAML file
