@@ -7,6 +7,31 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- add openclaw sync integrations (`bf7668f`)
+### 🐛 Bug Fixes
+
+### 📚 Documentation
+
+- update CHANGELOG.md [skip ci] (`a48f562`)
+### ♻️  Refactoring
+
+### ⚡ Performance
+
+### 🧪 Tests
+
+### 👷 CI
+
+### 💄 Style
+
+### 📦 Build
+
+### 🔧 Chores
+
+
+## [v2026.3.2] — 2026-03-23
+
+### 🚀 Features
+
 - add gpt5.4mini/nano models, fix recurrence scope, fix hooks test (`8fe86d5`)
 - Phase 4 — mobile responsiveness + accessibility improvements (`fae0465`)
 - Phase 3 — memory editor controller + 3 new themes (Synthwave, Nord, Dracula) (`54f256e`)
