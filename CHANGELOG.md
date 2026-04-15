@@ -10,8 +10,10 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`bf7668f`)
 ### 🐛 Bug Fixes
 
+- disable SSL for local network, guard transcript_watcher listen gem (`ea3b0fd`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`cc81815`)
 - update CHANGELOG.md [skip ci] (`a48f562`)
 ### ♻️  Refactoring
 
