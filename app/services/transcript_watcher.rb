@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "listen"
+require "listen" if Gem.loaded_specs.key?("listen")
 
 # TranscriptWatcher: Watches OpenClaw agent transcript files for changes
 # and broadcasts new messages via ActionCable in real-time.
