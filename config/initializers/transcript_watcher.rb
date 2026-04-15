@@ -12,6 +12,8 @@
 # and broadcasts changes via ActionCable.
 
 Rails.application.config.after_initialize do
+  # Skip if listen gem is not available (production without dev deps)
+  next unless Gem.loaded_specs.key?("listen")
   # Only run in development or production
   next unless Rails.env.development? || Rails.env.production?
 

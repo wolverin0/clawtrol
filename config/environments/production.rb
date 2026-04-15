@@ -25,10 +25,10 @@ Rails.application.configure do
   config.active_storage.service = :local
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  config.assume_ssl = true
+  config.assume_ssl = false  # Disabled: local network, no SSL
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  config.force_ssl = true
+  config.force_ssl = false  # Disabled: local network, no SSL certificate
 
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
@@ -101,7 +101,8 @@ Rails.application.configure do
     %r{\Ahttps://app\.clawdeck\.io\z},
     %r{\Ahttps://.*\.clawdeck\.io\z},
     %r{\Ahttps://clawdeck\.onrender\.com\z},
-    %r{\Ahttps://.*\.puntofutura\.com\.ar\z}
+    %r{\Ahttps://.*\.puntofutura\.com\.ar\z},
+    %r{\Ahttp://192\.168\.100\.186(:\d+)?\z}  # Local network
   ]
 
   # Allow APP_BASE_URL
