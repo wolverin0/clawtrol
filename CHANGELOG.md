@@ -21,6 +21,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`ea3b0fd`)
 ### 📚 Documentation
 
+- add backup & restore runbook with verified procedure (`b54b354`)
+- update CHANGELOG.md [skip ci] (`d582be6`)
 - update CHANGELOG.md [skip ci] (`9337db0`)
 - update CHANGELOG.md [skip ci] (`5df7ab0`)
 - update CHANGELOG.md [skip ci] (`2fb651e`)
