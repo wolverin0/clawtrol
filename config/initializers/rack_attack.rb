@@ -11,8 +11,7 @@
 class Rack::Attack
   # Whitelist internal gateway requests
   safelist("internal") do |req|
-    req.env["HTTP_X_INTERNAL_REQUEST"] == "true" ||
-      req.env["REMOTE_ADDR"].nil? ||
+    req.env["REMOTE_ADDR"].nil? ||
       req.env["REMOTE_ADDR"].start_with?("127.0.0.1") ||
       req.env["REMOTE_ADDR"].start_with?("192.168.100.")
   end

@@ -2,9 +2,7 @@
 
 module Api
   module V1
-    class PipelineController < ActionController::API
-      before_action :authenticate_user!
-
+    class PipelineController < BaseController
       # GET /api/v1/pipeline/status
       def status
         tasks = current_user.tasks.where(pipeline_enabled: true)
@@ -91,34 +89,6 @@ module Api
         render json: { success: true, task_id: task.id, message: "Pipeline reset and reprocessing enqueued" }
       end
 
-      private
-
-      def authenticate_user!
-        # Try API token auth first (uses SHA256 digest lookup)
-        token = request.headers["Authorization"]&.sub(/\ABearer\s+/i, "")
-        if token.present?
-          user = ApiToken.authenticate(token)
-          if user
-            @current_user = user
-            return
-          end
-        end
-
-        # Try hook token auth
-        hook_token = request.headers["X-Hook-Token"].to_s
-        configured_token = Rails.application.config.hooks_token.to_s
-        if configured_token.present? && hook_token.present? && ActiveSupport::SecurityUtils.secure_compare(hook_token, configured_token)
-          @current_user = User.where(admin: true).first || User.first
-          Rails.logger.warn("[PipelineController] Hook auth: resolved to user ##{@current_user&.id} — consider per-user API token auth for multi-tenant setups") if User.count > 1
-          return
-        end
-
-        render json: { error: "unauthorized" }, status: :unauthorized
-      end
-
-      def current_user
-        @current_user
-      end
     end
   end
 end

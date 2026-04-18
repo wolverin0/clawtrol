@@ -111,7 +111,6 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
-    csv (3.3.5)
     date (3.4.1)
     debug (1.11.0)
       irb (~> 1.10)
@@ -150,10 +149,6 @@ GEM
     hashdiff (1.2.1)
     hashie (5.1.0)
       logger
-    httparty (0.24.2)
-      csv
-      mini_mime (>= 1.0.0)
-      multi_xml (>= 0.5.2)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
     image_processing (1.14.0)
@@ -476,9 +471,7 @@ DEPENDENCIES
   debug
   diffy
   dotenv-rails
-  faraday (>= 2.14.1)
   groupdate (~> 6.7)
-  httparty
   image_processing (~> 1.2)
   importmap-rails
   jbuilder
