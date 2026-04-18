@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- **ops:** add Sentry error tracking (no-op without SENTRY_DSN) (`474744c`)
 - **nightshift:** enforce budget gate on mission create / approve / launch / arm (`8ac4ddd`)
 - webhook idempotency + centralize external-service URLs (`911626f`)
 - **billing:** per-user LLM budget gate on agent-spawn endpoints (`de5daa4`)
@@ -20,6 +21,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`ea3b0fd`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`9337db0`)
 - update CHANGELOG.md [skip ci] (`5df7ab0`)
 - update CHANGELOG.md [skip ci] (`2fb651e`)
 - update CHANGELOG.md [skip ci] (`d8598c2`)
