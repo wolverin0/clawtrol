@@ -8,6 +8,7 @@ module Api
     class HooksController < ActionController::API
       include Api::RateLimitable
       include Api::HookAuthentication
+      include Api::WebhookIdempotency
 
       # Hooks are less frequent but more critical — 30/min per IP
       before_action -> { rate_limit!(limit: 30, window: 60, key_suffix: "hooks") }
@@ -15,6 +16,7 @@ module Api
 
       # POST /api/v1/hooks/agent_complete
       def agent_complete
+        idempotent_hook! do
         task = find_task_from_params
         return render json: { error: "task not found" }, status: :not_found unless task
 
@@ -172,6 +174,7 @@ module Api
           pipeline_stage: task.pipeline_stage,
           pipeline_advanced: pipeline_advanced
         }
+        end
       end
 
       # POST /api/v1/hooks/task_outcome
