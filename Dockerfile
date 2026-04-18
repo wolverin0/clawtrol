@@ -2,7 +2,7 @@
 # Production Dockerfile for ClawDeck (Rails 8.1)
 # Multi-stage build for minimal image size
 
-ARG RUBY_VERSION=3.3.1
+ARG RUBY_VERSION=3.3.8
 
 # =============================================================================
 # Stage 1: Build stage - compile gems and precompile assets
