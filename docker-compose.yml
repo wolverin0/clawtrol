@@ -28,6 +28,8 @@ services:
     
   db:
     image: postgres:16-alpine
+    ports:
+      - "127.0.0.1:15432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:

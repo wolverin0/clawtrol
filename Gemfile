@@ -43,7 +43,6 @@ gem "image_processing", "~> 1.2"
 gem "rack-attack"
 
 # HTTP client (CVE-2026-25765 fix)
-gem "faraday", ">= 2.14.1"
 
 # OAuth authentication
 gem "omniauth"
@@ -87,7 +86,6 @@ end
 gem "pagy"
 gem "redcarpet"
 gem "diffy"
-gem "httparty"
 
 gem "chartkick", "~> 5.2"
 gem "groupdate", "~> 6.7"

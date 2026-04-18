@@ -4,10 +4,13 @@ module Api
   module V1
     class NightshiftController < BaseController
       include Api::HookAuthentication
+      include Api::WebhookIdempotency
+      include Api::BudgetGate
 
       # Cron-facing endpoints use hook token auth instead of Bearer
       skip_before_action :authenticate_api_token, only: [:report_execution, :sync_crons, :sync_tonight]
       before_action :authenticate_hook_token!, only: [:report_execution, :sync_crons, :sync_tonight]
+      before_action :enforce_budget_gate, only: [:create_mission, :approve_tonight, :launch, :arm]
 
       # GET /api/v1/nightshift/missions
       def missions
@@ -92,9 +95,11 @@ module Api
       end
 
       def sync_tonight
-        created = NightshiftSyncService.new.sync_tonight_selections
-        due_count = NightshiftMission.enabled.select(&:due_tonight?).size
-        render json: { synced: due_count, created: created, date: Date.current.iso8601 }
+        idempotent_hook! do
+          created = NightshiftSyncService.new.sync_tonight_selections
+          due_count = NightshiftMission.enabled.select(&:due_tonight?).size
+          render json: { synced: due_count, created: created, date: Date.current.iso8601 }
+        end
       end
 
       # Legacy endpoints for backward compat
@@ -152,48 +157,52 @@ module Api
 
       # POST /api/v1/nightshift/sync_crons
       def sync_crons
-        result = NightshiftSyncService.new.sync_crons
-        render json: result
+        idempotent_hook! do
+          result = NightshiftSyncService.new.sync_crons
+          render json: result
+        end
       end
 
       # POST /api/v1/nightshift/report_execution
       # NOTE: uses hook token auth (service-to-service), not user auth
       def report_execution
-        mission_name = params[:mission_name].to_s.strip
-        if mission_name.blank? || mission_name.length > 255
-          return render json: { error: "invalid mission_name" }, status: :bad_request
+        idempotent_hook! do
+          mission_name = params[:mission_name].to_s.strip
+          if mission_name.blank? || mission_name.length > 255
+            return render json: { error: "invalid mission_name" }, status: :bad_request
+          end
+
+          mission = NightshiftMission.find_by(name: mission_name)
+          unless mission
+            return render json: { error: "mission not found" }, status: :not_found
+          end
+
+          # Validate status param against allowed values
+          status = params[:status].to_s
+          unless NightshiftSelection::STATUSES.include?(status)
+            return render json: { error: "invalid status, must be one of: #{NightshiftSelection::STATUSES.join(', ')}" }, status: :bad_request
+          end
+
+          # Truncate result to prevent oversized payloads
+          result = params[:result].to_s.truncate(50_000) if params[:result].present?
+
+          selection = NightshiftSelection.find_or_create_by!(
+            nightshift_mission_id: mission.id,
+            scheduled_date: Date.current
+          ) do |sel|
+            sel.title = mission.name
+            sel.enabled = true
+            sel.status = "pending"
+          end
+
+          NightshiftEngineService.new.complete_selection(
+            selection,
+            status: status,
+            result: result
+          )
+
+          render json: selection.reload
         end
-
-        mission = NightshiftMission.find_by(name: mission_name)
-        unless mission
-          return render json: { error: "mission not found" }, status: :not_found
-        end
-
-        # Validate status param against allowed values
-        status = params[:status].to_s
-        unless NightshiftSelection::STATUSES.include?(status)
-          return render json: { error: "invalid status, must be one of: #{NightshiftSelection::STATUSES.join(', ')}" }, status: :bad_request
-        end
-
-        # Truncate result to prevent oversized payloads
-        result = params[:result].to_s.truncate(50_000) if params[:result].present?
-
-        selection = NightshiftSelection.find_or_create_by!(
-          nightshift_mission_id: mission.id,
-          scheduled_date: Date.current
-        ) do |sel|
-          sel.title = mission.name
-          sel.enabled = true
-          sel.status = "pending"
-        end
-
-        NightshiftEngineService.new.complete_selection(
-          selection,
-          status: status,
-          result: result
-        )
-
-        render json: selection.reload
       end
 
       def selections
