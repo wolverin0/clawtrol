@@ -69,7 +69,7 @@ module NavigationHelper
             { label: "Saved Links", icon: "🔖", url: saved_links_path, controller: "saved_links" },
             { label: "Learning Inbox", icon: "🧠", url: learning_proposals_path, controller: "learning_proposals", badge: (learning_count > 0 ? learning_count : nil) },
             { label: "Webhooks", icon: "🔁", url: webhook_mappings_path, controller: "webhook_mappings" },
-            { label: "Docs Hub", icon: "📚", url: "http://192.168.100.186:4010", external: true }
+            { label: "Docs Hub", icon: "📚", url: Rails.application.config.x.openclaw.docs_hub_url, external: true }
           ]
         },
         {
