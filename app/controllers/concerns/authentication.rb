@@ -67,7 +67,7 @@ module Authentication
           value: session.id,
           httponly: true,
           same_site: :strict,
-          secure: Rails.env.production?,
+          secure: request.ssl?,
           expires: 30.days.from_now
         }
       end
