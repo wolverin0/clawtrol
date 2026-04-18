@@ -5,10 +5,12 @@ module Api
     class NightshiftController < BaseController
       include Api::HookAuthentication
       include Api::WebhookIdempotency
+      include Api::BudgetGate
 
       # Cron-facing endpoints use hook token auth instead of Bearer
       skip_before_action :authenticate_api_token, only: [:report_execution, :sync_crons, :sync_tonight]
       before_action :authenticate_hook_token!, only: [:report_execution, :sync_crons, :sync_tonight]
+      before_action :enforce_budget_gate, only: [:create_mission, :approve_tonight, :launch, :arm]
 
       # GET /api/v1/nightshift/missions
       def missions
