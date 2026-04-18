@@ -28,8 +28,9 @@ services:
     
   db:
     image: postgres:16-alpine
-    ports:
-      - "127.0.0.1:15432:5432"
+    # Not used in the production deployment: Rails runs on the host
+    # against the dashboard-postgres container on 127.0.0.1:5432
+    # (see docs/audit/2026-04-17/AUDIT.md correction note).
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
