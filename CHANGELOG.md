@@ -20,6 +20,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`ea3b0fd`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`5df7ab0`)
 - update CHANGELOG.md [skip ci] (`2fb651e`)
 - update CHANGELOG.md [skip ci] (`d8598c2`)
 - update CHANGELOG.md [skip ci] (`3092421`)
@@ -33,6 +34,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **api:** PipelineController inherits BaseController (`60852b2`)
 ### ⚡ Performance
 
+- **queue:** move SolidQueue out of Puma into its own systemd service (`f22ec5c`)
 ### 🧪 Tests
 
 ### 👷 CI
