@@ -382,6 +382,12 @@ GEM
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 4.0)
       websocket (~> 1.0)
+    sentry-rails (5.28.1)
+      railties (>= 5.0)
+      sentry-ruby (~> 5.28.1)
+    sentry-ruby (5.28.1)
+      bigdecimal
+      concurrent-ruby (~> 1.0, >= 1.0.2)
     snaky_hash (2.0.3)
       hashie (>= 0.1.0, < 6)
       version_gem (>= 1.1.8, < 3)
@@ -489,6 +495,8 @@ DEPENDENCIES
   redcarpet
   rubocop-rails-omakase
   selenium-webdriver
+  sentry-rails (~> 5.17)
+  sentry-ruby (~> 5.17)
   solid_cable
   solid_cache
   solid_queue
