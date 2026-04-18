@@ -143,6 +143,31 @@ class User < ApplicationRecord
 def openclaw_only_mode?
   true
 end
+
+  # Returns true when the user has hit their daily or monthly LLM spend cap.
+  # Fail-open: if CostSnapshot lookups raise or return nil we treat the user
+  # as under budget so a budget-query bug cannot DoS the user.
+  def over_budget?
+    return false unless daily_budget_usd.present? || monthly_budget_usd.present?
+
+    if daily_budget_usd.present?
+      today_total = CostSnapshot.for_user(self).daily
+        .where(snapshot_date: Date.current).sum(:total_cost)
+      return true if today_total.to_d >= daily_budget_usd.to_d
+    end
+
+    if monthly_budget_usd.present?
+      month_start = Date.current.beginning_of_month
+      month_end   = Date.current.end_of_month
+      month_total = CostSnapshot.for_user(self).daily
+        .where(snapshot_date: month_start..month_end).sum(:total_cost)
+      return true if month_total.to_d >= monthly_budget_usd.to_d
+    end
+
+    false
+  rescue StandardError
+    false
+  end
   # Check if user signed up via OAuth
   def oauth_user?
     provider.present?

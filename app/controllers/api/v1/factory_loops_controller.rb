@@ -3,6 +3,8 @@
 module Api
   module V1
     class FactoryLoopsController < BaseController
+      include Api::BudgetGate
+      before_action :enforce_budget_gate, only: [:play]
       before_action :set_loop, only: [ :show, :update, :destroy, :play, :pause, :stop, :metrics, :findings, :clone_repo, :sync_repo, :create_pr ]
 
       def index
