@@ -10,6 +10,10 @@
 
 ---
 
+> **2026-04-18 correction (post-merge of PR #26):** the System Overview, Evidence Index, and FIX PROMPTS sections below describe  on  as the deployment database. That was **wrong** — it was an empty container the repo's  happened to describe. The real production data has always lived in  on host port 5432 via the  container (shared with the personaldashboard app, credentials in ).  was repointed on 2026-04-18; the  Postgres role and the  container created during audit remediation are now dead infrastructure and are being removed in PR-TBD. All findings below remain correct; only the DB host/name was wrong.
+
+---
+
 ## Hard Stops
 
 **No H-class conditions found.** The audit ran the full §1.4 checklist:
