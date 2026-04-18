@@ -13,11 +13,13 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`bf7668f`)
 ### 🐛 Bug Fixes
 
+- **auth:** session cookie secure flag follows request.ssl? not Rails.env (`914dd4e`)
 - **docker:** expose postgres on host port 15432 for non-container Rails (`720920a`)
 - **layouts:** wire Tailwind stylesheet tag in application+auth layouts (`2c87efa`)
 - disable SSL for local network, guard transcript_watcher listen gem (`ea3b0fd`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`3092421`)
 - **audit:** add remediation roadmap alongside the audit report (`9767635`)
 - **audit:** vibe-code-audit v2.1 + codebase maps (2026-04-17) (`2c4d4e6`)
 - update CHANGELOG.md [skip ci] (`a035ea3`)
