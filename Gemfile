@@ -89,3 +89,7 @@ gem "diffy"
 
 gem "chartkick", "~> 5.2"
 gem "groupdate", "~> 6.7"
+
+# Error tracking (no-op unless SENTRY_DSN is set)
+gem "sentry-ruby", "~> 5.17"
+gem "sentry-rails", "~> 5.17"
