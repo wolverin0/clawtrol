@@ -55,7 +55,7 @@ class User < ApplicationRecord
   %i[ai_api_key telegram_bot_token openclaw_gateway_token openclaw_hooks_token].each do |encrypted_attr|
     define_method(encrypted_attr) do
       super()
-    rescue ActiveRecord::Encryption::Errors::Decryption, ActiveRecord::Encryption::Errors::EncryptedContentIntegrity
+    rescue ActiveRecord::Encryption::Errors::Decryption, ActiveRecord::Encryption::Errors::EncryptedContentIntegrity, ActiveRecord::Encryption::Errors::Configuration
       nil
     end
   end
