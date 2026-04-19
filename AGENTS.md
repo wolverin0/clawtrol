@@ -8,11 +8,15 @@ Use this map first. Most recent confusion came from editing the wrong folder.
 
 ### Canonical vs mirror folders
 
+**UPDATED 2026-04-19** — Workflow shifted from SSH-edit-on-VM to local-clone + deploy-to-VM. The Windows local dir now holds a FULL git clone, not a docs mirror. Edits happen locally; deploys use `/deploy-to-vm` skill.
+
 | Role | Path | Status | Notes |
 |---|---|---|---|
-| Canonical ClawTrol codebase | `/home/ggorbalan/clawdeck` | **WRITE HERE** | Rails app, git repo, running service |
-| ClawTrol docs mirror on Windows | `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawtrol` | Mirror/docs only | No `.git`, do not treat as runtime codebase |
-| Scratch patch dump | `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawdeck_remote_work` | Non-canonical | Isolated files, not the live repo |
+| **Local working copy (primary)** | `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawtrol` | **WRITE HERE** | Full clone of `wolverin0/clawtrol`, same remote as VM. Work locally, deploy via `/deploy-to-vm`. |
+| VM deployment target | `/home/ggorbalan/clawdeck` | Pulled-from-git | Running Rails service, pulls from origin. Do NOT edit directly unless debugging on the VM is required. |
+| VM worktree (alternate branch) | `/home/ggorbalan/factory-workspaces/clawtrol-minimax` | Secondary working copy | Git worktree of `~/clawdeck/.git`. Separate branch, separate working dir. |
+| Audit workspace (archived) | `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawtrol-workspace` | Preserved audit docs | AUDIT.md, FIX_PROMPTS.md, FEATURE_IDEAS.md, roadmap.md, obsidian-vault/, screenshots. Moved aside from clawtrol/ during the 2026-04-19 re-clone. Reference only. |
+| Scratch patch dump | `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawdeck_remote_work` | Non-canonical | Isolated files from prior remote-work flow, not the live repo |
 | Repo comparison clones (Windows) | `G:\_OneDrive\OneDrive\Desktop\Py Apps\gitclones` | Reference only | For benchmarking patterns |
 | Repo comparison clones (Ubuntu) | `/home/ggorbalan/gitclone` | Reference only | For benchmarking patterns |
 | OpenClaw workspace | `/home/ggorbalan/.openclaw/workspace` | Separate project | Cognitive/memory files, not ClawTrol app code |
@@ -20,24 +24,35 @@ Use this map first. Most recent confusion came from editing the wrong folder.
 ### Runtime endpoints
 
 - ClawTrol app URL: `http://192.168.100.186:4001`
-- Service unit: `systemctl --user status clawdeck-web.service`
+- Service unit: `systemctl --user status clawdeck-web.service` (or via `docker compose ps` in `~/clawdeck/`)
+
+### Deploy
+
+Use the `/deploy-to-vm` skill at `.claude/skills/deploy-to-vm/SKILL.md`. Do NOT SSH-edit on the VM for non-emergency changes. The skill enforces clean-local + up-to-date-with-origin pre-flight + refuses to force-push.
 
 ## 2) Mandatory Preflight Before Any Edit
 
-Run these checks in order before coding:
+All edits happen in the **local clone** at `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawtrol\`. Run these checks locally in order before coding:
 
 ```bash
-# 1) Confirm machine/repo
-ssh ggorbalan@192.168.100.186 'cd ~/clawdeck && pwd && git rev-parse --show-toplevel'
+# 1) Confirm cwd is the local clawtrol clone
+pwd && git rev-parse --show-toplevel
+# Expected: .../clawtrol  (NOT clawtrol-workspace, NOT clawdeck_remote_work)
 
-# 2) Confirm branch + dirty state
-ssh ggorbalan@192.168.100.186 'cd ~/clawdeck && git branch --show-current && git status --short'
+# 2) Confirm origin matches the canonical repo
+git remote get-url origin
+# Expected: https://github.com/wolverin0/clawtrol.git
 
-# 3) Confirm target file exists in canonical repo
-ssh ggorbalan@192.168.100.186 'cd ~/clawdeck && ls -la <target_path>'
+# 3) Confirm branch + dirty state + sync with origin
+git branch --show-current
+git status --short
+git fetch origin && git status -uno   # see if behind/ahead
+
+# 4) Confirm target file exists locally
+ls -la <target_path>
 ```
 
-If these do not point to `/home/ggorbalan/clawdeck`, stop and re-route.
+If `pwd` does not end in `clawtrol` OR origin is not `wolverin0/clawtrol`, stop and re-route. Do NOT SSH to the VM to edit. Pre-deploy verification of the VM state is handled by the `/deploy-to-vm` skill, not the edit preflight.
 
 ## 3) Documentation Source-of-Truth Policy
 
@@ -143,18 +158,21 @@ If any gate fails, do not mark task done.
 
 ## 8) Collaboration Rules for Agents
 
-1. Edit code in `/home/ggorbalan/clawdeck` only.
+1. Edit code in the local clone only (`G:\_OneDrive\OneDrive\Desktop\Py Apps\clawtrol\`). Never SSH-edit `/home/ggorbalan/clawdeck` for non-emergency work — see `.claude/rules/local-first-workflow.md`.
 2. Avoid broad refactors in dirty worktrees unless explicitly requested.
-3. Never use destructive git commands (`reset --hard`, `checkout --`) unless asked.
-4. When context is ambiguous, verify path + repo before touching files.
+3. Never use destructive git commands (`reset --hard`, `checkout --`, force-push) unless asked.
+4. When context is ambiguous, run the section 2 preflight before touching files.
 5. Prefer small reversible changes with explicit validation steps.
 6. Keep roadmap checkboxes updated in the same execution window.
+7. Ship via `/deploy-to-vm`. Do not `git pull` directly on the VM as part of a normal change.
 
 ## 9) Common Pitfalls and Fixes
 
 ### Pitfall: "I changed files but app did not change"
-Cause: edited a mirror/non-canonical folder.
-Fix: re-run preflight, ensure edits happen in `/home/ggorbalan/clawdeck`.
+Cause: either (a) edited the wrong folder (`clawtrol-workspace/`, `clawdeck_remote_work/`, or a `gitclones/` reference clone), or (b) edited locally but never deployed.
+Fix:
+- Re-run section 2 preflight; confirm `pwd` ends in `clawtrol` and origin is `wolverin0/clawtrol`.
+- If the local change is committed but the VM is unchanged, run `/deploy-to-vm` to push + pull on VM + restart the service.
 
 ### Pitfall: "Nav differs across pages"
 Cause: duplicated nav partials drifting.
