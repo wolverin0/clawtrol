@@ -21,6 +21,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`ea3b0fd`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`3003d16`)
 - add backup & restore runbook with verified procedure (`b54b354`)
 - update CHANGELOG.md [skip ci] (`d582be6`)
 - update CHANGELOG.md [skip ci] (`9337db0`)
@@ -49,6 +50,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🔧 Chores
 
+- **claude:** curate .claude/ rules + skills for local-first workflow (#31) (`5f1e380`)
 - **cleanup:** remove dead audit-era infra + correct AUDIT topology note (`dd101d7`)
 - pin .ruby-version to 3.3.8 to match Dockerfile and rbenv installed version (`193b4e0`)
 - **cleanup:** remove unused gems, fix Ruby version, tighten rack_attack, drop orphan credentials (`af285ed`)
