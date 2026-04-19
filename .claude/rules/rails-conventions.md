@@ -38,7 +38,7 @@ This edits `config/importmap.rb` and vendors the file. Do NOT `npm install` — 
 
 ## Tailwind CSS
 
-Tailwind via `tailwindcss-rails` gem. Config at `config/tailwind.config.js` or similar. Rebuild happens on boot in dev; in prod Dockerfile handles it. Don't inline style attributes when a Tailwind utility exists.
+Tailwind via `tailwindcss-rails` gem. Source CSS lives at `app/assets/tailwind/application.css` (Tailwind v4 + tailwindcss-rails convention — there is NO `config/tailwind.config.js`). Rebuild happens on boot in dev; in prod the Dockerfile handles it. Don't inline style attributes when a Tailwind utility exists.
 
 ## Migrations
 
@@ -60,17 +60,15 @@ docker compose run --rm clawdeck bin/rails test
 
 ## Secrets / Credentials
 
-Rails encrypted credentials. Master key in `config/master.key` (gitignored). Edit via:
+This project uses **`dotenv-rails`**, not Rails encrypted credentials. There is NO `config/master.key` or `config/credentials.yml.enc` in this repo — don't try to `bin/rails credentials:edit`.
 
-```bash
-bin/rails credentials:edit
-```
-
-Never put secrets in `.env` or source — they go in credentials. The `.env.production.example` exists as a template but production config is in Rails credentials.
+- Local dev/test secrets: `.env` files (gitignored). Template: `.env.production.example`.
+- Production secrets: env vars on the VM, loaded by docker compose.
+- Never commit `.env`. Never put secrets in source. If a secret needs to be added, update `.env.production.example` with a placeholder + document where the real value lives.
 
 ## Jobs + background work
 
-Not sure if there's ActiveJob/Solid Queue usage yet — check `config/application.rb` for the queue adapter. If adding background jobs, prefer Solid Queue (Rails 8 native) over Sidekiq unless there's a specific reason.
+`solid_queue` is in the Gemfile — use it as the ActiveJob backend. Don't add Sidekiq, Resque, or other queue gems unless there's a concrete reason Solid Queue can't handle the workload. Cache uses `solid_cache`, Action Cable uses `solid_cable` — same family, all Postgres-backed.
 
 ## Controllers thin, models fat
 

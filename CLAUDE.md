@@ -16,7 +16,7 @@ These load automatically based on the files you touch:
 |---|---|
 | `.claude/rules/local-first-workflow.md` | Always (no path filter) |
 | `.claude/rules/rails-conventions.md` | `app/`, `config/`, `db/migrate/`, `test/`, `Gemfile` |
-| `.claude/rules/web/design-quality.md` | `app/views/**/*.erb`, `app/components/**/*`, `app/assets/stylesheets/**/*.css` |
+| `.claude/rules/web/design-quality.md` | `app/views/**/*.erb`, `app/assets/stylesheets/**/*.css` |
 | `.claude/rules/web/performance.md` | `app/views/**/*.erb`, `app/javascript/**/*.js`, `app/assets/**/*.{js,css}`, `config/importmap.rb` |
 | `.claude/rules/web/security.md` | `app/**/*.{rb,erb,js,css}`, `config/**/*.{rb,yml}`, `lib/**/*.rb` |
 

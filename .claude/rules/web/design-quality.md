@@ -1,7 +1,6 @@
 ---
 paths:
   - "app/views/**/*.erb"
-  - "app/components/**/*.{rb,erb}"
   - "app/assets/stylesheets/**/*.css"
 ---
 

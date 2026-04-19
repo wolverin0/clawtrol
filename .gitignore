@@ -63,3 +63,4 @@ app/assets/images/*.mp4
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+.claude/_backups/
