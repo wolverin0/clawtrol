@@ -1,0 +1,90 @@
+---
+paths:
+  - "app/**/*.{rb,erb}"
+  - "config/**/*.{rb,yml}"
+  - "db/migrate/**/*.rb"
+  - "test/**/*.rb"
+  - "Gemfile"
+---
+
+# Rails 8.1 Conventions — Clawtrol
+
+Stack (per Gemfile): Rails 8.1, Propshaft, Postgres (`pg`), Puma, Importmap, Turbo, Stimulus, Tailwind CSS, Jbuilder. Ruby version pinned in `.ruby-version`.
+
+## Hotwire-first
+
+This app uses Hotwire (Turbo + Stimulus), not a JS framework. Before reaching for anything custom:
+
+- **Turbo Drive** handles navigation. Don't replace with `fetch()` + DOM manipulation unless Turbo genuinely can't do it.
+- **Turbo Frames** for scoped updates. A form inside `<turbo-frame id="x">` naturally replaces just that frame on submit.
+- **Turbo Streams** for multi-region or server-pushed updates.
+- **Stimulus controllers** for client-side behavior. Controllers live in `app/javascript/controllers/`. Name by file, auto-registered.
+
+If you're writing a React component, stop and reconsider. The app's current trajectory is server-rendered + Hotwire. Breaking that is a scope decision, not a local choice.
+
+## Propshaft, not Sprockets
+
+Asset pipeline is **Propshaft**. Don't add `Sprockets` gems or `require_tree` directives. Static assets under `app/assets/` are served as-is with digest fingerprints. CSS is Tailwind + plain CSS; no SASS preprocessing unless explicitly added.
+
+## Importmap, not Node
+
+JavaScript is managed via **Importmap**, configured in `config/importmap.rb`. There's no `package.json` at the Rails root (any node_modules here would be a mistake). To add a JS library:
+
+```bash
+bin/importmap pin some-library
+```
+
+This edits `config/importmap.rb` and vendors the file. Do NOT `npm install` — you'd be fighting the tooling.
+
+## Tailwind CSS
+
+Tailwind via `tailwindcss-rails` gem. Config at `config/tailwind.config.js` or similar. Rebuild happens on boot in dev; in prod Dockerfile handles it. Don't inline style attributes when a Tailwind utility exists.
+
+## Migrations
+
+Rails 8.1 migrations: generate with `bin/rails g migration`. Always add a migration file — never hand-edit `db/schema.rb`. The schema file is regenerated from migrations. If you see schema.rb drift (like today's VM has `M db/schema.rb`), that's a smell — find the migration that should produce it or revert the drift.
+
+## Tests
+
+`test/` directory uses Minitest (Rails default). Run via `bin/rails test` or `bin/rails test:system` for system tests. Before deploying via `/deploy-to-vm`, tests must pass:
+
+```bash
+docker compose run --rm clawdeck bin/rails test
+```
+
+## ActiveRecord scope
+
+- Queries scoped via named scopes in the model, not inline in controllers
+- N+1 via `includes(:association)` in controller actions
+- No raw SQL unless absolutely necessary — prefer Arel or parameterized AR
+
+## Secrets / Credentials
+
+Rails encrypted credentials. Master key in `config/master.key` (gitignored). Edit via:
+
+```bash
+bin/rails credentials:edit
+```
+
+Never put secrets in `.env` or source — they go in credentials. The `.env.production.example` exists as a template but production config is in Rails credentials.
+
+## Jobs + background work
+
+Not sure if there's ActiveJob/Solid Queue usage yet — check `config/application.rb` for the queue adapter. If adding background jobs, prefer Solid Queue (Rails 8 native) over Sidekiq unless there's a specific reason.
+
+## Controllers thin, models fat
+
+Standard Rails pattern. If a controller action is >10 lines of logic, that logic belongs in a model method, service object under `app/services/`, or interactor. Keep controllers to: params → call business logic → redirect/render.
+
+## File naming
+
+- Models: `snake_case.rb`, class `CamelCase`, file matches table name singular
+- Controllers: `snake_case_controller.rb`, class `SnakeCaseController`, file matches resource plural
+- Views: `.html.erb` for HTML, `.turbo_stream.erb` for streams, `.json.jbuilder` for API JSON
+- Services (if under `app/services/`): `snake_case_service.rb`, class `SnakeCaseService`
+
+## Don't
+
+- Don't add `rack-cors` unless you're building an API. This app is not cross-origin.
+- Don't add `devise` if Auth is already in place — check `app/models/user.rb` + `config/routes.rb` for the existing auth scheme first.
+- Don't add Grape/Rails-API style controllers when Turbo Streams solve it. API-only controllers are for true JSON clients.
