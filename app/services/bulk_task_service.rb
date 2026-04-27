@@ -33,7 +33,15 @@ class BulkTaskService
     return Result.new(success: false, error: "No tasks selected") if task_ids.empty?
     return Result.new(success: false, error: "Invalid action: #{action_type}") unless ALLOWED_ACTIONS.include?(action_type)
 
-    tasks = board.tasks.where(id: task_ids)
+    # Eager-load every dependent: :destroy association so the destroy
+    # callbacks per task hit cached collections instead of issuing an N+1
+    # storm. Keep this list aligned with Task model has_many dependent:
+    # :destroy declarations.
+    tasks = board.tasks.where(id: task_ids).includes(
+      :activities, :notifications, :token_usages, :task_diffs, :task_runs,
+      :runner_leases, :agent_messages, :agent_activity_events,
+      :task_dependencies, :inverse_dependencies
+    )
     return Result.new(success: false, error: "No matching tasks found") if tasks.empty?
 
     affected_statuses = tasks.pluck(:status).uniq
@@ -103,8 +111,12 @@ class BulkTaskService
   end
 
   def delete_tasks(tasks, affected_statuses)
-    count = tasks.count
-    tasks.destroy_all
+    # Force materialization with the .includes(:activities) preload set on
+    # the relation — destroy_all then iterates the loaded array and the
+    # dependent: :destroy callback finds activities cached on each task.
+    loaded_tasks = tasks.to_a
+    count = loaded_tasks.size
+    loaded_tasks.each(&:destroy)
 
     Result.new(success: true, affected_count: count, affected_statuses: affected_statuses)
   end
