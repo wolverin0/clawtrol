@@ -14,6 +14,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`bf7668f`)
 ### 🐛 Bug Fixes
 
+- **deps,n+1:** patch CVEs + eager-load Task associations on bulk delete (`a27d4fb`)
 - enforce scope check + restore Agent Output description block (`7303961`)
 - order zombie notify before demote + loosen wake response check (`077d69f`)
 - **routes:** add missing /api/v1/hooks/zeroclaw_auditor route (`0a4c25d`)
@@ -26,6 +27,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`ea3b0fd`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`63b0324`)
 - update CHANGELOG.md [skip ci] (`e0cb024`)
 - update CHANGELOG.md [skip ci] (`7d86ed3`)
 - update CHANGELOG.md [skip ci] (`3676a16`)
@@ -44,20 +46,25 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - update CHANGELOG.md [skip ci] (`a48f562`)
 ### ♻️  Refactoring
 
+- rename module ClawDeck → Clawtrol in config/application.rb (`a92fa3a`)
 - **api:** PipelineController inherits BaseController (`60852b2`)
 ### ⚡ Performance
 
 - **queue:** move SolidQueue out of Puma into its own systemd service (`f22ec5c`)
 ### 🧪 Tests
 
+- make zerobitch + git-diff tests run in clean environments (`d973eca`)
 ### 👷 CI
 
+- brakeman --no-exit-on-error to ignore ERB parser quirks (`cc0a69c`)
 ### 💄 Style
 
+- rubocop --autocorrect cleanup (94 offenses) (`a3a0f58`)
 ### 📦 Build
 
 ### 🔧 Chores
 
+- **brakeman:** triage 4 weak warnings as false positives (`6100fac`)
 - **claude:** install audit + guardrail kits in project .claude/ (`2e8ada7`)
 - **db:** regenerate schema.rb after audit-era migrations (`4055a4d`)
 - **claude:** curate .claude/ rules + skills for local-first workflow (#31) (`5f1e380`)
