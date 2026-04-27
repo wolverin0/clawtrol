@@ -153,7 +153,6 @@ end
 # GET /api/v1/tasks/pending_attention - tasks needing agent attention
 # Returns tasks that are in "in_progress" and were claimed by agent
 def pending_attention
-
         unless current_user.agent_auto_mode?
           render json: []
           return
@@ -272,7 +271,7 @@ def pending_attention
             @task.model = actual_model
             # Prepend fallback note to description
             if fallback_note.present?
-              # Store fallback note in pipeline_log instead of polluting description (P0 contract)
+        # Store fallback note in pipeline_log instead of polluting description (P0 contract)
         @task.pipeline_log = (@task.pipeline_log || {}).merge("model_fallback" => fallback_note)
             end
           end
@@ -805,7 +804,7 @@ def pending_attention
         }
       end
 
-      # POST /api/v1/tasks/:id/run_debate
+# POST /api/v1/tasks/:id/run_debate
 # Start a debate review
 def run_debate
   style = params[:style].presence || "quick"
@@ -832,7 +831,7 @@ def run_debate
   }
 end
 
-# POST /api/v1/tasks/:id/complete_review
+      # POST /api/v1/tasks/:id/complete_review
 
       # Complete a review with status and result (called by background job or external process)
       def complete_review

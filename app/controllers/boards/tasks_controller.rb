@@ -540,9 +540,9 @@ class Boards::TasksController < ApplicationController
     # Aggregator board: task may belong to any child board
     scope = if @board.aggregator?
               Task.joins(:board).where(boards: { user_id: current_user.id, is_aggregator: false })
-            else
+    else
               @board.tasks
-            end
+    end
     @task = scope.includes(:activities, :parent_task, :followup_task, :task_runs, :dependencies).find(params[:id])
   end
 

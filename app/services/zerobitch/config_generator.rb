@@ -5,7 +5,11 @@ require "fileutils"
 
 module Zerobitch
   class ConfigGenerator
-    BASE_CONFIG_PATH = File.expand_path("~/zeroclaw-fleet/base-config.toml")
+    DEFAULT_BASE_CONFIG_PATH = File.expand_path("~/zeroclaw-fleet/base-config.toml")
+
+    def self.base_config_path
+      File.expand_path(ENV["ZEROBITCH_BASE_CONFIG_PATH"].presence || DEFAULT_BASE_CONFIG_PATH)
+    end
     STORAGE_DIR = Rails.root.join("storage", "zerobitch")
     BASE_DIR = STORAGE_DIR
 
@@ -22,7 +26,7 @@ module Zerobitch
     # Params: provider, model, api_key, autonomy (supervised/full),
     # allowed_commands (array), gateway_port, gateway_host
     def self.generate_config(agent_id, params)
-      config = File.read(BASE_CONFIG_PATH)
+      config = File.read(base_config_path)
 
       autonomy = params[:autonomy].presence || "supervised"
       gateway_port = params[:gateway_port].presence || 8080
