@@ -22,7 +22,7 @@ class FactoryControllerTest < ActiveSupport::TestCase
     controller.stub(:safe_shell, ->(*args) { captured_args = args; fake_output }) do
       summary = controller.send(:recent_files_changed_summary, "/tmp/repo", 99)
 
-      assert_equal "1 file changed, 2 insertions(+)" , summary
+      assert_equal "1 file changed, 2 insertions(+)", summary
     end
 
     assert_equal ["git", "-C", "/tmp/repo", "diff", "--stat", "HEAD~10", "HEAD", "--", "app/", "test/", "db/"], captured_args

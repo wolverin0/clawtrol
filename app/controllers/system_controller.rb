@@ -13,32 +13,32 @@ class SystemController < ApplicationController
     data = JSON.parse(output) rescue nil
     return {} unless data
 
-    usage = data.dig('usage') || {}
-    limits = data.dig('limits') || {}
+    usage = data.dig("usage") || {}
+    limits = data.dig("limits") || {}
 
     # Map providers to a consistent format
     {
-      anthropic: format_provider_stats(usage, limits, 'anthropic'),
-      google: format_provider_stats(usage, limits, 'google-gemini-cli'),
-      openai: format_provider_stats(usage, limits, 'openai-codex')
+      anthropic: format_provider_stats(usage, limits, "anthropic"),
+      google: format_provider_stats(usage, limits, "google-gemini-cli"),
+      openai: format_provider_stats(usage, limits, "openai-codex")
     }
   end
 
   def format_provider_stats(usage, limits, provider_key)
     u = usage[provider_key] || {}
     l = limits[provider_key] || {}
-    
+
     # Simple percentage calculation if limits are available
     tokens_percent = 0
-    if l['tokens_limit'] && l['tokens_limit'] > 0
-      tokens_percent = ((u['tokens_used'].to_f / l['tokens_limit']) * 100).round(1)
+    if l["tokens_limit"] && l["tokens_limit"] > 0
+      tokens_percent = ((u["tokens_used"].to_f / l["tokens_limit"]) * 100).round(1)
     end
 
     {
-      used: u['tokens_used'] || 0,
-      limit: l['tokens_limit'] || 'N/A',
+      used: u["tokens_used"] || 0,
+      limit: l["tokens_limit"] || "N/A",
       percent: tokens_percent,
-      requests: u['requests_used'] || 0
+      requests: u["requests_used"] || 0
     }
   end
 
@@ -82,6 +82,6 @@ class SystemController < ApplicationController
     load_avg = `cat /proc/loadavg`.split(/\s+/).first(3)
     { '1m': load_avg[0], '5m': load_avg[1], '15m': load_avg[2] }
   rescue StandardError
-    { '1m': '0.00', '5m': '0.00', '15m': '0.00' }
+    { '1m': "0.00", '5m': "0.00", '15m': "0.00" }
   end
 end

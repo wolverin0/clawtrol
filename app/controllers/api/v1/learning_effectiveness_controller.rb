@@ -3,7 +3,6 @@
 module Api
   module V1
     class LearningEffectivenessController < BaseController
-
       # GET /api/v1/learning_effectiveness
       #
       # Returns aggregated effectiveness data per learning entry.

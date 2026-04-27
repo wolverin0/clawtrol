@@ -88,16 +88,16 @@ module NavigationHelper
 
   def nav_item_active?(item)
     return false if item[:controller].blank?
-    
+
     is_active = controller_name == item[:controller]
     is_active &&= action_name == item[:action] if item.key?(:action)
     is_active &&= params[:id].to_s == item[:id_param] if item.key?(:id_param)
-    
+
     if item[:exact_action] == false
       # Special case for Agent Personas index vs roster
-      is_active &&= action_name != 'roster'
+      is_active &&= action_name != "roster"
     end
-    
+
     is_active
   end
 end

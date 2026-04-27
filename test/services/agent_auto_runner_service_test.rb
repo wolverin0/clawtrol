@@ -43,7 +43,7 @@ class AgentAutoRunnerServiceTest < ActiveSupport::TestCase
     self.class.summaries << message
     true
   end
-end
+  end
 
 # Webhook service that simulates failures (returns nil like OpenclawWebhookService does on error)
 class FailingWebhookService
@@ -629,7 +629,6 @@ test "wakes at most one task per board and respects FIFO id order" do
     assert_includes ids, t3.id
     refute_includes ids, t2.id
   end
-
 end
 
   test "sends periodic queue summary while queue is active" do
@@ -666,7 +665,7 @@ end
   assert_match(/Queue summary:/, FakeWebhookService.summaries.first)
   end
 
-# --- Stats reporting ---
+  # --- Stats reporting ---
 
 
   # --- Zombie Reaper: claimed but no session_id ---
@@ -890,5 +889,4 @@ end
       assert_kind_of Integer, stats[:users_considered]
     end
   end
-
 end

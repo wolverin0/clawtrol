@@ -5,7 +5,7 @@ class DailyExecutiveDigestTest < ActiveSupport::TestCase
     # Simply test the keys are present and types are generally correct
     digest = DailyExecutiveDigest.new(Date.new(2026, 2, 23))
     result = digest.generate
-    
+
     assert_equal Date.new(2026, 2, 23), result[:date]
     assert_kind_of Integer, result[:done]
     assert_kind_of Integer, result[:failed]
