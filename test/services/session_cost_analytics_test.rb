@@ -7,17 +7,18 @@ require "fileutils"
 
 class SessionCostAnalyticsTest < ActiveSupport::TestCase
   setup do
-    @original_dir = SessionCostAnalytics::SESSION_DIR
+    @original_env = ENV["OPENCLAW_SESSIONS_DIR"]
     @tmp_dir = Dir.mktmpdir("session_cost_analytics_test")
-    # Override the constant for testing
-    SessionCostAnalytics.send(:remove_const, :SESSION_DIR)
-    SessionCostAnalytics.const_set(:SESSION_DIR, @tmp_dir)
+    ENV["OPENCLAW_SESSIONS_DIR"] = @tmp_dir
   end
 
   teardown do
     FileUtils.rm_rf(@tmp_dir) if @tmp_dir && File.exist?(@tmp_dir)
-    SessionCostAnalytics.send(:remove_const, :SESSION_DIR)
-    SessionCostAnalytics.const_set(:SESSION_DIR, @original_dir)
+    if @original_env.nil?
+      ENV.delete("OPENCLAW_SESSIONS_DIR")
+    else
+      ENV["OPENCLAW_SESSIONS_DIR"] = @original_env
+    end
   end
 
   # --- Empty directory ---
