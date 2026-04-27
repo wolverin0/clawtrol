@@ -42,7 +42,7 @@ class DailyExecutiveDigestServiceTest < ActiveSupport::TestCase
     # Create done tasks today
     Task.create!(user: @user, board: @board, name: "Done 1", status: "done", updated_at: Time.current)
     Task.create!(user: @user, board: @board, name: "Done 2", status: "done", updated_at: Time.current)
-    
+
     # Create done task yesterday (should not be included)
     Task.create!(user: @user, board: @board, name: "Done Yesterday", status: "done", updated_at: 1.day.ago)
 

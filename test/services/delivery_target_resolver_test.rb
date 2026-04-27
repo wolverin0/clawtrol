@@ -50,4 +50,3 @@ class DeliveryTargetResolverTest < ActiveSupport::TestCase
     assert_equal "missing_origin_delivery_fields", resolution.reason
   end
 end
-

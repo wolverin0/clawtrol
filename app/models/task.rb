@@ -97,7 +97,7 @@ class Task < ApplicationRecord
   validates :origin_chat_id, length: { maximum: 200 }, allow_nil: true
   validates :origin_session_id, length: { maximum: 200 }, allow_nil: true
   validates :origin_session_key, length: { maximum: 200 }, allow_nil: true
-  validates :session_type, inclusion: { in: ['oneshot', 'persistent'] }, allow_nil: true
+  validates :session_type, inclusion: { in: ["oneshot", "persistent"] }, allow_nil: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
   # Activity tracking - must be declared before callbacks that use it
   attr_accessor :activity_source, :actor_name, :actor_emoji, :activity_note

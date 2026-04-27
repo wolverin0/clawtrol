@@ -32,7 +32,7 @@ class BehavioralInterventionUpdaterService
         improved_prev = !previous_score.nil? && ((previous_score - baseline) >= 1.0)
 
         if improved_now && improved_prev
-          intervention.resolve! 
+          intervention.resolve!
         elsif dropped_now
           intervention.regress!
         end

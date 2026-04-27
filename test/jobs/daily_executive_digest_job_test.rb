@@ -10,7 +10,7 @@ class DailyExecutiveDigestJobTest < ActiveJob::TestCase
 
   test "calls DailyExecutiveDigestService for each user" do
     calls = []
-    
+
     # Stub the service to record calls
     DailyExecutiveDigestService.stub(:new, ->(user) {
       calls << user
