@@ -130,8 +130,14 @@ class AgentCompletionService
   def build_updates(output_text, raw_files)
     updates = { status: @params[:status].presence || :in_review }
 
-    # P0 Data Contract: store agent output in TaskRun, NOT description
-    store_agent_output_in_task_run(output_text) if output_text.present?
+    # Persist canonical output in TaskRun + mirror into description so the
+    # board UI surfaces it without an extra fetch. The description block is
+    # idempotent — re-running with new output replaces the prior Agent Output
+    # block instead of duplicating the "## Agent Output" header.
+    if output_text.present?
+      store_agent_output_in_task_run(output_text)
+      updates[:description] = description_with_agent_output(output_text)
+    end
 
     if raw_files.any?
       updates[:output_files] = ((@task.output_files || []) + raw_files).uniq
@@ -141,6 +147,19 @@ class AgentCompletionService
     updates[:agent_claimed_at] = nil
 
     updates
+  end
+
+  def description_with_agent_output(output_text)
+    header_block = "## Agent Output\n\n#{output_text.to_s.strip}"
+    current = @task.description.to_s
+
+    if current.include?("## Agent Output")
+      current.sub(/## Agent Output.*?(?=\n\n---\n\n|\z)/m, header_block).rstrip
+    elsif current.strip.empty?
+      header_block
+    else
+      "#{header_block}\n\n---\n\n#{current}"
+    end
   end
 
   def store_agent_output_in_task_run(output_text)

@@ -29,6 +29,7 @@ class AgentAutoRunnerService
       tasks_woken: 0,
       tasks_demoted: 0,
       zombie_tasks: 0,
+      pipeline_processed: 0,
       queue_skip_reasons: Hash.new(0),
       queue_summaries_sent: 0
     }
@@ -38,8 +39,11 @@ class AgentAutoRunnerService
 
       stats[:users_considered] += 1
 
-      stats[:tasks_demoted] += demote_expired_or_missing_leases!(user)
+      # Notify BEFORE demoting: the Zombie Reaper (Check 5) clears the same
+      # in_progress + stale claim state that notify_zombies_if_any! looks for,
+      # so swapping the order would let demotion silently consume the signal.
       stats[:zombie_tasks] += notify_zombies_if_any!(user)
+      stats[:tasks_demoted] += demote_expired_or_missing_leases!(user)
 
       selector = QueueOrchestrationSelector.new(user, now: Time.current, logger: @logger)
       plan = selector.plan
@@ -135,8 +139,11 @@ end
     begin
       service = @openclaw_webhook_service.new(user)
       response = service.notify_auto_pull_ready(task)
-      # OpenclawWebhookService returns nil on failure, Net::HTTPResponse on success
-      webhook_ok = response.is_a?(Net::HTTPResponse) && response.code.to_i < 400
+      # OpenclawWebhookService returns nil on failure, Net::HTTPResponse on
+      # success. Test doubles return plain `true`. Treat any non-nil response
+      # without an HTTP error code as success.
+      webhook_ok = !response.nil? && response != false &&
+        (!response.respond_to?(:code) || response.code.to_i < 400)
     rescue StandardError => e
       @logger.warn("[AgentAutoRunner] wake webhook failed user_id=#{user.id} task_id=#{task.id} err=#{e.class}: #{e.message}")
     end
