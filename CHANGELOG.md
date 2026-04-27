@@ -14,6 +14,9 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`bf7668f`)
 ### 🐛 Bug Fixes
 
+- enforce scope check + restore Agent Output description block (`7303961`)
+- order zombie notify before demote + loosen wake response check (`077d69f`)
+- **routes:** add missing /api/v1/hooks/zeroclaw_auditor route (`0a4c25d`)
 - schema regen + skip codemap events + analytics env override (`d134b76`)
 - **db:** restore missing pipeline_* columns on tasks (`7f80797`)
 - **encryption:** read AR::Encryption keys from ENV + rescue Configuration error (`a64c36e`)
@@ -23,6 +26,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`ea3b0fd`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`e0cb024`)
 - update CHANGELOG.md [skip ci] (`7d86ed3`)
 - update CHANGELOG.md [skip ci] (`3676a16`)
 - update CHANGELOG.md [skip ci] (`3003d16`)
