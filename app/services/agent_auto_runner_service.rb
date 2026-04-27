@@ -29,6 +29,7 @@ class AgentAutoRunnerService
       tasks_woken: 0,
       tasks_demoted: 0,
       zombie_tasks: 0,
+      pipeline_processed: 0,
       queue_skip_reasons: Hash.new(0),
       queue_summaries_sent: 0
     }

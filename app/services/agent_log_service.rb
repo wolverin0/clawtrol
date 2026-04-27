@@ -62,10 +62,7 @@ class AgentLogService
   private
 
   def lazy_resolve_session_id!
-    if @task.agent_session_id.present?
-      @skip_scope_check = true  # session was linked before this call — trust it
-      return
-    end
+    return if @task.agent_session_id.present?
 
     # Try session_key resolution first
     if @task.agent_session_key.present? && @session_resolver
