@@ -1,0 +1,41 @@
+{
+  "_comment_1": "Drop-in snippet for .claude/settings.json — merge the hooks block into your existing settings (don't replace the whole file).",
+  "_comment_2": "Per Claude Code's real hook contract (https://code.claude.com/docs/en/hooks): the matcher is a regex over tool name only. There is no native filter.path syntax. The hook itself reads stdin, parses tool_input.file_path, and decides whether to enforce. Defensive in-script filtering keeps Write/Edit on non-audit files passing through cleanly.",
+  "_comment_3": "Path syntax: $CLAUDE_PROJECT_DIR for per-project install, $HOME for global install. Pick the form that matches your install location. See docs/INSTALLATION.md for both options.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "_comment": "Block writes of audit reports that violate R1, R2, R4, or R6.",
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-audit-evidence-check.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git commit*)",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-secret-scan.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "_comment": "Validate the final report shape after writing. Warning-only — pre-emit is the hard gate.",
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-audit-format-check.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
