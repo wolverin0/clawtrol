@@ -11,7 +11,11 @@ require "time"
 # Expected JSONL entries:
 #   {"type":"message","timestamp":"ISO","message":{"role":"assistant","usage":{...},"model":"..."}}
 class SessionCostAnalytics
-  SESSION_DIR = File.expand_path("~/.openclaw/agents/main/sessions").freeze
+  DEFAULT_SESSION_DIR = "~/.openclaw/agents/main/sessions"
+
+  def self.session_dir
+    File.expand_path(ENV["OPENCLAW_SESSIONS_DIR"].presence || DEFAULT_SESSION_DIR)
+  end
 
   PERIODS = {
     "7d" => 7.days,
@@ -46,7 +50,7 @@ class SessionCostAnalytics
     by_day = Hash.new { |h, k| h[k] = { cost: 0.0, tokens: 0 } }
     by_session = Hash.new { |h, k| h[k] = { cost: 0.0, tokens: 0, model: nil, last_seen: nil } }
 
-    files = Dir.glob(File.join(SESSION_DIR, "*.jsonl"))
+    files = Dir.glob(File.join(self.class.session_dir, "*.jsonl"))
 
     files.each do |path|
       session_key = File.basename(path, ".jsonl")
