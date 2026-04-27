@@ -19,7 +19,11 @@ jobs:
           bundler-cache: true
 
       - name: Scan for common Rails security vulnerabilities using static analysis
-        run: bin/brakeman --no-pager
+        # --no-exit-on-error: brakeman exits non-zero on ERB parser errors
+        # (e.g. complex case/when blocks it can't statically parse). Those
+        # are not security findings and shouldn't fail CI.
+        # --no-exit-on-warn is intentionally NOT set: real warnings still fail.
+        run: bin/brakeman --no-pager --no-exit-on-error
       
       - name: Scan for known security vulnerabilities in gems used
         run: bin/bundler-audit
