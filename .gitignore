@@ -64,3 +64,10 @@ app/assets/images/*.mp4
 .dolt/
 *.db
 .claude/_backups/
+
+# Audit-kit staging dir
+_kits-staging/
+.claude/_backups/
+obsidian-vault/
+*.png
+.playwright-mcp/

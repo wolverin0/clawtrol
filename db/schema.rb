@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_01_201244) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_18_005134) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -1112,8 +1112,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_01_201244) do
     t.string "avatar_url"
     t.integer "context_threshold_percent", default: 70, null: false
     t.datetime "created_at", null: false
+    t.decimal "daily_budget_usd", precision: 10, scale: 2
     t.string "email_address", null: false
     t.string "fallback_model_chain"
+    t.decimal "monthly_budget_usd", precision: 10, scale: 2
     t.boolean "notifications_enabled", default: true, null: false
     t.string "openclaw_gateway_token"
     t.string "openclaw_gateway_url"
@@ -1138,6 +1140,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_01_201244) do
     t.integer "duration_ms"
     t.string "endpoint", null: false
     t.string "error_message"
+    t.string "event_id"
     t.string "event_type", null: false
     t.string "method", default: "POST", null: false
     t.jsonb "request_body", default: {}
@@ -1147,8 +1150,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_01_201244) do
     t.boolean "success", default: false, null: false
     t.bigint "task_id"
     t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
+    t.bigint "user_id"
     t.index ["direction"], name: "index_webhook_logs_on_direction"
+    t.index ["endpoint", "event_id"], name: "idx_webhook_logs_on_endpoint_event_id_unique", unique: true, where: "(event_id IS NOT NULL)"
     t.index ["event_type", "created_at"], name: "index_webhook_logs_on_event_type_and_created_at", order: { created_at: :desc }
     t.index ["success"], name: "index_webhook_logs_on_success", where: "(success = false)"
     t.index ["task_id"], name: "index_webhook_logs_on_task_id"
