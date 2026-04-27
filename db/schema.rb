@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_18_005134) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_27_192500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -728,6 +728,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_18_005134) do
     t.index ["created_at"], name: "index_solid_cable_messages_on_created_at"
   end
 
+  create_table "solid_cache_entries", force: :cascade do |t|
+    t.integer "byte_size", null: false
+    t.datetime "created_at", null: false
+    t.binary "key", null: false
+    t.bigint "key_hash", null: false
+    t.binary "value", null: false
+    t.index ["byte_size"], name: "index_solid_cache_entries_on_byte_size"
+    t.index ["key_hash", "byte_size"], name: "index_solid_cache_entries_on_key_hash_and_byte_size"
+    t.index ["key_hash"], name: "index_solid_cache_entries_on_key_hash", unique: true
+  end
+
   create_table "solid_queue_blocked_executions", force: :cascade do |t|
     t.string "concurrency_key", null: false
     t.datetime "created_at", null: false
@@ -1019,6 +1030,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_18_005134) do
     t.text "original_description"
     t.jsonb "output_files", default: [], null: false
     t.bigint "parent_task_id"
+    t.boolean "pipeline_enabled", default: false, null: false
+    t.jsonb "pipeline_log"
+    t.string "pipeline_stage"
+    t.string "pipeline_type"
     t.integer "position"
     t.integer "priority", default: 0, null: false
     t.string "recurrence_rule"
@@ -1039,6 +1054,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_18_005134) do
     t.integer "status", default: 0, null: false
     t.text "suggested_followup"
     t.string "tags", default: [], array: true
+    t.integer "timeout_seconds"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.string "validation_command"
@@ -1066,6 +1082,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_18_005134) do
     t.index ["nightly"], name: "index_tasks_on_nightly"
     t.index ["openclaw_flow_id"], name: "index_tasks_on_openclaw_flow_id"
     t.index ["parent_task_id"], name: "index_tasks_on_parent_task_id"
+    t.index ["pipeline_enabled"], name: "index_tasks_on_pipeline_enabled"
+    t.index ["pipeline_stage"], name: "index_tasks_on_pipeline_stage"
     t.index ["position"], name: "index_tasks_on_position"
     t.index ["recurring"], name: "index_tasks_on_recurring"
     t.index ["review_status"], name: "index_tasks_on_review_status", where: "(review_status IS NOT NULL)"

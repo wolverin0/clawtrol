@@ -1,9 +1,15 @@
 # frozen_string_literal: true
 
 class RuntimeEventsIngestionService
-  Result = Struct.new(:created, :duplicates, :errors, keyword_init: true)
+  Result = Struct.new(:created, :duplicates, :errors, :codemap_events, keyword_init: true)
 
   DEFAULT_SOURCE = "runtime_hook"
+
+  # Codemap events (spatial state syncs from the codemap viewer) are streamed
+  # over the same runtime hook channel but should not be persisted as agent
+  # activity — they describe map geometry, not agent actions. Identified by
+  # event type alone since the type is dedicated to this purpose.
+  CODEMAP_EVENT_TYPES = %w[state_sync].freeze
 
   def self.call(task:, events:, run_id:, map_id: nil, source: DEFAULT_SOURCE)
     new(task: task, events: events, run_id: run_id, map_id: map_id, source: source).call
@@ -21,10 +27,16 @@ class RuntimeEventsIngestionService
   def call
     created = 0
     duplicates = 0
+    codemap_events = 0
     errors = []
     runtime_broadcasts = []
 
     @events.each_with_index do |event, index|
+      if codemap_event?(event)
+        codemap_events += 1
+        next
+      end
+
       normalized = normalize_event(event, index)
 
       AgentActivityEvent.create!(normalized[:attrs])
@@ -38,10 +50,21 @@ class RuntimeEventsIngestionService
 
     AgentActivityChannel.broadcast_runtime_events(@task.id, runtime_broadcasts) if runtime_broadcasts.any?
 
-    Result.new(created: created, duplicates: duplicates, errors: errors)
+    Result.new(created: created, duplicates: duplicates, errors: errors, codemap_events: codemap_events)
   end
 
   private
+
+  def codemap_event?(event)
+    raw_hash = if event.respond_to?(:to_unsafe_h)
+      event.to_unsafe_h
+    else
+      event.to_h
+    end
+    h = raw_hash.with_indifferent_access
+    raw_type = (h[:event_type] || h[:type] || h[:event] || h[:name]).to_s
+    CODEMAP_EVENT_TYPES.include?(raw_type)
+  end
 
   def normalize_event(event, index)
     raw_hash = if event.respond_to?(:to_unsafe_h)

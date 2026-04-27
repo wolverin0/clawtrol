@@ -106,7 +106,7 @@ class CostSnapshotService
       # Skip expensive JSONL scan in test environment or when no session files exist
       return result if Rails.env.test?
 
-      session_dir = SessionCostAnalytics::SESSION_DIR
+      session_dir = SessionCostAnalytics.session_dir
       return result unless Dir.exist?(session_dir) && Dir.glob(File.join(session_dir, "*.jsonl")).any?
 
       begin
