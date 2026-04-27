@@ -12,6 +12,14 @@ class GenerateDiffsJobTest < ActiveJob::TestCase
     FileUtils.remove_entry(@project_dir) if Dir.exist?(@project_dir)
   end
 
+  # CI runners have no global git user identity; commits then fail with
+  # "Author identity unknown". Each test that creates a git repo should
+  # call this so commits succeed in any environment.
+  def configure_git_identity!(dir)
+    system("git -C #{dir} config user.email test@example.com")
+    system("git -C #{dir} config user.name Test")
+  end
+
   # --- Basic functionality ---
 
   test "does nothing when task not found" do
@@ -40,6 +48,7 @@ class GenerateDiffsJobTest < ActiveJob::TestCase
     # Create a git repo
     git_dir = File.join(@project_dir, ".git")
     system("git init -q #{@project_dir}")
+    configure_git_identity!(@project_dir)
     File.write(File.join(@project_dir, "test.rb"), "puts 'hello'\nputs 'world'\n")
     system("git -C #{@project_dir} add test.rb")
     system("git -C #{@project_dir} commit -q -m 'initial'")
@@ -60,6 +69,7 @@ class GenerateDiffsJobTest < ActiveJob::TestCase
 
   test "generates diff for new untracked file" do
     system("git init -q #{@project_dir}")
+    configure_git_identity!(@project_dir)
     File.write(File.join(@project_dir, "newfile.rb"), "class New\nend\n")
 
     @task.board.update!(project_path: @project_dir)
@@ -75,6 +85,7 @@ class GenerateDiffsJobTest < ActiveJob::TestCase
 
   test "generates diff for deleted file" do
     system("git init -q #{@project_dir}")
+    configure_git_identity!(@project_dir)
     File.write(File.join(@project_dir, "deleted.rb"), "class Deleted\nend\n")
     system("git -C #{@project_dir} add deleted.rb")
     system("git -C #{@project_dir} commit -q -m 'initial'")
