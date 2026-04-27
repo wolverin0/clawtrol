@@ -160,6 +160,7 @@ Rails.application.routes.draw do
       post "hooks/task_outcome", to: "hooks#task_outcome"
       post "hooks/agent_done", to: "hooks#agent_done"
       post "hooks/runtime_events", to: "hooks#runtime_events"
+      post "hooks/zeroclaw_auditor", to: "hooks#zeroclaw_auditor"
 
       resources :openclaw_flows, only: [:index, :show] do
         collection do
