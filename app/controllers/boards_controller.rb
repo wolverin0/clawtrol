@@ -236,9 +236,9 @@ class BoardsController < ApplicationController
           # Aggregator board: tasks may span multiple child boards
           scope = if @board.aggregator?
                     Task.joins(:board).where(boards: { user_id: current_user.id, is_aggregator: false })
-                  else
+          else
                     @board.tasks
-                  end
+          end
           scope.where(id: task_ids).update_all(
             Arel.sql("position = CASE id #{when_clauses} END")
           )
@@ -256,9 +256,9 @@ class BoardsController < ApplicationController
       # Aggregator board: task may belong to any child board
       @task = if @board.aggregator?
                 Task.joins(:board).where(boards: { user_id: current_user.id, is_aggregator: false }).find(params[:task_id])
-              else
+      else
                 @board.tasks.find(params[:task_id])
-              end
+      end
       @task.activity_source = "web"
 
       if @task.update(status: params[:status])

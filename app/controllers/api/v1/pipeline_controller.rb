@@ -88,7 +88,6 @@ module Api
 
         render json: { success: true, task_id: task.id, message: "Pipeline reset and reprocessing enqueued" }
       end
-
     end
   end
 end

@@ -16,7 +16,7 @@ class DailyExecutiveDigest
   private
 
   def completed_tasks
-    Task.where('updated_at >= ?', @date.beginning_of_day).where(status: 'done').count
+    Task.where("updated_at >= ?", @date.beginning_of_day).where(status: "done").count
   end
 
   def failed_tasks
@@ -30,6 +30,6 @@ class DailyExecutiveDigest
   end
 
   def next_tasks
-    Task.where(status: ['up_next', 'inbox']).order(created_at: :asc).limit(3).pluck(:name)
+    Task.where(status: ["up_next", "inbox"]).order(created_at: :asc).limit(3).pluck(:name)
   end
 end

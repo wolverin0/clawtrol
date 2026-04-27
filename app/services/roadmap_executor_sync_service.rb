@@ -9,7 +9,7 @@ class RoadmapExecutorSyncService
 
   def sync!
     tasks = parse_markdown_checkboxes(@markdown_content)
-    
+
     tasks.each do |task_data|
       existing_task = @board.tasks.find_by(name: task_data[:name])
       if existing_task

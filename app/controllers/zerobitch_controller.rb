@@ -34,7 +34,6 @@ class ZerobitchController < ApplicationController
       avg_ram_percent: avg_ram,
       tasks_today: (Zerobitch::MetricsStore.tasks_today rescue 0)
     }
-
   end
 
   def new_agent
@@ -665,12 +664,12 @@ class ZerobitchController < ApplicationController
   def parse_cron_output(output)
     parsed = JSON.parse(output.to_s)
     entries = case parsed
-              when Array then parsed
-              when Hash
+    when Array then parsed
+    when Hash
                 parsed["jobs"] || parsed["crons"] || parsed["entries"] || []
-              else
+    else
                 []
-              end
+    end
     entries.map { |entry| format_cron_entry(entry) }.compact
   rescue JSON::ParserError
     []

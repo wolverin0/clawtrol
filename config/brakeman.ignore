@@ -237,8 +237,36 @@
       "file": "app/services/factory_cron_sync_service.rb",
       "line": 34,
       "note": "False positive: Open3.capture2 with argv array, no shell interpolation"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "90228baf48dc09ddf93a27adc32655287f35294df278b0b6678ae0d51f1072ee",
+      "file": "app/controllers/file_viewer_controller.rb",
+      "line": 39,
+      "note": "params[:file] passed through resolve_safe_path which validates the resolved Pathname falls under ALLOWED_DIRS (workspace, reports, clawdeck) and rejects symlinks/escapes before send_file"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "90228baf48dc09ddf93a27adc32655287f35294df278b0b6678ae0d51f1072ee",
+      "file": "app/controllers/file_viewer_controller.rb",
+      "line": 45,
+      "note": "params[:file] passed through resolve_safe_path which validates the resolved Pathname falls under ALLOWED_DIRS (workspace, reports, clawdeck) and rejects symlinks/escapes before send_file"
+    },
+    {
+      "warning_type": "File Access",
+      "fingerprint": "90228baf48dc09ddf93a27adc32655287f35294df278b0b6678ae0d51f1072ee",
+      "file": "app/controllers/file_viewer_controller.rb",
+      "line": 58,
+      "note": "params[:file] passed through resolve_safe_path which validates the resolved Pathname falls under ALLOWED_DIRS (workspace, reports, clawdeck) and rejects symlinks/escapes before send_file"
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "fingerprint": "975cbf3a6b3ff3f39f40605b219ea1ed0b2e685635b2feb9e0aac631febb2abf",
+      "file": "app/controllers/api/v1/agent_personas_controller.rb",
+      "line": 81,
+      "note": "exec_host/exec_security/exec_timeout/exec_ask are persona config strings stored on AgentPersona, not used as shell input. Persona records are admin/owner-managed; they do not eval or shell out to user-supplied values."
     }
   ],
-  "updated": "2026-02-18",
+  "updated": "2026-04-27",
   "brakeman_version": "8.0.2"
 }

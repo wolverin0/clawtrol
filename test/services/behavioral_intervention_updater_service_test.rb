@@ -19,7 +19,7 @@ class BehavioralInterventionUpdaterServiceTest < ActiveSupport::TestCase
 
   test "creates new intervention if score is below 5.0" do
     @report.update!(scores: { "security" => 4.5 })
-    
+
     assert_difference("BehavioralIntervention.count", 1) do
       updated_count = BehavioralInterventionUpdaterService.call(user: @user, report: @report)
       assert_equal 1, updated_count

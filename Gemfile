@@ -82,6 +82,9 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
   gem "webmock"
+  # Pin minitest at 5.x — 6.0+ extracts minitest/mock to a separate gem
+  # which breaks test_helper requires until upstream config is updated.
+  gem "minitest", "~> 5.0"
 end
 gem "pagy"
 gem "redcarpet"

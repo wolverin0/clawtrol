@@ -10,11 +10,18 @@ module Zerobitch
       @workspace_dir = Rails.root.join("storage", "zerobitch", "workspaces", @agent_id)
       FileUtils.rm_rf(@config_dir)
       FileUtils.rm_rf(@workspace_dir)
+      @original_base_config = ENV["ZEROBITCH_BASE_CONFIG_PATH"]
+      ENV["ZEROBITCH_BASE_CONFIG_PATH"] = Rails.root.join("test/fixtures/files/zerobitch_base_config.toml").to_s
     end
 
     def teardown
       FileUtils.rm_rf(@config_dir)
       FileUtils.rm_rf(@workspace_dir)
+      if @original_base_config.nil?
+        ENV.delete("ZEROBITCH_BASE_CONFIG_PATH")
+      else
+        ENV["ZEROBITCH_BASE_CONFIG_PATH"] = @original_base_config
+      end
     end
 
     test "generate_config writes config with requested values" do

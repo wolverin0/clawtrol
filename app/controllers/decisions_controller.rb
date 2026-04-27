@@ -12,13 +12,13 @@ class DecisionsController < ApplicationController
     action = params[:action_type]
 
     case action
-    when 'retry'
+    when "retry"
       @task.update!(status: :up_next, consecutive_failures: 0)
       flash[:notice] = "Task requeued for retry"
-    when 'skip'
+    when "skip"
       @task.update!(status: :done, consecutive_failures: 0)
       flash[:notice] = "Task marked as done"
-    when 'stop'
+    when "stop"
       @task.update!(status: :archived, consecutive_failures: 0)
       flash[:notice] = "Task archived"
     else
