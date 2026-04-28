@@ -179,8 +179,7 @@ class AgentCompletionService
       @task.task_runs.create!(
         run_id: run_id,
         agent_output: output_text,
-        prompt_used: @task.effective_prompt,
-        status: "completed"
+        prompt_used: @task.effective_prompt
       )
     end
 
