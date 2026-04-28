@@ -164,7 +164,9 @@ module Task::AgentIntegration
   end
 
   def debate_storage_path
-    File.expand_path("~/clawdeck/storage/debates/task_#{id}")
+    base = ENV["CLAWTROL_STORAGE_DIR"].presence ||
+      File.join(ENV["CLAWTROL_PROJECT_DIR"].presence || "~/clawdeck", "storage")
+    File.expand_path(File.join(base, "debates", "task_#{id}"))
   end
 
   def debate_synthesis_path
