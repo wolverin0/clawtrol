@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- **ops:** operational hardening pass (`cd8c030`)
 - **ops:** add Sentry error tracking (no-op without SENTRY_DSN) (`474744c`)
 - **nightshift:** enforce budget gate on mission create / approve / launch / arm (`8ac4ddd`)
 - webhook idempotency + centralize external-service URLs (`911626f`)
@@ -27,6 +28,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`ea3b0fd`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`c0c331a`)
 - update CHANGELOG.md [skip ci] (`63b0324`)
 - update CHANGELOG.md [skip ci] (`e0cb024`)
 - update CHANGELOG.md [skip ci] (`7d86ed3`)
