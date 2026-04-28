@@ -4,7 +4,7 @@
 # Provides safe, audited git operations with conflict detection and rollback.
 class CherryPickService
   PLAYGROUND_PATH = File.expand_path(ENV.fetch("CHERRY_PICK_PLAYGROUND_PATH", "~/.openclaw/workspace/clawtrolplayground"))
-  PRODUCTION_PATH = File.expand_path("~/clawdeck")
+  PRODUCTION_PATH = File.expand_path(ENV["CLAWTROL_PROJECT_DIR"].presence || "~/clawdeck")
   MAX_CHERRY_PICK_COMMITS = 20
 
   Result = Struct.new(:success, :message, :data, keyword_init: true)

@@ -70,8 +70,8 @@ module Pipeline
       board_name = @task.board&.name.to_s.downcase
 
       case board_name
-      when "clawdeck"
-        File.expand_path("~/clawdeck")
+      when "clawdeck", "clawtrol"
+        File.expand_path(ENV["CLAWTROL_PROJECT_DIR"].presence || "~/clawdeck")
       when "personal dashboard"
         "/mnt/pyapps/personaldashboard"
       when "whatsapp bot"

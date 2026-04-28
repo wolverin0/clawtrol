@@ -32,8 +32,9 @@ module OutputRenderable
     return nil if path_components.any? { |component| component.start_with?(".") && component != "." }
 
     # Define allowed base directories (project and storage only)
-    project_root = File.expand_path("~/clawdeck")
-    storage_root = File.expand_path("~/clawdeck/storage")
+    # Env-overridable so non-VM environments can point at a temp tree.
+    project_root = File.expand_path(ENV["CLAWTROL_PROJECT_DIR"].presence || "~/clawdeck")
+    storage_root = File.expand_path(ENV["CLAWTROL_STORAGE_DIR"].presence || File.join(project_root, "storage"))
 
     # Allow caller to override allowed_dirs (for board-specific project paths)
     allowed_dirs ||= [project_root, storage_root]
