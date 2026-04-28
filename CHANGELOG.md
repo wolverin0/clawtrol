@@ -15,6 +15,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`bf7668f`)
 ### 🐛 Bug Fixes
 
+- **db:integrity:** treat orphan schema_migrations rows as warning, not abort (`3ad3804`)
 - **deps,n+1:** patch CVEs + eager-load Task associations on bulk delete (`a27d4fb`)
 - enforce scope check + restore Agent Output description block (`7303961`)
 - order zombie notify before demote + loosen wake response check (`077d69f`)
@@ -28,6 +29,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`ea3b0fd`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`9c09fe1`)
 - update CHANGELOG.md [skip ci] (`c0c331a`)
 - update CHANGELOG.md [skip ci] (`63b0324`)
 - update CHANGELOG.md [skip ci] (`e0cb024`)
