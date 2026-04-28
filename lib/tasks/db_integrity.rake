@@ -20,7 +20,7 @@ EXPECTED_COLUMNS = {
   "boards" => %w[name user_id],
   "api_tokens" => %w[token_digest token_prefix user_id],
   "agent_activity_events" => %w[task_id run_id event_type seq],
-  "task_runs" => %w[task_id run_id status]
+  "task_runs" => %w[task_id run_id run_number]
 }.freeze
 
 namespace :db do
