@@ -38,14 +38,22 @@ namespace :db do
       missing_in_db = file_versions - db_versions
       missing_in_files = db_versions - file_versions
 
-      if missing_in_db.any? || missing_in_files.any?
-        puts "❌ schema_migrations drift detected"
-        puts "  Files not applied:    #{missing_in_db.inspect}" if missing_in_db.any?
-        puts "  In DB without file:   #{missing_in_files.inspect}" if missing_in_files.any?
+      # Orphan rows in schema_migrations (no matching file) are usually the
+      # result of squashed/deleted migrations and aren't a runtime risk —
+      # warn but don't abort. The dangerous case is a file that should have
+      # run but didn't, so we abort only when missing_in_db is non-empty.
+      if missing_in_files.any?
+        puts "⚠️  schema_migrations has #{missing_in_files.size} orphan rows (no matching file): #{missing_in_files.first(5).inspect}#{missing_in_files.size > 5 ? '…' : ''}"
+        puts "    Likely from squashed/removed migrations. Not blocking."
+      end
+
+      if missing_in_db.any?
+        puts "❌ Migration files not applied:"
+        missing_in_db.each { |v| puts "  - #{v}" }
         abort
       end
 
-      puts "✅ #{file_versions.size} migrations all reconciled"
+      puts "✅ #{file_versions.size} migration files all applied"
     end
 
     desc "Verify expected (table, column) pairs exist in the DB"
