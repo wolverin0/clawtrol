@@ -4,10 +4,12 @@ class FileViewerController < ApplicationController
   rate_limit to: 60, within: 1.minute, with: -> { render plain: "Rate limit exceeded. Try again later.", status: :too_many_requests }
   include MarkdownSanitizationHelper
 
-  WORKSPACE = Pathname.new(File.expand_path("~/.openclaw/workspace")).freeze
+  # Allowed directory roots are env-overridable so tests + non-VM environments
+  # don't have to seed real paths under ~/. Defaults match the prod VM layout.
+  WORKSPACE = Pathname.new(File.expand_path(ENV["CLAWTROL_WORKSPACE_DIR"].presence || "~/.openclaw/workspace")).freeze
   WORKSPACE_PREFIX = (WORKSPACE.to_s + "/").freeze
-  REPORTS_DIR = Pathname.new(File.expand_path("~/nightshift-reports")).freeze
-  CLAWDECK_DIR = Pathname.new(File.expand_path("~/clawdeck")).freeze
+  REPORTS_DIR = Pathname.new(File.expand_path(ENV["CLAWTROL_REPORTS_DIR"].presence || "~/nightshift-reports")).freeze
+  CLAWDECK_DIR = Pathname.new(File.expand_path(ENV["CLAWTROL_PROJECT_DIR"].presence || "~/clawdeck")).freeze
   ALLOWED_DIRS = [WORKSPACE, REPORTS_DIR, CLAWDECK_DIR].freeze
 
   # Dotfiles/dotdirs that should never be served or listed
