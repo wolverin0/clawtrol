@@ -7,8 +7,10 @@
 # Ignore bundler config.
 /.bundle
 
-# Ignore all environment files (except the example).
-/.env*
+# Ignore all environment files (except redacted examples).
+/.env
+/.env.*
+!/.env.example
 !/.env.production.example
 
 # Ignore all logfiles and tempfiles.
@@ -33,6 +35,7 @@
 
 # Ignore key files for decrypting credentials and more.
 /config/*.key
+/config/master.key
 
 
 /app/assets/builds/*
@@ -52,6 +55,8 @@ tpush/
 # Large local artifacts (do not commit)
 public/*.apk
 app/assets/images/*.mp4
+*.dump
+/backups/
 
 # Internal planning and Codex artifacts
 /.planning/
