@@ -203,6 +203,8 @@ Rails.application.routes.draw do
           post :create_followup
           post :handoff
           post :link_session
+          post :log_event
+          post :log_events
           post :report_rate_limit
           post :revalidate
           post :start_validation

@@ -10,7 +10,18 @@ class FileViewerController < ApplicationController
   WORKSPACE_PREFIX = (WORKSPACE.to_s + "/").freeze
   REPORTS_DIR = Pathname.new(File.expand_path(ENV["CLAWTROL_REPORTS_DIR"].presence || "~/nightshift-reports")).freeze
   CLAWDECK_DIR = Pathname.new(File.expand_path(ENV["CLAWTROL_PROJECT_DIR"].presence || "~/clawdeck")).freeze
-  ALLOWED_DIRS = [WORKSPACE, REPORTS_DIR, CLAWDECK_DIR].freeze
+  HERMES_VIEWER_DIR = Pathname.new(File.expand_path(ENV["HERMES_VIEWER_DIR"].presence || "~/.hermes/artifacts")).freeze
+
+  # Logical roots: explicit prefixes a URL can opt into. The OpenClaw workspace
+  # is also reachable as a bare path (no prefix) for backward compatibility.
+  LOGICAL_ROOTS = {
+    "openclaw" => WORKSPACE,
+    "reports"  => REPORTS_DIR,
+    "clawdeck" => CLAWDECK_DIR,
+    "hermes"   => HERMES_VIEWER_DIR
+  }.freeze
+
+  ALLOWED_DIRS = LOGICAL_ROOTS.values.uniq.freeze
 
   # Dotfiles/dotdirs that should never be served or listed
   HIDDEN_PATTERN = /(?:^|\/)\.[^\/]/
@@ -158,6 +169,11 @@ class FileViewerController < ApplicationController
       end
     end
 
+    unless editable_path?(resolved)
+      render json: { error: "Access denied" }, status: :forbidden
+      return
+    end
+
     begin
       File.write(resolved.to_s, content)
       render json: { ok: true }
@@ -171,6 +187,17 @@ class FileViewerController < ApplicationController
   def resolve_allowed_path(relative)
     cleaned = relative.to_s.sub(%r{\A/+}, "")
 
+    # 1. Explicit logical prefixes: openclaw/, hermes/, reports/, clawdeck/.
+    #    These are the recommended form for new links — unambiguous and
+    #    platform-aware.
+    LOGICAL_ROOTS.each do |prefix, base|
+      next unless cleaned == prefix || cleaned.start_with?("#{prefix}/")
+      suffix = cleaned == prefix ? "" : cleaned.delete_prefix("#{prefix}/")
+      candidate = (base / suffix).expand_path
+      return candidate if path_allowed?(candidate)
+    end
+
+    # 2. Bare basename match (back compat): "workspace/foo", "clawdeck/foo".
     matched_base = ALLOWED_DIRS.find do |base|
       base_name = base.basename.to_s
       cleaned == base_name || cleaned.start_with?("#{base_name}/")
@@ -183,6 +210,7 @@ class FileViewerController < ApplicationController
       return candidate if path_allowed?(candidate)
     end
 
+    # 3. Bare relative path → OpenClaw workspace (back compat default).
     workspace_candidate = (WORKSPACE / cleaned).expand_path
     return workspace_candidate if path_allowed?(workspace_candidate)
 
@@ -190,9 +218,15 @@ class FileViewerController < ApplicationController
   end
 
   def path_allowed?(path)
-    ALLOWED_DIRS.any? do |base|
-      path == base || path.to_s.start_with?(base.to_s + "/")
-    end
+    ALLOWED_DIRS.any? { |base| path_under?(path, base) }
+  end
+
+  def editable_path?(path)
+    path_under?(path, WORKSPACE)
+  end
+
+  def path_under?(path, base)
+    path == base || path.to_s.start_with?(base.to_s + "/")
   end
 
   # Resolve a relative path to an absolute path safely within ALLOWED_DIRS.

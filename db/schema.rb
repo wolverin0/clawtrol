@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_27_192500) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_21_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -1133,6 +1133,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_192500) do
     t.decimal "daily_budget_usd", precision: 10, scale: 2
     t.string "email_address", null: false
     t.string "fallback_model_chain"
+    t.string "hermes_gateway_token"
+    t.string "hermes_gateway_url"
+    t.string "hermes_home", default: "~/.hermes", null: false
+    t.string "hermes_hooks_token"
+    t.string "hermes_profile"
     t.decimal "monthly_budget_usd", precision: 10, scale: 2
     t.boolean "notifications_enabled", default: true, null: false
     t.string "openclaw_gateway_token"
@@ -1140,6 +1145,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_27_192500) do
     t.string "openclaw_hooks_token"
     t.string "orchestration_mode", default: "openclaw_only", null: false
     t.string "password_digest"
+    t.string "preferred_agent_platform", default: "openclaw", null: false
     t.string "provider"
     t.string "telegram_bot_token"
     t.string "telegram_chat_id"

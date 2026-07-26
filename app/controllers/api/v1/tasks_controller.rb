@@ -11,7 +11,7 @@ module Api
       include Api::TaskValidationManagement
       include Api::BudgetGate
       before_action :enforce_budget_gate, only: [:create, :spawn_via_gateway, :dispatch_zeroclaw, :run_lobster]
-      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :requeue, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :log_event, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health, :run_lobster, :resume_lobster, :spawn_via_gateway ]
+      before_action :set_task, only: [ :show, :update, :destroy, :complete, :agent_complete, :claim, :unclaim, :requeue, :assign, :unassign, :generate_followup, :create_followup, :move, :enhance_followup, :handoff, :link_session, :log_event, :log_events, :report_rate_limit, :revalidate, :start_validation, :run_debate, :complete_review, :recover_output, :dispatch_zeroclaw, :file, :add_dependency, :remove_dependency, :dependencies, :agent_log, :session_health, :run_lobster, :resume_lobster, :spawn_via_gateway ]
 
       # GET /api/v1/tasks/:id/agent_log - get agent transcript for this task
       # Returns parsed messages from the OpenClaw session transcript
@@ -350,7 +350,7 @@ def pending_attention
         return render json: { error: "message is required" }, status: :unprocessable_entity if message.blank?
 
         raw_type    = params[:type].presence || "progress"
-        event_type  = AgentActivityEvent::EVENT_TYPES.include?(raw_type) ? raw_type : "agent_push"
+        event_type  = AgentActivityEvent::EVENT_TYPES.include?(raw_type) ? raw_type : "message"
         data        = params[:data].presence
         session_id  = params[:session_id].presence
 
@@ -387,6 +387,35 @@ def pending_attention
         }) rescue nil
 
         render json: { ok: true, event_id: event.id, seq: event.seq }
+      end
+
+      # POST /api/v1/tasks/:id/log_events
+      # Batch variant for passive/runtime log mirrors. Authenticated with the
+      # normal API token so logging sidecars do not need hook credentials.
+      def log_events
+        events = params[:events].presence || []
+        return render json: { error: "events are required" }, status: :unprocessable_entity if events.blank?
+
+        session_id = params[:session_id].presence || params[:run_id].presence
+        if session_id.present? && @task.agent_session_id.blank?
+          @task.update_column(:agent_session_id, session_id)
+        end
+
+        run_id = params[:run_id].presence || @task.agent_session_id.presence || "external-#{@task.id}"
+        result = RuntimeEventsIngestionService.call(
+          task: @task,
+          events: events,
+          run_id: run_id,
+          source: "api_log_events"
+        )
+
+        render json: {
+          ok: true,
+          task_id: @task.id,
+          created: result.created,
+          duplicates: result.duplicates,
+          errors: result.errors
+        }
       end
 
       # POST /api/v1/tasks/:id/create_followup - create a followup task

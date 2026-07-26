@@ -3,19 +3,23 @@
 # Multi-stage build for minimal image size
 
 ARG RUBY_VERSION=3.3.8
+ARG BUNDLE_WITHOUT="development test"
 
 # =============================================================================
 # Stage 1: Build stage - compile gems and precompile assets
 # =============================================================================
 FROM ruby:${RUBY_VERSION}-slim AS builder
+ARG BUNDLE_WITHOUT="development test"
 
 # Install build dependencies
+# libyaml-dev is required to build psych on Ruby 3.3+ (no longer bundled).
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     build-essential \
     git \
     libpq-dev \
     libjemalloc2 \
+    libyaml-dev \
     pkg-config \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -26,7 +30,7 @@ WORKDIR /app
 # Install application gems
 COPY Gemfile Gemfile.lock ./
 RUN bundle config set --local deployment 'true' && \
-    bundle config set --local without 'development test' && \
+    bundle config set --local without "${BUNDLE_WITHOUT}" && \
     bundle config set --local path 'vendor/bundle' && \
     bundle install --jobs 4 --retry 3 && \
     rm -rf vendor/bundle/ruby/*/cache
@@ -46,13 +50,18 @@ RUN rm -rf node_modules tmp/cache vendor/bundle/ruby/*/cache
 # Stage 2: Runtime stage - minimal production image
 # =============================================================================
 FROM ruby:${RUBY_VERSION}-slim AS runtime
+ARG BUNDLE_WITHOUT="development test"
 
-# Install runtime dependencies only
+# Install runtime dependencies only.
+# libyaml-0-2 is required at runtime for psych on Ruby 3.3+.
+# git is required by runtime features that inspect project repositories.
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     curl \
+    git \
     libpq5 \
     libjemalloc2 \
+    libyaml-0-2 \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Use jemalloc for better memory management
@@ -63,7 +72,7 @@ ENV RAILS_ENV=production \
     RAILS_LOG_TO_STDOUT=true \
     RAILS_SERVE_STATIC_FILES=true \
     BUNDLE_PATH=/app/vendor/bundle \
-    BUNDLE_WITHOUT="development:test" \
+    BUNDLE_WITHOUT=${BUNDLE_WITHOUT} \
     BUNDLE_DEPLOYMENT=1
 
 # Create non-root user

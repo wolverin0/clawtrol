@@ -33,6 +33,44 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "🤖", @user.agent_emoji
   end
 
+  test "update saves Hermes backend settings" do
+    sign_in_as(@user)
+
+    patch settings_path, params: {
+      user: {
+        orchestration_mode: "dual",
+        preferred_agent_platform: "hermes",
+        hermes_gateway_url: "https://hermes.example.test",
+        hermes_gateway_token: "gateway-token",
+        hermes_hooks_token: "hooks-token",
+        hermes_home: "~/.hermes",
+        hermes_profile: "ops"
+      }
+    }
+
+    assert_redirected_to settings_path
+    @user.reload
+    assert_equal "dual", @user.orchestration_mode
+    assert_equal "hermes", @user.preferred_agent_platform
+    assert_equal "https://hermes.example.test", @user.hermes_gateway_url
+    assert_equal "gateway-token", @user.hermes_gateway_token
+    assert_equal "hooks-token", @user.hermes_hooks_token
+    assert_equal "~/.hermes", @user.hermes_home
+    assert_equal "ops", @user.hermes_profile
+  end
+
+  test "settings page exposes Hermes backend controls" do
+    sign_in_as(@user)
+
+    get settings_path
+
+    assert_response :success
+    assert_select "option[value=?]", "hermes_only"
+    assert_select "select[name=?]", "user[preferred_agent_platform]"
+    assert_select "input[name=?]", "user[hermes_home]"
+    assert_select "input[name=?]", "user[hermes_gateway_token]"
+  end
+
   # --- SSRF protection in test_connection ---
 
   test "test_connection blocks localhost gateway URL" do

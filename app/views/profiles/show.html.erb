@@ -332,18 +332,71 @@
   </div>
 
   <p class="text-xs text-content-secondary">
-    Choose whether OpenClaw fully orchestrates execution, or ClawTrol pre-routes tasks with the pipeline.
+    Choose whether ClawDeck routes work to legacy OpenClaw, Hermes, or both backends.
   </p>
 
   <%= form_with(model: @user, url: settings_path, method: :patch, class: "space-y-3") do |form| %>
-    <%= form.select :orchestration_mode,
-        [["OpenClaw Only (recommended)", "openclaw_only"]],
-        {},
-        class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+    <div>
+      <label class="block text-xs font-medium text-content-secondary mb-1.5">Orchestration mode</label>
+      <%= form.select :orchestration_mode,
+          [["OpenClaw Only", "openclaw_only"], ["Hermes Only", "hermes_only"], ["Dual Backend", "dual"]],
+          {},
+          class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-content-secondary mb-1.5">Preferred agent platform</label>
+      <%= form.select :preferred_agent_platform,
+          [["OpenClaw", "openclaw"], ["Hermes", "hermes"]],
+          {},
+          class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content focus:ring-1 focus:ring-accent focus:outline-none" %>
+    </div>
+
+    <div>
+      <label class="block text-xs font-medium text-content-secondary mb-1.5">Hermes gateway URL</label>
+      <%= form.url_field :hermes_gateway_url,
+          placeholder: "https://hermes.example.com",
+          class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Hermes home</label>
+        <%= form.text_field :hermes_home,
+            placeholder: "~/.hermes",
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Hermes profile</label>
+        <%= form.text_field :hermes_profile,
+            placeholder: "default",
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Hermes gateway token</label>
+        <%= form.password_field :hermes_gateway_token,
+            value: @user.hermes_gateway_token,
+            placeholder: @user.hermes_gateway_token.present? ? "••••••••" : "optional",
+            autocomplete: "off",
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-content-secondary mb-1.5">Hermes hooks token</label>
+        <%= form.password_field :hermes_hooks_token,
+            value: @user.hermes_hooks_token,
+            placeholder: @user.hermes_hooks_token.present? ? "••••••••" : "optional",
+            autocomplete: "off",
+            class: "block w-full bg-bg-elevated border-0 rounded-md px-3 py-2 text-sm text-content placeholder:text-content-muted focus:ring-1 focus:ring-accent focus:outline-none" %>
+      </div>
+    </div>
+
     <p class="text-xs text-content-muted">
-      OpenClaw Only: no ClawTrol pre-routing, cleaner Kanban truth. Pipeline Assist: triage/context/routing enabled in ClawTrol.
+      OpenClaw Only keeps legacy behavior. Hermes Only routes to Hermes. Dual enables both and prefers the selected platform.
     </p>
-    <%= form.submit "Save orchestration mode", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
+    <%= form.submit "Save backend settings", class: "cursor-pointer px-3 py-1.5 bg-bg-elevated hover:bg-bg-hover text-content-secondary text-xs font-medium rounded-md transition-colors" %>
   <% end %>
 </div>
     <%= render "profiles/agent_install_prompt", api_token: @api_token %>
