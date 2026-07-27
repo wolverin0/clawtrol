@@ -75,14 +75,15 @@ module Orchestration
     def upsert_source(profile, attributes)
       source = user.orchestration_sources.find_or_initialize_by(profile:)
       health = PayloadSanitizer.call(attributes[:health] || {})
-      source.update!(
+      source_attributes = {
         status: normalize_source_status(health["status"]),
         last_seen_at: Time.current,
         generated_at: parse_time(attributes[:generated_at], allow_blank: true),
         last_error: PayloadSanitizer.text(health["last_error"], maximum: 2_000).presence,
-        health:,
-        panes: PayloadSanitizer.call(attributes[:panes] || [])
-      )
+        health:
+      }
+      source_attributes[:panes] = PayloadSanitizer.call(attributes[:panes]) if attributes.key?(:panes)
+      source.update!(source_attributes)
       source
     end
 
