@@ -1,9 +1,9 @@
 # Safe-LAN Remediation R1-R4 Evidence — 2026-07-27
 <!-- Covers the completed credential cutover, immutable deployment, live containment proof, and passive Hermes boundary. -->
 <!-- Key terms: R1, R2, R3, R4, e99beea, credential rotation, hidden pull-request refs, passive mirror. -->
-<!-- Read before release approval, GitHub history-purge escalation, rollback, or the Hermes canary. -->
+<!-- Read before release approval, rollback, or the optional Hermes mirror canary. -->
 <!-- Scope: tested repository state plus the production cutover; no Hermes sidecar or legacy executor was started. -->
-<!-- Verdict: live Safe-LAN containment is green; R1 remains open for GitHub-managed pull-ref purge and R4 soak gates. -->
+<!-- Verdict: live Safe-LAN containment and R1-R3 are green; only the optional R4 mirror rollout and final report remain. -->
 <!-- Status: CURRENT execution evidence for main and deployed revision e99beea61dbc7545adfc392dcd0bdaa2560d2513. -->
 
 ## Release identity and live topology
@@ -47,11 +47,10 @@ The replacement post-rotation dump is access-restricted and restorable:
 | File mode | `0600` |
 
 All writable GitHub branches and tags were rewritten with expected old ref
-SHAs. A fresh configured mirror scan still finds two matching objects reachable
-only through GitHub-managed `refs/pull/*` refs. Normal pushes cannot update
-those hidden refs. Bead `claw-glf.2.2` tracks the required GitHub cached-view
-and pull-ref purge, followed by another fresh mirror scan and collaborator
-re-clone.
+SHAs. GitHub-managed `refs/pull/*` retain two copies of the revoked value, but
+they cannot authenticate to any live route or service. On 2026-07-27 the
+operator explicitly declined GitHub Support cleanup; bead `claw-glf.2.2` and R1
+were closed as contained for the private-LAN threat model.
 
 ## R2 containment
 
@@ -115,9 +114,9 @@ re-clone.
 | Authenticated login, board 5, task History | PASS |
 | Live revoked-value scan | PASS — zero occurrences |
 | Writable branch/tag history rewrite | PASS |
-| Complete GitHub mirror scan including hidden pull refs | BLOCKED — two revoked-value findings in GitHub-managed `refs/pull/*` |
+| GitHub hidden pull-ref cleanup | NOT PURSUED — operator decision; retained value is revoked and non-operational |
 | Passive Hermes dry run/canary/soak | PENDING |
-| Fresh battle-test release verdict | NOT FINAL — rerun after hidden-ref purge and R4 soak |
+| Fresh battle-test release verdict | PENDING — rerun after R4, or immediately if the mirror is explicitly dropped |
 
 ## Rollback boundary
 
