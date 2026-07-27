@@ -2,6 +2,6 @@
   "database": "dolt",
   "backend": "dolt",
   "dolt_mode": "server",
-  "dolt_database": "clawdeck",
+  "dolt_database": "dolt",
   "project_id": "77ad7e7a-ddd5-4114-b785-5accec946eab"
 }
