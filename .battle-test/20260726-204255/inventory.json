@@ -1,0 +1,102 @@
+{
+  "audit_scope": "G:/_OneDrive/OneDrive/Desktop/Py Apps/clawtrol",
+  "git": {
+    "branch": "recovery/live-container-20260726",
+    "head": "909e992a2e384aaea59b4f8d77b8eb3ef05cb5ba",
+    "baseline": "bbb75510de0d3ebd9c3efbfea7040c010c46c938"
+  },
+  "stack": {
+    "primary_language": "Ruby 3.3.x",
+    "web_framework": "Rails 8.1",
+    "database": "PostgreSQL",
+    "orm": "Active Record",
+    "auth": "Rails cookie sessions for browser routes and bearer tokens for API routes",
+    "frontend": "Hotwire Turbo, Stimulus, ERB, Tailwind",
+    "background_jobs": "Solid Queue",
+    "deployment": "Docker Compose application and PostgreSQL services"
+  },
+  "counts": {
+    "route_declarations": {
+      "total": 388,
+      "checked": 388,
+      "source_globs": [
+        "config/routes.rb"
+      ],
+      "command": "rg -n '^\\s*(get|post|put|patch|delete|resources?|resource|root|match|mount)\\b' config/routes.rb"
+    },
+    "db_migrations": {
+      "total": 171,
+      "checked": 171,
+      "source_globs": [
+        "db/migrate/*.rb"
+      ],
+      "command": "Get-ChildItem db/migrate -File"
+    },
+    "database_tables_referenced_by_migrations": {
+      "total": 54,
+      "checked": 54,
+      "source_globs": [
+        "db/migrate/*.rb"
+      ],
+      "command": "Regex scan for create_table and change_table declarations"
+    },
+    "supabase_tables": {
+      "total": 0,
+      "checked": 0,
+      "source_globs": [],
+      "command": "Manifest and source scan found no Supabase integration"
+    },
+    "env_vars": {
+      "total": 96,
+      "checked": 96,
+      "source_globs": [
+        "app/**/*.{rb,erb}",
+        "config/**/*.{rb,yml,yaml}",
+        "lib/**/*.{rb,rake}",
+        "bin/**/*",
+        "scripts/**/*"
+      ],
+      "command": "Regex scan of ENV[], ENV.fetch(), and ENV.dig() references; names counted without emitting values"
+    },
+    "feature_flags": {
+      "total": 9,
+      "checked": 9,
+      "source_globs": [
+        "app/**/*.{rb,erb,js}",
+        "config/**/*.{rb,erb,js}",
+        "lib/**/*.{rb,erb,js}"
+      ],
+      "command": "rg -o '(?:FEATURE_[A-Z0-9_]+|[A-Z0-9_]+_ENABLED|[A-Za-z0-9_]+_enabled\\?)' app config lib"
+    },
+    "test_files": {
+      "total": 303,
+      "checked": 303,
+      "source_globs": [
+        "test/**/*_test.rb"
+      ],
+      "command": "Get-ChildItem test -Recurse -Filter '*_test.rb' -File"
+    },
+    "source_lines": {
+      "total": 102792,
+      "checked": 102792,
+      "source_globs": [
+        "**/*.{rb,erb,js,css,yml,yaml}",
+        "Dockerfile"
+      ],
+      "excluded_globs": [
+        "vendor/**",
+        "docs/**",
+        ".planning/**",
+        ".hermes/**",
+        ".battle-test/**",
+        "public/assets/**"
+      ],
+      "command": "git ls-files by source extension, then PowerShell line count"
+    }
+  },
+  "limitations": [
+    "Route count is the number of Rails DSL declarations; resource declarations expand to multiple runtime routes.",
+    "Production RLS and provider configuration were not queried; this audit is repository evidence only.",
+    "The historical .planning/AUDIT.md is stale April evidence and is not the source for this run."
+  ]
+}

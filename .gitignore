@@ -76,3 +76,6 @@ _kits-staging/
 obsidian-vault/
 *.png
 .playwright-mcp/
+
+# Battle-test authentication state contains signed disposable cookies.
+/test-manifest/auth/

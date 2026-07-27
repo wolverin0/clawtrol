@@ -1,0 +1,65 @@
+{
+  "version": "1.0",
+  "runId": "battle-20260726-204255",
+  "project": "clawtrol",
+  "branch": "recovery/live-container-20260726",
+  "baseCommit": "909e992a2e384aaea59b4f8d77b8eb3ef05cb5ba",
+  "startedAt": "2026-07-26T20:42:55-03:00",
+  "status": "awaiting_operator",
+  "currentStage": "operator_gate_after_stage_1",
+  "stages": {
+    "0_preflight": {
+      "status": "completed",
+      "artifact": ".battle-test/20260726-204255/preflight.json"
+    },
+    "1_diagnose": {
+      "status": "completed",
+      "artifact": "audit-report.md",
+      "verdict": "DO NOT LAUNCH UNTIL HARD STOPS RESOLVED",
+      "findings": {
+        "total": 36,
+        "critical": 2,
+        "high": 15,
+        "medium": 19,
+        "low": 0
+      }
+    },
+    "2_baseline_validation": {
+      "status": "gated",
+      "artifact": "test-manifest/validation-state.json"
+    },
+    "3_harden": {
+      "status": "pending",
+      "artifact": "TRACKS.md"
+    },
+    "4_reverify": {
+      "status": "pending"
+    },
+    "5_report": {
+      "status": "pending",
+      "artifact": "artifacts/2026-07-26-battle-test.html"
+    }
+  },
+  "gates": [
+    {
+      "id": "stage-1-hard-stops",
+      "status": "awaiting_operator",
+      "reason": "H4 committed shared hook credential and H6 same-origin untrusted HTML are verified. Battle-test requires Fix first, Proceed, or Stop."
+    },
+    {
+      "id": "isolated-auth",
+      "status": "completed",
+      "reason": "Disposable admin and member users plus signed browser storage states were created against the isolated restored database."
+    },
+    {
+      "id": "browser-control",
+      "status": "blocked",
+      "reason": "Both available Chrome profiles reported an open extension UI that blocks automation. No protected route is marked passed."
+    },
+    {
+      "id": "deploy",
+      "status": "gated",
+      "reason": "Deployment is never automatic."
+    }
+  ]
+}

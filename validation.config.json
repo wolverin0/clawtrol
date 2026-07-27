@@ -1,0 +1,125 @@
+{
+  "maxRoutes": 30,
+  "maxElements": 12,
+  "breakpoints": [
+    {
+      "name": "mobile",
+      "width": 375,
+      "height": 812
+    },
+    {
+      "name": "tablet",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "name": "laptop",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900
+    }
+  ],
+  "ignoreConsolePatterns": [
+    "ResizeObserver loop",
+    "favicon.ico"
+  ],
+  "allowedAccessDeniedPaths": [
+    "/admin"
+  ],
+  "roles": [
+    {
+      "id": "admin",
+      "label": "Administrator",
+      "credentialsEnv": {
+        "email": "VALIDATION_EMAIL_ADMIN",
+        "password": "VALIDATION_PASSWORD_ADMIN"
+      },
+      "storageState": "test-manifest/auth/admin-state.json",
+      "canAccess": [
+        "/boards",
+        "/admin",
+        "/settings",
+        "/status"
+      ],
+      "denied": []
+    },
+    {
+      "id": "member",
+      "label": "Member",
+      "credentialsEnv": {
+        "email": "VALIDATION_EMAIL_MEMBER",
+        "password": "VALIDATION_PASSWORD_MEMBER"
+      },
+      "storageState": "test-manifest/auth/member-state.json",
+      "canAccess": [
+        "/boards",
+        "/settings",
+        "/status"
+      ],
+      "denied": [
+        "/admin"
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "id": "login",
+      "path": "/session/new",
+      "label": "Login",
+      "priority": "critical",
+      "access": "public",
+      "expected": "Login form renders without an authenticated session."
+    },
+    {
+      "id": "boards",
+      "path": "/boards",
+      "label": "Boards",
+      "priority": "critical",
+      "access": "protected",
+      "expected": "Authenticated users see the board workspace."
+    },
+    {
+      "id": "settings",
+      "path": "/settings",
+      "label": "Settings",
+      "priority": "high",
+      "access": "protected",
+      "expected": "Authenticated users see their settings."
+    },
+    {
+      "id": "status",
+      "path": "/status",
+      "label": "Status",
+      "priority": "high",
+      "access": "protected",
+      "expected": "Authenticated users see runtime status without a server error."
+    },
+    {
+      "id": "admin",
+      "path": "/admin",
+      "label": "Admin",
+      "priority": "critical",
+      "access": "admin",
+      "allowAccessDenied": true,
+      "expected": "Administrators see admin content; members are denied."
+    }
+  ],
+  "security": {
+    "idorTargets": [
+      {
+        "route": "/api/v1/boards/{id}",
+        "method": "GET",
+        "objectType": "board"
+      },
+      {
+        "route": "/api/v1/tasks/{id}",
+        "method": "GET",
+        "objectType": "task"
+      }
+    ]
+  }
+}

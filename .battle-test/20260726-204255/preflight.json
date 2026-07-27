@@ -1,0 +1,37 @@
+{
+  "runId": "battle-20260726-204255",
+  "checkedAt": "2026-07-26T20:42:55-03:00",
+  "repository": {
+    "path": "G:/_OneDrive/OneDrive/Desktop/Py Apps/clawtrol",
+    "origin": "https://github.com/wolverin0/clawtrol.git",
+    "branch": "recovery/live-container-20260726",
+    "head": "909e992a2e384aaea59b4f8d77b8eb3ef05cb5ba"
+  },
+  "application": {
+    "framework": "Rails 8.1",
+    "authRequired": true,
+    "loginRoute": "/session/new",
+    "rolesDetected": [
+      "admin",
+      "member"
+    ],
+    "liveUrl": "http://192.168.100.186:4001",
+    "liveMutationAllowed": false,
+    "validationTarget": "isolated local app with restored snapshot"
+  },
+  "inputs": {
+    "existingBattleState": false,
+    "existingValidationState": false,
+    "existingValidationConfig": false,
+    "existingRootAuditReport": false,
+    "docsMapPresent": false,
+    "beadsAvailable": false
+  },
+  "hermesComparison": {
+    "integrationDesignDate": "2026-05-21",
+    "serverBaselineCommit": "16abb74eab2d0bd34efc0e94a17846507a0c952c",
+    "serverCurrentCommit": "67e73ae95899c57b9b9134b4b10a2520dffd0a16",
+    "serverCurrentVersion": "0.19.0",
+    "upstreamComparisonHead": "d7b36070"
+  }
+}

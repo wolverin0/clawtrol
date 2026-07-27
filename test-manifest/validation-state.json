@@ -1,0 +1,136 @@
+{
+  "version": "3.0",
+  "session": {
+    "id": "val-20260726-204255",
+    "appUrl": "http://127.0.0.1:4101",
+    "backend": "browser",
+    "mode": "standard",
+    "authMode": "saved-state",
+    "backendDetail": "isolated Docker app and restored PostgreSQL snapshot",
+    "configPath": "validation.config.json",
+    "status": "in_progress",
+    "currentPhase": "discover",
+    "startedAt": "2026-07-26T20:42:55-03:00",
+    "lastUpdatedAt": "2026-07-26T21:06:00-03:00",
+    "completedAt": null,
+    "contextResets": 0
+  },
+  "config": {
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "width": 375,
+        "height": 812
+      },
+      {
+        "name": "tablet",
+        "width": 768,
+        "height": 1024
+      },
+      {
+        "name": "laptop",
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      }
+    ],
+    "ignoreConsolePatterns": [
+      "ResizeObserver loop",
+      "favicon.ico"
+    ],
+    "destructiveActions": "val-only",
+    "maxRoutes": 30,
+    "maxElements": 12,
+    "allowedAccessDeniedPaths": [
+      "/admin"
+    ]
+  },
+  "auth": {
+    "required": true,
+    "blocked": false,
+    "method": "saved-state",
+    "roles": [
+      {
+        "id": "admin",
+        "authenticated": true,
+        "stateFile": "test-manifest/auth/admin-state.json",
+        "verifiedBy": "HTTP login redirected away from the login form"
+      },
+      {
+        "id": "member",
+        "authenticated": true,
+        "stateFile": "test-manifest/auth/member-state.json",
+        "verifiedBy": "HTTP login redirected away from the login form"
+      }
+    ]
+  },
+  "preflight": {
+    "passed": false,
+    "serverStatus": "responding",
+    "loadTimeMs": null,
+    "authRequired": true,
+    "console": [],
+    "errors": [],
+    "blockers": [
+      "Both available Chrome profiles have an open extension UI that blocks automation.",
+      "Battle Test Stage 1 has reported hard-stop candidates; Stage 2 cannot pass before the operator gate."
+    ]
+  },
+  "discovery": {
+    "completedAt": null,
+    "routes": [],
+    "elements": [],
+    "flows": []
+  },
+  "queues": {
+    "routes": [],
+    "elements": [],
+    "flows": []
+  },
+  "results": {
+    "routes": {},
+    "elements": {},
+    "flows": {}
+  },
+  "cleanup": {
+    "attempted": false,
+    "itemsFound": 0,
+    "itemsDeleted": 0,
+    "itemsFailed": 0,
+    "failures": []
+  },
+  "summary": {
+    "routesTested": 0,
+    "routesPassed": 0,
+    "routesFailed": 0,
+    "routesSkipped": 0,
+    "elementsTested": 0,
+    "elementsPassed": 0,
+    "elementsFailed": 0,
+    "elementsSkipped": 0,
+    "flowsTested": 0,
+    "flowsPassed": 0,
+    "flowsFailed": 0,
+    "flowsSkipped": 0,
+    "issues": 0,
+    "consoleErrors": 0,
+    "groupedConsoleIssues": 0,
+    "networkFailures": 0,
+    "rootCauseGroups": {
+      "db-schema": 0,
+      "db-rpc-missing": 0,
+      "client-or-permission-error": 0,
+      "server-error": 0,
+      "runtime-exception": 0
+    }
+  },
+  "report": {
+    "path": null,
+    "generatedAt": null,
+    "partial": true
+  }
+}
