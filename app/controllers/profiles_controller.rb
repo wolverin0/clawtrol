@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require "ostruct"
-require "resolv"
-require "ipaddr"
 
 class ProfilesController < ApplicationController
   def show
@@ -11,74 +9,7 @@ class ProfilesController < ApplicationController
   end
 
   def test_connection
-    @user = current_user
-    results = {
-      gateway_reachable: false,
-      token_valid: false,
-      hooks_token_valid: false,
-      webhook_configured: false
-    }
-
-    gateway_url = @user.openclaw_gateway_url
-    hooks_token = (@user.respond_to?(:openclaw_hooks_token) ? @user.openclaw_hooks_token : nil).to_s.strip
-    legacy_token = @user.openclaw_gateway_token.to_s.strip
-    token = hooks_token.presence || legacy_token
-
-    # Check if gateway URL and token are configured
-    results[:webhook_configured] = gateway_url.present? && token.present?
-
-    if gateway_url.present?
-      begin
-        uri = URI.parse("#{gateway_url}/health")
-
-        # SECURITY: SSRF protection — only allow http(s) to non-internal hosts
-        unless uri.scheme.in?(%w[http https]) && uri.host.present?
-          results[:error] = "Invalid gateway URL scheme"
-          return render json: results
-        end
-
-        # Block requests to metadata endpoints, localhost aliases, and private ranges
-        # that aren't the expected gateway (192.168.x.x is allowed since that's typical)
-        resolved = Resolv.getaddress(uri.host) rescue nil
-        if resolved.nil?
-          results[:error] = "Cannot resolve gateway hostname"
-          return render json: results
-        end
-        ip = IPAddr.new(resolved)
-        if ip.loopback? || ip.link_local? || resolved.start_with?("169.254.")
-          results[:error] = "Gateway URL points to a restricted address"
-          return render json: results
-        end
-
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.open_timeout = 5
-        http.read_timeout = 5
-        http.use_ssl = uri.scheme == "https"
-
-        request = Net::HTTP::Get.new(uri)
-        response = http.request(request)
-
-        results[:gateway_reachable] = response.code.to_i == 200
-
-        # Validate hooks token by calling the gateway hooks wake endpoint.
-        if results[:gateway_reachable] && token.present?
-          wake_uri = URI.parse("#{gateway_url}/hooks/wake")
-          wake_request = Net::HTTP::Post.new(wake_uri)
-          wake_request["Authorization"] = "Bearer #{token}"
-          wake_request["Content-Type"] = "application/json"
-          wake_request.body = { text: "ClawTrol connection test", mode: "next-heartbeat" }.to_json
-
-          wake_response = http.request(wake_request)
-          results[:hooks_token_valid] = wake_response.code.to_i == 200
-          results[:token_valid] = results[:hooks_token_valid]
-          results[:hooks_wake_code] = wake_response.code.to_i
-        end
-      rescue StandardError => e
-        results[:error] = e.message
-      end
-    end
-
-    render json: results
+    render json: { error: "direct agent control retired" }, status: :gone
   end
 
   def test_notification
@@ -130,6 +61,6 @@ class ProfilesController < ApplicationController
   private
 
   def profile_params
-    params.expect(user: [ :email_address, :avatar, :openclaw_gateway_url, :openclaw_gateway_token, :openclaw_hooks_token, :ai_suggestion_model, :ai_api_key, :context_threshold_percent, :auto_retry_enabled, :auto_retry_max, :auto_retry_backoff, :fallback_model_chain, :orchestration_mode, :preferred_agent_platform, :hermes_gateway_url, :hermes_gateway_token, :hermes_hooks_token, :hermes_home, :hermes_profile, :agent_name, :agent_emoji, :theme, :telegram_bot_token, :telegram_chat_id, :webhook_notification_url, :notifications_enabled ])
+    params.expect(user: [ :email_address, :avatar, :ai_suggestion_model, :ai_api_key, :context_threshold_percent, :auto_retry_enabled, :auto_retry_max, :auto_retry_backoff, :fallback_model_chain, :agent_name, :agent_emoji, :theme, :telegram_bot_token, :telegram_chat_id, :webhook_notification_url, :notifications_enabled ])
   end
 end

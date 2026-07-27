@@ -8,6 +8,12 @@ Rails.application.routes.draw do
     namespace :v1 do
       resource :settings, only: [ :show, :update ]
 
+      namespace :mirrors do
+        post "hermes/sessions", to: "hermes#sessions"
+        post "hermes/events", to: "hermes#events"
+        post "hermes/completions", to: "hermes#completions"
+      end
+
       resources :audits, only: [] do
         collection do
           post :ingest

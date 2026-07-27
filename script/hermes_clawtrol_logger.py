@@ -1,305 +1,517 @@
 #!/usr/bin/env python3
-"""Mirror Hermes sessions into ClawTrol as logging-only tasks.
+"""Read-only Hermes state.db to scoped ClawTrol mirror sidecar.
 
-Read-only against Hermes: this script never calls Hermes or changes its runtime.
-It polls ~/.hermes/state.db, creates/updates ClawTrol tasks via API, and appends
-runtime events through existing ClawTrol hooks.
+Hermes databases are opened read-only and never modified. Cursor and health
+state live in a separate ClawTrol-owned directory. Message content and tool
+arguments/results are excluded unless excerpt mirroring is explicitly enabled.
 """
 from __future__ import annotations
 
 import argparse
-import hashlib
+import contextlib
 import json
 import os
+import random
+import re
 import sqlite3
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
-DEFAULT_STATE_DB = Path.home() / ".hermes" / "state.db"
-DEFAULT_MAP_PATH = Path.home() / ".hermes" / "clawtrol-logger" / "state.json"
-DEFAULT_BASE_URL = "http://127.0.0.1:4001/api/v1"
-MAX_EVENT_CHARS = 1800
-MAX_DESCRIPTION_CHARS = 20_000
-
-
-def load_env_files() -> None:
-    for path in [Path.home() / ".openclaw" / ".env", Path.home() / "clawdeck" / ".env", Path.home() / ".hermes" / ".env"]:
-        if not path.exists():
-            continue
-        for raw in path.read_text(errors="ignore").splitlines():
-            line = raw.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, value = line.split("=", 1)
-            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+SUPPORTED_SCHEMAS = frozenset({11, 14, 17, 22, 23})
+DEFAULT_STATE_DIR = Path("/var/lib/clawtrol-hermes-mirror")
+DEFAULT_BASE_URL = "http://127.0.0.1:4001/api/v1/mirrors/hermes"
+SENSITIVE_KEYS = re.compile(
+    r"(?:authorization|cookie|secret|token|password|api[_-]?key|tool_(?:args|result|calls))",
+    re.IGNORECASE,
+)
+SENSITIVE_VALUES = (
+    re.compile(r"\b(?:sk|ghp|github_pat|xox[baprs])[-_A-Za-z0-9]{12,}\b"),
+    re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]{8,}"),
+)
 
 
-def request_json(method: str, url: str, token_header: str, token: str, payload: dict[str, Any] | None, dry_run: bool) -> dict[str, Any]:
-    if dry_run:
-        return {"dry_run": True, "method": method, "url": url, "payload": payload}
-    data = None if payload is None else json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(url, data=data, method=method)
-    req.add_header("Content-Type", "application/json")
-    req.add_header(token_header, token)
+class MirrorError(RuntimeError):
+    """A fail-closed mirror error safe to report after redaction."""
+
+
+@dataclass(frozen=True)
+class ProfileSource:
+    name: str
+    database: Path
+
+
+@dataclass
+class Cursor:
+    timestamp: Any = 0
+    message_id: Any = 0
+
+    @classmethod
+    def from_dict(cls, value: dict[str, Any] | None) -> "Cursor":
+        value = value or {}
+        return cls(value.get("timestamp", 0), value.get("message_id", 0))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"timestamp": self.timestamp, "message_id": self.message_id}
+
+
+@dataclass
+class Counters:
+    sessions: int = 0
+    events: int = 0
+    completions: int = 0
+    duplicates: int = 0
+    redactions: int = 0
+
+    def to_dict(self) -> dict[str, int]:
+        return vars(self).copy()
+
+
+@dataclass
+class ProfileBatch:
+    schema: int
+    sessions: dict[str, dict[str, Any]]
+    messages: list[dict[str, Any]]
+    cursor: Cursor
+
+
+@dataclass
+class Settings:
+    sources: list[ProfileSource]
+    state_dir: Path
+    base_url: str
+    token: str | None
+    dry_run: bool
+    include_excerpts: bool
+    expected_schema: int | None
+    hermes_commit: str
+    hermes_version: str
+    poll_seconds: float
+    once: bool
+    busy_timeout_ms: int
+    board_id: int
+    health: dict[str, Any] = field(default_factory=dict)
+
+
+def parse_profile_mapping(raw: str) -> ProfileSource:
+    name, separator, database = raw.partition("=")
+    if not separator or not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", name):
+        raise argparse.ArgumentTypeError("profile mapping must be PROFILE=/absolute/state.db")
+    if name.casefold() == "all":
+        raise argparse.ArgumentTypeError("ALL is an aggregator and cannot be mirrored")
+    path = Path(database).expanduser()
+    if not path.is_absolute():
+        raise argparse.ArgumentTypeError("state.db path must be absolute")
+    return ProfileSource(name=name, database=path)
+
+
+def redact(value: Any, counters: Counters) -> Any:
+    if isinstance(value, dict):
+        cleaned: dict[str, Any] = {}
+        for key, nested in value.items():
+            if SENSITIVE_KEYS.search(str(key)):
+                cleaned[str(key)] = "[REDACTED]"
+                counters.redactions += 1
+            else:
+                cleaned[str(key)] = redact(nested, counters)
+        return cleaned
+    if isinstance(value, list):
+        return [redact(item, counters) for item in value]
+    if not isinstance(value, str):
+        return value
+    cleaned = value
+    for pattern in SENSITIVE_VALUES:
+        cleaned, count = pattern.subn("[REDACTED]", cleaned)
+        counters.redactions += count
+    return cleaned[:2000]
+
+
+@contextlib.contextmanager
+def open_readonly(database: Path, busy_timeout_ms: int) -> Iterator[sqlite3.Connection]:
+    if not database.is_file():
+        raise MirrorError(f"state database is unavailable: {database}")
+    uri = f"file:{urllib.parse.quote(database.as_posix())}?mode=ro"
+    connection = sqlite3.connect(uri, uri=True, timeout=busy_timeout_ms / 1000, isolation_level=None)
+    connection.row_factory = sqlite3.Row
     try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            body = resp.read().decode("utf-8", errors="replace")
-            return json.loads(body) if body.strip() else {}
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"{method} {url} failed HTTP {e.code}: {body[:500]}") from e
+        connection.execute("PRAGMA query_only = ON")
+        connection.execute(f"PRAGMA busy_timeout = {int(busy_timeout_ms)}")
+        connection.execute("BEGIN")
+        yield connection
+        connection.execute("COMMIT")
+    except BaseException:
+        with contextlib.suppress(sqlite3.Error):
+            connection.execute("ROLLBACK")
+        raise
+    finally:
+        connection.close()
 
 
-def load_map(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {"sessions": {}}
-    try:
-        return json.loads(path.read_text())
-    except json.JSONDecodeError:
-        return {"sessions": {}}
+def schema_version(connection: sqlite3.Connection, expected: int | None) -> int:
+    version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+    if version not in SUPPORTED_SCHEMAS:
+        raise MirrorError(f"unsupported Hermes schema {version}")
+    if expected is not None and version != expected:
+        raise MirrorError(f"live schema {version} does not match verified schema {expected}")
+    for table in ("sessions", "messages"):
+        if not connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+        ).fetchone():
+            raise MirrorError(f"schema {version} is missing {table}")
+    return version
 
 
-def save_map(path: Path, state: dict[str, Any], dry_run: bool) -> None:
-    if dry_run:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(state, indent=2, sort_keys=True))
-    tmp.replace(path)
+def available_columns(connection: sqlite3.Connection, table: str) -> set[str]:
+    return {str(row["name"]) for row in connection.execute(f"PRAGMA table_info({table})")}
 
 
-def fetch_sessions(db_path: Path, session_id: str | None, since_epoch: float, sources: set[str]) -> list[dict[str, Any]]:
-    con = sqlite3.connect(str(db_path))
-    con.row_factory = sqlite3.Row
-    params: list[Any] = []
-    where = []
-    if session_id:
-        where.append("id = ?")
-        params.append(session_id)
-    else:
-        where.append("started_at >= ?")
-        params.append(since_epoch)
-        if sources:
-            where.append("source in (%s)" % ",".join("?" for _ in sources))
-            params.extend(sorted(sources))
-    sql = "select * from sessions where " + " and ".join(where) + " order by started_at asc"
-    return [dict(r) for r in con.execute(sql, params)]
+def selected_columns(available: set[str], candidates: tuple[str, ...]) -> str:
+    return ", ".join(column for column in candidates if column in available)
 
 
-def fetch_messages(db_path: Path, session_id: str, after_id: int = 0) -> list[dict[str, Any]]:
-    con = sqlite3.connect(str(db_path))
-    con.row_factory = sqlite3.Row
-    rows = con.execute(
-        "select id, role, content, tool_calls, tool_name, timestamp, token_count, finish_reason from messages where session_id = ? and id > ? order by id asc",
-        (session_id, after_id),
+def read_profile_batch(
+    source: ProfileSource,
+    cursor: Cursor,
+    busy_timeout_ms: int,
+    expected_schema: int | None = None,
+) -> ProfileBatch:
+    with open_readonly(source.database, busy_timeout_ms) as connection:
+        version = schema_version(connection, expected_schema)
+        message_columns = available_columns(connection, "messages")
+        required = {"id", "session_id", "timestamp"}
+        if not required.issubset(message_columns):
+            raise MirrorError(f"schema {version} lacks required message cursor columns")
+        fields = selected_columns(
+            message_columns,
+            ("id", "session_id", "timestamp", "role", "content", "token_count", "finish_reason"),
+        )
+        rows = connection.execute(
+            f"""SELECT {fields} FROM messages
+                WHERE timestamp > ? OR (timestamp = ? AND id > ?)
+                ORDER BY timestamp ASC, id ASC""",
+            (cursor.timestamp, cursor.timestamp, cursor.message_id),
+        ).fetchall()
+        messages = [dict(row) for row in rows]
+        sessions = read_sessions(connection, {str(row["session_id"]) for row in rows})
+    next_cursor = Cursor(cursor.timestamp, cursor.message_id)
+    if messages:
+        next_cursor = Cursor(messages[-1]["timestamp"], messages[-1]["id"])
+    return ProfileBatch(version, sessions, messages, next_cursor)
+
+
+def read_sessions(
+    connection: sqlite3.Connection, session_ids: set[str]
+) -> dict[str, dict[str, Any]]:
+    if not session_ids:
+        return {}
+    columns = available_columns(connection, "sessions")
+    if "id" not in columns:
+        raise MirrorError("sessions table lacks id")
+    fields = selected_columns(
+        columns,
+        ("id", "title", "source", "model", "started_at", "ended_at", "message_count"),
+    )
+    placeholders = ",".join("?" for _ in session_ids)
+    rows = connection.execute(
+        f"SELECT {fields} FROM sessions WHERE id IN ({placeholders})", tuple(sorted(session_ids))
     ).fetchall()
-    return [dict(r) for r in rows]
+    found = {str(row["id"]): dict(row) for row in rows}
+    missing = session_ids - found.keys()
+    if missing:
+        raise MirrorError(f"messages reference {len(missing)} missing sessions")
+    return found
 
 
-def text_excerpt(value: Any, limit: int = 220) -> str:
-    text = str(value or "").replace("\r", " ").strip()
-    text = " ".join(text.split())
-    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
+class ApiClient:
+    def __init__(self, base_url: str, token: str | None, dry_run: bool):
+        self.base_url = base_url.rstrip("/")
+        self.token = token
+        self.dry_run = dry_run
+
+    def post(self, endpoint: str, payload: dict[str, Any]) -> dict[str, Any]:
+        if self.dry_run:
+            return {"dry_run": True, "created": len(payload.get("events", [])), "duplicates": 0}
+        data = json.dumps(payload, separators=(",", ":")).encode()
+        request = urllib.request.Request(f"{self.base_url}/{endpoint}", data=data, method="POST")
+        request.add_header("Authorization", f"Bearer {self.token}")
+        request.add_header("Content-Type", "application/json")
+        try:
+            with urllib.request.urlopen(request, timeout=20) as response:
+                return json.loads(response.read().decode() or "{}")
+        except urllib.error.HTTPError as error:
+            error.read()
+            raise MirrorError(f"ClawTrol {endpoint} returned HTTP {error.code}") from error
 
 
-def session_title(session: dict[str, Any], messages: list[dict[str, Any]]) -> str:
-    title = text_excerpt(session.get("title"), 180)
-    if title:
-        return f"[Hermes] {title}"
-    first_user = next((m for m in messages if m.get("role") == "user"), None)
-    return "[Hermes] " + (text_excerpt(first_user.get("content") if first_user else session.get("id"), 180) or session["id"])
-
-
-def build_description(session: dict[str, Any], messages: list[dict[str, Any]]) -> str:
-    first_user = next((m for m in messages if m.get("role") == "user"), {})
-    last_assistant = next((m for m in reversed(messages) if m.get("role") == "assistant" and m.get("content")), {})
-    lines = [
-        "## Hermes Session Log",
-        "",
-        f"Session: `{session['id']}`",
-        f"Source: `{session.get('source') or 'unknown'}`",
-        f"Model: `{session.get('billing_provider') or 'unknown'}/{session.get('model') or 'unknown'}`",
-        f"Messages: `{session.get('message_count') or 0}` · Tool calls: `{session.get('tool_call_count') or 0}`",
-        f"Tokens: input `{session.get('input_tokens') or 0}` / output `{session.get('output_tokens') or 0}` / reasoning `{session.get('reasoning_tokens') or 0}`",
-        f"Cost: `{session.get('estimated_cost_usd') if session.get('estimated_cost_usd') is not None else 'n/a'}`",
-        f"Status: `{'ended' if session.get('ended_at') else 'running'}`",
-        "",
-        "### First user message",
-        "",
-        text_excerpt(first_user.get("content"), 4000) or "(none)",
-        "",
-        "### Latest assistant output",
-        "",
-        text_excerpt(last_assistant.get("content"), 4000) or "(none yet)",
-    ]
-    return "\n".join(lines)[:MAX_DESCRIPTION_CHARS]
-
-
-def task_payload(session: dict[str, Any], messages: list[dict[str, Any]]) -> dict[str, Any]:
-    model = str(session.get("model") or "hermes")[:120]
+def session_payload(
+    profile: str, session: dict[str, Any], board_id: int
+) -> dict[str, Any]:
+    session_id = str(session["id"])
     return {
-        "task": {
-            "name": session_title(session, messages),
-            "description": build_description(session, messages),
-            "status": "in_review" if session.get("ended_at") else "in_progress",
-            "model": model,
-            "agent_session_id": session["id"],
-            "origin_session_id": session["id"],
-            "origin_session_key": f"hermes:{session['id']}",
-            "tags": ["hermes", "logging", str(session.get("source") or "unknown")],
-        }
+        "profile": profile,
+        "session_id": session_id,
+        "title": f"[Hermes:{profile}] {session_id}"[:500],
+        "brief": f"Passive Hermes metadata mirror for profile {profile}, session {session_id}.",
+        "board_id": board_id,
     }
 
 
-def event_from_message(session_id: str, msg: dict[str, Any]) -> dict[str, Any]:
-    role = msg.get("role") or "unknown"
-    tool_name = msg.get("tool_name")
-    event_type = "tool_call" if tool_name or msg.get("tool_calls") else f"message.{role}"
-    content = msg.get("content") or tool_name or msg.get("tool_calls") or ""
+def event_payload(
+    profile: str,
+    message: dict[str, Any],
+    include_excerpts: bool,
+    counters: Counters,
+) -> dict[str, Any]:
+    role = str(message.get("role") or "unknown")
+    payload: dict[str, Any] = {
+        "hermes_message_id": message["id"],
+        "role": role,
+        "token_count": message.get("token_count"),
+        "finish_reason": message.get("finish_reason"),
+    }
+    message_text = f"Hermes {role} message"
+    if include_excerpts and message.get("content"):
+        message_text = redact(str(message["content"]), counters)
     return {
-        "run_id": session_id,
-        "seq": int(msg["id"]),
-        "source": "hermes_state_db",
+        "seq": int(message["id"]),
+        "timestamp": timestamp_iso8601(message["timestamp"]),
+        "event_type": f"message.{role}",
         "level": "info",
-        "event_type": event_type,
-        "message": text_excerpt(content, MAX_EVENT_CHARS),
-        "created_at": msg.get("timestamp"),
-        "payload": {
-            "hermes_message_id": msg.get("id"),
-            "role": role,
-            "tool_name": tool_name,
-            "token_count": msg.get("token_count"),
-            "finish_reason": msg.get("finish_reason"),
-        },
+        "message": message_text,
+        "payload": redact(payload, counters),
     }
 
 
-def stable_uuid(text: str) -> str:
-    h = hashlib.md5(text.encode("utf-8")).hexdigest()
-    return f"{h[0:8]}-{h[8:12]}-{h[12:16]}-{h[16:20]}-{h[20:32]}"
+def timestamp_iso8601(value: Any) -> str:
+    if isinstance(value, (int, float)):
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(value))
+    text = str(value)
+    if re.fullmatch(r"\d+(?:\.\d+)?", text):
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(float(text)))
+    return text
 
 
-def sync(args: argparse.Namespace) -> int:
-    load_env_files()
-    api_token = os.environ.get("CLAWTROL_API_TOKEN")
-    if not api_token:
-        raise SystemExit("Missing CLAWTROL_API_TOKEN")
+def group_messages(messages: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for message in messages:
+        grouped.setdefault(str(message["session_id"]), []).append(message)
+    return grouped
 
-    db_path = Path(args.db).expanduser()
-    state_path = Path(args.state).expanduser()
-    state = load_map(state_path)
-    session_map = state.setdefault("sessions", {})
-    base = args.base_url.rstrip("/")
-    since = time.time() - args.lookback_hours * 3600
-    sources = {s.strip() for s in args.sources.split(",") if s.strip()}
-    sessions = fetch_sessions(db_path, args.session_id, since, sources)
-    changed = 0
 
-    for session in sessions:
-        sid = session["id"]
-        info = session_map.setdefault(sid, {})
-        messages = fetch_messages(db_path, sid)
-        if not messages and not args.include_empty:
-            continue
+def mirror_batch(
+    client: ApiClient,
+    source: ProfileSource,
+    batch: ProfileBatch,
+    settings: Settings,
+    counters: Counters,
+) -> None:
+    for session_id, messages in group_messages(batch.messages).items():
+        session = batch.sessions[session_id]
+        client.post("sessions", session_payload(source.name, session, settings.board_id))
+        counters.sessions += 1
+        events = [
+            event_payload(source.name, message, settings.include_excerpts, counters)
+            for message in messages
+        ]
+        response = client.post(
+            "events", {"profile": source.name, "session_id": session_id, "events": events}
+        )
+        counters.events += int(response.get("created", len(events)))
+        counters.duplicates += int(response.get("duplicates", 0))
+        if session.get("ended_at"):
+            completion: dict[str, Any] = {
+                "profile": source.name,
+                "session_id": session_id,
+                "terminal_state": "completed",
+                "ended_at": timestamp_iso8601(session["ended_at"]),
+            }
+            if settings.include_excerpts:
+                assistant = next(
+                    (item for item in reversed(messages) if item.get("role") == "assistant"),
+                    None,
+                )
+                if assistant and assistant.get("content"):
+                    completion["outcome"] = redact(assistant["content"], counters)
+            client.post("completions", completion)
+            counters.completions += 1
 
-        payload = task_payload(session, messages)
-        if info.get("task_id"):
-            task_id = info["task_id"]
-            request_json("PATCH", f"{base}/tasks/{task_id}", "Authorization", f"Bearer {api_token}", payload, args.dry_run)
+
+def atomic_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    with temporary.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise MirrorError(f"invalid sidecar state file {path.name}") from error
+
+
+@contextlib.contextmanager
+def process_lock(path: Path) -> Iterator[None]:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    handle = path.open("a+b")
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
         else:
-            created = request_json("POST", f"{base}/tasks", "Authorization", f"Bearer {api_token}", payload, args.dry_run)
-            task_id = created.get("id") or created.get("task", {}).get("id") or created.get("task_id")
-            if args.dry_run:
-                task_id = f"dry-{sid}"
-            if not task_id:
-                raise RuntimeError(f"Could not resolve task id from create response for {sid}: {created}")
-            info["task_id"] = task_id
-            changed += 1
+            import fcntl
 
-        after_id = int(info.get("last_message_id") or 0)
-        new_messages = fetch_messages(db_path, sid, after_id)
-        events = [event_from_message(sid, m) for m in new_messages]
-        if events:
-            request_json(
-                "POST",
-                f"{base}/tasks/{task_id}/log_events",
-                "Authorization",
-                f"Bearer {api_token}",
-                {
-                    "session_id": sid,
-                    "run_id": sid,
-                    "events": events,
-                },
-                args.dry_run,
-            )
-            info["last_message_id"] = max(int(m["id"]) for m in new_messages)
-            changed += len(events)
-
-        if session.get("ended_at") and not info.get("completion_logged"):
-            request_json(
-                "POST",
-                f"{base}/tasks/{task_id}/log_events",
-                "Authorization",
-                f"Bearer {api_token}",
-                {
-                    "session_id": sid,
-                    "run_id": sid,
-                    "events": [{
-                        "run_id": sid,
-                        "seq": int(info.get("last_message_id") or 0) + 1,
-                        "event_type": "final_summary",
-                        "source": "hermes_state_db",
-                        "level": "info",
-                        "message": f"Hermes session ended: {sid}",
-                        "payload": {"ended_at": session.get("ended_at"), "completion_run_id": stable_uuid(sid)},
-                    }],
-                },
-                args.dry_run,
-            )
-            info["completion_logged"] = True
-            changed += 1
-
-        info["last_seen_at"] = time.time()
-        info["source"] = session.get("source")
-        info["title"] = session.get("title")
-
-    save_map(state_path, state, args.dry_run)
-    if args.verbose or args.dry_run:
-        print(json.dumps({"sessions_seen": len(sessions), "changes": changed, "dry_run": args.dry_run}, indent=2))
-    return 0
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        yield
+    except (BlockingIOError, OSError) as error:
+        raise MirrorError("another mirror sidecar already holds the lock") from error
+    finally:
+        handle.close()
 
 
-def self_test() -> int:
-    assert text_excerpt(" a\n b  c ", 20) == "a b c"
-    assert stable_uuid("abc") == stable_uuid("abc")
-    s = {"id": "sess1", "source": "telegram", "model": "gpt", "billing_provider": "codex", "message_count": 1, "tool_call_count": 0}
-    m = [{"id": 1, "role": "user", "content": "hello", "timestamp": 1.0}]
-    assert task_payload(s, m)["task"]["agent_session_id"] == "sess1"
-    assert event_from_message("sess1", {"id": 2, "role": "assistant", "content": "ok"})["event_type"] == "message.assistant"
-    print("self-test ok")
-    return 0
+def safe_error(error: BaseException) -> str:
+    counters = Counters()
+    return str(redact(str(error), counters))[:500]
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Mirror Hermes sessions to ClawTrol for logging only")
-    parser.add_argument("--db", default=str(DEFAULT_STATE_DB))
-    parser.add_argument("--state", default=str(DEFAULT_MAP_PATH))
-    parser.add_argument("--base-url", default=os.environ.get("CLAWTROL_BASE_URL", DEFAULT_BASE_URL))
-    parser.add_argument("--lookback-hours", type=float, default=6)
-    parser.add_argument("--sources", default="telegram,cron,cli")
-    parser.add_argument("--session-id")
-    parser.add_argument("--include-empty", action="store_true")
+def run_cycle(settings: Settings) -> int:
+    state_path = settings.state_dir / "cursor.json"
+    health_path = settings.state_dir / "health.json"
+    state = load_json(state_path)
+    client = ApiClient(settings.base_url, settings.token, settings.dry_run)
+    profiles_health: dict[str, Any] = {}
+    total = Counters()
+    for source in settings.sources:
+        cursor = Cursor.from_dict(state.get(source.name))
+        batch = read_profile_batch(
+            source, cursor, settings.busy_timeout_ms, settings.expected_schema
+        )
+        counters = Counters()
+        mirror_batch(client, source, batch, settings, counters)
+        if not settings.dry_run:
+            state[source.name] = batch.cursor.to_dict()
+            atomic_json(state_path, state)
+        profiles_health[source.name] = profile_health(batch, counters)
+        for key, value in counters.to_dict().items():
+            setattr(total, key, getattr(total, key) + value)
+    health = {
+        "status": "ok",
+        "hermes_commit": settings.hermes_commit,
+        "hermes_version": settings.hermes_version,
+        "profiles": profiles_health,
+        "mirrored": total.to_dict(),
+        "dry_run": settings.dry_run,
+        "last_error": None,
+        "checked_at": timestamp_iso8601(time.time()),
+    }
+    atomic_json(health_path, health)
+    return sum(item["lag_seconds"] for item in profiles_health.values())
+
+
+def profile_health(batch: ProfileBatch, counters: Counters) -> dict[str, Any]:
+    latest = batch.cursor.timestamp
+    try:
+        lag = max(0, int(time.time() - float(latest)))
+    except (TypeError, ValueError):
+        lag = 0
+    return {
+        "schema": batch.schema,
+        "cursor": batch.cursor.to_dict(),
+        "lag_seconds": lag,
+        "mirrored": counters.to_dict(),
+    }
+
+
+def validate_settings(settings: Settings) -> None:
+    if not settings.sources:
+        raise MirrorError("at least one explicit profile-to-state.db mapping is required")
+    if not settings.dry_run and not settings.token:
+        raise MirrorError("CLAWTROL_HERMES_MIRROR_TOKEN is required")
+    if not settings.dry_run and settings.expected_schema is None:
+        raise MirrorError("--expected-live-schema is required outside dry-run")
+    if not settings.dry_run and settings.hermes_commit.casefold() in {"", "unknown", "main"}:
+        raise MirrorError("a pinned --hermes-commit is required outside dry-run")
+
+
+def settings_from_args(args: argparse.Namespace) -> Settings:
+    return Settings(
+        sources=args.profile_db,
+        state_dir=Path(args.state_dir).expanduser(),
+        base_url=args.base_url,
+        token=os.environ.get("CLAWTROL_HERMES_MIRROR_TOKEN"),
+        dry_run=args.dry_run,
+        include_excerpts=args.include_excerpts,
+        expected_schema=args.expected_live_schema,
+        hermes_commit=args.hermes_commit,
+        hermes_version=args.hermes_version,
+        poll_seconds=args.poll_seconds,
+        once=args.once,
+        busy_timeout_ms=args.busy_timeout_ms,
+        board_id=args.board_id,
+    )
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--profile-db", action="append", type=parse_profile_mapping, required=True)
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR))
+    parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
+    parser.add_argument("--board-id", type=int, default=5)
+    parser.add_argument("--expected-live-schema", type=int, choices=sorted(SUPPORTED_SCHEMAS))
+    parser.add_argument("--hermes-commit", default="unknown")
+    parser.add_argument("--hermes-version", default="unknown")
+    parser.add_argument("--busy-timeout-ms", type=int, default=2500)
+    parser.add_argument("--poll-seconds", type=float, default=30)
+    parser.add_argument("--include-excerpts", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--verbose", action="store_true")
-    parser.add_argument("--self-test", action="store_true")
-    args = parser.parse_args()
-    if args.self_test:
-        return self_test()
-    return sync(args)
+    parser.add_argument("--once", action="store_true")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    settings = settings_from_args(parse_args(argv))
+    try:
+        validate_settings(settings)
+        with process_lock(settings.state_dir / "mirror.lock"):
+            failures = 0
+            while True:
+                try:
+                    run_cycle(settings)
+                    failures = 0
+                    if settings.once:
+                        return 0
+                    time.sleep(settings.poll_seconds)
+                except Exception as error:
+                    failures += 1
+                    atomic_json(
+                        settings.state_dir / "health.json",
+                        {
+                            "status": "error",
+                            "hermes_commit": settings.hermes_commit,
+                            "hermes_version": settings.hermes_version,
+                            "last_error": safe_error(error),
+                            "checked_at": timestamp_iso8601(time.time()),
+                        },
+                    )
+                    if settings.once:
+                        raise
+                    ceiling = min(300, max(settings.poll_seconds, 2**failures))
+                    time.sleep(random.uniform(0, ceiling))
+    except Exception as error:
+        print(f"mirror failed: {safe_error(error)}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

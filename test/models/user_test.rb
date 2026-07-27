@@ -126,64 +126,6 @@ class UserTest < ActiveSupport::TestCase
     assert_equal %w[default vaporwave], User::THEMES
   end
 
-  # --- Agent platform / orchestration mode ---
-
-  test "ORCHESTRATION_MODES exposes the dual-backend modes" do
-    assert_equal %w[openclaw_only hermes_only dual], User::ORCHESTRATION_MODES
-  end
-
-  test "orchestration_mode must be in ORCHESTRATION_MODES" do
-    @user.orchestration_mode = "bogus_mode"
-    assert_not @user.valid?
-    assert @user.errors[:orchestration_mode].any?
-  end
-
-  test "orchestration_mode accepts hermes_only and dual" do
-    %w[openclaw_only hermes_only dual].each do |mode|
-      @user.orchestration_mode = mode
-      assert @user.valid?, "Expected mode '#{mode}' to be valid: #{@user.errors.full_messages}"
-    end
-  end
-
-  test "preferred_agent_platform must be openclaw or hermes" do
-    @user.preferred_agent_platform = "bogus"
-    assert_not @user.valid?
-    assert @user.errors[:preferred_agent_platform].any?
-  end
-
-  test "preferred_agent_platform is required to match database null constraint" do
-    @user.preferred_agent_platform = nil
-    assert_not @user.valid?
-    assert @user.errors[:preferred_agent_platform].any?
-  end
-
-  test "hermes_home is required to match database null constraint" do
-    @user.hermes_home = nil
-    assert_not @user.valid?
-    assert @user.errors[:hermes_home].any?
-  end
-
-  test "effective_agent_platform defaults to openclaw" do
-    @user.preferred_agent_platform = nil
-    assert_equal "openclaw", @user.effective_agent_platform
-  end
-
-  test "effective_agent_platform returns explicit value when set" do
-    @user.preferred_agent_platform = "hermes"
-    assert_equal "hermes", @user.effective_agent_platform
-  end
-
-  test "hermes_gateway_url must be http(s) when present" do
-    @user.hermes_gateway_url = "not a url"
-    assert_not @user.valid?
-    assert @user.errors[:hermes_gateway_url].any?
-  end
-
-  test "hermes_gateway_url accepts valid https url" do
-    @user.hermes_gateway_url = "https://hermes.example.com"
-    assert @user.valid?, @user.errors.full_messages.to_s
-  end
-
   # --- Scopes ---
 
   test "admins scope returns only admin users" do

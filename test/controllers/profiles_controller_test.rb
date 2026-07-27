@@ -33,11 +33,19 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "🤖", @user.agent_emoji
   end
 
-  test "update saves Hermes backend settings" do
+  test "update ignores retired direct-control settings" do
     sign_in_as(@user)
+    original_values = @user.attributes.slice(
+      "orchestration_mode",
+      "preferred_agent_platform",
+      "hermes_gateway_url",
+      "hermes_home",
+      "hermes_profile"
+    )
 
     patch settings_path, params: {
       user: {
+        agent_name: "PassiveOnly",
         orchestration_mode: "dual",
         preferred_agent_platform: "hermes",
         hermes_gateway_url: "https://hermes.example.test",
@@ -50,61 +58,31 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to settings_path
     @user.reload
-    assert_equal "dual", @user.orchestration_mode
-    assert_equal "hermes", @user.preferred_agent_platform
-    assert_equal "https://hermes.example.test", @user.hermes_gateway_url
-    assert_equal "gateway-token", @user.hermes_gateway_token
-    assert_equal "hooks-token", @user.hermes_hooks_token
-    assert_equal "~/.hermes", @user.hermes_home
-    assert_equal "ops", @user.hermes_profile
+    assert_equal "PassiveOnly", @user.agent_name
+    assert_equal original_values, @user.attributes.slice(*original_values.keys)
+    refute_equal "gateway-token", @user.hermes_gateway_token
+    refute_equal "hooks-token", @user.hermes_hooks_token
   end
 
-  test "settings page exposes Hermes backend controls" do
+  test "settings page exposes passive mirror notice without direct controls" do
     sign_in_as(@user)
 
     get settings_path
 
     assert_response :success
-    assert_select "option[value=?]", "hermes_only"
-    assert_select "select[name=?]", "user[preferred_agent_platform]"
-    assert_select "input[name=?]", "user[hermes_home]"
-    assert_select "input[name=?]", "user[hermes_gateway_token]"
+    assert_includes response.body, "Passive Hermes mirror"
+    assert_select "select[name=?]", "user[preferred_agent_platform]", count: 0
+    assert_select "input[name=?]", "user[hermes_home]", count: 0
+    assert_select "input[name=?]", "user[hermes_gateway_token]", count: 0
+    assert_select "input[name=?]", "user[hermes_hooks_token]", count: 0
   end
 
-  # --- SSRF protection in test_connection ---
-
-  test "test_connection blocks localhost gateway URL" do
+  test "direct connection test is retired" do
     sign_in_as(@user)
-    @user.update!(openclaw_gateway_url: "http://127.0.0.1:4001")
     post test_connection_settings_path
-    json = JSON.parse(response.body)
-    assert_equal false, json["gateway_reachable"]
-    assert_match(/restricted/i, json["error"].to_s)
-  end
 
-  test "test_connection blocks link-local gateway URL" do
-    sign_in_as(@user)
-    @user.update!(openclaw_gateway_url: "http://169.254.169.254")
-    post test_connection_settings_path
-    json = JSON.parse(response.body)
-    assert_equal false, json["gateway_reachable"]
-    assert_match(/restricted|resolve/i, json["error"].to_s)
-  end
-
-  test "test_connection blocks ftp scheme" do
-    sign_in_as(@user)
-    # ftp:// is rejected at model validation level — can't save an invalid scheme
-    assert_not @user.update(openclaw_gateway_url: "ftp://evil.com")
-    assert_includes @user.errors[:openclaw_gateway_url], "must be a valid http(s) URL"
-  end
-
-  test "test_connection handles missing gateway URL gracefully" do
-    sign_in_as(@user)
-    @user.update!(openclaw_gateway_url: nil)
-    post test_connection_settings_path
-    json = JSON.parse(response.body)
-    assert_equal false, json["gateway_reachable"]
-    assert_equal false, json["webhook_configured"]
+    assert_response :gone
+    assert_equal "direct agent control retired", response.parsed_body["error"]
   end
 
   # --- API token regeneration ---

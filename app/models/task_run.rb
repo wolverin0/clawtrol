@@ -20,6 +20,7 @@ after_update_commit :broadcast_task_panel_update
   ].freeze
 
   validates :run_id, presence: true, uniqueness: true
+  validates :external_source_key, uniqueness: true, allow_nil: true
   validates :run_number, presence: true, uniqueness: { scope: :task_id, message: "must be unique per task" }
   validates :recommended_action, presence: true, inclusion: { in: RECOMMENDED_ACTIONS }
 

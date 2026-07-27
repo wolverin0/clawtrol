@@ -6,18 +6,19 @@ module Api
 
     included do
       before_action :authenticate_api_token
-      attr_reader :current_user
+      attr_reader :current_user, :current_api_token
     end
 
     private
 
     def authenticate_api_token
-      # Try token authentication first
       token = extract_token_from_header
-      @current_user = ApiToken.authenticate(token) if token.present?
-
-      # Fall back to session authentication (for browser-based API calls)
-      @current_user ||= authenticate_from_session
+      if token.present?
+        @current_api_token = ApiToken.authenticate_record(token)
+        @current_user = current_api_token&.user
+      else
+        @current_user = authenticate_from_session
+      end
 
       unless @current_user
         render json: { error: "Unauthorized" }, status: :unauthorized
@@ -26,6 +27,17 @@ module Api
 
       # Only update agent info for token-based auth (not browser polling)
       update_agent_info_from_headers if token.present?
+    end
+
+    def require_api_scope!(scope)
+      unless current_api_token
+        render json: { error: "API token required" }, status: :unauthorized
+        return
+      end
+
+      return if current_api_token.grants_scope?(scope)
+
+      render json: { error: "Forbidden", required_scope: scope }, status: :forbidden
     end
 
     def authenticate_from_session

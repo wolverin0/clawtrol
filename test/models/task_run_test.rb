@@ -47,6 +47,18 @@ class TaskRunTest < ActiveSupport::TestCase
     assert_includes dup.errors[:run_id], "has already been taken"
   end
 
+  test "external source key is unique when present" do
+    build_run(external_source_key: "hermes:user-1:primary:session-1").save!
+    duplicate = build_run(
+      run_id: SecureRandom.uuid,
+      run_number: 2,
+      external_source_key: "hermes:user-1:primary:session-1"
+    )
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:external_source_key], "has already been taken"
+  end
+
   test "recommended_action must be in RECOMMENDED_ACTIONS" do
     tr = build_run(recommended_action: "dance")
     assert_not tr.valid?

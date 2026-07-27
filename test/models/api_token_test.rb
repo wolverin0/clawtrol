@@ -46,6 +46,24 @@ class ApiTokenTest < ActiveSupport::TestCase
     assert_nil ApiToken.authenticate(token.raw_token)
   end
 
+  test "authenticate returns nil for revoked token" do
+    token = users(:one).api_tokens.create!(name: "Revoked Token")
+    token.revoke!
+
+    assert_nil ApiToken.authenticate(token.raw_token)
+    assert_nil ApiToken.authenticate_record(token.raw_token)
+  end
+
+  test "scopes grant only exact permissions" do
+    token = users(:one).api_tokens.create!(
+      name: "Scoped Token",
+      scopes: ["hermes_mirror:write"]
+    )
+
+    assert token.grants_scope?("hermes_mirror:write")
+    assert_not token.grants_scope?("hermes_mirror:read")
+  end
+
   test "authenticate returns nil for blank token" do
     assert_nil ApiToken.authenticate(nil)
     assert_nil ApiToken.authenticate("")

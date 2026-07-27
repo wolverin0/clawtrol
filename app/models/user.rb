@@ -8,8 +8,6 @@ class User < ApplicationRecord
   strict_loading :n_plus_one
 
   THEMES = %w[default vaporwave].freeze
-  ORCHESTRATION_MODES = %w[openclaw_only hermes_only dual].freeze
-  AGENT_PLATFORMS = %w[openclaw hermes].freeze
 
   has_many :sessions, dependent: :destroy, inverse_of: :user
   has_many :boards, dependent: :destroy, inverse_of: :user
@@ -79,23 +77,11 @@ class User < ApplicationRecord
 
   validate :acceptable_avatar, if: :avatar_changed?
   validate :webhook_url_is_safe, if: -> { webhook_notification_url.present? }
-  validate :gateway_url_is_valid, if: -> { openclaw_gateway_url.present? }
-  validate :hermes_gateway_url_is_valid, if: -> { hermes_gateway_url.present? }
   validates :password, length: { minimum: 8 }, if: :password_required?
   validates :password, confirmation: true, if: :password_required?
   validates :theme, inclusion: { in: THEMES }
-  validates :orchestration_mode, inclusion: { in: ORCHESTRATION_MODES }
-  validates :preferred_agent_platform, inclusion: { in: AGENT_PLATFORMS }
   validates :agent_name, length: { maximum: 100 }, allow_nil: true
   validates :agent_emoji, length: { maximum: 10 }, allow_nil: true
-  validates :openclaw_gateway_url, length: { maximum: 2048 }, allow_nil: true
-  validates :openclaw_gateway_token, length: { maximum: 2048 }, allow_nil: true
-  validates :openclaw_hooks_token, length: { maximum: 2048 }, allow_nil: true
-  validates :hermes_gateway_url, length: { maximum: 2048 }, allow_nil: true
-  validates :hermes_gateway_token, length: { maximum: 2048 }, allow_nil: true
-  validates :hermes_hooks_token, length: { maximum: 2048 }, allow_nil: true
-  validates :hermes_home, presence: true, length: { maximum: 1024 }
-  validates :hermes_profile, length: { maximum: 200 }, allow_nil: true
   validates :telegram_chat_id, length: { maximum: 50 }, allow_nil: true
   validates :ai_suggestion_model, length: { maximum: 50 }, allow_nil: true
   validates :context_threshold_percent, numericality: { only_integer: true, greater_than_or_equal_to: 10, less_than_or_equal_to: 100 }
@@ -149,24 +135,6 @@ class User < ApplicationRecord
     avatar.attached? || avatar_url.present?
   end
 
-
-def openclaw_only_mode?
-  orchestration_mode == "openclaw_only"
-end
-
-def hermes_only_mode?
-  orchestration_mode == "hermes_only"
-end
-
-def dual_mode?
-  orchestration_mode == "dual"
-end
-
-# Resolves the user's effective preferred agent platform, defaulting to OpenClaw.
-def effective_agent_platform
-  raw = preferred_agent_platform.to_s
-  AGENT_PLATFORMS.include?(raw) ? raw : "openclaw"
-end
 
   # Returns true when the user has hit their daily or monthly LLM spend cap.
   # Fail-open: if CostSnapshot lookups raise or return nil we treat the user
@@ -261,20 +229,6 @@ end
     /\.internal\z/i,     # internal TLDs
     /\.local\z/i         # mDNS
   ].freeze
-
-  def gateway_url_is_valid
-    uri = URI.parse(openclaw_gateway_url) rescue nil
-    unless uri.is_a?(URI::HTTP)
-      errors.add(:openclaw_gateway_url, "must be a valid http(s) URL")
-    end
-  end
-
-  def hermes_gateway_url_is_valid
-    uri = URI.parse(hermes_gateway_url) rescue nil
-    unless uri.is_a?(URI::HTTP)
-      errors.add(:hermes_gateway_url, "must be a valid http(s) URL")
-    end
-  end
 
   def webhook_url_is_safe
     uri = URI.parse(webhook_notification_url) rescue nil

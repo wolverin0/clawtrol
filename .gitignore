@@ -52,6 +52,10 @@ tpush/
 # Ignore bundled gems
 /vendor/bundle
 
+# Python sidecar bytecode is local test output.
+__pycache__/
+*.py[cod]
+
 # Large local artifacts (do not commit)
 public/*.apk
 app/assets/images/*.mp4

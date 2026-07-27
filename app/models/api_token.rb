@@ -8,9 +8,13 @@ class ApiToken < ApplicationRecord
 
   validates :token_digest, presence: true, uniqueness: true
   validates :name, presence: true
+  validate :scopes_are_strings
 
-  scope :active, -> { where("expires_at IS NULL OR expires_at > ?", Time.current) }
+  scope :active, -> {
+    where(revoked_at: nil).where("expires_at IS NULL OR expires_at > ?", Time.current)
+  }
   scope :expired, -> { where("expires_at IS NOT NULL AND expires_at <= ?", Time.current) }
+  scope :revoked, -> { where.not(revoked_at: nil) }
   scope :recently_used, -> { where.not(last_used_at: nil).order(last_used_at: :desc) }
   scope :by_user, ->(user) { user.present? ? where(user_id: user.id) : none }
 
@@ -24,19 +28,34 @@ class ApiToken < ApplicationRecord
   LAST_USED_DEBOUNCE = 60.seconds
 
   def self.authenticate(token)
+    authenticate_record(token)&.user
+  end
+
+  def self.authenticate_record(token)
     return nil if token.blank?
 
     digest = Digest::SHA256.hexdigest(token)
     api_token = find_by(token_digest: digest)
     return nil unless api_token
+    return nil if api_token.revoked_at.present?
     return nil if api_token.expires_at.present? && api_token.expires_at <= Time.current
 
-    # Debounce last_used_at writes to reduce DB load under high request volume
-    if api_token.last_used_at.nil? || api_token.last_used_at < LAST_USED_DEBOUNCE.ago
-      api_token.touch(:last_used_at)
-    end
+    api_token.record_use!
+    api_token
+  end
 
-    api_token.user
+  def grants_scope?(required_scope)
+    scopes.include?(required_scope.to_s)
+  end
+
+  def revoke!
+    update!(revoked_at: Time.current)
+  end
+
+  def record_use!
+    return if last_used_at.present? && last_used_at >= LAST_USED_DEBOUNCE.ago
+
+    touch(:last_used_at)
   end
 
   # For display: show a masked prefix (first 8 chars) if token_prefix is stored
@@ -49,6 +68,12 @@ class ApiToken < ApplicationRecord
   end
 
   private
+
+  def scopes_are_strings
+    return if scopes.is_a?(Array) && scopes.all? { |scope| scope.is_a?(String) && scope.present? }
+
+    errors.add(:scopes, "must contain only non-blank strings")
+  end
 
   def generate_and_hash_token
     raw = SecureRandom.hex(32)

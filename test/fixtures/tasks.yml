@@ -23,3 +23,15 @@ two:
   status: in_progress
   priority: high
   completed: false
+
+malicious_artifact:
+  name: Malicious HTML regression fixture
+  user: default
+  board: default
+  status: done
+  priority: none
+  completed: true
+  output_files:
+    - malicious.html
+  tags:
+    - redesign

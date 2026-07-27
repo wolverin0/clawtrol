@@ -1,4 +1,10 @@
-# Dual Backend Hermes Test Plan
+# SUPERSEDED — Dual Backend Hermes Test Plan
+<!-- Historical direct-control test plan; dual/Hermes execution modes are retired. -->
+<!-- Key terms: SUPERSEDED, passive mirror, no direct Hermes control, no dual mode. -->
+<!-- Read docs/DOCS-MAP.md and docs/reports/hermes-delta-review-2026-07-26.md first. -->
+<!-- Replaced by dedicated passive-mirror endpoint, sidecar, schema, and boundary tests. -->
+<!-- Do not restore adapters, CLI subprocesses, gateway credentials, or token-valued forms. -->
+<!-- Status updated: 2026-07-26 safe-LAN remediation. -->
 
 ## Scope
 Validate ClawTrol's OpenClaw + Hermes dual-backend MVP: user platform configuration, adapter registry/CLI behavior, file viewer logical roots, migrations, Docker images, and live HTTP smoke paths.
