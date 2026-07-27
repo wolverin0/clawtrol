@@ -14,6 +14,8 @@ Rails.application.routes.draw do
         post "hermes/completions", to: "hermes#completions"
       end
 
+      post "orchestration/sync", to: "orchestration#sync"
+
       resources :audits, only: [] do
         collection do
           post :ingest
@@ -249,9 +251,19 @@ Rails.application.routes.draw do
   resources :passwords, param: :token
   resource :settings, only: [ :show, :update ], controller: "profiles" do
     post :regenerate_api_token
+    post :create_orchestration_token
+    delete :revoke_orchestration_token
     post :test_connection
     post :test_notification
   end
+
+  get "control-room", to: "control_room#show", as: :control_room
+  post "control-room/tasks", to: "control_room#create_task", as: :control_room_tasks
+  post "control-room/ask", to: "control_room#ask", as: :control_room_ask
+  post "control-room/tasks/:task_id/messages", to: "control_room#message", as: :control_room_task_messages
+  post "control-room/tasks/:task_id/approve", to: "control_room#approve", as: :approve_control_room_task
+  post "control-room/tasks/:task_id/retry", to: "control_room#retry", as: :retry_control_room_task
+  post "control-room/tasks/:task_id/cancel", to: "control_room#cancel", as: :cancel_control_room_task
 
   # Link Inbox
   resources :saved_links, only: [:index, :create, :update, :destroy] do

@@ -19,8 +19,9 @@ module NavigationHelper
           id: :tasks,
           label: "Tasks",
           icon: "📋",
-          controllers: %w[boards workflows],
+          controllers: %w[boards workflows control_room],
           items: [
+            { label: "Control Room", icon: "CR", url: control_room_path, controller: "control_room" },
             { label: "Board", icon: "📋", url: last_board_path, controller: "boards" },
             { label: "Workflows", icon: "🔄", url: workflows_path, controller: "workflows" }
           ]

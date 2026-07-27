@@ -1,10 +1,65 @@
 # ClawTrol API Reference
+<!-- CURRENT only for task-board, passive mirror, and orchestration sync endpoints. -->
+<!-- Covers request authentication, task APIs, and outbound bridge synchronization. -->
+<!-- Key terms: bearer scope, orchestration_bridge:sync, disposable projection, intent. -->
+<!-- Read before integrating a private-LAN client; legacy execution sections are non-authoritative. -->
+<!-- Base URL: /api/v1. Authentication: Authorization: Bearer YOUR_TOKEN. -->
+<!-- Updated: 2026-07-27. -->
 
-Complete API endpoint documentation for ClawTrol.
+## Wezbridge orchestration sync
 
-**Base URL:** `/api/v1`
+```http
+POST /orchestration/sync
+Authorization: Bearer <scoped-token>
+Content-Type: application/json
+```
 
-**Authentication:** `Authorization: Bearer YOUR_TOKEN`
+Requires the `orchestration_bridge:sync` scope. The Windows bridge initiates
+this request; ClawTrol never opens an inbound connection to the PC.
+
+The request accepts `profile`, `generated_at`, source `health`, `panes`, task
+snapshots, task-scoped `events`, provenance-tagged `messages`, and
+`intent_results`. Arrays may be omitted on poll-only calls.
+
+```json
+{
+  "profile": "primary",
+  "generated_at": "2026-07-27T20:00:00Z",
+  "health": { "status": "healthy" },
+  "panes": [],
+  "tasks": [],
+  "events": [],
+  "messages": [],
+  "intent_results": []
+}
+```
+
+ClawTrol returns accepted counts and pending operator intents. Pending intents
+are returned again until the bridge reports an `applied` or `rejected` result.
+
+```json
+{
+  "server_time": "2026-07-27T20:00:01Z",
+  "source": {
+    "id": 1,
+    "profile": "primary",
+    "status": "healthy",
+    "last_seen_at": "2026-07-27T20:00:01Z"
+  },
+  "accepted": {
+    "tasks": 0,
+    "events": 0,
+    "messages": 0,
+    "intent_results": 0,
+    "duplicates": 0
+  },
+  "intents": []
+}
+```
+
+The v1 intent allowlist is `create_task`, `message`, `approve`, `retry`, and
+`cancel`. All state changes remain subject to the local ledger FSM and gate
+contracts.
 
 **Agent Headers (recommended):**
 ```

@@ -38,6 +38,18 @@ class TaskTest < ActiveSupport::TestCase
     assert_equal "none", task.priority
   end
 
+  test "wezbridge projections never auto-assign when mirrored into up next" do
+    task = Task.create!(
+      name: "Projection",
+      board: boards(:one),
+      user: users(:one),
+      status: :up_next,
+      origin_session_key: "wezbridge:primary:task:T-1234"
+    )
+
+    refute task.reload.assigned_to_agent?
+  end
+
   test "model field accepts any string value" do
     # model no longer validates inclusion — any string is allowed
     task = Task.new(name: "Test", board: boards(:one), user: users(:one), model: "any_model_string")

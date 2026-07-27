@@ -6,6 +6,7 @@ class ProfilesController < ApplicationController
   def show
     @user = current_user
     @api_token = current_user.api_token
+    @orchestration_token = current_user.api_tokens.active.find_by(name: "Wezbridge control plane")
   end
 
   def test_connection
@@ -56,6 +57,25 @@ class ProfilesController < ApplicationController
     # copy-friendly UI element, not as a generic notice visible in logs/referrer.
     flash[:new_api_token] = @api_token.raw_token
     redirect_to settings_path, notice: "API token regenerated. Copy it now — it won't be shown again!"
+  end
+
+  def create_orchestration_token
+    current_user.api_tokens.active
+      .where(name: "Wezbridge control plane")
+      .find_each(&:revoke!)
+    token = current_user.api_tokens.create!(
+      name: "Wezbridge control plane",
+      scopes: ["orchestration_bridge:sync"]
+    )
+    flash[:new_orchestration_token] = token.raw_token
+    redirect_to settings_path, notice: "Wezbridge token created. Copy it now; it will not be shown again."
+  end
+
+  def revoke_orchestration_token
+    current_user.api_tokens.active
+      .where(name: "Wezbridge control plane")
+      .find_each(&:revoke!)
+    redirect_to settings_path, notice: "Wezbridge token revoked."
   end
 
   private
