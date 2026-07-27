@@ -4,6 +4,8 @@ services:
     pull_policy: always
     ports:
       - "${CLAWTROL_BIND_ADDRESS:-0.0.0.0}:${CLAWTROL_PORT:-4001}:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       RAILS_ENV: production
       DATABASE_URL: "${DATABASE_URL:?Set DATABASE_URL in the host-side runtime environment}"
@@ -28,6 +30,8 @@ services:
 
 volumes:
   storage:
+    external: true
+    name: "${CLAWTROL_STORAGE_VOLUME:-clawdeck_storage}"
 
 networks:
   clawdeck-network:
