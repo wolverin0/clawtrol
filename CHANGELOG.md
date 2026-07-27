@@ -16,6 +16,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`6f1c984`)
 ### 🐛 Bug Fixes
 
+- make hosted release gates deterministic (`e99beea`)
 - enforce LF for executable scripts (`bb67554`)
 - pass application URL to restore gate (`2bb66a3`)
 - preserve host database connectivity (`3250474`)
@@ -36,6 +37,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`1994ac7`)
 - record safe-lan verification and battle test (`9bcacd5`)
 - establish safe-lan remediation governance (`27e6999`)
 - checkpoint battle-test diagnosis (`74b3177`)
