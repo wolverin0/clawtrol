@@ -16,6 +16,8 @@ class User < ApplicationRecord
   has_many :background_runs, dependent: :destroy
   has_many :task_templates, dependent: :destroy, inverse_of: :user
   has_many :api_tokens, dependent: :destroy, inverse_of: :user
+  has_many :orchestration_sources, dependent: :destroy, inverse_of: :user
+  has_many :orchestration_intents, dependent: :destroy, inverse_of: :user
   has_many :saved_links, dependent: :destroy, inverse_of: :user
   has_many :learning_proposals, dependent: :destroy, inverse_of: :user
   has_many :feed_entries, dependent: :destroy, inverse_of: :user

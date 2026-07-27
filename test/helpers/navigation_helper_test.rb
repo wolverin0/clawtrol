@@ -12,6 +12,7 @@ class NavigationHelperTest < ActiveSupport::TestCase
     end
 
     def boards_path = "/boards"
+    def control_room_path = "/control-room"
     def board_path(board)
       board_id = board.respond_to?(:id) ? board.id : board
       "/boards/#{board_id}"

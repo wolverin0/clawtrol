@@ -1,0 +1,181 @@
+<% content_for :title, "Control Room" %>
+<% content_for :breadcrumb_standalone, "Control Room" %>
+
+<div class="py-8 space-y-6">
+  <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Personal orchestration</p>
+      <h1 class="mt-1 text-3xl font-semibold text-content font-display">Control Room</h1>
+      <p class="mt-2 max-w-2xl text-sm text-content-secondary">
+        Create work, talk to the orchestrator, and watch the local fleet without managing every terminal tab.
+      </p>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <% if @sources.any? %>
+        <% @sources.each do |source| %>
+          <% status_class = source.stale? ? "text-yellow-400 border-yellow-400/30 bg-yellow-400/10" : "text-green-400 border-green-400/30 bg-green-400/10" %>
+          <%= link_to control_room_path(source_id: source.id),
+                class: "rounded-lg border px-3 py-2 text-xs #{status_class}" do %>
+            <span class="font-semibold"><%= source.profile %></span>
+            <span class="ml-1"><%= source.display_status %></span>
+            <% if source.last_seen_at %>
+              <span class="ml-1 text-content-muted"><%= time_ago_in_words(source.last_seen_at) %> ago</span>
+            <% end %>
+          <% end %>
+        <% end %>
+      <% else %>
+        <span class="rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-3 py-2 text-xs text-yellow-400">
+          Waiting for the Wezbridge bridge
+        </span>
+      <% end %>
+    </div>
+  </header>
+
+  <section class="rounded-xl border border-border bg-bg-surface p-4">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h2 class="text-sm font-semibold text-content">Fleet</h2>
+        <p class="mt-1 text-xs text-content-muted">
+          <% if @source&.last_seen_at %>
+            <%= @source.panes.length %> visible panes · last sync <%= time_ago_in_words(@source.last_seen_at) %> ago
+          <% else %>
+            No bridge telemetry yet
+          <% end %>
+        </p>
+      </div>
+      <% if @source&.health&.dig("fleet") %>
+        <span class="text-xs text-content-muted">
+          <%= @source.health.dig("fleet", "a2a_envelopes").to_i %> recent A2A events
+        </span>
+      <% end %>
+    </div>
+    <% if @source&.panes&.any? %>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <% @source.panes.each do |pane| %>
+          <span class="rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs text-content-secondary">
+            pane <%= pane["pane_id"] || pane["id"] %>
+            <span class="ml-1 text-content-muted"><%= pane["project"] %> · <%= pane["status"] %></span>
+          </span>
+        <% end %>
+      </div>
+    <% end %>
+  </section>
+
+  <section class="grid gap-4 lg:grid-cols-2">
+    <div class="rounded-xl border border-border bg-bg-surface p-5">
+      <h2 class="text-lg font-semibold text-content">New Task</h2>
+      <p class="mt-1 text-xs text-content-muted">Safe work starts automatically after the local contract accepts it.</p>
+      <%= form_with url: control_room_tasks_path, class: "mt-4 grid gap-3" do |form| %>
+        <%= form.hidden_field :source_id, value: @source&.id %>
+        <%= form.label :project, "Project", class: "sr-only" %>
+        <%= form.text_field :project, required: true, placeholder: "Project, e.g. whatsappbot",
+              class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        <%= form.label :title, "Task title", class: "sr-only" %>
+        <%= form.text_field :title, placeholder: "Task title",
+              class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        <%= form.label :brief, "Task brief", class: "sr-only" %>
+        <%= form.text_area :brief, required: true, rows: 4, placeholder: "What should be done?",
+              class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        <%= form.label :acceptance, "Acceptance criteria", class: "sr-only" %>
+        <%= form.text_area :acceptance, rows: 2, placeholder: "What does done look like?",
+              class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        <div class="flex items-center justify-between gap-3">
+          <%= form.label :priority, "Priority", class: "sr-only" %>
+          <%= form.select :priority, [["Normal", "normal"], ["High", "high"], ["Low", "low"]], {},
+                class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+          <%= form.submit "Create task", disabled: @source.blank?,
+                class: "cursor-pointer rounded-lg bg-accent px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="rounded-xl border border-border bg-bg-surface p-5">
+      <h2 class="text-lg font-semibold text-content">Ask Orchestrator</h2>
+      <p class="mt-1 text-xs text-content-muted">Pane 0 answers in the task thread; the terminal remains optional.</p>
+      <%= form_with url: control_room_ask_path, class: "mt-4 grid gap-3" do |form| %>
+        <%= form.hidden_field :source_id, value: @source&.id %>
+        <%= form.label :project, "Question project", class: "sr-only" %>
+        <%= form.text_field :project, required: true, placeholder: "Project or topic",
+              class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        <%= form.label :title, "Question title", class: "sr-only" %>
+        <%= form.text_field :title, placeholder: "Question title",
+              class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        <%= form.label :brief, "Question", class: "sr-only" %>
+        <%= form.text_area :brief, required: true, rows: 5, placeholder: "What do you want to discuss?",
+              class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        <div class="flex justify-end">
+          <%= form.submit "Ask", disabled: @source.blank?,
+                class: "cursor-pointer rounded-lg bg-accent px-4 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <% if @pending_intents.any? %>
+    <section class="rounded-xl border border-accent/30 bg-accent/5 p-4">
+      <h2 class="text-sm font-semibold text-content">Queued requests</h2>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <% @pending_intents.each do |intent| %>
+          <span class="rounded-md border border-accent/20 bg-bg-elevated px-2 py-1 text-xs text-content-secondary">
+            #<%= intent.id %> <%= intent.kind.humanize %>
+          </span>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
+  <section class="grid gap-4 xl:grid-cols-4">
+    <%= render "task_list", title: "Needs Attention", tasks: @needs_attention, tone: "yellow" %>
+    <%= render "task_list", title: "Active Work", tasks: @active, tone: "blue" %>
+    <%= render "task_list", title: "Failures", tasks: @failures, tone: "red" %>
+    <%= render "task_list", title: "Recently Completed", tasks: @recent, tone: "green" %>
+  </section>
+
+  <% if @selected_task %>
+    <% state = @selected_task.state_data.fetch("orchestration", {}) %>
+    <section id="task-thread" class="rounded-xl border border-border bg-bg-surface p-5">
+      <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-wider text-content-muted"><%= state["project"] %> · <%= state["source_state"] %></p>
+          <h2 class="mt-1 text-xl font-semibold text-content"><%= @selected_task.name %></h2>
+          <p class="mt-2 whitespace-pre-wrap text-sm text-content-secondary"><%= @selected_task.description %></p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <% if @selected_task.blocked? || state["source_state"] == "review" %>
+            <%= button_to "Approve", approve_control_room_task_path(@selected_task), class: "rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white" %>
+          <% end %>
+          <% if state["source_state"] == "failed" %>
+            <%= button_to "Retry", retry_control_room_task_path(@selected_task), class: "rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white" %>
+          <% end %>
+          <% unless %w[done cancelled].include?(state["source_state"]) %>
+            <%= button_to "Cancel", cancel_control_room_task_path(@selected_task), class: "rounded-lg border border-red-500/40 px-3 py-2 text-xs font-semibold text-red-400" %>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="mt-5 space-y-3">
+        <% @selected_task.agent_messages.sort_by(&:created_at).each do |message| %>
+          <% operator = message.metadata["provenance"] == "operator" %>
+          <article class="rounded-lg border border-border p-3 <%= operator ? "ml-8 bg-accent/5" : "mr-8 bg-bg-elevated" %>">
+            <div class="flex items-center justify-between gap-3 text-xs">
+              <span class="font-semibold text-content"><%= operator ? "You" : message.display_sender %></span>
+              <span class="text-content-muted"><%= message.created_at.strftime("%Y-%m-%d %H:%M") %></span>
+            </div>
+            <p class="mt-2 whitespace-pre-wrap text-sm text-content-secondary"><%= message.content %></p>
+          </article>
+        <% end %>
+        <% if @selected_task.agent_messages.empty? %>
+          <p class="text-sm text-content-muted">No messages yet.</p>
+        <% end %>
+      </div>
+
+      <%= form_with url: control_room_task_messages_path(@selected_task), class: "mt-5 flex gap-3" do |form| %>
+        <%= form.label :content, "Reply", class: "sr-only" %>
+        <%= form.text_area :content, required: true, rows: 2, placeholder: "Reply to the orchestrator…",
+              class: "min-w-0 flex-1 rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        <%= form.submit "Send", class: "cursor-pointer self-end rounded-lg bg-accent px-4 py-2 font-semibold text-white" %>
+      <% end %>
+    </section>
+  <% end %>
+</div>

@@ -98,7 +98,7 @@ class Task < ApplicationRecord
   validates :origin_session_id, length: { maximum: 200 }, allow_nil: true
   validates :origin_session_key, length: { maximum: 200 }, allow_nil: true
   validates :origin_session_key, uniqueness: { scope: :user_id },
-    if: -> { origin_session_key.to_s.start_with?("hermes:") }
+    if: -> { mirrored_origin_key? }
   validates :session_type, inclusion: { in: ["oneshot", "persistent"] }, allow_nil: true
   validate :validation_command_is_safe, if: -> { validation_command.present? }
   # Activity tracking - must be declared before callbacks that use it
@@ -109,7 +109,8 @@ class Task < ApplicationRecord
   after_update :record_update_activities
   # Auto-spawn is opt-in only. Default behavior is manual spawn by operator/assistant.
   after_commit :fire_openclaw_on_in_progress, on: :update, if: -> {
-    saved_change_to_status? && status == "in_progress" && ENV["OPENCLAW_AUTO_SPAWN_ON_IN_PROGRESS"].to_s.downcase == "true"
+    saved_change_to_status? && status == "in_progress" && !orchestration_projection? &&
+      ENV["OPENCLAW_AUTO_SPAWN_ON_IN_PROGRESS"].to_s.downcase == "true"
   }
   after_update :create_status_notification, if: :saved_change_to_status?
   after_save :auto_assign_on_up_next
@@ -190,6 +191,7 @@ end
   private
   # Auto-assign tasks to agent when created with up_next status
   def auto_assign_to_agent
+    return if orchestration_projection?
     return unless status == "up_next" && !assigned_to_agent?
 
     update_columns(assigned_to_agent: true, assigned_at: Time.current)
@@ -197,6 +199,7 @@ end
 
   # Auto-assign tasks when status changes to up_next
   def auto_assign_on_up_next
+    return if orchestration_projection?
     return unless saved_change_to_status? && status == "up_next" && !assigned_to_agent?
 
     update_columns(assigned_to_agent: true, assigned_at: Time.current)
@@ -243,6 +246,14 @@ end
 
   def sync_completed_with_status
     self.completed = (status == "done")
+  end
+
+  def mirrored_origin_key?
+    origin_session_key.to_s.start_with?("hermes:", "wezbridge:")
+  end
+
+  def orchestration_projection?
+    origin_session_key.to_s.start_with?("wezbridge:")
   end
 
   # Track completion and archival timestamps.

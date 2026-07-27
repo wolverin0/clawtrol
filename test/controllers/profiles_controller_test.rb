@@ -106,4 +106,22 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert flash[:new_api_token].present?
     assert flash[:new_api_token].length > 20
   end
+
+  test "creates and revokes a dedicated orchestration token without deleting default token" do
+    sign_in_as(@user)
+    default_token = @user.api_tokens.create!(name: "Keep me")
+
+    post create_orchestration_token_settings_path
+    assert_redirected_to settings_path
+
+    bridge_token = @user.api_tokens.find_by!(name: "Wezbridge control plane")
+    assert bridge_token.grants_scope?("orchestration_bridge:sync")
+    assert @user.api_tokens.exists?(default_token.id)
+    assert flash[:new_orchestration_token].present?
+
+    delete revoke_orchestration_token_settings_path
+    assert_redirected_to settings_path
+    assert bridge_token.reload.revoked_at.present?
+    assert_nil default_token.reload.revoked_at
+  end
 end

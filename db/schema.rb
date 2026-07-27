@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_27_030000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_27_223000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -675,6 +675,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_27_030000) do
     t.index ["user_id"], name: "index_openclaw_integration_statuses_on_user_id", unique: true
   end
 
+  create_table "orchestration_intents", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "kind", null: false
+    t.bigint "orchestration_source_id", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.datetime "processed_at"
+    t.jsonb "result", default: {}, null: false
+    t.string "status", default: "pending", null: false
+    t.bigint "task_id"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["orchestration_source_id", "status", "id"], name: "idx_orchestration_intents_source_status"
+    t.index ["orchestration_source_id"], name: "index_orchestration_intents_on_orchestration_source_id"
+    t.index ["task_id"], name: "index_orchestration_intents_on_task_id"
+    t.index ["user_id"], name: "index_orchestration_intents_on_user_id"
+  end
+
+  create_table "orchestration_sources", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "generated_at"
+    t.jsonb "health", default: {}, null: false
+    t.text "last_error"
+    t.datetime "last_seen_at"
+    t.jsonb "panes", default: [], null: false
+    t.string "profile", null: false
+    t.string "status", default: "stale", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["last_seen_at"], name: "index_orchestration_sources_on_last_seen_at"
+    t.index ["user_id", "profile"], name: "index_orchestration_sources_on_user_id_and_profile", unique: true
+    t.index ["user_id"], name: "index_orchestration_sources_on_user_id"
+  end
+
   create_table "runner_leases", force: :cascade do |t|
     t.string "agent_name"
     t.datetime "created_at", null: false
@@ -1097,6 +1130,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_27_030000) do
     t.index ["user_id", "assigned_to_agent", "status"], name: "index_tasks_on_user_agent_status"
     t.index ["user_id", "completed", "completed_at"], name: "idx_tasks_user_completed"
     t.index ["user_id", "origin_session_key"], name: "idx_tasks_user_hermes_origin_key", unique: true, where: "((origin_session_key)::text ~~ 'hermes:%'::text)"
+    t.index ["user_id", "origin_session_key"], name: "idx_tasks_user_wezbridge_origin_key", unique: true, where: "((origin_session_key)::text ~~ 'wezbridge:%'::text)"
     t.index ["user_id", "priority", "position"], name: "idx_tasks_auto_runner_candidates", where: "((status = 1) AND (blocked = false) AND (agent_claimed_at IS NULL) AND (agent_session_id IS NULL) AND (agent_session_key IS NULL) AND (assigned_to_agent = true) AND (auto_pull_blocked = false))"
     t.index ["user_id", "status"], name: "index_tasks_on_user_status"
     t.index ["user_id"], name: "index_tasks_on_user_id"
@@ -1257,6 +1291,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_27_030000) do
   add_foreign_key "openclaw_flows", "tasks"
   add_foreign_key "openclaw_flows", "users"
   add_foreign_key "openclaw_integration_statuses", "users"
+  add_foreign_key "orchestration_intents", "orchestration_sources"
+  add_foreign_key "orchestration_intents", "tasks", on_delete: :nullify
+  add_foreign_key "orchestration_intents", "users"
+  add_foreign_key "orchestration_sources", "users"
   add_foreign_key "runner_leases", "tasks"
   add_foreign_key "saved_links", "users"
   add_foreign_key "sessions", "users"
