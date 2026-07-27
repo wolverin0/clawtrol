@@ -29,9 +29,14 @@ jobs:
         run: bin/bundler-audit check --update
 
       - name: Scan the complete Git history for secrets
-        uses: docker://zricethezav/gitleaks:v8.24.3
-        with:
-          args: git /github/workspace --redact --log-opts=--all
+        run: |
+          docker run --rm \
+            --entrypoint /bin/sh \
+            --volume "$GITHUB_WORKSPACE:/repo:ro" \
+            --workdir /repo \
+            zricethezav/gitleaks:v8.24.3 \
+            -c 'git config --global --add safe.directory /repo &&
+                gitleaks git /repo --config /repo/.gitleaks.toml --redact --log-opts=--all --no-banner'
 
   scan_js:
     runs-on: ubuntu-latest
@@ -123,9 +128,19 @@ jobs:
         with:
           bundler-cache: true
 
-      - name: Enforce expand-contract migrations
+      - name: Resolve migration comparison base
         env:
-          MIGRATION_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EVENT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if git cat-file -e "${EVENT_BASE_SHA}^{commit}" 2>/dev/null; then
+            BASE_SHA="$EVENT_BASE_SHA"
+          else
+            git fetch --no-tags origin recovery/live-container-20260726
+            BASE_SHA="$(git rev-parse FETCH_HEAD)"
+          fi
+          echo "MIGRATION_BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
+
+      - name: Enforce expand-contract migrations
         run: ruby script/check_expand_contract_migrations.rb
 
       - name: Rebuild the database from the migration chain
