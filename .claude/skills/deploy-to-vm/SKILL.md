@@ -1,173 +1,159 @@
 ---
 name: deploy-to-vm
-description: Deploy clawtrol changes to the Ubuntu VM (192.168.100.186) via git push → remote pull → optional docker restart → smoke check. Enforces safety rails (no uncommitted work, no out-of-sync branches, no surprise force-pushes). Use when ready to ship a change to the running instance at the VM.
-argument-hint: "[--no-restart] [--skip-smoke] [--branch <name>] [--force-sync]"
+description: Deploy an already-tested, exact-SHA ClawTrol image to the private-LAN VM without pulling or building source on the host.
+argument-hint: "<40-character-tested-sha>"
 trigger: /deploy-to-vm
 ---
 
 # deploy-to-vm
 
-Deploy local commits to the VM-hosted clawtrol instance.
+Deploy one immutable web image to the private-LAN VM. This skill never builds
+on the host, pulls source into a VM checkout, starts a worker, or deploys a
+floating tag.
 
-## Target
+## Required input and host state
 
-- **VM:** 192.168.100.186 (Ubuntu)
-- **User:** ggorbalan
-- **SSH key:** `~/.ssh/id_rsa`
-- **Remote repo path:** `~/clawdeck/` (folder named `clawdeck` historically; the upstream repo is `wolverin0/clawtrol`)
-- **Service port:** 4001 (docker-compose maps container 3000 → host 4001)
-- **DB:** Postgres, database `clawdeck_production`
-- **Stack:** Rails 8.1 + Postgres + Docker Compose
+- `REVISION`: the exact 40-character lowercase Git SHA that passed hosted CI.
+- Image: `ghcr.io/wolverin0/clawtrol:${REVISION}`.
+- Local repository: clean and checked out at `REVISION`.
+- Host deployment directory: `$HOME/.local/share/clawtrol-deploy`.
+- Host secret environment: `$HOME/.config/clawtrol/runtime.env`, mode `0600`.
+- Restored-database migration evidence for this exact image revision.
+- Both retired systemd web units and the Solid Queue worker remain stopped.
 
-## Flags
+Never print, copy into the repository, or place the host runtime environment in
+command arguments. Docker Compose reads it from the host-side environment file.
 
-| Flag | Effect |
-|------|--------|
-| (none) | Full deploy: push → pull → restart → smoke-check |
-| `--no-restart` | Skip docker compose restart (use when changes are docs-only) |
-| `--skip-smoke` | Skip HTTP smoke check at port 4001 |
-| `--branch <name>` | Deploy a specific branch instead of current |
-| `--force-sync` | Allow deploy even if local has uncommitted changes (DANGEROUS — ask user first) |
+## Hard preflight
 
-## Non-negotiable pre-flight checks
-
-Before any network operation:
-
-1. **Local must be clean.**
-   ```bash
-   git status --porcelain
-   ```
-   If output is non-empty, STOP and report. Do NOT deploy dirty. Require `--force-sync` + user acknowledgment before proceeding.
-
-2. **Local must be up-to-date with origin.**
-   ```bash
-   git fetch origin
-   LOCAL=$(git rev-parse @)
-   REMOTE=$(git rev-parse @{u})
-   BASE=$(git merge-base @ @{u})
-   ```
-   - If `LOCAL == REMOTE`: in sync.
-   - If `LOCAL == BASE` (remote ahead): STOP. Pull first.
-   - If `REMOTE == BASE` (local ahead): OK to push.
-   - Otherwise (divergent): STOP. Fix the divergence first.
-
-3. **SSH connectivity works.**
-   ```bash
-   ssh -i ~/.ssh/id_rsa -o BatchMode=yes -o ConnectTimeout=8 ggorbalan@192.168.100.186 "echo ok"
-   ```
-   If this fails, report auth/network error. Don't continue.
-
-4. **VM has no uncommitted changes that would be blown away.**
-   ```bash
-   ssh -i ~/.ssh/id_rsa ggorbalan@192.168.100.186 "cd ~/clawdeck && git status --porcelain"
-   ```
-   If non-empty, STOP. Show the diff to the user. The VM may have local config edits (like `db/schema.rb` drift from migrations) that shouldn't be overwritten. Require user confirmation before continuing.
-
-## Deploy flow
-
-### Step 1. Push
+Run locally and stop on any failure:
 
 ```bash
-BRANCH=$(git branch --show-current)
-git push origin "$BRANCH"
-```
-
-If the branch is new on origin, push with `-u`. If the push is rejected, do NOT force-push — surface the rejection and stop.
-
-### Step 2. Remote fetch + checkout + pull
-
-```bash
-ssh -i ~/.ssh/id_rsa ggorbalan@192.168.100.186 "set -e
-cd ~/clawdeck
+test "$(git rev-parse HEAD)" = "$REVISION"
+test -z "$(git status --porcelain)"
+test "$(git rev-parse "$REVISION^{commit}")" = "$REVISION"
 git fetch origin
-git checkout $BRANCH
-git pull --ff-only origin $BRANCH"
+git merge-base --is-ancestor "$REVISION" origin/main
+gh run list --commit "$REVISION" --workflow CI --json conclusion,headSha \
+  --jq 'any(.[]; .headSha == "'"$REVISION"'" and .conclusion == "success")'
 ```
 
-`--ff-only` is mandatory. If the VM's HEAD is divergent, that's a flag — requires manual resolution, not automatic merge.
+Confirm the migration artifact was produced by
+`bash script/verify_restored_migrations.sh` against an isolated restore of the active
+database. A schema-only or empty-database migration pass is not sufficient.
 
-### Step 3. Restart services (unless `--no-restart`)
-
-The app runs under Docker Compose on the VM. Detect the running compose project and restart:
+Run read-only host checks:
 
 ```bash
-ssh -i ~/.ssh/id_rsa ggorbalan@192.168.100.186 "set -e
-cd ~/clawdeck
-docker compose ps --services 2>&1 | head -5
-docker compose restart clawdeck"
+ssh -o BatchMode=yes -o ConnectTimeout=8 "$CLAWTROL_VM" 'set -eu
+test -f "$HOME/.config/clawtrol/runtime.env"
+test "$(stat -c %a "$HOME/.config/clawtrol/runtime.env")" = 600
+for unit in clawdeck-web.service clawtrol.service clawtrol-worker.service; do
+  ! systemctl --user is-active --quiet "$unit"
+done'
 ```
 
-If migrations are needed, user triggers that explicitly — do NOT auto-migrate on deploy. Migrations are a separate workflow: `ssh … "cd ~/clawdeck && docker compose exec clawdeck bin/rails db:migrate"`.
+If the runtime environment is absent, permissions are broader than `0600`, a
+retired unit is active, CI is not green for the exact SHA, or restore evidence
+is missing, stop. Do not repair host secrets or start/stop services implicitly.
 
-### Step 4. Smoke check (unless `--skip-smoke`)
+## Stage the immutable release
 
-Wait 5 seconds for the service to come up, then:
+Copy only the Compose descriptor from the tested checkout:
 
 ```bash
-curl -sSf -o /dev/null -w "HTTP %{http_code}\n" http://192.168.100.186:4001/ || {
-  echo "SMOKE FAIL: service not responding on :4001"
-  echo "Check logs: ssh ... 'cd ~/clawdeck && docker compose logs --tail 50 clawdeck'"
-  exit 1
-}
+ssh "$CLAWTROL_VM" 'mkdir -p "$HOME/.local/share/clawtrol-deploy"'
+scp docker-compose.yml \
+  "$CLAWTROL_VM:~/.local/share/clawtrol-deploy/docker-compose.yml.next"
+ssh "$CLAWTROL_VM" "set -eu
+cd \"\$HOME/.local/share/clawtrol-deploy\"
+printf 'CLAWTROL_IMAGE=ghcr.io/wolverin0/clawtrol:%s\n' '$REVISION' > release.env.next
+chmod 600 release.env.next
+docker pull 'ghcr.io/wolverin0/clawtrol:$REVISION'
+test \"\$(docker image inspect 'ghcr.io/wolverin0/clawtrol:$REVISION' \
+  --format '{{ index .Config.Labels \"org.opencontainers.image.revision\" }}')\" = '$REVISION'
+docker compose \
+  --env-file release.env.next \
+  --env-file \"\$HOME/.config/clawtrol/runtime.env\" \
+  -f docker-compose.yml.next config --quiet"
 ```
 
-HTTP 200/301/302 = OK. Anything else = report and let user investigate.
+Do not continue if the image label, Compose image, or tested SHA differ.
 
-### Step 5. Report
+## Production migration gate
 
+Migrations are a separate, explicit operator-approved action. For a release
+with migrations:
+
+1. Verify the exact image against the isolated restored database.
+2. Confirm only expand-phase changes are present.
+3. Preserve the active database dump and verified row counts.
+4. Obtain explicit approval for the production migration.
+5. Run `db:migrate` once from the exact SHA image with the host runtime env.
+
+Never use `db:prepare`, `db:reset`, or a boot-time migration. Contract/drop
+migrations wait until the compatibility soak and a separate release.
+
+## Cut over one web container
+
+Back up the previous non-secret release descriptor, atomically activate the new
+descriptor, and recreate only the web service:
+
+```bash
+ssh "$CLAWTROL_VM" "set -eu
+cd \"\$HOME/.local/share/clawtrol-deploy\"
+test ! -f release.env || cp release.env release.env.previous
+test ! -f docker-compose.yml || cp docker-compose.yml docker-compose.yml.previous
+mv release.env.next release.env
+mv docker-compose.yml.next docker-compose.yml
+docker compose \
+  --env-file release.env \
+  --env-file \"\$HOME/.config/clawtrol/runtime.env\" \
+  pull clawdeck
+docker compose \
+  --env-file release.env \
+  --env-file \"\$HOME/.config/clawtrol/runtime.env\" \
+  up -d --no-build --no-deps clawdeck"
 ```
-DEPLOYED: <branch> @ <short-sha>
-  pushed:    $(git log origin/$BRANCH -1 --format='%h %s')
-  VM pulled: <VM's new HEAD>
-  restart:   ok (or skipped)
-  smoke:     HTTP 200 (or the actual code)
 
-Logs available at:
-  ssh -i ~/.ssh/id_rsa ggorbalan@192.168.100.186 "cd ~/clawdeck && docker compose logs -f --tail 100"
+Do not run `docker compose up` without a service name. The revived topology is
+one ClawTrol web container and no Compose database or worker.
+
+## Release proof
+
+Poll for at most 60 seconds, then require all of these:
+
+```bash
+curl --fail --silent http://192.168.100.186:4001/up >/dev/null
+test "$(curl --fail --silent http://192.168.100.186:4001/health |
+  ruby -rjson -e 'puts JSON.parse(STDIN.read).fetch("revision")')" = "$REVISION"
 ```
+
+Also verify:
+
+- `/health` reports `status: ok`, not only Docker `healthy`.
+- Login, board 5, and task history smoke checks pass.
+- Compose lists exactly the `clawdeck` service.
+- One Puma process exists and no Solid Queue worker exists.
+- The three retired systemd units remain inactive.
+- The active-database counts still match the pre-deploy anchor.
+
+Report tested SHA, image digest, deployed revision, health status, database
+counts, process evidence, and any gate that did not pass.
 
 ## Rollback
 
-The skill does NOT auto-rollback on smoke-fail — that's a decision for the user. Rollback pattern:
+Stop the passive mirror first and revoke its token if it was enabled. Restore
+the previous release descriptor and recreate the web container from the
+previous immutable image. Restore the database dump only when schema or data
+integrity requires it. Never roll back credential rotation or re-enable a
+legacy executor.
 
-```bash
-ssh -i ~/.ssh/id_rsa ggorbalan@192.168.100.186 "set -e
-cd ~/clawdeck
-git reset --hard HEAD@{1}
-docker compose restart clawdeck"
-```
+## This skill never does
 
-`HEAD@{1}` is the previous state (before the most recent `pull`). If multiple pulls happened, bump the number.
-
-## What this skill will NEVER do
-
-- **Force-push** to origin.
-- **Auto-run migrations.** Destructive to prod data if they fail mid-flight.
-- **`rm`, `drop database`, `reset --hard` without explicit user request.**
-- **Deploy through SSH if local is dirty** (unless `--force-sync` + user acknowledges).
-- **Overwrite VM-local uncommitted changes.** Report + ask first.
-- **Silently skip the smoke check.** If `--skip-smoke` is passed, it says so in the report. User owns the risk.
-
-## When to use
-
-Use after:
-- `git commit` lands a local change you want in prod
-- A PR merges to a branch the VM already tracks
-- You've pulled from origin and want the VM to match
-
-Don't use for:
-- Schema migrations (run those as explicit one-off)
-- Config changes requiring container rebuild (that's `docker compose build`, handle manually)
-- Breaking changes without a rollback plan
-
-## Known VM state (as of 2026-04-19)
-
-- Branch: `docs/restore-runbook`
-- HEAD: `b54b354` (same as local after clone)
-- Has one uncommitted local change: `M db/schema.rb` — this is schema drift that predates this skill. Pre-flight check #4 will flag it on every deploy until resolved. Resolution path: either commit it on the VM and push to origin, or revert it locally on the VM if it's unwanted drift.
-
-## Caveats
-
-- **OneDrive latency:** this skill runs from a OneDrive-backed repo. Every `git fetch/push` touches OneDrive-synced `.git/` files. Expect slight operation slowness, not a correctness issue.
-- **SSH BatchMode:** all SSH commands use `BatchMode=yes` to fail fast on auth issues rather than hang on password prompts. If your SSH key setup changes, these will fail loudly — that's intentional.
-- **Branch naming:** local and remote `~/clawdeck/` on the VM track the same `origin`. The historical naming mismatch (local folder `clawdeck` vs upstream repo `clawtrol`) does not affect the deploy flow but can confuse people reading docs.
+- Force-push, deploy a floating tag, or build on the VM.
+- Pull application source as a deployment mechanism.
+- Start systemd services, Solid Queue, Factory, Nightshift, or legacy workers.
+- Auto-run migrations or use `db:prepare`.
+- Print or transfer runtime credentials.
+- Treat `/up`, Docker health, or a mutable restart as release proof.

@@ -10,20 +10,39 @@ class HealthController < ApplicationController
 
   def show
     checks = {
+      revision: check_revision,
       database: check_database,
       solid_queue: check_solid_queue,
       cache: check_cache,
       ar_encryption: check_ar_encryption
     }
+    payload = {
+      status: checks.values.all? { |value| value[:ok] } ? "ok" : "degraded",
+      revision: application_revision,
+      time: Time.current.iso8601,
+      checks: checks
+    }
 
-    if checks.values.all? { |v| v[:ok] }
-      render json: { status: "ok", time: Time.current.iso8601, checks: checks }
+    response.set_header("Cache-Control", "no-store")
+    if payload[:status] == "ok"
+      render json: payload
     else
-      render json: { status: "degraded", time: Time.current.iso8601, checks: checks }, status: :service_unavailable
+      render json: payload, status: :service_unavailable
     end
   end
 
   private
+
+  def application_revision
+    ENV["APP_REVISION"].presence || "unknown"
+  end
+
+  def check_revision
+    return { ok: true, skipped: true } unless Rails.env.production?
+    return { ok: true } if application_revision.match?(/\A[0-9a-f]{40}\z/)
+
+    { ok: false, error: "APP_REVISION must be the tested 40-character Git SHA" }
+  end
 
   def check_database
     ActiveRecord::Base.connection.execute("SELECT 1")
@@ -49,7 +68,11 @@ class HealthController < ApplicationController
   # If AR encryption is misconfigured, every encrypted attribute read will
   # blow up at request time. Cheap to verify here.
   def check_ar_encryption
-    return { ok: true, skipped: true } unless ActiveRecord::Encryption.config.primary_key.present?
+    unless ActiveRecord::Encryption.config.primary_key.present?
+      return { ok: false, error: "Active Record encryption primary key is missing" } if Rails.env.production?
+
+      return { ok: true, skipped: true }
+    end
 
     test_value = "health-#{SecureRandom.hex(4)}"
     encrypted = ActiveRecord::Encryption.encryptor.encrypt(test_value)

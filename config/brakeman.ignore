@@ -205,10 +205,10 @@
     },
     {
       "warning_type": "File Access",
-      "fingerprint": "e01b7f7a4b7a397eff6cc0082df4c6d56ddfd3db732109182d97133438b931aa",
+      "fingerprint": "5680c0d6ae14609ee4ba6b797a9217bc28b2d5c25c85af528bf7097580f4b2b9",
       "file": "app/controllers/marketing_controller.rb",
-      "line": 177,
-      "note": "False positive: path/url components are sanitized or sourced from trusted internal records"
+      "line": 178,
+      "note": "Authenticated inert artifact reader: sanitize_path resolves under storage/marketing, rejects absolute/null/symlink escapes, and HTML is returned as sandboxed text attachment"
     },
     {
       "warning_type": "File Access",
@@ -267,6 +267,6 @@
       "note": "exec_host/exec_security/exec_timeout/exec_ask are persona config strings stored on AgentPersona, not used as shell input. Persona records are admin/owner-managed; they do not eval or shell out to user-supplied values."
     }
   ],
-  "updated": "2026-04-27",
+  "updated": "2026-07-27",
   "brakeman_version": "8.0.2"
 }

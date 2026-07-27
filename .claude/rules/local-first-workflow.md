@@ -1,47 +1,57 @@
-# Local-First Workflow — Clawtrol
-
-As of 2026-04-19, clawtrol development happens in the **local git clone** at `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawtrol\`, not via SSH-edit-on-VM. The VM runs the deployed version; it pulls from github, we push to github, the deploy skill orchestrates.
+# Local-First Immutable Release Workflow
+<!-- Covers local development and exact-SHA image delivery to the private-LAN ClawTrol VM. -->
+<!-- Key terms: canonical clone, tested SHA, immutable image, host runtime env, health revision. -->
+<!-- Read before editing deployment files, building a release, migrating, or operating the VM. -->
+<!-- Source is edited locally; production runs a registry image tagged only by the tested Git SHA. -->
+<!-- The VM never builds or pulls application source during a normal deployment. -->
+<!-- Updated: 2026-07-26 safe-LAN revival remediation. -->
 
 ## Golden rule
 
-**Edit locally. Deploy via `/deploy-to-vm`. Never SSH-edit files on the VM for non-emergency work.**
+Edit and test in the canonical local clone. Release through
+`/deploy-to-vm`, which deploys the exact SHA-tagged image produced by green
+hosted CI. Never edit source, build an image, or pull a branch on the VM.
 
-## The topology
+## Topology
 
-- **Local (this dir):** full git clone of `https://github.com/wolverin0/clawtrol.git`. Same remote as the VM. Edits, commits, tests all happen here.
-- **VM `~/clawdeck/`:** running Rails service. Pulled from origin. Treat as read-only except when debugging.
-- **GitHub `wolverin0/clawtrol`:** source of truth. Both local and VM track it.
+- Local clone: source edits, tests, and atomic commits.
+- GitHub: canonical Git history and fail-closed CI.
+- GitHub Container Registry: `ghcr.io/wolverin0/clawtrol:<40-char-sha>`.
+- VM deployment directory: non-secret Compose descriptor and release pointer.
+- VM runtime environment: access-restricted, host-side secrets and database URL.
+- Production: one ClawTrol web container, no ClawTrol worker or Compose database.
 
 ## Daily flow
 
-1. `cd clawtrol` (local)
-2. Create/checkout a working branch
-3. Edit, run tests locally (`docker compose up`, `bin/rails test`, etc.)
-4. Commit atomically
-5. When ready to ship: `/deploy-to-vm` — the skill pushes to origin + pulls on VM + optionally restarts + smoke-checks
+1. Create a dedicated branch/worktree from the canonical clone.
+2. Make a small change and run the touched-area tests and security checks.
+3. Commit and push the exact revision.
+4. Require hosted CI to pass for that exact revision.
+5. For schema changes, validate the exact image against an isolated restored
+   production dump and preserve the evidence.
+6. Invoke `/deploy-to-vm <40-character-sha>`.
+7. Require `/health` to report the same SHA and all runtime checks green.
 
-## What NOT to do
+## Prohibited deployment patterns
 
-- **Never** SSH to the VM and `git commit` directly in `~/clawdeck/`. The VM working copy is deployment-only. If the VM has drift (like today's `M db/schema.rb`), resolve it by either committing & pushing upstream OR reverting — not by building on it.
-- **Never** skip the `/deploy-to-vm` pre-flight checks. They catch dirty-local, out-of-sync, VM-has-uncommitted-drift before network operations.
-- **Never** force-push. Destructive to team history and the VM deploy flow.
-- **Never** edit `docker-compose.yml` / `Dockerfile` on the VM only. Container changes need to go through git → deploy.
+- Pulling a branch into a VM checkout and restarting an existing container.
+- Running `docker compose build` on the VM.
+- Deploying `latest`, a branch name, or any mutable image tag.
+- Running `db:prepare`, destructive migrations, or migrations at container boot.
+- Starting the retired systemd units or a Solid Queue worker.
+- Copying runtime secrets into Git, release descriptors, terminal output, or chat.
+- Calling `/up` or Docker health alone sufficient release evidence.
 
-## When SSH-to-VM IS appropriate
+## Allowed SSH use
 
-Debugging-only, read-only, or one-off:
+SSH is for bounded deployment operations and read-only diagnostics: inspect
+container state, tail logs, verify stopped units, and run an explicitly approved
+one-off migration from the exact release image. Do not open an editor in a VM
+source checkout.
 
-- Tailing logs: `ssh ggorbalan@192.168.100.186 "cd ~/clawdeck && docker compose logs -f clawdeck"`
-- Checking service state: `docker compose ps`, `systemctl --user status clawdeck-web.service`
-- Running a one-off console: `docker compose exec clawdeck bin/rails console`
-- Inspecting DB: `docker compose exec db psql -U postgres clawdeck_production`
+## Recovery
 
-If you catch yourself `vim`ing a file on the VM, STOP. Do it locally and deploy.
-
-## The audit workspace
-
-`G:\_OneDrive\OneDrive\Desktop\Py Apps\clawtrol-workspace\` holds the audit docs that used to live at this repo root before the 2026-04-19 re-clone (AUDIT.md, FIX_PROMPTS.md, FEATURE_IDEAS.md, roadmap.md, obsidian-vault/, screenshots). They're planning artifacts ABOUT the system, not part of the repo. Reference them as needed; commit new planning docs under `docs/` in this repo instead.
-
-## If you're confused about which path to edit
-
-Check by running `pwd && git remote get-url origin` in your current shell. If you see `G:\_OneDrive\...\clawtrol` AND `https://github.com/wolverin0/clawtrol.git`, you're in the right place.
+Rollback selects the previous immutable image and recreates the single web
+container. Stop the passive mirror and revoke its token first. Restore a
+database dump only if integrity requires it. Never restore revoked credentials
+or legacy execution.

@@ -8,12 +8,12 @@ Use this map first. Most recent confusion came from editing the wrong folder.
 
 ### Canonical vs mirror folders
 
-**UPDATED 2026-04-19** — Workflow shifted from SSH-edit-on-VM to local-clone + deploy-to-VM. The Windows local dir now holds a FULL git clone, not a docs mirror. Edits happen locally; deploys use `/deploy-to-vm` skill.
+**UPDATED 2026-07-26** — Source edits remain local, while releases use the exact SHA-tagged image produced by hosted CI. The VM does not pull or build application source during a normal deployment.
 
 | Role | Path | Status | Notes |
 |---|---|---|---|
 | **Local working copy (primary)** | `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawtrol` | **WRITE HERE** | Full clone of `wolverin0/clawtrol`, same remote as VM. Work locally, deploy via `/deploy-to-vm`. |
-| VM deployment target | `/home/ggorbalan/clawdeck` | Pulled-from-git | Running Rails service, pulls from origin. Do NOT edit directly unless debugging on the VM is required. |
+| VM deployment target | `$HOME/.local/share/clawtrol-deploy` | Immutable image | Non-secret Compose descriptor and exact-SHA release pointer. Runtime secrets remain in the access-restricted host environment. |
 | VM worktree (alternate branch) | `/home/ggorbalan/factory-workspaces/clawtrol-minimax` | Secondary working copy | Git worktree of `~/clawdeck/.git`. Separate branch, separate working dir. |
 | Audit workspace (archived) | `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawtrol-workspace` | Preserved audit docs | AUDIT.md, FIX_PROMPTS.md, FEATURE_IDEAS.md, roadmap.md, obsidian-vault/, screenshots. Moved aside from clawtrol/ during the 2026-04-19 re-clone. Reference only. |
 | Scratch patch dump | `G:\_OneDrive\OneDrive\Desktop\Py Apps\clawdeck_remote_work` | Non-canonical | Isolated files from prior remote-work flow, not the live repo |
@@ -24,11 +24,11 @@ Use this map first. Most recent confusion came from editing the wrong folder.
 ### Runtime endpoints
 
 - ClawTrol app URL: `http://192.168.100.186:4001`
-- Service unit: `systemctl --user status clawdeck-web.service` (or via `docker compose ps` in `~/clawdeck/`)
+- Runtime: one Compose-managed web container; retired systemd web/worker units remain stopped.
 
 ### Deploy
 
-Use the `/deploy-to-vm` skill at `.claude/skills/deploy-to-vm/SKILL.md`. Do NOT SSH-edit on the VM for non-emergency changes. The skill enforces clean-local + up-to-date-with-origin pre-flight + refuses to force-push.
+Use the `/deploy-to-vm` skill at `.claude/skills/deploy-to-vm/SKILL.md`. It deploys only an exact SHA image after hosted CI and restored-database migration gates pass, then requires `/health` to report the same SHA.
 
 ## 2) Mandatory Preflight Before Any Edit
 
@@ -164,15 +164,15 @@ If any gate fails, do not mark task done.
 4. When context is ambiguous, run the section 2 preflight before touching files.
 5. Prefer small reversible changes with explicit validation steps.
 6. Keep roadmap checkboxes updated in the same execution window.
-7. Ship via `/deploy-to-vm`. Do not `git pull` directly on the VM as part of a normal change.
+7. Ship via `/deploy-to-vm`. Never pull source, build an image, or deploy a mutable tag on the VM.
 
 ## 9) Common Pitfalls and Fixes
 
 ### Pitfall: "I changed files but app did not change"
-Cause: either (a) edited the wrong folder (`clawtrol-workspace/`, `clawdeck_remote_work/`, or a `gitclones/` reference clone), or (b) edited locally but never deployed.
+Cause: either (a) edited the wrong folder (`clawtrol-workspace/`, `clawdeck_remote_work/`, or a `gitclones/` reference clone), or (b) the exact tested SHA image was not deployed.
 Fix:
 - Re-run section 2 preflight; confirm `pwd` ends in `clawtrol` and origin is `wolverin0/clawtrol`.
-- If the local change is committed but the VM is unchanged, run `/deploy-to-vm` to push + pull on VM + restart the service.
+- Require green hosted CI, then run `/deploy-to-vm <40-character-sha>` and verify `/health` returns that SHA.
 
 ### Pitfall: "Nav differs across pages"
 Cause: duplicated nav partials drifting.

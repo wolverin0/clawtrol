@@ -1,53 +1,32 @@
 services:
   clawdeck:
-    build: .
+    image: "${CLAWTROL_IMAGE:?Set CLAWTROL_IMAGE to the exact SHA-tagged release image}"
+    pull_policy: always
     ports:
-      - "4001:3000"
+      - "${CLAWTROL_BIND_ADDRESS:-0.0.0.0}:${CLAWTROL_PORT:-4001}:3000"
     environment:
-      - RAILS_ENV=production
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/clawdeck_production
-      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
-      - RAILS_SERVE_STATIC_FILES=true
-      - RAILS_LOG_TO_STDOUT=true
-      - OPENCLAW_GATEWAY_URL=${OPENCLAW_GATEWAY_URL:-}
-      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN:-}
-    depends_on:
-      db:
-        condition: service_healthy
+      RAILS_ENV: production
+      DATABASE_URL: "${DATABASE_URL:?Set DATABASE_URL in the host-side runtime environment}"
+      SECRET_KEY_BASE: "${SECRET_KEY_BASE:?Set SECRET_KEY_BASE in the host-side runtime environment}"
+      APP_BASE_URL: "${APP_BASE_URL:?Set APP_BASE_URL to the private-LAN ClawTrol URL}"
+      ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: "${ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY:?Set ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY in the host-side runtime environment}"
+      ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY: "${ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY:?Set ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY in the host-side runtime environment}"
+      ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT: "${ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT:?Set ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT in the host-side runtime environment}"
+      RAILS_SERVE_STATIC_FILES: "true"
+      RAILS_LOG_TO_STDOUT: "true"
     restart: unless-stopped
     volumes:
       - storage:/app/storage
     networks:
       - clawdeck-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/up"]
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:3000/health"]
       interval: 30s
       timeout: 3s
       start_period: 30s
       retries: 3
-    
-  db:
-    image: postgres:16-alpine
-    # Not used in the production deployment: Rails runs on the host
-    # against the dashboard-postgres container on 127.0.0.1:5432
-    # (see docs/audit/2026-04-17/AUDIT.md correction note).
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    environment:
-      POSTGRES_DB: clawdeck_production
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d clawdeck_production"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - clawdeck-network
-    restart: unless-stopped
 
 volumes:
-  pgdata:
   storage:
 
 networks:

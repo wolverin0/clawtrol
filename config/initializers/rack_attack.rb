@@ -6,22 +6,12 @@
 # - Authenticated users: 200 req/min
 # - API tokens: 100 req/min
 # - Anonymous: 20 req/min
-# - Internal (gateway) calls: unlimited (whitelisted)
+# - Exact health endpoints: exempt from throttling
 
 class Rack::Attack
-  # Whitelist internal gateway requests
-  safelist("internal") do |req|
-    req.env["REMOTE_ADDR"].nil? ||
-      req.env["REMOTE_ADDR"].start_with?("127.0.0.1") ||
-      req.env["REMOTE_ADDR"].start_with?("192.168.100.")
-  end
-
-  # Whitelist requests using our own API tokens (OpenClaw agents, Codex sandbox, etc.)
-  safelist("own_api_token") do |req|
-    token = req.env["HTTP_AUTHORIZATION"]&.then { |h| h[/Bearer (.+)/, 1] }
-    next false unless token
-    valid_tokens = [ENV["CLAWTROL_API_TOKEN"], ENV["CLAWTROL_HOOKS_TOKEN"]].compact
-    valid_tokens.any? { |t| Rack::Utils.secure_compare(token, t) }
+  # Health probes are the only throttle exception. Authentication never bypasses limits.
+  safelist("health_endpoints") do |req|
+    req.get? && %w[/up /health].include?(req.path)
   end
 
   # Rate limit by user token for authenticated requests

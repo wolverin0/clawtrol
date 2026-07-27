@@ -9,10 +9,10 @@
 default: &default
   adapter: postgresql
   encoding: unicode
-  username: <%= ENV.fetch("CLAWTROLPLAYGROUND_DB_USERNAME", "dashboard") %>
-  password: <%= ENV.fetch("CLAWTROLPLAYGROUND_DB_PASSWORD", "dashpass123") %>
-  host: <%= ENV.fetch("CLAWTROLPLAYGROUND_DB_HOST", "192.168.100.186") %>
-  port: <%= ENV.fetch("CLAWTROLPLAYGROUND_DB_PORT", 5432) %>
+  username: <%= ENV["DATABASE_URL"].present? ? nil : ENV["CLAWTROLPLAYGROUND_DB_USERNAME"] %>
+  password: <%= ENV["DATABASE_URL"].present? ? nil : ENV["CLAWTROLPLAYGROUND_DB_PASSWORD"] %>
+  host: <%= ENV["DATABASE_URL"].present? ? nil : ENV["CLAWTROLPLAYGROUND_DB_HOST"] %>
+  port: <%= ENV["DATABASE_URL"].present? ? nil : ENV.fetch("CLAWTROLPLAYGROUND_DB_PORT", 5432) %>
   # For details on connection pooling, see Rails configuration guide
   # https://guides.rubyonrails.org/configuring.html#database-pooling
   # Use DB_POOL for production (includes Puma threads + Solid Queue workers + Solid Cable)

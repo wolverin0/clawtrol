@@ -1,10 +1,13 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-# If running the rails server, prepare the database
-if [ "${1}" == "bundle" ] && [ "${2}" == "exec" ] && [ "${3}" == "puma" ]; then
-  echo "Preparing database..."
-  bundle exec rails db:prepare
+if [[ "${RAILS_ENV:-}" == "production" ]]; then
+  : "${DATABASE_URL:?DATABASE_URL is required in production}"
+  : "${SECRET_KEY_BASE:?SECRET_KEY_BASE is required in production}"
+  : "${APP_BASE_URL:?APP_BASE_URL is required in production}"
+  : "${ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY:?ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY is required in production}"
+  : "${ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY:?ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY is required in production}"
+  : "${ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT:?ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT is required in production}"
 fi
 
 exec "$@"

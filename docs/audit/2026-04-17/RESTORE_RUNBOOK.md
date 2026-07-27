@@ -1,6 +1,13 @@
-# ClawTrol — Backup & Restore Runbook
+# SUPERSEDED — ClawTrol Backup & Restore Runbook
+<!-- Historical April 2026 backup evidence; do not execute its service or deployment commands. -->
+<!-- Key terms: SUPERSEDED, old systemd topology, old backup paths, historical restore. -->
+<!-- Read docs/DOCS-MAP.md and the July R0 report before any recovery operation. -->
+<!-- Replaced by: docs/reports/safe-lan-remediation-r0-2026-07-26.md plus release-specific restore evidence. -->
+<!-- Last historical test: 2026-04-18; current active-database topology differs. -->
+<!-- Status updated: 2026-07-26 safe-LAN remediation. -->
 
-**Last tested:** 2026-04-18 — restore of `clawtrol_db_2026-04-17.sql.gz` matched live row counts exactly across users / tasks / boards / agent_personas / saved_links / nightshift_missions.
+The historical restore matched its then-live row counts across users, tasks,
+boards, agent personas, saved links, and Nightshift missions.
 
 ## Where backups live
 
