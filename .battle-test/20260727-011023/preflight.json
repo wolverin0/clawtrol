@@ -1,0 +1,13 @@
+{
+  "runId": "battle-20260727-011023",
+  "project": "clawtrol",
+  "branch": "remediation/safe-lan-revival-20260726",
+  "recoveryBase": "9035ed84d1a2f9fd40469ce59815054a61888324",
+  "repository": true,
+  "authRequired": true,
+  "candidateUrl": null,
+  "candidateCredentialsAvailable": false,
+  "deployAttempted": false,
+  "runtimeMutated": false,
+  "preflightVerdict": "repository checks may proceed; authenticated multi-role candidate validation is gated"
+}

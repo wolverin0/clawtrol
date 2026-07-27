@@ -1,0 +1,48 @@
+{
+  "runId": "battle-20260727-011023",
+  "rails": {
+    "runs": 2550,
+    "assertions": 5722,
+    "failures": 0,
+    "errors": 0,
+    "skips": 69
+  },
+  "systemChromium": {
+    "runs": 36,
+    "assertions": 126,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0
+  },
+  "sidecar": {
+    "tests": 7,
+    "failures": 0
+  },
+  "rubocop": {
+    "files": 868,
+    "offenses": 0
+  },
+  "brakeman": {
+    "warnings": 0,
+    "parserErrors": 0
+  },
+  "dependencyAudit": {
+    "rubyVulnerabilities": 0,
+    "importmapVulnerabilities": 0
+  },
+  "migrationChainRebuild": "pass",
+  "passiveHermesBoundary": "pass",
+  "gitleaks": {
+    "workingTreeFindings": 0,
+    "historyFindings": 2
+  },
+  "runtimeCredentialFingerprintAudit": {
+    "fingerprintPrefix": "dbdd9ead9e6d9ef8",
+    "containerEnvironmentOccurrences": 1,
+    "containerLogOccurrences": 0,
+    "containerFileOccurrences": 2,
+    "databaseMatchedRows": 19,
+    "restoredDumpStreamOccurrences": 39,
+    "hostConfigOccurrences": 0
+  }
+}

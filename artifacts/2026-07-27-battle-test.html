@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClawTrol Battle Test — 2026-07-27</title>
+  <style>
+    :root { color-scheme: dark; font: 15px/1.5 system-ui, sans-serif; background: #090d14; color: #e7edf7; }
+    body { max-width: 1120px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1, h2 { letter-spacing: -.02em; } h2 { margin-top: 34px; }
+    .banner { border: 1px solid #ef4444; background: #3b1015; border-radius: 12px; padding: 20px; }
+    .banner strong { color: #fca5a5; font-size: 1.35rem; }
+    table { width: 100%; border-collapse: collapse; background: #111827; }
+    th, td { border: 1px solid #334155; padding: 9px 11px; text-align: left; vertical-align: top; }
+    th { background: #172033; } .pass { color: #86efac; } .blocked { color: #fca5a5; }
+    code { background: #1e293b; padding: 2px 5px; border-radius: 4px; }
+    a { color: #93c5fd; } li { margin: 7px 0; }
+    .muted { color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <h1>ClawTrol Battle Test</h1>
+  <div class="banner">
+    <strong>🔴 Not yet</strong>
+    <div>Repository containment is substantially implemented and locally green, but the active credential incident,
+      complete-history purge, restored-dump rehearsal, authenticated candidate validation, deployment, and soak gates remain open.</div>
+  </div>
+
+  <h2>At-a-glance scorecard</h2>
+  <table>
+    <tr><th>Signal</th><th>Result</th></tr>
+    <tr><td>Rails unit/integration</td><td class="pass">2,550 runs; 0 failures/errors</td></tr>
+    <tr><td>Chromium system tests</td><td class="pass">36 runs; 0 failures/errors/skips</td></tr>
+    <tr><td>RuboCop / Brakeman</td><td class="pass">868 files, 0 offenses / 0 warnings or parser errors</td></tr>
+    <tr><td>Ruby / importmap dependencies</td><td class="pass">0 known vulnerabilities</td></tr>
+    <tr><td>Migration chain / passive mirror boundary</td><td class="pass">Pass / pass</td></tr>
+    <tr><td>Working-tree / full-history secrets</td><td class="blocked">0 / 2 findings</td></tr>
+    <tr><td>Fresh authenticated roles/routes</td><td class="blocked">0 roles and 0 routes; candidate server not authorized</td></tr>
+    <tr><td>Open critical incident</td><td class="blocked">1 — credential is still active in the old runtime and present in stored data</td></tr>
+  </table>
+
+  <h2>Before → after</h2>
+  <table>
+    <tr><th>Dimension</th><th>Before</th><th>Current candidate</th></tr>
+    <tr><td>Same-origin raw marketing/preview HTML</td><td>Executable</td><td class="pass">Moved out of public and served as sandboxed text attachment</td></tr>
+    <tr><td>Legacy executor surfaces</td><td>Routable</td><td class="pass">Fail closed with 410; jobs guarded</td></tr>
+    <tr><td>Direct Hermes control</td><td>Adapters, CLI, tokens, dual mode</td><td class="pass">Removed; scoped passive mirror only</td></tr>
+    <tr><td>Release identity</td><td>Pull/restart could retain an old image</td><td class="pass">Exact-SHA image and <code>/health</code> revision contract</td></tr>
+    <tr><td>Dependency advisories</td><td>Multiple current advisories</td><td class="pass">0 after targeted lockfile updates</td></tr>
+    <tr><td>Exposed credential</td><td>Committed and active</td><td class="blocked">Removed from working tree, but active runtime/data/history still require maintenance</td></tr>
+  </table>
+
+  <h2>What was fixed</h2>
+  <ul>
+    <li><code>0c4c41d</code> — remediation decisions and R0 recovery anchors.</li>
+    <li><code>1c472ce</code> — fail-closed legacy execution and inert HTML containment.</li>
+    <li><code>c74d0c3</code> — scoped, idempotent passive Hermes mirror and read-only sidecar.</li>
+    <li><code>c7846fc</code> — immutable release, CI/security gates, migration policy, and current documentation map.</li>
+  </ul>
+
+  <h2>Operator queue (GATED)</h2>
+  <ol>
+    <li>Approve one coordinated containment window: stage protected runtime env, rotate/cut over, scrub the 19 matched rows, and prove the old token returns 401.</li>
+    <li>Approve the exact-ref all-branch/tag history rewrite, obsolete-ref deletion, and mandatory collaborator re-clone.</li>
+    <li>Run the exact candidate image against an isolated copy of the production dump; verify counts and smoke routes.</li>
+    <li>Provide/authorize a running candidate plus fresh administrator/member authentication for multi-role, IDOR, responsive, and visual comparison.</li>
+    <li>Approve immutable production deployment only after the previous gates pass.</li>
+    <li>Complete mirror 24-hour dry run, one metadata-only canary, second 24-hour soak, then seven days before dropping reversible columns.</li>
+  </ol>
+
+  <h2>Evidence appendix</h2>
+  <ul>
+    <li><a href="../docs/reports/safe-lan-remediation-r0-2026-07-26.md">R0 recovery evidence</a></li>
+    <li><a href="../docs/reports/safe-lan-remediation-r1-r4-2026-07-27.md">R1-R4 execution evidence</a></li>
+    <li><a href="../.battle-test/20260727-011023/verification.json">Machine-readable verification</a></li>
+    <li><a href="../remediation-decisions.md">All 36 finding decisions</a></li>
+  </ul>
+  <p class="muted">No production mutation, remote history rewrite, push, sidecar start, or deployment was performed by this run.</p>
+</body>
+</html>

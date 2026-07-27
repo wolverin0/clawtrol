@@ -1,65 +1,73 @@
 {
   "version": "1.0",
-  "runId": "battle-20260726-204255",
+  "runId": "battle-20260727-011023",
   "project": "clawtrol",
-  "branch": "recovery/live-container-20260726",
-  "baseCommit": "909e992a2e384aaea59b4f8d77b8eb3ef05cb5ba",
-  "startedAt": "2026-07-26T20:42:55-03:00",
+  "branch": "remediation/safe-lan-revival-20260726",
+  "baseCommit": "9035ed84d1a2f9fd40469ce59815054a61888324",
+  "startedAt": "2026-07-27T01:10:23-03:00",
   "status": "awaiting_operator",
-  "currentStage": "operator_gate_after_stage_1",
+  "currentStage": "operator_gates_after_reverify",
   "stages": {
     "0_preflight": {
       "status": "completed",
-      "artifact": ".battle-test/20260726-204255/preflight.json"
+      "artifact": ".battle-test/20260727-011023/preflight.json"
     },
     "1_diagnose": {
       "status": "completed",
-      "artifact": "audit-report.md",
-      "verdict": "DO NOT LAUNCH UNTIL HARD STOPS RESOLVED",
-      "findings": {
-        "total": 36,
-        "critical": 2,
-        "high": 15,
-        "medium": 19,
-        "low": 0
-      }
+      "artifact": "docs/reports/safe-lan-remediation-r1-r4-2026-07-27.md",
+      "verdict": "NOT YET — credential incident and history hard stop remain open"
     },
     "2_baseline_validation": {
-      "status": "gated",
-      "artifact": "test-manifest/validation-state.json"
+      "status": "blocked",
+      "reason": "No running immutable candidate with fresh per-role authentication was authorized.",
+      "projectNativeEvidence": "Chromium system suite passed 36/36."
     },
     "3_harden": {
-      "status": "pending",
-      "artifact": "TRACKS.md"
+      "status": "partial",
+      "tracker": "Beads claw-glf (TRACKS.md intentionally not created because project policy requires bd)",
+      "reason": "Repository remediation implemented; runtime incident and rollout gates require operator maintenance windows."
     },
     "4_reverify": {
-      "status": "pending"
+      "status": "blocked",
+      "artifact": ".battle-test/20260727-011023/verification.json",
+      "reason": "Static, unit, integration, system, migration, and dependency gates passed; authenticated multi-role candidate validation and full-history scan did not."
     },
     "5_report": {
-      "status": "pending",
-      "artifact": "artifacts/2026-07-26-battle-test.html"
+      "status": "completed",
+      "artifact": "artifacts/2026-07-27-battle-test.html",
+      "verdict": "NOT YET"
     }
   },
   "gates": [
     {
-      "id": "stage-1-hard-stops",
+      "id": "credential-incident",
       "status": "awaiting_operator",
-      "reason": "H4 committed shared hook credential and H6 same-origin untrusted HTML are verified. Battle-test requires Fix first, Proceed, or Stop."
+      "reason": "Rotate, cut over, scrub 19 matched rows, prove old-token 401, and preserve fingerprint-only evidence."
     },
     {
-      "id": "isolated-auth",
-      "status": "completed",
-      "reason": "Disposable admin and member users plus signed browser storage states were created against the isolated restored database."
+      "id": "history-purge",
+      "status": "awaiting_operator",
+      "reason": "Two complete-history findings require coordinated all-ref rewrite and collaborator re-clone."
     },
     {
-      "id": "browser-control",
+      "id": "restored-dump",
+      "status": "awaiting_operator",
+      "reason": "The exact candidate image has not migrated an isolated restored production dump."
+    },
+    {
+      "id": "authenticated-browser",
       "status": "blocked",
-      "reason": "Both available Chrome profiles reported an open extension UI that blocks automation. No protected route is marked passed."
+      "reason": "Fresh multi-role candidate URL and credentials were not available; routes passed remains zero."
     },
     {
       "id": "deploy",
       "status": "gated",
       "reason": "Deployment is never automatic."
+    },
+    {
+      "id": "mirror-soak",
+      "status": "gated",
+      "reason": "24-hour dry run, one-session canary, second 24-hour soak, and seven-day column soak remain."
     }
   ]
 }
