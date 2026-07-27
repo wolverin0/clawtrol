@@ -1,0 +1,47 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "clawtrol-hook-token"
+description = "ClawTrol shared hook credential"
+regex = '''(?i)(?:CLAWTROL_)?HOOKS_TOKEN\s*[:=]\s*["']?([A-Za-z0-9_-]{32,})'''
+secretGroup = 1
+entropy = 3.0
+keywords = ["HOOKS_TOKEN"]
+
+[[rules]]
+id = "clawtrol-hook-header"
+description = "Embedded ClawTrol hook header credential"
+regex = '''(?i)X-Hook-Token:\s*["']?([^"'\\\s]{16,})'''
+secretGroup = 1
+keywords = ["X-Hook-Token"]
+
+  [[rules.allowlists]]
+  description = "Documentation uses explicit non-secret hook placeholders"
+  paths = ['''(^|/)(?:README\.md|docs/)''']
+
+[[rules]]
+id = "curl-auth-header"
+
+  [[rules.allowlists]]
+  description = "Historical examples and interpolation, not embedded bearer credentials"
+  paths = [
+    '''(^|/)README\.md$''',
+    '''(^|/)docs/(?:OPENCLAW_INTEGRATION|AGENT_INTEGRATION|INTEGRATION)\.md$''',
+    '''(^|/)\.git-rewrite/t/docs/INTEGRATION\.md$''',
+    '''(^|/)app/services/agent_auto_runner_service\.rb$'''
+  ]
+
+[[rules]]
+id = "generic-api-key"
+
+  [[rules.allowlists]]
+  description = "Known generated/example generic-key false positives"
+  paths = [
+    '''(^|/)docs/STRATEGIC_ROADMAP\.md$''',
+    '''(^|/)vendor/javascript/xterm\.js$'''
+  ]
+
+[allowlist]
+description = "Runtime logs and caches are untracked and outside repository history"
+paths = ['''(^|/)(?:log|tmp)/''']

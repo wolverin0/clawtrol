@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 
 class ApplicationJob < ActiveJob::Base
+  around_perform do |job, block|
+    SafeLan::LegacyExecutionPolicy.enforce_job!(job.class.name)
+    block.call
+  end
+
   # Automatically retry jobs that encountered a deadlock
   retry_on ActiveRecord::Deadlocked, wait: 5.seconds, attempts: 3
 

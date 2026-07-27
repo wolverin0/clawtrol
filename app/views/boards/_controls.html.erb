@@ -80,17 +80,11 @@
             persona: AgentPersona.find_by(board_id: @board.id, auto_generated: true),
             board: @board %>
 
-        <% hooks_token = current_user.respond_to?(:openclaw_hooks_token) ? current_user.openclaw_hooks_token : nil %>
-        <% configured = current_user.openclaw_gateway_url.present? && (hooks_token.present? || current_user.openclaw_gateway_token.present?) %>
-        <% active = current_user.agent_last_active_at.present? && current_user.agent_last_active_at > 2.minutes.ago %>
-        <span class="px-2 py-1 rounded-md text-xs font-semibold <%= !configured ? 'bg-status-error/20 text-status-error' : (active ? 'bg-status-success/20 text-status-success' : 'bg-status-warning/20 text-status-warning') %>"
-              title="OpenClaw gateway + agent token activity">
-          OpenClaw: <%= !configured ? 'OFF' : (active ? 'ACTIVE' : 'IDLE') %>
+        <span class="px-2 py-1 rounded-md text-xs font-semibold bg-status-warning/20 text-status-warning"
+              title="Direct agent execution is retired; Hermes is mirrored passively">
+          Execution: OFF
         </span>
       </div>
-
-      <%# OpenClaw Memory Search Health (persistent) %>
-      <%= render "shared/openclaw_memory_indicator", health: openclaw_memory_health %>
 
       <%# Error Badge %>
       <div data-controller="error-badge" 

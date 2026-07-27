@@ -4,19 +4,53 @@ require "test_helper"
 
 class MarketingControllerTest < ActionDispatch::IntegrationTest
   setup do
+    Current.reset
+    @original_marketing_dir = ENV["CLAWTROL_MARKETING_DIR"]
+    ENV["CLAWTROL_MARKETING_DIR"] = Rails.root.join("test/fixtures/files").to_s
     @user = users(:default)
   end
 
-  # --- Unauthenticated routes ---
-
-  test "index is accessible without auth" do
-    get "/marketing"
-    assert_response :success
+  teardown do
+    ENV["CLAWTROL_MARKETING_DIR"] = @original_marketing_dir
   end
 
-  test "playground is accessible without auth" do
+  test "index requires authentication" do
+    get "/marketing"
+    assert_response :redirect
+  end
+
+  test "playground requires authentication" do
     get "/marketing/playground"
+    assert_response :redirect
+  end
+
+  test "HTML is served as an inert text attachment" do
+    sign_in_as(@user)
+    get "/marketing/malicious.html"
+
     assert_response :success
+    assert_equal "text/plain", response.media_type
+    assert_includes response.headers["Content-Disposition"], "attachment"
+    assert_equal "nosniff", response.headers["X-Content-Type-Options"]
+    assert_equal "sandbox; default-src 'none'", response.headers["Content-Security-Policy"]
+    assert_includes response.body, "<script>"
+  end
+
+  test "marketing HTML is not reachable through the static public directory" do
+    public_marketing_html = Dir.glob(Rails.root.join("public/marketing*.html")) +
+      Dir.glob(Rails.root.join("public/marketing/**/*.html"))
+
+    assert_empty public_marketing_html
+  end
+
+  test "markdown strips executable HTML and unsafe links" do
+    sign_in_as(@user)
+    get "/marketing/malicious.md"
+
+    assert_response :success
+    refute_includes response.body, "<script"
+    refute_includes response.body, "javascript:"
+    refute_includes response.body, "/api/v1/tasks"
   end
 
   # --- sanitize_filename_component ---
@@ -80,7 +114,6 @@ class MarketingControllerTest < ActionDispatch::IntegrationTest
 
   test "generate_image requires authentication" do
     post "/marketing/generate_image", params: { prompt: "test" }
-    # Should redirect to login or return 401
     assert_response :redirect
   end
 

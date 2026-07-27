@@ -1,10 +1,7 @@
 <% content_for :title, "Webchat - clawdeck" %>
 <% content_for :breadcrumb_standalone, "💬 Webchat" %>
 
-<div class="py-6 space-y-4"
-     data-controller="webchat-embed"
-     data-webchat-embed-base-url-value="<%= @webchat_url %>"
-     data-webchat-embed-task-id-value="<%= @task&.id %>">
+<div class="py-6 space-y-4">
 
   <%# Header %>
   <div class="flex items-center justify-between">
@@ -17,9 +14,7 @@
           </span>
         <% end %>
       </h1>
-      <p class="text-sm text-content-muted mt-1">
-        Talk to your agent directly from ClawTrol. Context is automatically injected.
-      </p>
+      <p class="text-sm text-content-muted mt-1">Direct agent control is disabled in Safe-LAN mode.</p>
     </div>
     <div class="flex gap-2">
       <% if @task %>
@@ -27,23 +22,7 @@
             board_task_path(@task.board_id || Board.first&.id || 1, @task),
             class: "px-3 py-1.5 text-sm bg-bg-base border border-border text-content rounded-lg hover:bg-accent/5 transition-colors" %>
       <% end %>
-      <button class="px-3 py-1.5 text-sm bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition-colors"
-              data-action="webchat-embed#reload">
-        ↻ Reload
-      </button>
-      <button class="px-3 py-1.5 text-sm bg-accent/10 text-accent rounded-lg hover:bg-accent/20 transition-colors"
-              data-action="webchat-embed#toggleFullscreen"
-              data-webchat-embed-target="fullscreenBtn">
-        ⤢ Fullscreen
-      </button>
     </div>
-  </div>
-
-  <%# Connection status %>
-  <div data-webchat-embed-target="statusBar"
-       class="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors border-yellow-500/30 bg-yellow-500/5 text-yellow-400">
-    <span data-webchat-embed-target="statusDot" class="text-yellow-400">●</span>
-    <span data-webchat-embed-target="statusText">Connecting to webchat...</span>
   </div>
 
   <%# Task context banner %>
@@ -73,56 +52,12 @@
     </div>
   <% end %>
 
-  <%# Webchat iframe container %>
-  <div data-webchat-embed-target="iframeContainer"
-       class="relative bg-bg-elevated border border-border rounded-xl overflow-hidden transition-all"
-       style="height: 65vh; min-height: 400px;">
-    <iframe data-webchat-embed-target="iframe"
-            src="<%= @iframe_url %>"
-            class="w-full h-full border-0"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-            title="OpenClaw Webchat"
-            loading="lazy"
-            allow="microphone">
-    </iframe>
-
-    <%# Overlay for connection issues %>
-    <div data-webchat-embed-target="overlay"
-         class="hidden absolute inset-0 flex flex-col items-center justify-center bg-bg-elevated/90 backdrop-blur-sm">
-      <div class="text-4xl mb-4">💬</div>
-      <div class="text-content font-medium mb-2">Webchat Unavailable</div>
-      <div class="text-sm text-content-muted mb-4 text-center max-w-xs">
-        Could not connect to the OpenClaw webchat server. Make sure it's running on port 18789.
-      </div>
-      <button class="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:bg-accent/80 transition-colors"
-              data-action="webchat-embed#reload">
-        Try Again
-      </button>
+  <div class="relative bg-bg-elevated border border-border rounded-xl p-8">
+    <div class="text-content font-medium mb-2">Direct webchat is retired</div>
+    <div class="text-sm text-content-muted">
+      Safe-LAN mode accepts passive Hermes metadata only. It does not embed or
+      control an agent runtime.
     </div>
   </div>
 
-  <%# Quick context buttons %>
-  <div class="flex flex-wrap gap-2">
-    <span class="text-xs text-content-muted self-center">Quick context:</span>
-    <button class="px-3 py-1 text-xs bg-bg-elevated border border-border rounded-full hover:border-accent/50 transition-colors text-content"
-            data-action="webchat-embed#injectContext"
-            data-context="Show me the status of all my tasks">
-      📋 Task Status
-    </button>
-    <button class="px-3 py-1 text-xs bg-bg-elevated border border-border rounded-full hover:border-accent/50 transition-colors text-content"
-            data-action="webchat-embed#injectContext"
-            data-context="What's the current system health?">
-      🖥️ System Health
-    </button>
-    <button class="px-3 py-1 text-xs bg-bg-elevated border border-border rounded-full hover:border-accent/50 transition-colors text-content"
-            data-action="webchat-embed#injectContext"
-            data-context="Show me today's agent costs">
-      💰 Costs
-    </button>
-    <button class="px-3 py-1 text-xs bg-bg-elevated border border-border rounded-full hover:border-accent/50 transition-colors text-content"
-            data-action="webchat-embed#injectContext"
-            data-context="Run a factory cycle on the playground">
-      🏭 Factory
-    </button>
-  </div>
 </div>

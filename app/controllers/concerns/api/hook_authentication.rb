@@ -6,10 +6,15 @@ module Api
 
     private
 
-    # Authenticates requests using X-Hook-Token header.
-    # Uses constant-time comparison to prevent timing attacks.
-    # Returns true if authenticated, renders 401 and returns false otherwise.
+    # Legacy hook authentication exists only to exercise retired-route tests.
+    # Production requests are also stopped by SafeLan::LegacyExecutionBlocker,
+    # and this concern fails closed if the middleware is ever bypassed.
     def authenticate_hook_token!
+      unless Rails.env.test? && ENV["CLAWTROL_TEST_LEGACY_EXECUTION"] == "1"
+        render json: { error: "legacy executor retired" }, status: :gone
+        return false
+      end
+
       token = request.headers["X-Hook-Token"].to_s
       configured_token = Rails.application.config.hooks_token.to_s
 

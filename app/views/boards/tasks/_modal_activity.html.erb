@@ -1,5 +1,13 @@
 <%# Activity tab: agent activity events or fallback to markdown %>
 <% events = task.agent_activity_events.order(created_at: :asc, seq: :asc).limit(200) %>
+<% event_icons = {
+  "heartbeat" => "💓",
+  "tool_call" => "🔧",
+  "tool_result" => "✅",
+  "error" => "❌",
+  "final_summary" => "✅",
+  "status" => "📊"
+} %>
 <% if events.any? %>
   <div class="space-y-1 max-h-[60vh] overflow-y-auto font-mono text-xs">
     <% events.each do |event| %>
@@ -8,15 +16,7 @@
           <%= event.created_at.strftime("%H:%M:%S") %>
         </span>
         <span class="flex-shrink-0">
-          <% case event.event_type %>
-          <% when "heartbeat" %>&#x1F493;
-          <% when "tool_call" %>&#x1F527;
-          <% when "tool_result" %>&#x2705;
-          <% when "error" %>&#x274C;
-          <% when "final_summary" %>&#x2705;
-          <% when "status" %>&#x1F4CA;
-          <% else %>&#x1F4AC;
-          <% end %>
+          <%= event_icons.fetch(event.event_type, "💬") %>
         </span>
         <span class="text-content-secondary break-words min-w-0">
           <% if event.event_type == "tool_call" && event.payload.is_a?(Hash) %>
@@ -32,11 +32,7 @@
   <div class="prose prose-invert prose-sm max-w-none break-words max-h-[60vh] overflow-y-auto">
     <%= safe_markdown(task.latest_run.agent_activity_md.truncate(10_000)) %>
   </div>
-<% elsif task.latest_run&.agent_activity_md.present? %>
-          <div class="prose prose-sm dark:prose-invert max-w-none">
-            <%= safe_markdown(task.latest_run.agent_activity_md.truncate(10_000)) %>
-          </div>
-        <% elsif task.description_section("Agent Activity").present? %>
+<% elsif task.description_section("Agent Activity").present? %>
   <%# Legacy fallback: extract from description %>
   <div class="prose prose-invert prose-sm max-w-none break-words max-h-[60vh] overflow-y-auto">
     <%= safe_markdown(task.description_section("Agent Activity").truncate(10_000)) %>

@@ -39,15 +39,7 @@
       
       <%# Right: Actions %>
       <div class="flex items-center gap-2">
-        <% if @preview_content[:type] == :html %>
-          <%= link_to raw_showcase_path(@task), 
-              target: "_blank",
-              class: "px-3 py-1.5 text-sm bg-bg-surface border border-border rounded-lg text-content-muted hover:text-content hover:border-accent transition-colors" do %>
-            Open in New Tab ↗
-          <% end %>
-        <% end %>
-        
-        <%= link_to board_task_path(@task.board, @task), 
+        <%= link_to board_task_path(@task.board, @task),
             class: "px-3 py-1.5 text-sm bg-accent text-white rounded-lg hover:bg-accent/90 transition-colors" do %>
           View Task
         <% end %>
@@ -59,49 +51,8 @@
   <div class="flex-1 overflow-hidden">
     <% case @preview_type %>
     <% when :html %>
-      <% if @preview_content[:multiple] %>
-        <%# Multiple HTML files: Tabbed Gallery %>
-        <div class="h-full flex flex-col" data-controller="showcase-tabs">
-          <%# Tab Bar %>
-          <div class="flex-shrink-0 bg-bg-surface border-b border-border px-4 py-2 overflow-x-auto">
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-content-muted mr-2">Variants:</span>
-              <% @preview_content[:all_files].each_with_index do |file, index| %>
-                <button 
-                  type="button"
-                  class="px-3 py-1.5 text-sm rounded-lg transition-colors
-                         <%= index == 0 ? 'bg-accent text-white' : 'bg-bg-elevated text-content-muted hover:text-content hover:bg-bg-elevated/80 border border-border' %>"
-                  data-showcase-tabs-target="tab"
-                  data-action="click->showcase-tabs#switchTab"
-                  data-index="<%= index %>"
-                  data-url="<%= raw_showcase_path(@task, file: file[:path]) %>">
-                  <%= file[:label] %>
-                </button>
-              <% end %>
-            </div>
-          </div>
-          
-          <%# Single Iframe - src swapped by tabs controller %>
-          <div class="flex-1 relative">
-            <iframe 
-              src="<%= raw_showcase_path(@task, file: @preview_content[:all_files].first[:path]) %>" 
-              class="absolute inset-0 w-full h-full border-0 bg-white"
-              sandbox="allow-scripts allow-same-origin"
-              data-showcase-tabs-target="frame"
-              title="Preview">
-            </iframe>
-          </div>
-        </div>
-      <% else %>
-        <%# Single HTML file: Simple iframe %>
-        <iframe 
-          src="<%= raw_showcase_path(@task) %>" 
-          class="w-full h-full border-0 bg-white"
-          sandbox="allow-scripts allow-same-origin"
-          title="HTML Preview">
-        </iframe>
-      <% end %>
-      
+      <%= render "shared/inert_html_source", content: @preview_content[:content] %>
+
     <% when :images %>
       <%# Image Gallery %>
       <div class="h-full overflow-auto p-6 bg-bg-surface">

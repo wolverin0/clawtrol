@@ -1,4 +1,5 @@
 require_relative "boot"
+require_relative "../lib/safe_lan/legacy_execution_blocker"
 
 require "rails/all"
 
@@ -10,6 +11,9 @@ module Clawtrol
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.1
+
+    # Safe-LAN containment runs before application routing and authentication.
+    config.middleware.insert_before 0, SafeLan::LegacyExecutionBlocker
 
     # Add Rack::Attack middleware for rate limiting
     config.middleware.use Rack::Attack
@@ -27,9 +31,8 @@ module Clawtrol
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
 
-    # Token used by the unauthenticated /api/v1/hooks/* endpoints.
-    # Must be configured via environment (systemd unit, .env, etc.).
-    config.hooks_token = ENV.fetch("HOOKS_TOKEN") { ENV.fetch("CLAWTROL_HOOKS_TOKEN", "") }
+    # Historical hook tests keep a test-only credential. Runtime hook routes are retired.
+    config.hooks_token = Rails.env.test? ? ENV.fetch("CLAWTROL_TEST_HOOKS_TOKEN", "test_hooks_token") : nil
 
     # Auto-runner / auto-pull settings
     # Nightly window is a simple guardrail for tasks marked nightly=true.

@@ -483,37 +483,10 @@ class ZerobitchController < ApplicationController
   end
 
   def fire_outcome_hook(task_id, agent_id, result, success)
-    token = ENV.fetch("CLAWTROL_HOOKS_TOKEN", nil)
-    return unless token
-
-    run_id = "zeroclaw-#{agent_id}-#{Time.current.to_i}"
-    base = "http://localhost:4001/api/v1/hooks"
-
-    # task_outcome
-    post_hook("#{base}/task_outcome", token, {
-      version: 1, task_id: task_id.to_i, run_id: run_id,
-      outcome: success ? "success" : "failure",
-      summary: result[:output].to_s.truncate(500),
-      needs_follow_up: false
-    })
-
-    # agent_complete
-    post_hook("#{base}/agent_complete", token, {
-      version: 1, task_id: task_id.to_i, run_id: run_id,
-      output: result[:output].to_s.truncate(2000),
-      output_files: []
-    })
-  rescue => e
-    Rails.logger.warn("[ZeroBitch] Failed to fire outcome hooks for task #{task_id}: #{e.message}")
-  end
-
-  def post_hook(url, token, payload)
-    uri = URI(url)
-    req = Net::HTTP::Post.new(uri)
-    req["X-Hook-Token"] = token
-    req["Content-Type"] = "application/json"
-    req.body = JSON.generate(payload)
-    Net::HTTP.start(uri.hostname, uri.port) { |http| http.request(req) }
+    Rails.logger.warn(
+      "[SafeLAN] ignored retired ZeroBitch outcome hook " \
+      "task=#{task_id} agent=#{agent_id} success=#{success} bytes=#{result[:output].to_s.bytesize}"
+    )
   end
 
   def fetch_clawtrol_task(task_id)

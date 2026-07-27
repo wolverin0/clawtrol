@@ -9,52 +9,10 @@
 #     priority: 2
 #     schedule: at 5am every day
 
-default: &default
-  # NOTE: OpenClaw is the sole orchestrator. ClawTrol must never auto-claim/promote tasks.
-  # This tick ONLY:
-  # - demotes expired leases (truthfulness)
-  # - notifies zombies (KPI)
-  # - wakes OpenClaw if runnable work exists
-  agent_auto_runner_tick:
-    class: AgentAutoRunnerJob
-    queue: default
-    schedule: every 1 minute
-
-  process_recurring_tasks:
-    class: ProcessRecurringTasksJob
-    queue: default
-    schedule: every hour
-
-  zerobitch_metrics:
-    class: ZerobitchMetricsJob
-    queue: default
-    schedule: every 1 minute
-
-  nightshift_runner:
-    class: NightshiftRunnerJob
-    queue: default
-    schedule: at 11pm every day
-
-  nightshift_timeout_sweeper:
-    class: NightshiftTimeoutSweeperJob
-    queue: default
-    schedule: every hour
-
-  daily_cost_snapshot:
-    class: DailyCostSnapshotJob
-    queue: default
-    schedule: at 2am every day
-
-  daily_executive_digest:
-    class: DailyExecutiveDigestJob
-    queue: default
-    schedule: at 8am every day
+default: &default {}
 
 development:
   <<: *default
 
 production:
   <<: *default
-  clear_solid_queue_finished_jobs:
-    command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
-    schedule: every hour at minute 12

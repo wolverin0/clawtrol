@@ -40,11 +40,9 @@ class NightshiftRunnerJob < ApplicationJob
       Description: #{mission.description.presence || "(none)"}
       Model preference: #{mission.model}
 
-      When done, report results to:
-      curl -X POST http://192.168.100.186:4001/api/v1/nightshift/report_execution \\
-        -H "X-Hook-Token: REVOKED" \\
-        -H "Content-Type: application/json" \\
-        -d '{"mission_name": "#{mission.name}", "status": "completed", "result": "summary of what was done"}'
+      This legacy executor is retired. Do not call ClawTrol hooks or include
+      credentials in prompts. Results may only arrive through the passive,
+      scoped mirror API.
     TEXT
 
     uri = URI.parse("#{user.openclaw_gateway_url}/hooks/wake")

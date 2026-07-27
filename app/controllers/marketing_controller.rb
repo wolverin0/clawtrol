@@ -9,8 +9,9 @@ class MarketingController < ApplicationController
   include MarkdownSanitizationHelper
   include MarketingTreeBuilder
   include MarketingContentManagement
+  include InertArtifactResponse
 
-  MARKETING_ROOT = Rails.root.join("..", ".openclaw", "workspace", "marketing").to_s.freeze
+  DEFAULT_MARKETING_ROOT = Rails.root.join("storage", "marketing").to_s.freeze
   VIEWABLE_EXTENSIONS = %w[.md .json .html .txt .yml .yaml].freeze
   IMAGE_EXTENSIONS = %w[.png .jpg .jpeg .gif .webp .svg].freeze
   VIDEO_EXTENSIONS = %w[.mp4 .webm .mov .avi].freeze
@@ -36,11 +37,11 @@ class MarketingController < ApplicationController
 
   N8N_WEBHOOK_URL = ENV.fetch("N8N_WEBHOOK_URL", "http://localhost:5678/webhook/social-media-post").freeze
 
-  skip_before_action :require_authentication, only: [:index, :show, :playground, :generated_content]
+  before_action :require_authentication
 
   def index
     @search_query = params[:q].to_s.strip
-    @tree = build_tree(MARKETING_ROOT, @search_query)
+    @tree = build_tree(marketing_root, @search_query)
   end
 
   def playground
@@ -123,7 +124,7 @@ class MarketingController < ApplicationController
   end
 
   def generated_content
-    generated_root = File.join(MARKETING_ROOT, "generated")
+    generated_root = File.join(marketing_root, "generated")
     batches = []
 
     if Dir.exist?(generated_root)
@@ -154,7 +155,7 @@ class MarketingController < ApplicationController
       return
     end
 
-    full_path = File.join(MARKETING_ROOT, relative_path)
+    full_path = File.join(marketing_root, relative_path)
 
     unless File.exist?(full_path)
       render plain: "File not found", status: :not_found
@@ -180,6 +181,10 @@ class MarketingController < ApplicationController
 
   private
 
+  def marketing_root
+    File.expand_path(ENV["CLAWTROL_MARKETING_DIR"].presence || DEFAULT_MARKETING_ROOT)
+  end
+
   # Path sanitization - remains in controller for security critical logic
   def sanitize_path(path)
     # SECURITY: absolute path check
@@ -189,8 +194,9 @@ class MarketingController < ApplicationController
     return "" if path.to_s.include?("\0")
 
     # SECURITY: symlink escape check
-    full_path = File.expand_path(File.join(MARKETING_ROOT, path.to_s))
-    return "" unless full_path.start_with?(File.expand_path(MARKETING_ROOT))
+    full_path = File.expand_path(File.join(marketing_root, path.to_s))
+    root = marketing_root
+    return "" unless full_path == root || full_path.start_with?("#{root}#{File::SEPARATOR}")
 
     # SECURITY: dotfile check - prevent access to hidden files
     parts = path.to_s.split("/")
@@ -217,16 +223,14 @@ class MarketingController < ApplicationController
     when ".json"
       render_json(content)
     when ".html", ".htm"
-      render html: content.html_safe
+      render_inert_html_source(content, filename: File.basename(params[:path].to_s))
     else
       render plain: content
     end
   end
 
   def render_markdown(content)
-    # Basic markdown rendering
-    html = MarkdownSanitizationHelper::KramdownDocument.new(content).to_html
-    render html: html.html_safe
+    render html: safe_markdown(content), layout: false
   end
 
   def render_json(content)

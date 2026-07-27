@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "cgi"
-
 class WebchatControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user_one = users(:one)
@@ -26,8 +24,10 @@ class WebchatControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user_one)
     get webchat_path(task_id: @task_one.id)
     assert_response :success
-    # The iframe URL contains CGI-escaped context with the task name
-    assert_includes response.body, CGI.escape("task ##{@task_one.id}: #{@task_one.name}")
+    assert_includes response.body, "##{@task_one.id}"
+    assert_includes response.body, @task_one.name
+    refute_includes response.body, "<iframe"
+    refute_includes response.body, "webchat-embed"
   end
 
   test "does NOT load another user's task (IDOR protection)" do

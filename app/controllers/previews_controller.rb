@@ -2,6 +2,7 @@
 
 class PreviewsController < ApplicationController
   include OutputRenderable
+  include InertArtifactResponse
 
   OUTPUTS_LIMIT = 200
   OUTPUT_STATUS_OPTIONS = %w[in_review done].freeze
@@ -50,13 +51,12 @@ class PreviewsController < ApplicationController
     @preview_type = @preview_content[:type]
   end
 
-  # Serve raw HTML content for iframe embedding
+  # HTML artifacts are downloads only; interactive same-origin previews are retired.
   def raw
     content = read_first_html_file(@task)
     if content
-      # html_safe is intentional: agent-generated HTML served in sandboxed iframe
-      # Security boundary is sandbox="allow-scripts allow-same-origin" in parent view
-      render html: content.html_safe, layout: false
+      path = find_all_html_files(@task).first
+      render_inert_html_source(content, filename: File.basename(path.to_s.presence || "output.html"))
     else
       render plain: "No HTML content available", status: :not_found
     end

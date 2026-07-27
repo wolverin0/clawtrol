@@ -2,8 +2,8 @@
 
 class ShowcasesController < ApplicationController
   include OutputRenderable
+  include InertArtifactResponse
 
-  before_action -> { enforce_module_enabled!("CLAWTROL_DISABLE_SHOWCASES") }
   before_action :set_task, only: [:show, :raw, :toggle_winner]
 
   # Known product tags for filtering
@@ -20,21 +20,13 @@ class ShowcasesController < ApplicationController
     @preview_type = @preview_content[:type]
   end
 
-  # Serve raw HTML content for iframe embedding
-  # Accepts optional ?file= param to serve specific file (for multi-variant tasks)
+  # HTML artifacts are downloads only; interactive same-origin previews are retired.
   def raw
-    if params[:file].present?
-      # Serve specific file by path
-      content = read_html_file_by_path(@task, params[:file])
-    else
-      # Default: serve first HTML file
-      content = read_first_html_file(@task)
-    end
+    path = params[:file].presence || find_all_html_files(@task).first
+    content = path.present? ? read_html_file_by_path(@task, path) : nil
 
     if content
-      # html_safe is intentional: agent-generated HTML served in sandboxed iframe
-      # Security boundary is sandbox="allow-scripts allow-same-origin" in parent view
-      render html: content.html_safe, layout: false
+      render_inert_html_source(content, filename: File.basename(path))
     else
       render plain: "No HTML content available", status: :not_found
     end
