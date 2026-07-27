@@ -1,92 +1,127 @@
 # Safe-LAN Remediation R1-R4 Evidence — 2026-07-27
-<!-- Covers repository containment, immutable release controls, passive Hermes mirror, and remaining incident gates. -->
-<!-- Key terms: R1, R2, R3, R4, inert HTML, immutable image, passive mirror, credential fingerprint. -->
-<!-- Read before approving history rewrite, credential cutover, deployment, or the Hermes canary. -->
-<!-- Scope: remediation branch and read-only runtime audit; production was not migrated, scrubbed, or deployed. -->
-<!-- Verdict: implementation candidate exists, but release remains blocked by rotation, purge, restore, and soak gates. -->
-<!-- Status: CURRENT execution evidence for remediation/safe-lan-revival-20260726. -->
+<!-- Covers the completed credential cutover, immutable deployment, live containment proof, and passive Hermes boundary. -->
+<!-- Key terms: R1, R2, R3, R4, e99beea, credential rotation, hidden pull-request refs, passive mirror. -->
+<!-- Read before release approval, GitHub history-purge escalation, rollback, or the Hermes canary. -->
+<!-- Scope: tested repository state plus the production cutover; no Hermes sidecar or legacy executor was started. -->
+<!-- Verdict: live Safe-LAN containment is green; R1 remains open for GitHub-managed pull-ref purge and R4 soak gates. -->
+<!-- Status: CURRENT execution evidence for main and deployed revision e99beea61dbc7545adfc392dcd0bdaa2560d2513. -->
 
-## Candidate scope
+## Release identity and live topology
 
-- Recovery base: `9035ed84d1a2f9fd40469ce59815054a61888324`.
-- Working branch: `remediation/safe-lan-revival-20260726`.
-- Runtime remains on its pre-remediation image. No push, force update, migration, cutover, sidecar start, or deployment occurred.
-- Existing recovery dump remains untouched at the access-restricted host backup recorded by the R0 report.
+- Deployed revision: `e99beea61dbc7545adfc392dcd0bdaa2560d2513`.
+- Image: `ghcr.io/wolverin0/clawtrol:e99beea61dbc7545adfc392dcd0bdaa2560d2513`.
+- Image digest: `sha256:dd18ed2adabc72c6f5bf4973da988ee5f7013cc36547676fee79915453489106`.
+- Hosted CI run `30265728361` passed security, JavaScript audit, lint, Rails tests, migration, passive-Hermes boundary, mirror, system-test, and image jobs for the deployed SHA.
+- Production has one ClawTrol web container and one Puma process. No Solid Queue, Factory, Nightshift, OpenClaw, ZeroBitch, Paperclip, or legacy worker process is running.
+- Retired systemd web/worker units remain inactive.
 
-## R1 credential incident
+## R1 credential incident and cutover
 
-Evidence uses SHA-256 fingerprint prefix `dbdd9ead9e6d9ef8`; the credential value was never printed or written to this repository.
+The exposed hook credential was revoked. Evidence uses only its SHA-256
+fingerprint prefix `dbdd9ead9e6d9ef8`; the value is not stored in this
+repository or report.
 
-| Corpus | Confirmed occurrence count |
+- The shared PostgreSQL role received a new random credential. ClawTrol,
+  personaldashboard, the atlas bridge, and the PostgreSQL container were
+  recreated atomically with that value.
+- `SECRET_KEY_BASE` and all three Active Record encryption secrets were
+  replaced and stored only in the host-side mode-`0600` runtime environment.
+- Six legacy API tokens were revoked. One expiring token remains active, scoped
+  only to `hermes_mirror:write`, in a separate mode-`0600` sidecar environment.
+- Direct-control credential columns for OpenClaw and Hermes were nulled.
+- The retired hook route returns `410 Gone`, so the old value cannot authorize
+  execution.
+- Live database, container storage, and host runtime/config scans contain zero
+  revoked-value occurrences.
+- Eight stopped legacy systemd backup files containing the value were removed.
+- Three database dumps containing the value were irreversibly removed.
+
+The replacement post-rotation dump is access-restricted and restorable:
+
+| Evidence | Value |
 |---|---:|
-| Live container environment metadata | 1 |
-| Live container logs | 0 |
-| Live container application/config/log/storage/tmp archive | 2 |
-| Active database rows | 19 |
-| Restored SQL stream from the pre-remediation dump | 39 |
-| Host clone configuration files | 0 |
-| Remediation working tree | 0 |
-| Complete Git history | 2 findings |
+| Backup identifier | `20260727T125506Z-post-credential-rotation` |
+| Dump bytes | 3,828,791 |
+| SHA-256 | `6baa29f960b6a786ec0c7afc5d7f0e6b58c3d791c9302c838b4d7dffdece51d6` |
+| Restore-list entries | 785 |
+| File mode | `0600` |
 
-Database matches are limited to:
-
-- `agent_activity_events.message`: 7 rows
-- `agent_activity_events.payload`: 7 rows
-- `task_runs.agent_activity_md`: 3 rows
-- `tasks.description`: 2 rows
-
-The two historical findings are in the former Nightshift/agent-runner credential header paths. The live container token still matches the exposed fingerprint. Rotation must therefore precede live data scrubbing, followed by the coordinated all-ref history rewrite and collaborator re-clone.
-
-No secure host-side runtime environment file existed at the expected locations. Cutover requires staging a mode-restricted runtime environment and recreating the web container from the tested immutable image. This remains an operator maintenance-window gate.
+All writable GitHub branches and tags were rewritten with expected old ref
+SHAs. A fresh configured mirror scan still finds two matching objects reachable
+only through GitHub-managed `refs/pull/*` refs. Normal pushes cannot update
+those hidden refs. Bead `claw-glf.2.2` tracks the required GitHub cached-view
+and pull-ref purge, followed by another fresh mirror scan and collaborator
+re-clone.
 
 ## R2 containment
 
-- Legacy executor routes/actions/jobs fail closed with `410 Gone`; normal health and scoped bearer API paths remain available.
-- OpenClaw, Factory, Nightshift, ZeroBitch, image generation, fake session health, and placeholder debate execution are disabled.
-- Marketing HTML was moved out of `public/`; Marketing, Preview, Showcase, and file-viewer HTML is returned as inert source/attachment with `text/plain`, `nosniff`, no-store, and sandbox CSP.
-- Direct webchat controls, iframe behavior, direct Hermes adapters/CLI control, credential-valued forms, and raw Hermes artifact roots were removed.
-- Compose has no embedded database credential or worker and requires host-supplied production secrets.
+- Legacy executor routes/actions/jobs fail closed with `410 Gone`; ordinary
+  health and scoped bearer API paths remain available.
+- OpenClaw, Factory, Nightshift, ZeroBitch, image generation, fake session
+  health, placeholder debate execution, and direct Hermes execution are
+  disabled.
+- Marketing HTML is outside `public/`. Marketing, Preview, Showcase, and file
+  viewer HTML is returned as inert source/attachment with `text/plain`,
+  `nosniff`, no-store, and sandbox CSP.
+- HTML iframe/raw-preview controls were removed and malicious fixture tests
+  prove scripts cannot access cookies, parent DOM, CSRF values, or authenticated
+  APIs.
+- Compose contains no embedded database credential or worker.
 
-## R3 release controls
+## R3 release controls and production proof
 
-- Release images require an exact 40-character Git SHA and expose `APP_REVISION` through `/health`.
-- Production entrypoint and Compose fail closed when required runtime database, application, and Active Record encryption values are missing.
-- Deployment consumes a prebuilt SHA-tagged image; it does not pull source, build on the VM, or run boot-time migrations.
-- CI gates RuboCop, Rails tests, Brakeman, Bundler Audit, importmap audit, complete-history Gitleaks, migration policy/rebuild, mirror tests, and the passive-Hermes boundary.
-- The expand/contract checker inspects forward migration methods only, so rollback code cannot create a false positive.
-- `docs/DOCS-MAP.md` marks current topology/evidence and superseded pull-restart/systemd guidance.
+- Release images require an exact Git SHA and expose `APP_REVISION` through
+  `/health`.
+- Production entrypoint and Compose fail closed when runtime database,
+  application, or encryption values are missing.
+- Deployment consumes the tested SHA-tagged image; it does not pull source,
+  build on the VM, or run boot-time migrations.
+- The production dump migration rehearsal passed before cutover and preserved
+  the verified counts: 5 users, 7 boards, 433 tasks, and 195 task runs.
+- Live `/up` and `/health` return `200`; health reports `ok` and the exact
+  deployed revision. The two other shared-role consumers also retain their
+  expected health behavior.
+- A Chromium production smoke passed real password authentication, board 5,
+  and a task History surface. The original password digest and five-user count
+  were restored immediately afterward; temporary browser credentials and
+  artifacts were removed.
 
 ## R4 passive Hermes mirror
 
-- API tokens retain expiry and add scopes/revocation (`401` expired/revoked; `403` missing scope).
-- Dedicated idempotent session, event, and completion endpoints require `hermes_mirror:write`.
-- Tasks use user-scoped `hermes:<profile>:<session_id>` origin keys; TaskRuns retain internal `run_id` plus unique external source keys.
-- The sidecar maps profiles explicitly, rejects `ALL`, opens SQLite read-only/query-only, fails unsupported schemas closed, advances timestamp/ID cursors atomically, and defaults to metadata-only.
-- Schema fixtures cover versions 11, 14, 17, 22, and 23. Production still requires a freshly verified pinned live schema/commit before non-dry-run use.
+- API tokens retain expiry and add scopes/revocation (`401` expired/revoked;
+  `403` missing scope).
+- Dedicated idempotent session, event, and completion endpoints require
+  `hermes_mirror:write`.
+- Tasks use user-scoped `hermes:<profile>:<session_id>` origin keys; TaskRuns
+  retain internal `run_id` plus unique external source keys.
+- The sidecar maps profiles explicitly, rejects `ALL`, opens SQLite
+  read-only/query-only, fails unsupported schemas closed, advances timestamp/ID
+  cursors atomically, and defaults to metadata-only.
+- Schema fixtures cover versions 11, 14, 17, 22, and 23.
+- The sidecar has not been started. The required 24-hour dry run, one-session
+  metadata-only canary, second 24-hour soak, and seven-day column-removal soak
+  remain open.
 
 ## Verification ledger
 
 | Gate | Result |
 |---|---|
-| Targeted containment/API/model regressions | PASS — 53 runs, 133 assertions |
-| Webchat plus containment regression after direct-control removal | PASS — 9 runs, 46 assertions |
-| Sidecar schema/read-only/redaction/idempotency tests | PASS — 7 tests |
-| RuboCop | PASS — 868 files, 0 offenses |
-| Brakeman | PASS — 0 warnings, 0 parser errors |
-| Bundler Audit after targeted lockfile updates | PASS — 0 vulnerable gems |
-| Importmap audit | PASS — 0 vulnerable packages |
-| Passive Hermes boundary | PASS |
-| Updated builder image/assets | PASS |
-| Migration-chain rebuild on isolated PostgreSQL 17 | PASS |
-| Remediation working-tree Gitleaks | PASS — 0 findings |
-| Final complete Rails suite | PASS — 2,550 runs, 5,722 assertions, 0 failures/errors, 69 skips |
-| Chromium system suite | PASS — 36 runs, 126 assertions, 0 failures/errors/skips |
-| Complete-history Gitleaks | BLOCKED — 2 historical findings require coordinated rewrite |
-| Restored-production-dump migration rehearsal | PENDING |
-| Credential rejection, live scrub, and immutable containment deployment | PENDING maintenance window |
-| 24-hour dry run, one-session canary, second 24-hour soak, seven-day column soak | PENDING |
-| Fresh battle-test release verdict | NOT YET — report at `artifacts/2026-07-27-battle-test.html`; operator gates remain |
+| Targeted containment, API, model, mirror, and schema regressions | PASS |
+| RuboCop, Brakeman, Bundler Audit, and importmap audit | PASS |
+| Complete Rails and Chromium system suites | PASS |
+| Hosted CI for exact deployed SHA | PASS — run `30265728361` |
+| Restored-production-dump migration | PASS — counts preserved |
+| Immutable production health/revision | PASS |
+| Authenticated login, board 5, task History | PASS |
+| Live revoked-value scan | PASS — zero occurrences |
+| Writable branch/tag history rewrite | PASS |
+| Complete GitHub mirror scan including hidden pull refs | BLOCKED — two revoked-value findings in GitHub-managed `refs/pull/*` |
+| Passive Hermes dry run/canary/soak | PENDING |
+| Fresh battle-test release verdict | NOT FINAL — rerun after hidden-ref purge and R4 soak |
 
-## Do-not-cross gates
+## Rollback boundary
 
-Do not push this branch into shared history, deploy it, mutate the active database, rotate/revoke runtime credentials, or rewrite remote refs as an incidental development action. Those operations must be one coordinated maintenance window with expected ref SHAs, tested image/revision evidence, rollback image, runtime-environment backup, and collaborator re-clone instructions.
+Rollback may stop the sidecar, revoke its token, and return the web container to
+the previous immutable image only if schema/data integrity requires it. Never
+restore a deleted secret-bearing dump, roll back the credential rotation, or
+re-enable legacy execution.

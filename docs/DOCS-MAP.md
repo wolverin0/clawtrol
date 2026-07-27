@@ -4,7 +4,7 @@
 <!-- Read this map before any documentation body; never execute a superseded runbook or roadmap. -->
 <!-- CURRENT means authoritative only for the scope stated in its row, not a blanket release verdict. -->
 <!-- The recovered Docker topology is current; systemd and source-pull deployment instructions are superseded. -->
-<!-- Updated: 2026-07-27 during safe-LAN remediation R1-R4. -->
+<!-- Updated: 2026-07-27 after the production credential cutover and hidden pull-ref audit. -->
 
 ## Current sources
 
@@ -14,7 +14,7 @@
 | `remediation-decisions.md` | CURRENT | Finding disposition and remediation/defer governance. |
 | `docs/reports/clawtrol-revival-baseline-2026-07-26.md` | CURRENT | Recovery lineage; its original readiness verdict remains historical evidence. |
 | `docs/reports/safe-lan-remediation-r0-2026-07-26.md` | CURRENT | Latest active-database, container, stopped-service, and health anchors. |
-| `docs/reports/safe-lan-remediation-r1-r4-2026-07-27.md` | CURRENT | Repository containment, passive mirror, verification, and remaining incident/release gates. |
+| `docs/reports/safe-lan-remediation-r1-r4-2026-07-27.md` | CURRENT | Credential cutover, immutable deployment, live containment, GitHub hidden-ref blocker, and passive-mirror gates. |
 | `docs/reports/hermes-delta-review-2026-07-26.md` | CURRENT | Passive-mirror boundary and pinned Hermes compatibility evidence. |
 | `Dockerfile` and `docker-compose.yml` | CURRENT | Exact-SHA image and one-web-container deployment topology. |
 | `.claude/skills/deploy-to-vm/SKILL.md` | CURRENT | Immutable release procedure and rollback gate. |
