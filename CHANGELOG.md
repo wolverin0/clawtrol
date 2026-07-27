@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- add Wezbridge orchestration control room (`cfafc1a`)
 - add passive Hermes mirror contract (`6b20885`)
 - **ops:** operational hardening pass (`9444088`)
 - **ops:** add Sentry error tracking (no-op without SENTRY_DSN) (`e1af80e`)
@@ -16,6 +17,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`6f1c984`)
 ### 🐛 Bug Fixes
 
+- restore Beads database binding [skip ci] (`714b393`)
 - make hosted release gates deterministic (`e99beea`)
 - enforce LF for executable scripts (`bb67554`)
 - pass application URL to restore gate (`2bb66a3`)
@@ -37,6 +39,9 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- close safe-lan containment phases [skip ci] (`51ebe9f`)
+- record credential rotation evidence [skip ci] (`4aab79d`)
+- update CHANGELOG.md [skip ci] (`6b873b3`)
 - update CHANGELOG.md [skip ci] (`1994ac7`)
 - record safe-lan verification and battle test (`9bcacd5`)
 - establish safe-lan remediation governance (`27e6999`)
