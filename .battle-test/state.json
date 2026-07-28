@@ -50,8 +50,8 @@
     },
     {
       "id": "typed-intent-live",
-      "status": "gated",
-      "reason": "Protocol integration tests pass; a real transition is intentionally deferred until a harmless canary task is selected."
+      "status": "completed",
+      "reason": "A live cancel for nonexistent task T-999999 crossed the bridge, was rejected by the kernel, persisted, and returned with zero pending intents and no real task mutation."
     },
     {
       "id": "whatsapp-auto-deploy",

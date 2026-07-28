@@ -46,6 +46,7 @@ message bodies from other projects are filtered before upload.
 | Live browser | Real login rendered Control Room, healthy source, 16 panes, nine canary tasks, task detail/history, and sign-out. Temporary login data was restored and removed. |
 | Canary scope | Nine unique projected tasks and nine unique TaskRuns, only `whatsappbot-final`, only board 5, zero `ALL` cards, stable across repeated snapshots. |
 | Pane persistence | 16 panes survived multiple 5-second deltas after the live defect fix; source remained healthy with no last error. |
+| Typed-intent downlink | A live `cancel` for deliberately nonexistent ledger task `T-999999` crossed ClawTrol → PC, was rejected by the kernel, persisted, returned, and left zero pending intents without changing real work. |
 | Runtime topology | Compose exposes only `clawdeck`; one Puma process, zero Solid Queue workers; all three retired systemd units remain inactive. |
 | Database counts | 5 users, 7 boards, 442 tasks, 204 TaskRuns. The expected `+9/+9` over the preserved 433/195 anchor is exactly the canary projection. |
 
@@ -58,10 +59,10 @@ with SHA-256
 
 - Keep the WhatsApp projection as the canary through the observation window
   before widening `CLAWTROL_PROJECTS` to the fleet.
-- The real watchdog absence/recovery test and one harmless live downlink intent
-  require separate runtime evidence; focused automated tests already pass. The
-  watchdog test must use an externally graded sacrificial orchestrator-profile
-  pane with the operator present, not terminate the live oversight session.
+- The real watchdog absence/recovery test requires separate runtime evidence;
+  focused automated tests and the live typed-intent downlink pass. The watchdog
+  test must use an externally graded sacrificial orchestrator-profile pane with
+  the operator present, not terminate the live oversight session.
 - Do not activate the WhatsApp auto-deploy recipe while its repository is
   incident-active or dirty. Activation still requires the exact recipe values
   and an explicit operator `yes` for that repository.
