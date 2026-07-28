@@ -24,7 +24,7 @@
     <strong>🟡 Ready as a private-LAN canary</strong>
     <div>The critical containment, immutable deployment, authenticated live browser, and WhatsApp-only
       Control Room canary are green. Time-based observation and the intentionally deferred real watchdog
-      kill/downlink tests prevent a final green battle-tested verdict tonight.</div>
+      kill test prevents a final green battle-tested verdict tonight.</div>
   </div>
 
   <h2>At-a-glance scorecard</h2>
@@ -37,7 +37,8 @@
     <tr><td>Runtime topology</td><td class="pass">One Puma, zero workers, one Compose service, three retired systemd units inactive</td></tr>
     <tr><td>Security criticals / parser errors</td><td class="pass">0 / 0 in hosted gates</td></tr>
     <tr><td>Live role coverage</td><td class="waiting">One authenticated operator role; hosted system tests cover the application suite, but a separate live multi-role IDOR probe was not run</td></tr>
-    <tr><td>Observation / recovery</td><td class="waiting">Canary clock running; real pane-0 absence recovery and a live downlink transition remain deliberately unexercised</td></tr>
+    <tr><td>Typed-intent downlink</td><td class="pass">A harmless nonexistent-task cancel crossed the live bridge and was audited as one kernel rejection with zero pending intents</td></tr>
+    <tr><td>Observation / recovery</td><td class="waiting">Canary clock running; real pane-0 absence recovery remains deliberately unexercised</td></tr>
   </table>
 
   <h2>Before → after</h2>
@@ -62,7 +63,7 @@
   <h2>Operator queue (GATED)</h2>
   <ol>
     <li>Use the canary normally and keep the observation window running; stop expansion if the cockpit sees no organic use.</li>
-    <li>Run the watchdog proof with an externally graded sacrificial orchestrator-profile pane and the operator present, then exercise one harmless typed intent end to end.</li>
+    <li>Run the watchdog proof with an externally graded sacrificial orchestrator-profile pane and the operator present.</li>
     <li>Ratify the exact WhatsApp deployment recipe with an explicit yes only after that repository is stable; auto-deploy stays off meanwhile.</li>
     <li>Public TLS/legal/retention work remains deferred because this is a personal private-LAN deployment.</li>
   </ol>

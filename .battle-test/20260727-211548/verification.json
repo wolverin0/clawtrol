@@ -16,7 +16,7 @@
     "legacy_units_inactive": "pass",
     "live_multi_role_idor": "not_run",
     "real_watchdog_kill": "blocked",
-    "real_typed_intent": "gated",
+    "real_typed_intent": "pass",
     "canary_observation": "running"
   },
   "live": {
