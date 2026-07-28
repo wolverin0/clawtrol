@@ -46,8 +46,14 @@ class Api::V1::OrchestrationControllerTest < ActionDispatch::IntegrationTest
     assert_equal "in_progress", task.status
     refute task.assigned_to_agent?
     assert_equal "running", task.state_data.dig("orchestration", "source_state")
+    assert_equal "operator", task.state_data.dig("orchestration", "contract", "gate")
+    assert_equal "clawtrol-phase1", task.state_data.dig("orchestration", "corr")
+    assert_equal ["briefs/T-0001.md"], task.state_data.dig("orchestration", "context_refs")
     source = @user.orchestration_sources.find_by!(profile: "primary")
     assert_equal "healthy", source.status
+    assert_equal true, source.health["stalled"]
+    assert_equal 145, source.health["stale_seconds"]
+    assert_equal "codex", source.panes.first["model"]
     refute source.health.key?("token")
     assert_equal 1, run.run_number
     assert_equal 1, task.agent_activity_events.count
@@ -99,14 +105,15 @@ class Api::V1::OrchestrationControllerTest < ActionDispatch::IntegrationTest
     post sync_path, params: base_payload.to_json, headers: @headers
     assert_response :success
     source = @user.orchestration_sources.find_by!(profile: "primary")
-    assert_equal [{ "id" => 0, "state" => "idle" }], source.panes
+    expected_panes = [{ "id" => 0, "ctx" => "81%", "model" => "codex", "state" => "idle" }]
+    assert_equal expected_panes, source.panes
 
     delta = base_payload.except(:panes)
     delta[:generated_at] = "2026-07-27T20:00:05Z"
     post sync_path, params: delta.to_json, headers: @headers
     assert_response :success
 
-    assert_equal [{ "id" => 0, "state" => "idle" }], source.reload.panes
+    assert_equal expected_panes, source.reload.panes
   end
 
   test "keeps profiles isolated by authenticated user" do
@@ -137,8 +144,8 @@ class Api::V1::OrchestrationControllerTest < ActionDispatch::IntegrationTest
     {
       profile: "primary",
       generated_at: "2026-07-27T20:00:00Z",
-      health: { status: "ok", last_error: nil, token: "must-be-dropped" },
-      panes: [{ id: 0, state: "idle" }],
+      health: { status: "ok", last_error: nil, stalled: true, stale_seconds: 145, token: "must-be-dropped" },
+      panes: [{ id: 0, state: "idle", model: "codex", ctx: "81%" }],
       tasks: [],
       events: [],
       messages: [],
@@ -159,6 +166,14 @@ class Api::V1::OrchestrationControllerTest < ActionDispatch::IntegrationTest
       depends_on: [],
       acceptance: ["focused tests pass"],
       evidence: [],
+      contract: {
+        mode: "born_blocked",
+        gate: "operator",
+        allowed_paths: ["app/views/control_room/**"],
+        evaluator: "bin/rails test"
+      },
+      corr: "clawtrol-phase1",
+      context_refs: ["briefs/T-0001.md"],
       updated_at: "2026-07-27T20:00:05Z"
     }
   end

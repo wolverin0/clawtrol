@@ -2,7 +2,8 @@
 
 class ControlRoomController < ApplicationController
   before_action :set_task, only: %i[thread message approve retry cancel]
-  helper_method :intent_result_summary, :pane_display_status
+  helper_method :intent_result_summary, :pane_display_status, :orchestration_items,
+    :task_needs_attention?
 
   def show
     @full_width_page = true
@@ -93,6 +94,21 @@ class ControlRoomController < ApplicationController
     status.blank? || status == "unknown" ? "present" : status
   end
 
+  def orchestration_items(value)
+    Array.wrap(value).flat_map do |item|
+      item.is_a?(Hash) ? item.map { |key, detail| "#{key}: #{detail}" } : item.to_s
+    end.reject(&:blank?)
+  end
+
+  def task_needs_attention?(task)
+    state = task.state_data.fetch("orchestration", {})
+    task[:blocked] || # Mirrored FSM blocker; blocked? only checks dependency rows.
+      task.blocked? ||
+      task[:needs_decision] || # Canonical decision flag; the enum value is a legacy fallback.
+      task.status == "needs_decision" ||
+      (state["kind"] == "question" && !%w[done cancelled].include?(state["source_state"]))
+  end
+
   def intent_result_summary(intent)
     result = intent.result.to_h
     summary = result["reason"] || result["error"] || result["message"]
@@ -100,9 +116,11 @@ class ControlRoomController < ApplicationController
   end
 
   def categorize_tasks
-    @needs_attention = @tasks.select { |task| task.blocked? || task.needs_decision? }
+    @needs_attention = @tasks.select { |task| task_needs_attention?(task) }
     @failures = @tasks.select { |task| source_state(task) == "failed" }
-    @active = @tasks.select { |task| %w[queued ready running review].include?(source_state(task)) && !task.blocked? }
+    @active = @tasks.select do |task|
+      %w[queued ready running review].include?(source_state(task)) && !task_needs_attention?(task)
+    end
     @recent = @tasks.select { |task| %w[done cancelled].include?(source_state(task)) }.first(25)
   end
 

@@ -139,6 +139,9 @@ module Orchestration
             "lease" => snapshot[:lease],
             "acceptance" => snapshot[:acceptance],
             "evidence" => snapshot[:evidence],
+            "contract" => snapshot[:contract],
+            "corr" => snapshot[:corr],
+            "context_refs" => snapshot[:context_refs],
             "source_updated_at" => snapshot[:updated_at]
           }
         )

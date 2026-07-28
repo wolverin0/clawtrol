@@ -23,7 +23,12 @@ class ControlRoomTest < ApplicationSystemTestCase
         "orchestration" => {
           "profile" => "primary",
           "source_state" => "blocked",
-          "project" => "whatsappbot"
+          "project" => "whatsappbot",
+          "blocker" => "Operator ruling required before execution.",
+          "next_action" => "Answer in this thread.",
+          "acceptance" => ["Operator decision is recorded"],
+          "evidence" => ["The contract was evaluated"],
+          "contract" => { "mode" => "born_blocked", "gate" => "operator" }
         }
       }
     )
@@ -35,6 +40,11 @@ class ControlRoomTest < ApplicationSystemTestCase
 
     assert_text "Control Room"
     assert_text "pane 0"
+    within("[data-board-section='needs-attention']") do
+      assert_text "Operator ruling required before execution."
+      assert_text "Gate"
+      assert_text "operator"
+    end
     within("form[action='#{control_room_tasks_path}']") do
       select "pane 0 — wezbridge (idle)", from: "Work context"
       fill_in "title", with: "Ship a focused fix"

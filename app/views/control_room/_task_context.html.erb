@@ -1,0 +1,23 @@
+<% contract = state["contract"].to_h %>
+<% gate = contract["gate"].presence || contract["kind"].presence %>
+<% fields = [
+     ["Blocked by", state["blocker"]],
+     ["Gate", gate],
+     ["Next action", state["next_action"]],
+     ["Acceptance", state["acceptance"]],
+     ["Evidence", state["evidence"]]
+   ] %>
+<% visible_fields = fields.select { |_label, value| orchestration_items(value).any? } %>
+
+<% if visible_fields.any? %>
+  <dl class="<%= compact ? "mt-3 space-y-2 border-t border-border pt-2" : "mt-4 grid gap-3 md:grid-cols-2" %>">
+    <% visible_fields.each do |label, value| %>
+      <div class="<%= compact ? "" : "rounded-lg border border-border bg-bg-elevated p-3" %>">
+        <dt class="text-[11px] font-semibold uppercase tracking-wider text-content-muted"><%= label %></dt>
+        <% orchestration_items(value).each do |item| %>
+          <dd class="mt-1 whitespace-pre-wrap text-xs text-content-secondary"><%= item %></dd>
+        <% end %>
+      </div>
+    <% end %>
+  </dl>
+<% end %>

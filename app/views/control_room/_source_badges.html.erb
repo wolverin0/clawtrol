@@ -1,11 +1,12 @@
 <div class="flex flex-wrap gap-2" data-control-room-live-region="source-badges">
   <% if @sources.any? %>
     <% @sources.each do |source| %>
-      <% status_class = source.stale? ? "text-yellow-400 border-yellow-400/30 bg-yellow-400/10" : "text-green-400 border-green-400/30 bg-green-400/10" %>
+      <% unhealthy = source.stale? || source.health.to_h["stalled"] == true || source.last_error.present? %>
+      <% status_class = unhealthy ? "text-red-300 border-red-400/40 bg-red-400/10" : "text-green-400 border-green-400/30 bg-green-400/10" %>
       <%= link_to control_room_path(source_id: source.id),
             class: "rounded-lg border px-3 py-2 text-xs #{status_class}" do %>
         <span class="font-semibold"><%= source.profile %></span>
-        <span class="ml-1"><%= source.display_status %></span>
+        <span class="ml-1"><%= unhealthy ? "attention" : source.display_status %></span>
         <% if source.last_seen_at %>
           <span class="ml-1 text-content-muted"><%= time_ago_in_words(source.last_seen_at) %> ago</span>
         <% end %>
