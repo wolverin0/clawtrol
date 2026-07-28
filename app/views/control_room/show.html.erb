@@ -19,6 +19,7 @@
     <%= render "source_badges" %>
   </header>
 
+  <%= render "source_health" %>
   <%= render "fleet" %>
 
   <section class="grid gap-4 lg:grid-cols-2">
@@ -98,12 +99,13 @@
           <p class="text-xs uppercase tracking-wider text-content-muted"><%= state["project"] %> · <%= state["source_state"] %></p>
           <h2 class="mt-1 text-xl font-semibold text-content"><%= @selected_task.name %></h2>
           <p class="mt-2 whitespace-pre-wrap text-sm text-content-secondary"><%= @selected_task.description %></p>
+          <%= render "task_context", state:, compact: false %>
           <p class="mt-2 text-xs text-green-400"
              data-control-room-thread-target="status"
              aria-live="polite">Live updates on</p>
         </div>
         <div class="flex flex-wrap gap-2">
-          <% if @selected_task.blocked? || state["source_state"] == "review" %>
+          <% if task_needs_attention?(@selected_task) || state["source_state"] == "review" %>
             <%= button_to "Approve", approve_control_room_task_path(@selected_task), class: "rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white" %>
           <% end %>
           <% if state["source_state"] == "failed" %>

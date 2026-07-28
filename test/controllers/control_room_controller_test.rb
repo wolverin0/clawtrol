@@ -119,10 +119,79 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     get control_room_live_path(source_id: @source.id)
 
     assert_response :success
-    assert_select "[data-control-room-live-region]", count: 4
+    assert_select "[data-control-room-live-region]", count: 5
     assert_select "[data-control-room-live-region='requests']", text: /##{applied.id} Message/
     assert_includes response.body, "Delivered to the ledger"
     assert_includes response.body, "Task is already complete"
+  end
+
+  test "needs attention is a truthful union and explains gated work" do
+    blocked = projected_task
+    blocked.update!(
+      name: "T-0022 judicial balance ruling",
+      state_data: blocked.state_data.deep_merge(
+        "orchestration" => {
+          "blocker" => "Operator must decide whether to dispose ARS 8,025,812.27.",
+          "next_action" => "Answer with approve or retain.",
+          "acceptance" => ["Decision is recorded"],
+          "evidence" => ["20 balances affect current members"],
+          "contract" => { "mode" => "born_blocked", "gate" => "operator" }
+        }
+      )
+    )
+    decision = projected_task_with(
+      id: "T-0023",
+      name: "T-0023 rotate exposed credential",
+      state: "queued",
+      needs_decision: true
+    )
+    question = projected_task_with(
+      id: "T-0024",
+      name: "Open operator question",
+      state: "queued",
+      kind: "question"
+    )
+    projected_task_with(id: "T-0025", name: "Completed question", state: "done", kind: "question", status: :done)
+    projected_task_with(id: "T-0026", name: "Normal active task", state: "running")
+    sign_in_as(@user)
+
+    get control_room_path(task_id: blocked.id)
+
+    assert_response :success
+    attention = css_select("[data-board-section='needs-attention']").sole
+    assert_equal "3", attention["data-source-count"]
+    assert_equal "3", attention["data-rendered-count"]
+    assert_equal 1, attention.css("[data-task-origin-id='#{blocked.origin_session_id}']").count
+    assert_equal 1, attention.css("[data-task-origin-id='#{decision.origin_session_id}']").count
+    assert_equal 1, attention.css("[data-task-origin-id='#{question.origin_session_id}']").count
+    assert_equal 0, attention.css("[data-task-origin-id='T-0025']").count
+    assert_includes attention.text, "Blocked by"
+    assert_includes attention.text, "ARS 8,025,812.27"
+    assert_includes attention.text, "Gate"
+    assert_includes attention.text, "operator"
+    assert_includes attention.text, "Next action"
+    assert_includes attention.text, "Acceptance"
+    assert_includes attention.text, "Evidence"
+    assert_select "#task-thread form[action='#{control_room_task_messages_path(blocked)}']", count: 1
+  end
+
+  test "renders a loud stalled bridge warning with its error" do
+    @source.update!(
+      last_seen_at: 5.minutes.ago,
+      last_error: "sync HTTP 503",
+      health: { "stalled" => true, "stale_seconds" => 305 }
+    )
+    sign_in_as(@user)
+
+    get control_room_path
+
+    assert_response :success
+    assert_select "[data-control-room-live-region='source-health'][role='alert']", count: 1 do
+      assert_select "h2", "Orchestration bridge is stalled"
+      assert_select "p", text: /board may be showing old state/i
+      assert_select "p", text: /sync HTTP 503/
+    end
+    assert_select "[data-control-room-live-region='source-badges']", text: /attention/
   end
 
   test "live cockpit requires authentication" do
@@ -168,6 +237,26 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
           "profile" => "primary",
           "source_state" => "blocked",
           "project" => "whatsappbot"
+        }
+      }
+    )
+  end
+
+  def projected_task_with(id:, name:, state:, kind: "task", status: :up_next, needs_decision: false)
+    @user.tasks.create!(
+      board: boards(:one),
+      name:,
+      description: "Immutable brief",
+      origin_session_id: id,
+      origin_session_key: "wezbridge:primary:task:#{id}",
+      status:,
+      needs_decision:,
+      state_data: {
+        "orchestration" => {
+          "profile" => "primary",
+          "source_state" => state,
+          "project" => "whatsappbot",
+          "kind" => kind
         }
       }
     )
