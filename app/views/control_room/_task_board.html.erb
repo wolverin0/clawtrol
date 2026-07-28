@@ -1,0 +1,6 @@
+<section class="grid gap-4 xl:grid-cols-4" data-control-room-live-region="task-board">
+  <%= render "task_list", title: "Needs Attention", tasks: @needs_attention, tone: "yellow" %>
+  <%= render "task_list", title: "Active Work", tasks: @active, tone: "blue" %>
+  <%= render "task_list", title: "Failures", tasks: @failures, tone: "red" %>
+  <%= render "task_list", title: "Recently Completed", tasks: @recent, tone: "green" %>
+</section>

@@ -73,6 +73,9 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Control Room"
     assert_select "main#main-content.w-full.max-w-none"
+    assert_select "[data-controller='control-room-live']", count: 1
+    assert_select "[data-control-room-live-region='requests']", count: 1
+    assert_select "h2", "Recent requests"
     assert_select "[data-controller='gateway-health']", count: 0
     assert_select "select#task_project", count: 1
     assert_select "select#question_project", count: 1
@@ -87,6 +90,40 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
       origin_session_key: "wezbridge:primary:task:T-OTHER")
     post control_room_task_messages_path(other), params: { content: "No access" }
     assert_response :not_found
+  end
+
+  test "renders live cockpit regions with durable request outcomes" do
+    task = projected_task
+    applied = @user.orchestration_intents.create!(
+      orchestration_source: @source,
+      task:,
+      kind: "message",
+      status: "applied",
+      processed_at: Time.current,
+      result: { "message" => "Delivered to the ledger" }
+    )
+    @user.orchestration_intents.create!(
+      orchestration_source: @source,
+      task:,
+      kind: "cancel",
+      status: "rejected",
+      processed_at: Time.current,
+      result: { "reason" => "Task is already complete" }
+    )
+    sign_in_as(@user)
+
+    get control_room_live_path(source_id: @source.id)
+
+    assert_response :success
+    assert_select "[data-control-room-live-region]", count: 4
+    assert_select "[data-control-room-live-region='requests']", text: /##{applied.id} Message/
+    assert_includes response.body, "Delivered to the ledger"
+    assert_includes response.body, "Task is already complete"
+  end
+
+  test "live cockpit requires authentication" do
+    get control_room_live_path
+    assert_response :redirect
   end
 
   test "renders an owned task thread fragment and hides another user's task" do

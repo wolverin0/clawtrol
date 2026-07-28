@@ -2,17 +2,17 @@
 
 class ControlRoomController < ApplicationController
   before_action :set_task, only: %i[thread message approve retry cancel]
-  helper_method :pane_display_status
+  helper_method :intent_result_summary, :pane_display_status
 
   def show
     @full_width_page = true
-    @sources = current_user.orchestration_sources.most_recent
-    @source = selected_source(@sources)
-    @project_options = project_options(@source)
-    @tasks = projected_tasks.includes(:agent_messages).order(updated_at: :desc).limit(250)
-    @pending_intents = current_user.orchestration_intents.pending.limit(100)
-    categorize_tasks
+    load_control_room_state
     @selected_task = selected_task
+  end
+
+  def live
+    load_control_room_state
+    render partial: "live_payload"
   end
 
   def create_task
@@ -56,6 +56,16 @@ class ControlRoomController < ApplicationController
 
   private
 
+  def load_control_room_state
+    @sources = current_user.orchestration_sources.most_recent
+    @source = selected_source(@sources)
+    @project_options = project_options(@source)
+    @tasks = projected_tasks.includes(:agent_messages).order(updated_at: :desc).limit(250)
+    @pending_intents = current_user.orchestration_intents.pending.limit(100)
+    @recent_intents = current_user.orchestration_intents.recent.limit(12)
+    categorize_tasks
+  end
+
   def projected_tasks
     current_user.tasks.where("origin_session_key LIKE 'wezbridge:%'")
   end
@@ -80,6 +90,12 @@ class ControlRoomController < ApplicationController
   def pane_display_status(pane)
     status = (pane["status"] || pane["state"]).to_s
     status.blank? || status == "unknown" ? "present" : status
+  end
+
+  def intent_result_summary(intent)
+    result = intent.result.to_h
+    summary = result["reason"] || result["error"] || result["message"]
+    Orchestration::PayloadSanitizer.text(summary, maximum: 200).presence
   end
 
   def categorize_tasks

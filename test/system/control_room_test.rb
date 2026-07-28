@@ -68,4 +68,29 @@ class ControlRoomTest < ApplicationSystemTestCase
       assert_text "Reply appeared through live refresh.", wait: 8
     end
   end
+
+  test "refreshes cockpit state without clearing a draft" do
+    visit control_room_path
+    fill_in "Task title", with: "Keep this draft"
+
+    @user.tasks.create!(
+      board: boards(:one),
+      name: "Appeared without a reload",
+      description: "Live dashboard proof.",
+      origin_session_id: "T-0002",
+      origin_session_key: "wezbridge:primary:task:T-0002",
+      status: :in_progress,
+      state_data: {
+        "orchestration" => {
+          "profile" => "primary",
+          "source_state" => "running",
+          "project" => "wezbridge"
+        }
+      }
+    )
+
+    assert_text "Appeared without a reload", wait: 8
+    assert_field "Task title", with: "Keep this draft"
+    assert_text "Live cockpit · updated just now"
+  end
 end
