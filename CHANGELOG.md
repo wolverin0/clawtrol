@@ -18,6 +18,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`6f1c984`)
 ### 🐛 Bug Fixes
 
+- compact Control Room task context cards (#51) (`0d93bc2`)
+- compact Control Room task context cards (`3009a54`)
 - make control room attention state truthful (`9d107af`)
 - deliver fleet questions to the orchestrator (#48) (`497c750`)
 - make control room cockpit live (#46) (`bd5c662`)
@@ -46,6 +48,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`fdf9d79`)
 - update CHANGELOG.md [skip ci] (`f827cb5`)
 - record fleet orchestrator live proof (#49) (`f5760f0`)
 - update CHANGELOG.md [skip ci] (`ed8528a`)
