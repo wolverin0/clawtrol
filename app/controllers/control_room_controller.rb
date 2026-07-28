@@ -24,7 +24,7 @@ class ControlRoomController < ApplicationController
   end
 
   def ask
-    create_task_intent(kind: "question")
+    create_task_intent(kind: "question", default_project: "_fleet")
   end
 
   def message
@@ -60,6 +60,7 @@ class ControlRoomController < ApplicationController
     @sources = current_user.orchestration_sources.most_recent
     @source = selected_source(@sources)
     @project_options = project_options(@source)
+    @question_options = [["All open panes — fleet assessment", "_fleet"], *@project_options]
     @tasks = projected_tasks.includes(:agent_messages).order(updated_at: :desc).limit(250)
     @pending_intents = current_user.orchestration_intents.pending.limit(100)
     @recent_intents = current_user.orchestration_intents.recent.limit(12)
@@ -111,14 +112,15 @@ class ControlRoomController < ApplicationController
     @tasks.find { |task| task.id == params[:task_id].to_i }
   end
 
-  def create_task_intent(kind:)
+  def create_task_intent(kind:, default_project: nil)
     source = source_for_create!
     brief = required_param(:brief, maximum: 2_000)
     title = params[:title].to_s.strip.presence || brief.truncate(120)
     payload = {
       "title" => title.truncate(500),
       "brief" => brief,
-      "project" => required_param(:project, maximum: 200),
+      "project" => params[:project].to_s.strip.presence || default_project ||
+        required_param(:project, maximum: 200),
       "kind" => kind,
       "priority" => params[:priority].presence || "normal",
       "acceptance" => params[:acceptance].to_s.strip.truncate(2_000)

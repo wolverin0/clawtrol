@@ -36,10 +36,11 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
 
     post control_room_ask_path, params: {
       source_id: @source.id,
-      project: "wezbridge",
       brief: "What should we improve next?"
     }
-    assert_equal "question", @user.orchestration_intents.last.payload["kind"]
+    question_intent = @user.orchestration_intents.last
+    assert_equal "question", question_intent.payload["kind"]
+    assert_equal "_fleet", question_intent.payload["project"]
   end
 
   test "records operator message before bridge delivery" do
@@ -79,6 +80,9 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-controller='gateway-health']", count: 0
     assert_select "select#task_project", count: 1
     assert_select "select#question_project", count: 1
+    assert_select "select#question_project" do |select|
+      assert_equal "_fleet", select.first.css("option").first["value"]
+    end
     assert_select "option[value='whatsappbot']", text: /pane 5/, count: 2
     assert_select "option[value='omniremote']", text: /present/, count: 2
     assert_includes response.body, "No A2A updates in latest sync"
