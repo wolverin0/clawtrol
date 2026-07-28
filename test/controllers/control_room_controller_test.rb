@@ -102,6 +102,7 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     get control_room_task_thread_path(task)
     assert_response :success
     assert_select "#task-thread-messages[data-version]"
+    assert_select "time[datetime][title]", text: /ago/
     assert_includes response.body, "Fresh orchestrator reply"
 
     other = Task.create!(user: users(:two), board: boards(:two), name: "Other",

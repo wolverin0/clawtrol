@@ -9,7 +9,9 @@
     <article class="rounded-lg border border-border p-3 <%= operator ? "ml-8 bg-accent/5" : "mr-8 bg-bg-elevated" %>">
       <div class="flex items-center justify-between gap-3 text-xs">
         <span class="font-semibold text-content"><%= operator ? "You" : message.display_sender %></span>
-        <span class="text-content-muted"><%= message.created_at.strftime("%Y-%m-%d %H:%M") %></span>
+        <time class="text-content-muted"
+              datetime="<%= message.created_at.iso8601 %>"
+              title="<%= message.created_at.iso8601 %>"><%= time_ago_in_words(message.created_at) %> ago</time>
       </div>
       <p class="mt-2 whitespace-pre-wrap text-sm text-content-secondary"><%= message.content %></p>
     </article>
