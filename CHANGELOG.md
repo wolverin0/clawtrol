@@ -44,6 +44,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- record control room live proof (#47) (`bd24414`)
+- update CHANGELOG.md [skip ci] (`89b5856`)
 - update CHANGELOG.md [skip ci] (`b12c38f`)
 - update CHANGELOG.md [skip ci] (`933ba79`)
 - update CHANGELOG.md [skip ci] (`b0c0f46`)
