@@ -95,6 +95,20 @@ class Api::V1::OrchestrationControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, response.parsed_body.dig("accepted", "duplicates")
   end
 
+  test "preserves pane snapshot when a delta heartbeat omits panes" do
+    post sync_path, params: base_payload.to_json, headers: @headers
+    assert_response :success
+    source = @user.orchestration_sources.find_by!(profile: "primary")
+    assert_equal [{ "id" => 0, "state" => "idle" }], source.panes
+
+    delta = base_payload.except(:panes)
+    delta[:generated_at] = "2026-07-27T20:00:05Z"
+    post sync_path, params: delta.to_json, headers: @headers
+    assert_response :success
+
+    assert_equal [{ "id" => 0, "state" => "idle" }], source.reload.panes
+  end
+
   test "keeps profiles isolated by authenticated user" do
     post sync_path, params: base_payload.merge(tasks: [task_snapshot]).to_json, headers: @headers
 
