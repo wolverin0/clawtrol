@@ -18,6 +18,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`6f1c984`)
 ### 🐛 Bug Fixes
 
+- make control room cockpit live (#46) (`bd5c662`)
 - render control room message times relatively (#45) (`8f2ce22`)
 - make control room live and unambiguous (#44) (`b1cdc7e`)
 - preserve orchestration pane snapshots (`da34323`)
@@ -43,6 +44,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`b12c38f`)
 - update CHANGELOG.md [skip ci] (`933ba79`)
 - update CHANGELOG.md [skip ci] (`b0c0f46`)
 - update CHANGELOG.md [skip ci] (`689fffc`)
