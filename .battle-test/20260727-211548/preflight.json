@@ -1,0 +1,10 @@
+{
+  "run_id": "battle-20260727-211548",
+  "project": "clawtrol",
+  "mode": "post-remediation-reverify",
+  "live_url": "private-lan",
+  "authenticated_operator_available": true,
+  "exact_revision": "455f4a57020b0d800fa8e7c54826ff0caf953ca8",
+  "hosted_ci_run": 30316021649,
+  "status": "passed"
+}
