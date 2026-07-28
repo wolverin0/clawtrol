@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- make control room fleet-driven and full-width (#43) (`ef4ffa2`)
 - add Wezbridge orchestration control room (`cfafc1a`)
 - add passive Hermes mirror contract (`6b20885`)
 - **ops:** operational hardening pass (`9444088`)
@@ -40,6 +41,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`689fffc`)
 - record live typed-intent proof [skip ci] (`c705987`)
 - update CHANGELOG.md [skip ci] (`8397aeb`)
 - record live control-room canary evidence (`8fbd3a4`)
