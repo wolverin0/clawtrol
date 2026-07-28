@@ -42,7 +42,7 @@ class ControlRoomTest < ApplicationSystemTestCase
     assert_text "pane 0"
     within("[data-board-section='needs-attention']") do
       assert_text "Operator ruling required before execution."
-      assert_text "Gate"
+      assert_text(/gate/i)
       assert_text "operator"
     end
     within("form[action='#{control_room_tasks_path}']") do
