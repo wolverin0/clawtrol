@@ -62,7 +62,7 @@
 
       <%# Gateway health indicator %>
       <% if authenticated? %>
-        <%= render "shared/gateway_health" %>
+        <%= render "shared/gateway_health" unless controller_name == "control_room" %>
       <% end %>
       <%# Mobile hamburger menu %>
       <% if authenticated? %>

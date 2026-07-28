@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 class ControlRoomController < ApplicationController
-  before_action :set_task, only: %i[message approve retry cancel]
+  before_action :set_task, only: %i[thread message approve retry cancel]
+  helper_method :pane_display_status
 
   def show
+    @full_width_page = true
     @sources = current_user.orchestration_sources.most_recent
     @source = selected_source(@sources)
     @project_options = project_options(@source)
@@ -15,6 +17,10 @@ class ControlRoomController < ApplicationController
 
   def create_task
     create_task_intent(kind: "task")
+  end
+
+  def thread
+    render partial: "thread_messages", locals: { task: @task }
   end
 
   def ask
@@ -66,9 +72,14 @@ class ControlRoomController < ApplicationController
       next if project.blank?
 
       pane_id = pane["pane_id"] || pane["id"]
-      status = pane["status"] || pane["state"] || "unknown"
+      status = pane_display_status(pane)
       ["pane #{pane_id} — #{project} (#{status})", project]
     end.uniq { |option| option.last }
+  end
+
+  def pane_display_status(pane)
+    status = (pane["status"] || pane["state"]).to_s
+    status.blank? || status == "unknown" ? "present" : status
   end
 
   def categorize_tasks
