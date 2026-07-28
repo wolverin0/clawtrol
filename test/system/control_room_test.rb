@@ -53,6 +53,22 @@ class ControlRoomTest < ApplicationSystemTestCase
     assert_equal %w[create_task message], @user.orchestration_intents.order(:id).pluck(:kind)
   end
 
+  test "asks pane 0 for a fleet assessment without choosing one project" do
+    visit control_room_path
+
+    within("form[action='#{control_room_ask_path}']") do
+      assert_equal "_fleet", find_field("Question context").value
+      fill_in "Question title", with: "Assess every open pane"
+      fill_in "Question", with: "Recommend the next action for every live project."
+      click_button "Ask"
+    end
+
+    assert_text "Question queued as intent"
+    intent = @user.orchestration_intents.order(:id).last
+    assert_equal "_fleet", intent.payload["project"]
+    assert_equal "question", intent.payload["kind"]
+  end
+
   test "shows a new orchestrator reply without reloading the page" do
     visit control_room_path(task_id: @task.id, anchor: "task-thread")
     assert_text "Live updates on"

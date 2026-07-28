@@ -25,7 +25,7 @@
     <div class="rounded-xl border border-border bg-bg-surface p-5">
       <h2 class="text-lg font-semibold text-content">New Task</h2>
       <p class="mt-1 text-xs text-content-muted">
-        Choose a pane's project context. Wezbridge validates the task and decides who runs it.
+        Record validated work in the durable ledger. Pane 0 dispatches it to a worker.
       </p>
       <%= form_with url: control_room_tasks_path, class: "mt-4 grid gap-3" do |form| %>
         <%= form.hidden_field :source_id, value: @source&.id, id: "task_source_id" %>
@@ -59,15 +59,14 @@
     <div class="rounded-xl border border-border bg-bg-surface p-5">
       <h2 class="text-lg font-semibold text-content">Ask Orchestrator</h2>
       <p class="mt-1 text-xs text-content-muted">
-        Ask pane 0 about the selected pane's project. The answer appears in the task thread.
+        Ask pane 0 about one project or the whole live fleet. The answer appears in the task thread.
       </p>
       <%= form_with url: control_room_ask_path, class: "mt-4 grid gap-3" do |form| %>
         <%= form.hidden_field :source_id, value: @source&.id, id: "question_source_id" %>
         <div>
           <%= form.label :project, "Question context", for: "question_project", class: "mb-1 block text-xs font-medium text-content-secondary" %>
-          <%= form.select :project, @project_options, { prompt: "Choose a live pane / project" },
+          <%= form.select :project, @question_options, { include_blank: false },
                 id: "question_project",
-                required: true,
                 class: "w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
         </div>
         <%= form.label :title, "Question title", for: "question_title", class: "sr-only" %>
