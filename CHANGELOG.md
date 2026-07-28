@@ -18,6 +18,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`6f1c984`)
 ### 🐛 Bug Fixes
 
+- make control room attention state truthful (`9d107af`)
 - deliver fleet questions to the orchestrator (#48) (`497c750`)
 - make control room cockpit live (#46) (`bd5c662`)
 - render control room message times relatively (#45) (`8f2ce22`)
@@ -45,6 +46,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`f827cb5`)
 - record fleet orchestrator live proof (#49) (`f5760f0`)
 - update CHANGELOG.md [skip ci] (`ed8528a`)
 - update CHANGELOG.md [skip ci] (`7d3e29f`)
@@ -96,6 +98,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **queue:** move SolidQueue out of Puma into its own systemd service (`b5573c8`)
 ### 🧪 Tests
 
+- match rendered gate label case-insensitively (`ca8bec1`)
 - make zerobitch + git-diff tests run in clean environments (`3754c08`)
 ### 👷 CI
 
