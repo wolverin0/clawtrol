@@ -1,5 +1,6 @@
 <% content_for :title, "Control Room" %>
 <% content_for :breadcrumb_standalone, "Control Room" %>
+<% content_for :main_width_class, "w-full max-w-none mx-auto" %>
 
 <div class="py-8 space-y-6">
   <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -68,9 +69,12 @@
       <p class="mt-1 text-xs text-content-muted">Safe work starts automatically after the local contract accepts it.</p>
       <%= form_with url: control_room_tasks_path, class: "mt-4 grid gap-3" do |form| %>
         <%= form.hidden_field :source_id, value: @source&.id %>
-        <%= form.label :project, "Project", class: "sr-only" %>
-        <%= form.text_field :project, required: true, placeholder: "Project, e.g. whatsappbot",
-              class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        <div>
+          <%= form.label :project, "Target pane / project", class: "mb-1 block text-xs font-medium text-content-secondary" %>
+          <%= form.select :project, @project_options, { prompt: "Choose a live pane / project" },
+                required: true,
+                class: "w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        </div>
         <%= form.label :title, "Task title", class: "sr-only" %>
         <%= form.text_field :title, placeholder: "Task title",
               class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
@@ -95,9 +99,12 @@
       <p class="mt-1 text-xs text-content-muted">Pane 0 answers in the task thread; the terminal remains optional.</p>
       <%= form_with url: control_room_ask_path, class: "mt-4 grid gap-3" do |form| %>
         <%= form.hidden_field :source_id, value: @source&.id %>
-        <%= form.label :project, "Question project", class: "sr-only" %>
-        <%= form.text_field :project, required: true, placeholder: "Project or topic",
-              class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        <div>
+          <%= form.label :project, "Context pane / project", class: "mb-1 block text-xs font-medium text-content-secondary" %>
+          <%= form.select :project, @project_options, { prompt: "Choose a live pane / project" },
+                required: true,
+                class: "w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+        </div>
         <%= form.label :title, "Question title", class: "sr-only" %>
         <%= form.text_field :title, placeholder: "Question title",
               class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>

@@ -67,7 +67,7 @@
       <div class="h-screen flex flex-col bg-bg-base">
         <%= render "application/navbar" %>
         <div class="flex-1 overflow-y-auto px-4 pb-16 md:pb-0 scroll-safe-bottom overscroll-contain [-webkit-overflow-scrolling:touch]">
-          <main id="main-content" class="container max-w-7xl mx-auto text-content-secondary font-normal text-sm">
+          <main id="main-content" class="<%= content_for(:main_width_class).presence || "container max-w-7xl mx-auto" %> text-content-secondary font-normal text-sm">
             <%= yield %>
           </main>
         </div>
