@@ -172,6 +172,16 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_includes attention.text, "Next action"
     assert_includes attention.text, "Acceptance"
     assert_includes attention.text, "Evidence"
+    blocked_card = attention.css("[data-task-origin-id='#{blocked.origin_session_id}']").sole
+    assert_includes blocked_card.text, "1 criterion"
+    assert_includes blocked_card.text, "1 evidence item"
+    assert_not_includes blocked_card.text, "Decision is recorded"
+    assert_not_includes blocked_card.text, "20 balances affect current members"
+    assert_equal 3, blocked_card.css("[data-task-context='compact'] .line-clamp-2").count
+
+    full_context = css_select("#task-thread [data-task-context='full']").sole
+    assert_includes full_context.text, "Decision is recorded"
+    assert_includes full_context.text, "20 balances affect current members"
     assert_select "#task-thread form[action='#{control_room_task_messages_path(blocked)}']", count: 1
   end
 
