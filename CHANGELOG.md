@@ -18,6 +18,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`6f1c984`)
 ### 🐛 Bug Fixes
 
+- make control room live and unambiguous (#44) (`b1cdc7e`)
 - preserve orchestration pane snapshots (`da34323`)
 - restore Beads database binding [skip ci] (`714b393`)
 - make hosted release gates deterministic (`e99beea`)
@@ -41,6 +42,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`b0c0f46`)
 - update CHANGELOG.md [skip ci] (`689fffc`)
 - record live typed-intent proof [skip ci] (`c705987`)
 - update CHANGELOG.md [skip ci] (`8397aeb`)
