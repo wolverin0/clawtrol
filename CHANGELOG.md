@@ -40,6 +40,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- record live typed-intent proof [skip ci] (`c705987`)
+- update CHANGELOG.md [skip ci] (`8397aeb`)
 - record live control-room canary evidence (`8fbd3a4`)
 - update CHANGELOG.md [skip ci] (`ecd4dcb`)
 - update CHANGELOG.md [skip ci] (`39b42db`)
