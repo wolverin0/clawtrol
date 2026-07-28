@@ -4,7 +4,7 @@
 <!-- Read this map before any documentation body; never execute a superseded runbook or roadmap. -->
 <!-- CURRENT means authoritative only for the scope stated in its row, not a blanket release verdict. -->
 <!-- The recovered Docker topology is current; systemd and source-pull deployment instructions are superseded. -->
-<!-- Updated: 2026-07-28 with authenticated human-use evidence for the live multi-project cockpit. -->
+<!-- Updated: 2026-07-28 with authenticated fleet-question and follow-up conversation evidence. -->
 
 ## Current sources
 
@@ -18,6 +18,7 @@
 | `docs/reports/hermes-delta-review-2026-07-26.md` | CURRENT | Passive-mirror boundary and pinned Hermes compatibility evidence. |
 | `docs/reports/clawtrol-wezbridge-control-room-live-2026-07-27.md` | CURRENT | Live Control Room, outbound Wezbridge canary, exact-SHA deployment, and remaining observation gates. |
 | `docs/reports/control-room-live-cockpit-2026-07-28.md` | CURRENT | Multi-project Control Room release, authenticated Chrome round trip, latency fix, and remaining reply-tool gap. |
+| `docs/reports/control-room-fleet-ask-2026-07-28.md` | CURRENT | Fleet-wide Ask handoff, exactly-once pane-0 wake, follow-up Send proof, and exact-SHA release evidence. |
 | `docs/plans/CLAWTROL-WEZBRIDGE-CONTROL-PLANE.md` | CURRENT | ClawTrol cockpit, outbound Wezbridge sync, operator intents, supervision, and exact-revision delivery contract. |
 | `Dockerfile` and `docker-compose.yml` | CURRENT | Exact-SHA image and one-web-container deployment topology. |
 | `.claude/skills/deploy-to-vm/SKILL.md` | CURRENT | Immutable release procedure and rollback gate. |
