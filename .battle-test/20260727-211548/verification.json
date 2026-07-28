@@ -1,0 +1,45 @@
+{
+  "run_id": "battle-20260727-211548",
+  "generated_at": "2026-07-27T21:15:48-03:00",
+  "verdict": "ready_private_lan_canary",
+  "revision": "455f4a57020b0d800fa8e7c54826ff0caf953ca8",
+  "image_digest": "sha256:f10ca2957fac3385e2f466d2fae41977fb20668b55630fdace9f78a859706c12",
+  "checks": {
+    "hosted_ci": "pass",
+    "restored_database_migration": "pass",
+    "health_revision": "pass",
+    "authenticated_live_browser": "pass",
+    "canary_scope": "pass",
+    "idempotent_replay": "pass",
+    "pane_snapshot_persistence": "pass",
+    "runtime_topology": "pass",
+    "legacy_units_inactive": "pass",
+    "live_multi_role_idor": "not_run",
+    "real_watchdog_kill": "blocked",
+    "real_typed_intent": "gated",
+    "canary_observation": "running"
+  },
+  "live": {
+    "source_status": "healthy",
+    "panes": 16,
+    "projected_tasks": 9,
+    "projected_task_runs": 9,
+    "projects": ["whatsappbot-final"],
+    "board_ids": [5],
+    "all_cards": 0,
+    "database_counts": {
+      "users": 5,
+      "boards": 7,
+      "tasks": 442,
+      "task_runs": 204
+    }
+  },
+  "test_evidence": {
+    "clawtrol_main_ci_run": 30316021649,
+    "clawtrol_focused_runs": 5,
+    "clawtrol_focused_assertions": 36,
+    "wezbridge_full_pass": 327,
+    "wezbridge_full_fail": 0,
+    "wezbridge_focused_pass": 32
+  }
+}

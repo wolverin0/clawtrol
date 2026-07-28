@@ -1,73 +1,62 @@
 {
   "version": "1.0",
-  "runId": "battle-20260727-011023",
+  "runId": "battle-20260727-211548",
   "project": "clawtrol",
-  "branch": "remediation/safe-lan-revival-20260726",
-  "baseCommit": "9035ed84d1a2f9fd40469ce59815054a61888324",
-  "startedAt": "2026-07-27T01:10:23-03:00",
-  "status": "awaiting_operator",
-  "currentStage": "operator_gates_after_reverify",
+  "branch": "main",
+  "baseCommit": "455f4a57020b0d800fa8e7c54826ff0caf953ca8",
+  "startedAt": "2026-07-27T21:15:48-03:00",
+  "status": "awaiting_canary_observation",
+  "currentStage": "5_report",
   "stages": {
     "0_preflight": {
       "status": "completed",
-      "artifact": ".battle-test/20260727-011023/preflight.json"
+      "artifact": ".battle-test/20260727-211548/preflight.json"
     },
     "1_diagnose": {
       "status": "completed",
       "artifact": "docs/reports/safe-lan-remediation-r1-r4-2026-07-27.md",
-      "verdict": "NOT YET — credential incident and history hard stop remain open"
+      "verdict": "Safe-LAN containment implemented; no critical runtime gate remains red"
     },
     "2_baseline_validation": {
-      "status": "blocked",
-      "reason": "No running immutable candidate with fresh per-role authentication was authorized.",
-      "projectNativeEvidence": "Chromium system suite passed 36/36."
+      "status": "completed_with_limits",
+      "reason": "Project-native hosted system-browser suite plus authenticated live operator flow; separate live multi-role IDOR and visual-diff helpers remain unavailable."
     },
     "3_harden": {
-      "status": "partial",
-      "tracker": "Beads claw-glf (TRACKS.md intentionally not created because project policy requires bd)",
-      "reason": "Repository remediation implemented; runtime incident and rollout gates require operator maintenance windows."
+      "status": "completed",
+      "tracker": "Beads claw-dwp",
+      "reason": "Control Room and bridge implemented; the live pane-delta defect was regression-tested and redeployed."
     },
     "4_reverify": {
-      "status": "blocked",
-      "artifact": ".battle-test/20260727-011023/verification.json",
-      "reason": "Static, unit, integration, system, migration, and dependency gates passed; authenticated multi-role candidate validation and full-history scan did not."
+      "status": "completed_with_limits",
+      "artifact": ".battle-test/20260727-211548/verification.json",
+      "reason": "Exact-SHA CI, restored database, deployment, live browser, scope, idempotency, and topology passed; real watchdog kill/downlink and elapsed soak remain."
     },
     "5_report": {
       "status": "completed",
       "artifact": "artifacts/2026-07-27-battle-test.html",
-      "verdict": "NOT YET"
+      "verdict": "READY AS A PRIVATE-LAN CANARY"
     }
   },
   "gates": [
     {
-      "id": "credential-incident",
-      "status": "awaiting_operator",
-      "reason": "Rotate, cut over, scrub 19 matched rows, prove old-token 401, and preserve fingerprint-only evidence."
+      "id": "canary-observation",
+      "status": "running",
+      "reason": "The observation and usage window must elapse in real time."
     },
     {
-      "id": "history-purge",
-      "status": "awaiting_operator",
-      "reason": "Two complete-history findings require coordinated all-ref rewrite and collaborator re-clone."
-    },
-    {
-      "id": "restored-dump",
-      "status": "awaiting_operator",
-      "reason": "The exact candidate image has not migrated an isolated restored production dump."
-    },
-    {
-      "id": "authenticated-browser",
+      "id": "watchdog-live-kill",
       "status": "blocked",
-      "reason": "Fresh multi-role candidate URL and credentials were not available; routes passed remains zero."
+      "reason": "Focused tests pass; killing the live oversight pane would also drop its monitors. Re-run with an externally graded sacrificial orchestrator-profile pane and the operator present."
     },
     {
-      "id": "deploy",
+      "id": "typed-intent-live",
       "status": "gated",
-      "reason": "Deployment is never automatic."
+      "reason": "Protocol integration tests pass; a real transition is intentionally deferred until a harmless canary task is selected."
     },
     {
-      "id": "mirror-soak",
+      "id": "whatsapp-auto-deploy",
       "status": "gated",
-      "reason": "24-hour dry run, one-session canary, second 24-hour soak, and seven-day column soak remain."
+      "reason": "Runner is implemented, but recipe activation requires repository stability and explicit per-repository operator ratification."
     }
   ]
 }

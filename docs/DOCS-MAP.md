@@ -4,7 +4,7 @@
 <!-- Read this map before any documentation body; never execute a superseded runbook or roadmap. -->
 <!-- CURRENT means authoritative only for the scope stated in its row, not a blanket release verdict. -->
 <!-- The recovered Docker topology is current; systemd and source-pull deployment instructions are superseded. -->
-<!-- Updated: 2026-07-27 with the personal control-room implementation contract. -->
+<!-- Updated: 2026-07-27 with the live personal control-room canary evidence. -->
 
 ## Current sources
 
@@ -16,6 +16,7 @@
 | `docs/reports/safe-lan-remediation-r0-2026-07-26.md` | CURRENT | Latest active-database, container, stopped-service, and health anchors. |
 | `docs/reports/safe-lan-remediation-r1-r4-2026-07-27.md` | CURRENT | Credential cutover, immutable deployment, closed R1-R3 evidence, and remaining passive-mirror gates. |
 | `docs/reports/hermes-delta-review-2026-07-26.md` | CURRENT | Passive-mirror boundary and pinned Hermes compatibility evidence. |
+| `docs/reports/clawtrol-wezbridge-control-room-live-2026-07-27.md` | CURRENT | Live Control Room, outbound Wezbridge canary, exact-SHA deployment, and remaining observation gates. |
 | `docs/plans/CLAWTROL-WEZBRIDGE-CONTROL-PLANE.md` | CURRENT | ClawTrol cockpit, outbound Wezbridge sync, operator intents, supervision, and exact-revision delivery contract. |
 | `Dockerfile` and `docker-compose.yml` | CURRENT | Exact-SHA image and one-web-container deployment topology. |
 | `.claude/skills/deploy-to-vm/SKILL.md` | CURRENT | Immutable release procedure and rollback gate. |
