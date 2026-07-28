@@ -17,6 +17,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`6f1c984`)
 ### 🐛 Bug Fixes
 
+- preserve orchestration pane snapshots (`da34323`)
 - restore Beads database binding [skip ci] (`714b393`)
 - make hosted release gates deterministic (`e99beea`)
 - enforce LF for executable scripts (`bb67554`)
@@ -39,6 +40,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`39b42db`)
 - close safe-lan containment phases [skip ci] (`51ebe9f`)
 - record credential rotation evidence [skip ci] (`4aab79d`)
 - update CHANGELOG.md [skip ci] (`6b873b3`)
