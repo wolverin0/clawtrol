@@ -258,6 +258,7 @@ Rails.application.routes.draw do
   end
 
   get "control-room", to: "control_room#show", as: :control_room
+  get "control-room/live", to: "control_room#live", as: :control_room_live
   get "control-room/tasks/:task_id/thread", to: "control_room#thread", as: :control_room_task_thread
   post "control-room/tasks", to: "control_room#create_task", as: :control_room_tasks
   post "control-room/ask", to: "control_room#ask", as: :control_room_ask

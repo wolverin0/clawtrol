@@ -1,6 +1,9 @@
 <% content_for :title, "Control Room" %>
 <% content_for :breadcrumb_standalone, "Control Room" %>
-<div class="py-8 space-y-6">
+<div class="space-y-6 py-6"
+     data-controller="control-room-live"
+     data-control-room-live-url-value="<%= control_room_live_path(source_id: @source&.id) %>"
+     data-control-room-live-interval-value="5000">
   <header class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
     <div>
       <p class="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Personal orchestration</p>
@@ -8,59 +11,15 @@
       <p class="mt-2 max-w-2xl text-sm text-content-secondary">
         Create work, talk to the orchestrator, and watch the local fleet without managing every terminal tab.
       </p>
+      <p class="mt-2 text-xs text-content-muted"
+         data-control-room-live-target="status"
+         aria-live="polite">Connecting live cockpit…</p>
     </div>
 
-    <div class="flex flex-wrap gap-2">
-      <% if @sources.any? %>
-        <% @sources.each do |source| %>
-          <% status_class = source.stale? ? "text-yellow-400 border-yellow-400/30 bg-yellow-400/10" : "text-green-400 border-green-400/30 bg-green-400/10" %>
-          <%= link_to control_room_path(source_id: source.id),
-                class: "rounded-lg border px-3 py-2 text-xs #{status_class}" do %>
-            <span class="font-semibold"><%= source.profile %></span>
-            <span class="ml-1"><%= source.display_status %></span>
-            <% if source.last_seen_at %>
-              <span class="ml-1 text-content-muted"><%= time_ago_in_words(source.last_seen_at) %> ago</span>
-            <% end %>
-          <% end %>
-        <% end %>
-      <% else %>
-        <span class="rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-3 py-2 text-xs text-yellow-400">
-          Waiting for the Wezbridge bridge
-        </span>
-      <% end %>
-    </div>
+    <%= render "source_badges" %>
   </header>
 
-  <section class="rounded-xl border border-border bg-bg-surface p-4">
-    <div class="flex items-center justify-between gap-3">
-      <div>
-        <h2 class="text-sm font-semibold text-content">Fleet</h2>
-        <p class="mt-1 text-xs text-content-muted">
-          <% if @source&.last_seen_at %>
-            <%= @source.panes.length %> visible panes · last sync <%= time_ago_in_words(@source.last_seen_at) %> ago
-          <% else %>
-            No bridge telemetry yet
-          <% end %>
-        </p>
-      </div>
-      <% if @source&.health&.dig("fleet") %>
-        <% a2a_updates = @source.health.dig("fleet", "a2a_envelopes").to_i %>
-        <span class="text-xs text-content-muted">
-          <%= a2a_updates.positive? ? "#{a2a_updates} A2A updates in latest sync" : "No A2A updates in latest sync" %>
-        </span>
-      <% end %>
-    </div>
-    <% if @source&.panes&.any? %>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <% @source.panes.each do |pane| %>
-          <span class="rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs text-content-secondary">
-            pane <%= pane["pane_id"] || pane["id"] %>
-            <span class="ml-1 text-content-muted"><%= pane["project"] %> · <%= pane_display_status(pane) %></span>
-          </span>
-        <% end %>
-      </div>
-    <% end %>
-  </section>
+  <%= render "fleet" %>
 
   <section class="grid gap-4 lg:grid-cols-2">
     <div class="rounded-xl border border-border bg-bg-surface p-5">
@@ -125,25 +84,8 @@
     </div>
   </section>
 
-  <% if @pending_intents.any? %>
-    <section class="rounded-xl border border-accent/30 bg-accent/5 p-4">
-      <h2 class="text-sm font-semibold text-content">Queued requests</h2>
-      <div class="mt-2 flex flex-wrap gap-2">
-        <% @pending_intents.each do |intent| %>
-          <span class="rounded-md border border-accent/20 bg-bg-elevated px-2 py-1 text-xs text-content-secondary">
-            #<%= intent.id %> <%= intent.kind.humanize %>
-          </span>
-        <% end %>
-      </div>
-    </section>
-  <% end %>
-
-  <section class="grid gap-4 xl:grid-cols-4">
-    <%= render "task_list", title: "Needs Attention", tasks: @needs_attention, tone: "yellow" %>
-    <%= render "task_list", title: "Active Work", tasks: @active, tone: "blue" %>
-    <%= render "task_list", title: "Failures", tasks: @failures, tone: "red" %>
-    <%= render "task_list", title: "Recently Completed", tasks: @recent, tone: "green" %>
-  </section>
+  <%= render "request_status" %>
+  <%= render "task_board" %>
 
   <% if @selected_task %>
     <% state = @selected_task.state_data.fetch("orchestration", {}) %>

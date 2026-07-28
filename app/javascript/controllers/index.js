@@ -52,6 +52,7 @@ import ZerobitchFleetController from "controllers/zerobitch_fleet_controller"
 import ZerobitchSpawnController from "controllers/zerobitch_spawn_controller"
 import ZerobitchAgentController from "controllers/zerobitch_agent_controller"
 import ActiveFlowsController from "controllers/active_flows_controller"
+import ControlRoomLiveController from "controllers/control_room_live_controller"
 import ControlRoomThreadController from "controllers/control_room_thread_controller"
 
 application.register("notifications", NotificationsController)
@@ -101,6 +102,7 @@ application.register("zerobitch-fleet", ZerobitchFleetController)
 application.register("zerobitch-spawn", ZerobitchSpawnController)
 application.register("zerobitch-agent", ZerobitchAgentController)
 application.register("active-flows", ActiveFlowsController)
+application.register("control-room-live", ControlRoomLiveController)
 application.register("control-room-thread", ControlRoomThreadController)
 
 import ThemeToggleController from "controllers/theme_toggle_controller"
