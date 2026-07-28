@@ -59,23 +59,54 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
 
   test "renders fleet sections and rejects another user's task" do
     task = projected_task
-    @source.update!(panes: [
-      { "pane_id" => 0, "project" => "wezbridge", "status" => "idle" },
-      { "pane_id" => 5, "project" => "whatsappbot", "status" => "working" }
-    ])
+    @source.update!(
+      health: { "fleet" => { "a2a_envelopes" => 0 } },
+      panes: [
+        { "pane_id" => 0, "project" => "wezbridge", "status" => "idle" },
+        { "pane_id" => 5, "project" => "whatsappbot", "status" => "working" },
+        { "pane_id" => 9, "project" => "omniremote", "status" => "unknown" }
+      ]
+    )
     sign_in_as(@user)
 
     get control_room_path(task_id: task.id)
     assert_response :success
     assert_select "h1", "Control Room"
     assert_select "main#main-content.w-full.max-w-none"
-    assert_select "select[name='project']", count: 2
+    assert_select "[data-controller='gateway-health']", count: 0
+    assert_select "select#task_project", count: 1
+    assert_select "select#question_project", count: 1
     assert_select "option[value='whatsappbot']", text: /pane 5/, count: 2
+    assert_select "option[value='omniremote']", text: /present/, count: 2
+    assert_includes response.body, "No A2A updates in latest sync"
     assert_includes response.body, "Projected task"
+    ids = css_select("[id]").map { |element| element["id"] }
+    assert_equal ids.uniq, ids, "Control Room must not render duplicate HTML ids"
 
     other = Task.create!(user: users(:two), board: boards(:two), name: "Other",
       origin_session_key: "wezbridge:primary:task:T-OTHER")
     post control_room_task_messages_path(other), params: { content: "No access" }
+    assert_response :not_found
+  end
+
+  test "renders an owned task thread fragment and hides another user's task" do
+    task = projected_task
+    task.agent_messages.create!(
+      direction: "incoming",
+      message_type: "output",
+      content: "Fresh orchestrator reply",
+      sender_name: "pane 0"
+    )
+    sign_in_as(@user)
+
+    get control_room_task_thread_path(task)
+    assert_response :success
+    assert_select "#task-thread-messages[data-version]"
+    assert_includes response.body, "Fresh orchestrator reply"
+
+    other = Task.create!(user: users(:two), board: boards(:two), name: "Other",
+      origin_session_key: "wezbridge:primary:task:T-OTHER")
+    get control_room_task_thread_path(other)
     assert_response :not_found
   end
 

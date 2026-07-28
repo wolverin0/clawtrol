@@ -1,0 +1,20 @@
+<% messages = task.agent_messages.sort_by(&:created_at) %>
+<% version = [messages.length, messages.last&.id, messages.last&.created_at&.to_i].compact.join("-") %>
+<div id="task-thread-messages"
+     class="mt-5 space-y-3"
+     data-control-room-thread-target="messages"
+     data-version="<%= version %>">
+  <% messages.each do |message| %>
+    <% operator = message.metadata["provenance"] == "operator" %>
+    <article class="rounded-lg border border-border p-3 <%= operator ? "ml-8 bg-accent/5" : "mr-8 bg-bg-elevated" %>">
+      <div class="flex items-center justify-between gap-3 text-xs">
+        <span class="font-semibold text-content"><%= operator ? "You" : message.display_sender %></span>
+        <span class="text-content-muted"><%= message.created_at.strftime("%Y-%m-%d %H:%M") %></span>
+      </div>
+      <p class="mt-2 whitespace-pre-wrap text-sm text-content-secondary"><%= message.content %></p>
+    </article>
+  <% end %>
+  <% if messages.empty? %>
+    <p class="text-sm text-content-muted">No messages yet.</p>
+  <% end %>
+</div>

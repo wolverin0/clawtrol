@@ -5,9 +5,14 @@ import "controllers"
 // ActionCable channels for WebSocket communication
 import "channels"
 
-// Chartkick for analytics charts (dynamic import — CDN failure must not block core JS)
-import("chartkick").catch(() => console.warn("chartkick failed to load — charts disabled"))
-import("Chart.js").catch(() => console.warn("Chart.js failed to load — charts disabled"))
+// Charting is analytics-only; CDN failure must not affect or warn on the core UI.
+const loadAnalyticsCharts = () => {
+  if (!document.querySelector('meta[name="charting-enabled"]')) return
+
+  import("chartkick").catch(() => console.warn("chartkick failed to load — charts disabled"))
+  import("Chart.js").catch(() => console.warn("Chart.js failed to load — charts disabled"))
+}
+document.addEventListener("turbo:load", loadAnalyticsCharts)
 
 // Instant modal skeleton — show loading state immediately on task card click
 // so the modal appears before Turbo finishes fetching the panel content.

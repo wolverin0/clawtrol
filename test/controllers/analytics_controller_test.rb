@@ -45,6 +45,7 @@ class AnalyticsControllerTest < ActionDispatch::IntegrationTest
 
       get analytics_path(period: "7d")
       assert_response :success
+      assert_select "meta[name='charting-enabled'][content='true']", count: 1
       assert_includes response.body, "COST ANALYTICS"
       assert_includes response.body, "glm-4.7"
     ensure
