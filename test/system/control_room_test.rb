@@ -36,7 +36,7 @@ class ControlRoomTest < ApplicationSystemTestCase
     assert_text "Control Room"
     assert_text "pane 0"
     within("form[action='#{control_room_tasks_path}']") do
-      fill_in "project", with: "whatsappbot"
+      select "pane 0 — wezbridge (idle)", from: "Target pane / project"
       fill_in "title", with: "Ship a focused fix"
       fill_in "brief", with: "Implement and verify the requested change."
       click_button "Create task"

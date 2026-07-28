@@ -6,6 +6,7 @@ class ControlRoomController < ApplicationController
   def show
     @sources = current_user.orchestration_sources.most_recent
     @source = selected_source(@sources)
+    @project_options = project_options(@source)
     @tasks = projected_tasks.includes(:agent_messages).order(updated_at: :desc).limit(250)
     @pending_intents = current_user.orchestration_intents.pending.limit(100)
     categorize_tasks
@@ -57,6 +58,17 @@ class ControlRoomController < ApplicationController
     return sources.find_by(id: params[:source_id]) if params[:source_id].present?
 
     sources.first
+  end
+
+  def project_options(source)
+    Array(source&.panes).filter_map do |pane|
+      project = pane["project"].to_s.strip
+      next if project.blank?
+
+      pane_id = pane["pane_id"] || pane["id"]
+      status = pane["status"] || pane["state"] || "unknown"
+      ["pane #{pane_id} — #{project} (#{status})", project]
+    end.uniq { |option| option.last }
   end
 
   def categorize_tasks

@@ -59,11 +59,18 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
 
   test "renders fleet sections and rejects another user's task" do
     task = projected_task
+    @source.update!(panes: [
+      { "pane_id" => 0, "project" => "wezbridge", "status" => "idle" },
+      { "pane_id" => 5, "project" => "whatsappbot", "status" => "working" }
+    ])
     sign_in_as(@user)
 
     get control_room_path(task_id: task.id)
     assert_response :success
     assert_select "h1", "Control Room"
+    assert_select "main#main-content.w-full.max-w-none"
+    assert_select "select[name='project']", count: 2
+    assert_select "option[value='whatsappbot']", text: /pane 5/, count: 2
     assert_includes response.body, "Projected task"
 
     other = Task.create!(user: users(:two), board: boards(:two), name: "Other",
