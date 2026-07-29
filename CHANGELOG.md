@@ -7,6 +7,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- reuse board task panel from cockpit (`8dc0757`)
+- make control room glanceable (`caba4ae`)
 - make control room fleet-driven and full-width (#43) (`ef4ffa2`)
 - add Wezbridge orchestration control room (`cfafc1a`)
 - add passive Hermes mirror contract (`6b20885`)
@@ -18,6 +20,8 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`6f1c984`)
 ### 🐛 Bug Fixes
 
+- keep cockpit drawer non-modal (`17602d9`)
+- upgrade Rails for CVE-2026-66066 (`dd2a272`)
 - compact Control Room task context cards (#51) (`0d93bc2`)
 - compact Control Room task context cards (`3009a54`)
 - make control room attention state truthful (`9d107af`)
@@ -48,6 +52,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`6f1cbbc`)
 - update CHANGELOG.md [skip ci] (`fdf9d79`)
 - update CHANGELOG.md [skip ci] (`f827cb5`)
 - record fleet orchestrator live proof (#49) (`f5760f0`)
@@ -101,6 +106,9 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **queue:** move SolidQueue out of Puma into its own systemd service (`b5573c8`)
 ### 🧪 Tests
 
+- keep create flow clear of task drawer (`4db896e`)
+- open collapsed control room form (`41ee975`)
+- update control room system flows (`a518fd0`)
 - match rendered gate label case-insensitively (`ca8bec1`)
 - make zerobitch + git-diff tests run in clean environments (`3754c08`)
 ### 👷 CI
