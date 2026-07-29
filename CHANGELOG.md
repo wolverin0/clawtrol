@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- simplify control room cockpit (`8c691a9`)
 - redesign control room as focus inbox (`732e06f`)
 - reuse board task panel from cockpit (`8dc0757`)
 - make control room glanceable (`caba4ae`)
@@ -54,6 +55,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`3878fe4`)
 - update CHANGELOG.md [skip ci] (`d595a8e`)
 - update CHANGELOG.md [skip ci] (`6f1cbbc`)
 - update CHANGELOG.md [skip ci] (`fdf9d79`)
@@ -109,6 +111,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **queue:** move SolidQueue out of Puma into its own systemd service (`b5573c8`)
 ### 🧪 Tests
 
+- align paused task drawer expectation (`4fa4bf6`)
 - assert live updates across workspace lanes (`4167419`)
 - keep create flow clear of task drawer (`4db896e`)
 - open collapsed control room form (`41ee975`)
