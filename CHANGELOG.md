@@ -7,6 +7,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 
 ### 🚀 Features
 
+- redesign control room as focus inbox (`732e06f`)
 - reuse board task panel from cockpit (`8dc0757`)
 - make control room glanceable (`caba4ae`)
 - make control room fleet-driven and full-width (#43) (`ef4ffa2`)
@@ -20,6 +21,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - add openclaw sync integrations (`6f1c984`)
 ### 🐛 Bug Fixes
 
+- enforce canonical VM deploy environment (`328cb9c`)
 - keep cockpit drawer non-modal (`17602d9`)
 - upgrade Rails for CVE-2026-66066 (`dd2a272`)
 - compact Control Room task context cards (#51) (`0d93bc2`)
@@ -52,6 +54,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - disable SSL for local network, guard transcript_watcher listen gem (`1f78760`)
 ### 📚 Documentation
 
+- update CHANGELOG.md [skip ci] (`d595a8e`)
 - update CHANGELOG.md [skip ci] (`6f1cbbc`)
 - update CHANGELOG.md [skip ci] (`fdf9d79`)
 - update CHANGELOG.md [skip ci] (`f827cb5`)
@@ -106,6 +109,7 @@ Generated automatically from [conventional commits](https://www.conventionalcomm
 - **queue:** move SolidQueue out of Puma into its own systemd service (`b5573c8`)
 ### 🧪 Tests
 
+- assert live updates across workspace lanes (`4167419`)
 - keep create flow clear of task drawer (`4db896e`)
 - open collapsed control room form (`41ee975`)
 - update control room system flows (`a518fd0`)
