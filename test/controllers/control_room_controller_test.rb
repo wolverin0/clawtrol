@@ -334,7 +334,8 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_select "details:not([open]) summary", text: /Create work/
     assert_select "aside#task-thread[data-persistent-drawer='true']", count: 1
     assert_select "[data-control-room-live-region='selected-task-summary']", text: /The canary passed/
-    assert_select "#task-thread textarea[placeholder='Type your decision or answer…']", count: 1
+    assert_select "#task-thread", text: /Send optional direction/
+    assert_select "#task-thread textarea[placeholder='Add context or change direction…']", count: 1
     assert_select "#task-thread a", text: "Open full task", count: 1
   end
 
