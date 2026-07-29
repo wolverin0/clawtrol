@@ -7,9 +7,9 @@ trigger: /deploy-to-vm
 
 # deploy-to-vm
 
-Deploy one immutable web image to the private-LAN VM. This skill never builds
-on the host, pulls source into a VM checkout, starts a worker, or deploys a
-floating tag.
+Deploy one immutable web image to the private-LAN VM through the canonical
+host control plane. This skill never builds on the host, replaces the guarded
+Compose descriptor, starts a worker, or deploys a floating tag.
 
 ## Required input and host state
 
@@ -17,12 +17,14 @@ floating tag.
 - Image: `ghcr.io/wolverin0/clawtrol:${REVISION}`.
 - Local repository: clean and checked out at `REVISION`.
 - Host deployment directory: `$HOME/.local/share/clawtrol-deploy`.
-- Host secret environment: `$HOME/.config/clawtrol/runtime.env`, mode `0600`.
+- Canonical host environment: `$HOME/.local/share/clawtrol-deploy/release.env`,
+  mode `0600`; it contains both runtime values and `CLAWTROL_IMAGE`.
 - Restored-database migration evidence for this exact image revision.
 - Both retired systemd web units and the Solid Queue worker remain stopped.
 
-Never print, copy into the repository, or place the host runtime environment in
-command arguments. Docker Compose reads it from the host-side environment file.
+The retired `$HOME/.config/clawtrol/runtime.env` must not exist and must never
+be consumed. Never print or copy the canonical environment into the repository.
+An image promotion may change only its `CLAWTROL_IMAGE` line.
 
 ## Hard preflight
 
@@ -46,36 +48,50 @@ Run read-only host checks:
 
 ```bash
 ssh -o BatchMode=yes -o ConnectTimeout=8 "$CLAWTROL_VM" 'set -eu
-test -f "$HOME/.config/clawtrol/runtime.env"
-test "$(stat -c %a "$HOME/.config/clawtrol/runtime.env")" = 600
+deploy_dir="$HOME/.local/share/clawtrol-deploy"
+test -f "$deploy_dir/docker-compose.yml"
+test -f "$deploy_dir/release.env"
+test "$(stat -c %a "$deploy_dir/release.env")" = 600
+test ! -e "$HOME/.config/clawtrol/runtime.env"
+test "$(grep -c "^CLAWTROL_IMAGE=" "$deploy_dir/release.env")" = 1
+test "$(cd "$deploy_dir" && docker compose \
+  --env-file release.env -f docker-compose.yml config --services)" = clawdeck
 for unit in clawdeck-web.service clawtrol.service clawtrol-worker.service; do
   ! systemctl --user is-active --quiet "$unit"
 done'
 ```
 
-If the runtime environment is absent, permissions are broader than `0600`, a
-retired unit is active, CI is not green for the exact SHA, or restore evidence
-is missing, stop. Do not repair host secrets or start/stop services implicitly.
+If canonical files are absent, permissions are broader than `0600`, the retired
+environment still exists, the descriptor resolves to anything except the one
+`clawdeck` service, a retired unit is active, CI is not green for the exact SHA,
+or restore evidence is missing, stop. Do not repair host secrets, replace the
+guarded descriptor, or start/stop services implicitly.
 
 ## Stage the immutable release
 
-Copy only the Compose descriptor from the tested checkout:
+Pull the exact image and create a candidate environment by copying the current
+canonical file and changing only its image line:
 
 ```bash
-ssh "$CLAWTROL_VM" 'mkdir -p "$HOME/.local/share/clawtrol-deploy"'
-scp docker-compose.yml \
-  "$CLAWTROL_VM:~/.local/share/clawtrol-deploy/docker-compose.yml.next"
 ssh "$CLAWTROL_VM" "set -eu
 cd \"\$HOME/.local/share/clawtrol-deploy\"
-printf 'CLAWTROL_IMAGE=ghcr.io/wolverin0/clawtrol:%s\n' '$REVISION' > release.env.next
+test \"\$(grep -c '^CLAWTROL_IMAGE=' release.env)\" = 1
+cp release.env release.env.next
+sed -i 's|^CLAWTROL_IMAGE=.*$|CLAWTROL_IMAGE=ghcr.io/wolverin0/clawtrol:$REVISION|' \
+  release.env.next
 chmod 600 release.env.next
+before_nonimage=\"\$(grep -v '^CLAWTROL_IMAGE=' release.env | sha256sum | cut -d' ' -f1)\"
+after_nonimage=\"\$(grep -v '^CLAWTROL_IMAGE=' release.env.next | sha256sum | cut -d' ' -f1)\"
+test \"\$before_nonimage\" = \"\$after_nonimage\"
 docker pull 'ghcr.io/wolverin0/clawtrol:$REVISION'
 test \"\$(docker image inspect 'ghcr.io/wolverin0/clawtrol:$REVISION' \
   --format '{{ index .Config.Labels \"org.opencontainers.image.revision\" }}')\" = '$REVISION'
 docker compose \
   --env-file release.env.next \
-  --env-file \"\$HOME/.config/clawtrol/runtime.env\" \
-  -f docker-compose.yml.next config --quiet"
+  -f docker-compose.yml config --quiet
+test \"\$(docker compose --env-file release.env.next \
+  -f docker-compose.yml config --images)\" = \
+  'ghcr.io/wolverin0/clawtrol:$REVISION'"
 ```
 
 Do not continue if the image label, Compose image, or tested SHA differ.
@@ -96,23 +112,22 @@ migrations wait until the compatibility soak and a separate release.
 
 ## Cut over one web container
 
-Back up the previous non-secret release descriptor, atomically activate the new
-descriptor, and recreate only the web service:
+Back up the canonical environment, atomically activate the candidate, and
+recreate only the web service. The guarded Compose descriptor stays untouched:
 
 ```bash
 ssh "$CLAWTROL_VM" "set -eu
 cd \"\$HOME/.local/share/clawtrol-deploy\"
-test ! -f release.env || cp release.env release.env.previous
-test ! -f docker-compose.yml || cp docker-compose.yml docker-compose.yml.previous
+cp release.env release.env.previous
+chmod 600 release.env.previous
 mv release.env.next release.env
-mv docker-compose.yml.next docker-compose.yml
 docker compose \
   --env-file release.env \
-  --env-file \"\$HOME/.config/clawtrol/runtime.env\" \
+  -f docker-compose.yml \
   pull clawdeck
 docker compose \
   --env-file release.env \
-  --env-file \"\$HOME/.config/clawtrol/runtime.env\" \
+  -f docker-compose.yml \
   up -d --no-build --no-deps clawdeck"
 ```
 
