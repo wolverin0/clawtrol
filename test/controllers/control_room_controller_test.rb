@@ -92,6 +92,11 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-pane-status='idle']", count: 1
     assert_select "[data-pane-status='present']", count: 1
     assert_select "aside#task-thread[role='dialog'][aria-modal='true']", count: 1
+    assert_select "#task-thread a[href='#{board_task_path(task.board, task)}'][data-turbo-frame='task_panel']",
+      text: "Open full task"
+    assert_select "turbo-frame#task_panel", count: 1
+    assert_select "#task-thread [data-task-context='full']", count: 0
+    assert_select "#task-thread #task-thread-messages", count: 0
     projected_link = css_select("[data-task-origin-id='#{task.origin_session_id}']").sole
     assert_not_includes projected_link["href"], "#task-thread"
     ids = css_select("[id]").map { |element| element["id"] }
@@ -187,9 +192,11 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes blocked_card.text, "20 balances affect current members"
     assert_equal 3, blocked_card.css("[data-task-context='compact'] .line-clamp-2").count
 
-    full_context = css_select("#task-thread [data-task-context='full']").sole
-    assert_includes full_context.text, "Decision is recorded"
-    assert_includes full_context.text, "20 balances affect current members"
+    assert_select "#task-thread [data-task-context='full']", count: 0
+    assert_select "#task-thread", text: /Operator must decide whether to dispose ARS 8,025,812\.27/
+    assert_select "#task-thread", text: /Answer with approve or retain/
+    assert_not_includes css_select("#task-thread").sole.text, "Decision is recorded"
+    assert_not_includes css_select("#task-thread").sole.text, "20 balances affect current members"
     assert_select "#task-thread form[action='#{control_room_task_messages_path(blocked)}']", count: 1
   end
 

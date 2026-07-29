@@ -101,27 +101,27 @@
           aria: { label: "Close task details" } do %>
       <span class="sr-only">Close task details</span>
     <% end %>
+    <%# Cockpit boundary: quick decisions only. Rich task detail belongs exclusively to the existing Boards task panel. %>
     <aside id="task-thread"
-           class="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col border-l border-border bg-bg-surface shadow-2xl"
+           class="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg flex-col border-l border-border bg-bg-surface shadow-2xl"
            role="dialog"
            aria-modal="true"
-           aria-labelledby="task-thread-title"
-           data-controller="control-room-thread"
-           data-control-room-thread-url-value="<%= control_room_task_thread_path(@selected_task) %>"
-           data-control-room-thread-interval-value="5000">
+           aria-labelledby="task-thread-title">
       <header class="shrink-0 border-b border-border p-4">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="text-xs uppercase tracking-wider text-content-muted"><%= state["project"] %> · <%= state["source_state"] %></p>
             <h2 id="task-thread-title" class="mt-1 text-lg font-semibold text-content"><%= @selected_task.name %></h2>
           </div>
-          <%= link_to "Close", control_room_path(source_id: @source&.id),
-                class: "rounded-lg border border-border px-3 py-2 text-xs font-semibold text-content-secondary hover:border-accent/40" %>
+          <div class="flex shrink-0 gap-2">
+            <%= link_to "Open full task", board_task_path(@selected_task.board, @selected_task),
+                  data: { turbo_frame: "task_panel" },
+                  class: "rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white" %>
+            <%= link_to "Close", control_room_path(source_id: @source&.id),
+                  class: "rounded-lg border border-border px-3 py-2 text-xs font-semibold text-content-secondary hover:border-accent/40" %>
+          </div>
         </div>
-        <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
-          <p class="text-xs text-green-400"
-             data-control-room-thread-target="status"
-             aria-live="polite">Live updates on</p>
+        <div class="mt-3 flex flex-wrap items-center justify-end gap-2">
           <div class="flex flex-wrap gap-2">
             <% if task_needs_attention?(@selected_task) || state["source_state"] == "review" %>
               <%= button_to "Approve", approve_control_room_task_path(@selected_task), class: "rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white" %>
@@ -136,10 +136,22 @@
         </div>
       </header>
 
-      <div class="min-h-0 flex-1 overflow-y-auto p-4">
-        <p class="whitespace-pre-wrap text-sm text-content-secondary"><%= @selected_task.description %></p>
-        <%= render "task_context", state:, compact: false %>
-        <%= render "thread_messages", task: @selected_task %>
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+        <section class="rounded-lg border border-border bg-bg-elevated p-3">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-content-muted">Why you are needed</h3>
+          <p class="mt-2 whitespace-pre-wrap text-sm text-content-secondary">
+            <%= state["blocker"].presence || "No blocker detail was supplied. Use Open full task for the complete record." %>
+          </p>
+        </section>
+        <section class="rounded-lg border border-border bg-bg-elevated p-3">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-content-muted">Next action</h3>
+          <p class="mt-2 whitespace-pre-wrap text-sm text-content-secondary">
+            <%= state["next_action"].presence || "Reply with your direction, or open the full task for more context." %>
+          </p>
+        </section>
+        <p class="text-xs text-content-muted">
+          This quick drawer intentionally excludes artifacts, diffs, dependencies, run history, and agent output.
+        </p>
       </div>
 
       <%= form_with url: control_room_task_messages_path(@selected_task),
@@ -151,4 +163,5 @@
       <% end %>
     </aside>
   <% end %>
+  <%= turbo_frame_tag "task_panel" %>
 </div>

@@ -81,20 +81,13 @@ class ControlRoomTest < ApplicationSystemTestCase
     assert_equal "question", intent.payload["kind"]
   end
 
-  test "shows a new orchestrator reply without reloading the page" do
+  test "opens the existing full task panel from the quick reply drawer" do
     visit control_room_path(task_id: @task.id)
-    assert_text "Live updates on"
 
-    @task.agent_messages.create!(
-      direction: "incoming",
-      message_type: "output",
-      content: "Reply appeared through live refresh.",
-      sender_name: "pane 0"
-    )
+    within("#task-thread") { click_link "Open full task" }
 
-    within("#task-thread-messages") do
-      assert_text "Reply appeared through live refresh.", wait: 8
-    end
+    assert_selector "[data-controller~='task-modal']", wait: 8
+    assert_text "Review the canary"
   end
 
   test "refreshes cockpit state without clearing a draft" do
