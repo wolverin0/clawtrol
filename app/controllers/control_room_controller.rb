@@ -5,19 +5,28 @@ class ControlRoomController < ApplicationController
   QUEUED_STATES = %w[queued ready].freeze
   WAITING_STATES = %w[failed review].freeze
   TERMINAL_STATES = %w[done cancelled].freeze
+  WORKSPACE_LANES = {
+    "waiting" => { title: "Needs you", collection: :waiting_on_you },
+    "running" => { title: "In progress", collection: :running_now },
+    "queued" => { title: "Scheduled", collection: :queued_next },
+    "program" => { title: "Programs", collection: :programs }
+  }.freeze
 
   before_action :set_task, only: %i[thread message approve retry cancel]
   helper_method :intent_result_summary, :pane_display_status, :orchestration_items,
-    :task_needs_attention?
+    :task_needs_attention?, :workspace_lanes, :active_lane
 
   def show
     @full_width_page = true
     load_control_room_state
     @selected_task = selected_task
+    @active_lane = selected_lane(@selected_task)
   end
 
   def live
     load_control_room_state
+    @selected_task = selected_task
+    @active_lane = selected_lane(@selected_task)
     render partial: "live_payload"
   end
 
@@ -43,7 +52,7 @@ class ControlRoomController < ApplicationController
       record
     end
 
-    redirect_to control_room_path(task_id: @task.id),
+    redirect_to control_room_path(task_id: @task.id, lane: params[:lane]),
       notice: "Message queued as intent ##{intent.id}."
   rescue Orchestration::InvalidRequest => e
     redirect_to control_room_path(task_id: @task.id), alert: e.message
@@ -53,7 +62,7 @@ class ControlRoomController < ApplicationController
     define_method(action) do
       source = source_for_task!(@task)
       intent = create_intent(source, action.to_s, @task, {})
-      redirect_to control_room_path(task_id: @task.id),
+      redirect_to control_room_path(task_id: @task.id, lane: params[:lane]),
         notice: "#{action.to_s.titleize} queued as intent ##{intent.id}."
     rescue Orchestration::InvalidRequest => e
       redirect_to control_room_path(task_id: @task.id), alert: e.message
@@ -127,7 +136,7 @@ class ControlRoomController < ApplicationController
     @queued_next = grouped.fetch(:queued, [])
     @programs = grouped.fetch(:program, [])
     @unclassified_tasks = grouped.fetch(:unclassified, [])
-    @recent = grouped.fetch(:recent, []).first(25)
+    @recent = grouped.fetch(:recent, [])
     @project_work_counts = project_work_counts
   end
 
@@ -169,6 +178,33 @@ class ControlRoomController < ApplicationController
     return if params[:task_id].blank?
 
     @tasks.find { |task| task.id == params[:task_id].to_i }
+  end
+
+  def workspace_lanes
+    WORKSPACE_LANES.transform_values do |definition|
+      definition.merge(tasks: instance_variable_get(:"@#{definition[:collection]}"))
+    end
+  end
+
+  def active_lane
+    @active_lane || "waiting"
+  end
+
+  def selected_lane(task)
+    requested = params[:lane].to_s
+    return requested if WORKSPACE_LANES.key?(requested)
+    return lane_key(task_lane(task)) if task
+
+    WORKSPACE_LANES.keys.find { |key| workspace_lanes.dig(key, :tasks)&.any? } || "waiting"
+  end
+
+  def lane_key(lane)
+    {
+      waiting: "waiting",
+      running: "running",
+      queued: "queued",
+      program: "program"
+    }.fetch(lane, "waiting")
   end
 
   def create_task_intent(kind:, default_project: nil)
