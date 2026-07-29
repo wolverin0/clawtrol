@@ -46,7 +46,7 @@ class ControlRoomTest < ApplicationSystemTestCase
       assert_text "operator"
     end
     assert_selector "#task-thread[role='dialog'][aria-modal='true']"
-    click_on "Create work"
+    find("summary", text: "Create work").click
     within("form[action='#{control_room_tasks_path}']") do
       select "pane 0 — wezbridge (idle)", from: "Work context"
       fill_in "title", with: "Ship a focused fix"
@@ -99,7 +99,7 @@ class ControlRoomTest < ApplicationSystemTestCase
 
   test "refreshes cockpit state without clearing a draft" do
     visit control_room_path
-    click_on "Create work"
+    find("summary", text: "Create work").click
     fill_in "Task title", with: "Keep this draft"
 
     @user.tasks.create!(
