@@ -1,30 +1,63 @@
-<section class="rounded-xl border border-border bg-bg-surface p-4" data-control-room-live-region="fleet">
-  <div class="flex items-center justify-between gap-3">
-    <div>
-      <h2 class="text-sm font-semibold text-content">Fleet</h2>
-      <p class="mt-1 text-xs text-content-muted">
-        <% if @source&.last_seen_at %>
-          <%= @source.panes.length %> visible panes · last sync <%= time_ago_in_words(@source.last_seen_at) %> ago
-        <% else %>
-          No bridge telemetry yet
-        <% end %>
-      </p>
+<% panes = Array(@source&.panes) %>
+<% status_counts = panes.map { |pane| pane_display_status(pane) }.tally %>
+<details class="group rounded-xl border border-border bg-bg-surface"
+         data-control-room-live-region="fleet"
+         data-source-count="<%= panes.length %>"
+         data-rendered-count="<%= panes.length %>">
+  <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3">
+    <div class="flex flex-wrap items-center gap-3">
+      <span class="text-sm font-semibold text-content">Fleet · <%= panes.length %> panes</span>
+      <% {
+           "working" => ["bg-green-400", "text-green-300"],
+           "waiting" => ["bg-yellow-400", "text-yellow-200"],
+           "permission" => ["bg-yellow-400", "text-yellow-200"],
+           "idle" => ["bg-sky-400", "text-sky-300"],
+           "present" => ["bg-violet-400", "text-violet-300"],
+           "unknown" => ["bg-slate-400", "text-slate-300"]
+         }.each do |status, classes| %>
+        <% count = status_counts.fetch(status, 0) %>
+        <% next unless count.positive? %>
+        <span class="inline-flex items-center gap-1.5 text-xs <%= classes.last %>">
+          <span class="size-2 rounded-full <%= classes.first %> <%= "animate-pulse" if status == "working" %>"></span>
+          <%= count %> <%= status %>
+        </span>
+      <% end %>
     </div>
-    <% if @source&.health&.dig("fleet") %>
-      <% a2a_updates = @source.health.dig("fleet", "a2a_envelopes").to_i %>
-      <span class="text-xs text-content-muted">
-        <%= a2a_updates.positive? ? "#{a2a_updates} A2A updates in latest sync" : "No A2A updates in latest sync" %>
-      </span>
-    <% end %>
-  </div>
-  <% if @source&.panes&.any? %>
-    <div class="mt-3 flex flex-wrap gap-2">
-      <% @source.panes.each do |pane| %>
-        <div class="rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs text-content-secondary">
-          <span class="font-semibold">pane <%= pane["pane_id"] || pane["id"] %></span>
-          <span class="ml-1 text-content-muted"><%= pane["project"] %> · <%= pane_display_status(pane) %></span>
+    <span class="text-xs text-content-muted">
+      <% if @source&.last_seen_at %>
+        <% a2a_updates = @source.health.to_h.dig("fleet", "a2a_envelopes").to_i %>
+        synced <%= time_ago_in_words(@source.last_seen_at) %> ago ·
+        <%= a2a_updates.positive? ? "#{a2a_updates} A2A updates in latest sync" : "No A2A updates in latest sync" %> ·
+        expand pane details
+      <% else %>
+        no bridge telemetry · expand
+      <% end %>
+    </span>
+  </summary>
+
+  <% if panes.any? %>
+    <div class="grid max-h-64 gap-2 overflow-y-auto border-t border-border p-3 sm:grid-cols-2 xl:grid-cols-4">
+      <% panes.each do |pane| %>
+        <% status = pane_display_status(pane) %>
+        <% status_style = case status
+             when "working" then "border-green-400/35 bg-green-400/10 text-green-300"
+             when "waiting", "permission" then "border-yellow-400/40 bg-yellow-400/10 text-yellow-200"
+             when "idle" then "border-sky-400/30 bg-sky-400/10 text-sky-300"
+             when "present" then "border-violet-400/30 bg-violet-400/10 text-violet-300"
+             else "border-border bg-bg-elevated text-content-muted"
+             end %>
+        <article class="rounded-lg border px-3 py-2 text-xs <%= status_style %>"
+                 data-pane-status="<%= status %>"
+                 aria-label="pane <%= pane["pane_id"] || pane["id"] %>, <%= pane["project"] %>, <%= status %>">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-semibold text-content">pane <%= pane["pane_id"] || pane["id"] %> · <%= pane["project"] %></span>
+            <span class="inline-flex items-center gap-1">
+              <span class="size-2 rounded-full bg-current <%= "animate-pulse" if status == "working" %>"></span>
+              <%= status %>
+            </span>
+          </div>
           <% if pane["title"].present? || pane["model"].present? || pane["ctx"].present? %>
-            <p class="mt-1 text-[11px] text-content-muted">
+            <p class="mt-1 truncate text-[11px] text-content-muted">
               <%= [pane["title"], pane["persona"], pane["model"], pane["ctx"]].compact_blank.join(" · ") %>
             </p>
           <% end %>
@@ -33,8 +66,8 @@
               Session <%= pane["session_pct"].presence || "—" %>% · week <%= pane["weekly_pct"].presence || "—" %>%
             </p>
           <% end %>
-        </div>
+        </article>
       <% end %>
     </div>
   <% end %>
-</section>
+</details>

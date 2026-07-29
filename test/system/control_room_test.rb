@@ -40,11 +40,13 @@ class ControlRoomTest < ApplicationSystemTestCase
 
     assert_text "Control Room"
     assert_text "pane 0"
-    within("[data-board-section='needs-attention']") do
+    within("[data-board-section='waiting-on-you']") do
       assert_text "Operator ruling required before execution."
       assert_text(/gate/i)
       assert_text "operator"
     end
+    assert_selector "#task-thread[role='complementary'][data-persistent-drawer='true']"
+    find("summary", text: "Create work").click
     within("form[action='#{control_room_tasks_path}']") do
       select "pane 0 — wezbridge (idle)", from: "Work context"
       fill_in "title", with: "Ship a focused fix"
@@ -70,7 +72,7 @@ class ControlRoomTest < ApplicationSystemTestCase
       assert_equal "_fleet", find_field("Question context").value
       fill_in "Question title", with: "Assess every open pane"
       fill_in "Question", with: "Recommend the next action for every live project."
-      click_button "Ask"
+      click_button "Ask pane 0"
     end
 
     assert_text "Question queued as intent"
@@ -79,24 +81,18 @@ class ControlRoomTest < ApplicationSystemTestCase
     assert_equal "question", intent.payload["kind"]
   end
 
-  test "shows a new orchestrator reply without reloading the page" do
-    visit control_room_path(task_id: @task.id, anchor: "task-thread")
-    assert_text "Live updates on"
+  test "opens the existing full task panel from the quick reply drawer" do
+    visit control_room_path(task_id: @task.id)
 
-    @task.agent_messages.create!(
-      direction: "incoming",
-      message_type: "output",
-      content: "Reply appeared through live refresh.",
-      sender_name: "pane 0"
-    )
+    within("#task-thread") { click_link "Open full task" }
 
-    within("#task-thread-messages") do
-      assert_text "Reply appeared through live refresh.", wait: 8
-    end
+    assert_selector "[data-controller~='task-modal']", wait: 8
+    assert_text "Review the canary"
   end
 
   test "refreshes cockpit state without clearing a draft" do
     visit control_room_path
+    find("summary", text: "Create work").click
     fill_in "Task title", with: "Keep this draft"
 
     @user.tasks.create!(
