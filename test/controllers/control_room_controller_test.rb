@@ -82,12 +82,12 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-control-room-live-region='fleet'][data-source-count='3'][data-rendered-count='3']"
     assert_select "[data-pane-status='working']", count: 1
     assert_select "[data-pane-status='idle']", count: 1
-    assert_select "[data-pane-status='present']", count: 1
+    assert_select "[data-pane-status='not-reporting']", count: 1
     assert_select "aside#task-thread[role='complementary'][data-persistent-drawer='true']", count: 1
     assert_select "#task-thread[aria-modal]", count: 0
-    assert_select "#task-thread a[href='#{board_task_path(task.board, task)}'][data-turbo-frame='task_panel']",
+    assert_select "#task-thread a[href='#{board_task_path(task.board, task)}'][data-turbo-frame='_top']",
       text: "Open full task"
-    assert_select "turbo-frame#task_panel", count: 1
+    assert_select "turbo-frame#task_panel", count: 0
     assert_select "#task-thread [data-task-context='full']", count: 0
     assert_select "#task-thread #task-thread-messages", count: 0
     projected_link = css_select("[data-task-origin-id='#{task.origin_session_id}']").sole
@@ -102,7 +102,7 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
       assert_equal "_fleet", select.first.css("option").first["value"]
     end
     assert_select "option[value='whatsappbot']", text: /pane 5/, count: 2
-    assert_select "option[value='omniremote']", text: /present/, count: 2
+    assert_select "option[value='omniremote']", text: /not-reporting/, count: 2
 
     other = Task.create!(user: users(:two), board: boards(:two), name: "Other",
       origin_session_key: "wezbridge:primary:task:T-OTHER")
@@ -133,7 +133,7 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     get control_room_live_path(source_id: @source.id)
 
     assert_response :success
-    assert_select "[data-control-room-live-region]", count: 4
+    assert_select "[data-control-room-live-region]", count: 5
     assert_select "[data-control-room-live-region='requests'][data-source-count='2'][data-rendered-count='2']",
       text: /##{applied.id} Message/
     assert_includes response.body, "Delivered to the ledger"
@@ -196,7 +196,7 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     waiting = projected_task_with(id: "T-0101", name: "Needs a reply", state: "review")
     running = projected_task_with(id: "T-0102", name: "Executing now", state: "running")
     queued = projected_task_with(id: "T-0103", name: "Starts next", state: "ready")
-    program = projected_task_with(
+    queued_program = projected_task_with(
       id: "T-0104",
       name: "Long-running quality loop",
       state: "queued",
@@ -210,6 +210,11 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
       work_type: "program",
       project: "mutual"
     )
+    parked = projected_task_with(
+      id: "T-0108",
+      name: "Dependency is blocked",
+      state: "blocked"
+    )
     completed = projected_task_with(
       id: "T-0106",
       name: "Finished",
@@ -219,7 +224,7 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     unclassified = projected_task_with(
       id: "T-0107",
       name: "Unknown source state",
-      state: "paused"
+      state: "mystery"
     )
     sign_in_as(@user)
 
@@ -228,9 +233,9 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     expected = {
       "needs-you" => [waiting],
-      "in-progress" => [running],
-      "scheduled" => [queued],
-      "programs" => [program, explicit_program],
+      "running-now" => [running, explicit_program],
+      "queue" => [queued, queued_program],
+      "paused" => [parked],
       "unclassified" => [unclassified],
       "recently-completed" => [completed]
     }
@@ -245,7 +250,7 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_equal rendered_ids.uniq.sort, rendered_ids.sort, "a task must render in one lane only"
 
     board = css_select("[data-control-room-live-region='task-board']").sole
-    assert_equal "6", board["data-open-source-count"]
+    assert_equal "7", board["data-open-source-count"]
     assert_equal "1", board["data-unclassified-count"]
     assert_includes css_select("[data-board-section='unclassified']").sole.text,
       "classification gap, not work you owe"
@@ -253,9 +258,15 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_equal "2", summary["data-source-count"]
     assert_equal "2", summary["data-rendered-count"]
     assert_includes summary.text,
-      "whatsappbot: 1 waiting · 1 running · 1 queued · 1 program · 1 unclassified"
-    assert_includes summary.text, "mutual: 1 program"
+      "whatsappbot: 1 waiting · 1 running · 2 queued · 1 parked · 1 unclassified · 1 programs"
+    assert_includes summary.text, "mutual: 1 running · 1 programs"
     assert_includes summary.text, "1 unclassified"
+
+    programs = css_select("[data-board-section='programs']").sole
+    assert_equal "2", programs["data-source-count"]
+    assert_equal "2", programs["data-rendered-count"]
+    assert_equal [queued_program.origin_session_id, explicit_program.origin_session_id].sort,
+      programs.css("[data-task-origin-id]").map { |card| card["data-task-origin-id"] }.sort
   end
 
   test "renders a loud stalled bridge warning with its error" do
@@ -303,7 +314,7 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "renders a focus inbox with persistent detail and latest pane reply" do
+  test "renders a one-glance cockpit with collapsed composers and persistent detail" do
     task = projected_task
     task.agent_messages.create!(
       direction: "incoming",
@@ -316,13 +327,46 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     get control_room_path(task_id: task.id)
 
     assert_response :success
-    assert_select "nav[aria-label='Work status'] [aria-current='page']", text: /Needs you/
-    assert_select "[data-workspace-panel='waiting']:not(.hidden)", count: 1
-    assert_select "[data-workspace-panel='running'].hidden", count: 1
+    assert_select "[data-workspace-panel]", count: 4
+    assert_select "[data-workspace-panel='waiting']", count: 1
+    assert_select "[data-workspace-panel='running']", count: 1
+    assert_select "details:not([open]) summary", text: /Ask pane 0/
+    assert_select "details:not([open]) summary", text: /Create work/
     assert_select "aside#task-thread[data-persistent-drawer='true']", count: 1
     assert_select "[data-control-room-live-region='selected-task-summary']", text: /The canary passed/
-    assert_select "#task-thread textarea[placeholder='Type your direction or answer…']", count: 1
+    assert_select "#task-thread", text: /Send optional direction/
+    assert_select "#task-thread textarea[placeholder='Add context or change direction…']", count: 1
     assert_select "#task-thread a", text: "Open full task", count: 1
+  end
+
+  test "keeps non-operator blockers out of needs you and flags completed dependencies" do
+    dependency = projected_task_with(
+      id: "T-0200",
+      name: "Dependency completed",
+      state: "done",
+      status: :done
+    )
+    blocked = projected_task_with(
+      id: "T-0201",
+      name: "Blocked by completed dependency",
+      state: "blocked",
+      blocker: "#{dependency.origin_session_id} must finish first",
+      contract: { "mode" => "born_blocked", "gate" => "operator" }
+    )
+    sign_in_as(@user)
+
+    get control_room_path(task_id: blocked.id, lane: "parked")
+
+    assert_response :success
+    assert_equal 0, css_select("[data-board-section='needs-you'] [data-task-origin-id='T-0201']").count
+    paused = css_select("[data-board-section='paused']").sole
+    assert_equal 1, paused.css("[data-task-origin-id='T-0201']").count
+    assert_includes paused.text, "stale blocker"
+    assert_select "#task-thread", text: /does not need a new operator decision/
+    assert_select "#task-thread", text: /Send optional direction/
+    assert_select "#task-thread", text: /Answer pane 0/, count: 0
+    assert_select "#task-thread form[action='#{approve_control_room_task_path(blocked)}']", count: 0
+    assert_select "#task-thread form[action='#{retry_control_room_task_path(blocked)}']", count: 1
   end
 
   private
@@ -348,7 +392,7 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
 
   def projected_task_with(
     id:, name:, state:, kind: "task", status: :up_next, needs_decision: false,
-    project: "whatsappbot", work_type: nil
+    project: "whatsappbot", work_type: nil, blocker: nil, contract: nil
   )
     @user.tasks.create!(
       board: boards(:one),
@@ -364,7 +408,9 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
           "source_state" => state,
           "project" => project,
           "kind" => kind,
-          "work_type" => work_type
+          "work_type" => work_type,
+          "blocker" => blocker,
+          "contract" => contract
         }
       }
     )

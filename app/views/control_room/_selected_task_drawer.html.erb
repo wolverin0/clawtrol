@@ -1,0 +1,85 @@
+<% state = @selected_task.state_data.fetch("orchestration", {}) %>
+<aside id="task-thread"
+       class="flex min-h-[32rem] flex-col border-t border-border bg-bg-base/35 lg:min-h-0 lg:border-l lg:border-t-0"
+       role="complementary"
+       data-persistent-drawer="true"
+       aria-labelledby="task-thread-title">
+  <header class="shrink-0 border-b border-border px-4 py-3">
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-2">
+          <p class="text-xs font-semibold uppercase tracking-[0.14em] text-accent"><%= state["project"] %></p>
+          <% if program_task?(@selected_task) %>
+            <span class="rounded border border-violet-400/30 bg-violet-400/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-violet-200">
+              Program
+            </span>
+          <% end %>
+          <span class="rounded border border-border bg-bg-elevated px-1.5 py-0.5 text-[10px] font-semibold uppercase text-content-muted">
+            <%= source_state(@selected_task).presence || "unknown" %>
+          </span>
+        </div>
+        <h2 id="task-thread-title" class="mt-1 text-lg font-semibold leading-tight text-content">
+          <%= @selected_task.name %>
+        </h2>
+      </div>
+      <%= link_to control_room_path(lane: active_lane),
+            class: "flex size-11 shrink-0 items-center justify-center rounded-lg border border-border text-content-muted transition-colors hover:border-accent/40 hover:text-content",
+            aria: { label: "Close task detail" } do %>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" class="size-5" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" d="m7 7 10 10M17 7 7 17"/>
+        </svg>
+      <% end %>
+    </div>
+  </header>
+
+  <%= render "selected_task_summary" %>
+
+  <div class="shrink-0 border-t border-border bg-bg-surface px-4 py-3">
+    <% if task_lane(@selected_task) == :waiting %>
+      <%= form_with url: control_room_task_messages_path(@selected_task), class: "space-y-2" do |form| %>
+        <%= form.hidden_field :lane, value: active_lane %>
+        <%= form.label :content, "Answer pane 0", class: "block text-xs font-semibold text-content-secondary" %>
+        <%= form.text_area :content, required: true, rows: 2, placeholder: "Type your decision or answer…",
+              class: "w-full resize-none rounded-lg border border-border bg-bg-elevated px-3 py-2 text-base text-content placeholder:text-content-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20" %>
+        <%= form.submit "Reply",
+              class: "min-h-11 cursor-pointer rounded-lg bg-accent px-5 py-2.5 font-semibold text-white transition-transform duration-150 active:scale-[0.97]" %>
+      <% end %>
+    <% elsif !ControlRoomController::TERMINAL_STATES.include?(source_state(@selected_task)) %>
+      <details class="rounded-lg border border-border bg-bg-base/30">
+        <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-semibold text-content-secondary">
+          Send optional direction
+          <span class="font-normal text-content-muted">not required</span>
+        </summary>
+        <%= form_with url: control_room_task_messages_path(@selected_task), class: "space-y-2 border-t border-border p-3" do |form| %>
+          <%= form.hidden_field :lane, value: active_lane %>
+          <%= form.label :content, "Direction for pane 0", class: "block text-xs font-semibold text-content-secondary" %>
+          <%= form.text_area :content, required: true, rows: 2, placeholder: "Add context or change direction…",
+                class: "w-full resize-none rounded-lg border border-border bg-bg-elevated px-3 py-2 text-base text-content placeholder:text-content-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20" %>
+          <%= form.submit "Send direction",
+                class: "min-h-11 cursor-pointer rounded-lg bg-accent px-5 py-2.5 font-semibold text-white transition-transform duration-150 active:scale-[0.97]" %>
+        <% end %>
+      </details>
+    <% end %>
+    <div class="mt-2 flex flex-wrap items-center gap-2">
+      <% if task_lane(@selected_task) == :waiting %>
+        <%= button_to "Approve", approve_control_room_task_path(@selected_task),
+              params: { lane: active_lane },
+              class: "min-h-11 rounded-lg border border-green-500/40 px-4 py-2.5 font-semibold text-green-300 hover:bg-green-500/10" %>
+      <% end %>
+      <% if %w[blocked failed].include?(source_state(@selected_task)) || stale_blocker?(@selected_task) %>
+        <%= button_to(source_state(@selected_task) == "failed" ? "Retry" : "Requeue",
+              retry_control_room_task_path(@selected_task),
+              params: { lane: active_lane },
+              class: "min-h-11 rounded-lg border border-sky-500/40 px-4 py-2.5 font-semibold text-sky-300 hover:bg-sky-500/10") %>
+      <% end %>
+      <%= link_to "Open full task", board_task_path(@selected_task.board, @selected_task),
+            data: { turbo_frame: "_top" },
+            class: "inline-flex min-h-11 items-center rounded-lg border border-border px-4 py-2.5 font-semibold text-content-secondary hover:border-accent/40 hover:text-content" %>
+      <% unless ControlRoomController::TERMINAL_STATES.include?(source_state(@selected_task)) %>
+        <%= button_to "Cancel", cancel_control_room_task_path(@selected_task),
+              params: { lane: active_lane },
+              class: "ml-auto min-h-11 rounded-lg px-3 py-2.5 font-semibold text-red-400 hover:bg-red-500/10" %>
+      <% end %>
+    </div>
+  </div>
+</aside>

@@ -1,53 +1,84 @@
-<section class="h-full min-h-0 <%= "hidden" unless active %>"
-         data-board-section="<%= title.parameterize %>"
+<% tone = {
+     "waiting" => "border-yellow-400/35 text-yellow-200",
+     "running" => "border-green-400/35 text-green-300",
+     "queued" => "border-sky-400/30 text-sky-300",
+     "parked" => "border-slate-400/25 text-slate-300"
+   }.fetch(lane) %>
+<section class="flex min-h-64 flex-col overflow-hidden rounded-lg border border-border bg-bg-base/20 xl:min-h-0"
+         data-board-section="<%= definition[:section] %>"
          data-source-count="<%= tasks.length %>"
          data-rendered-count="<%= [tasks.length, 50].min %>"
          data-workspace-panel="<%= lane %>">
-  <div class="grid grid-cols-[minmax(0,1fr)_7rem_4.5rem] gap-3 border-b border-border bg-bg-base/20 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-content-muted">
-    <span>Project · work</span>
-    <span>Status</span>
-    <span class="text-right">Updated</span>
-  </div>
-  <div class="h-[calc(100%-2.25rem)] overflow-y-auto">
+  <header class="shrink-0 border-b border-border px-3 py-2.5">
+    <div class="flex items-center justify-between gap-2">
+      <h2 class="font-semibold text-content"><%= definition[:title] %></h2>
+      <span class="min-w-7 rounded-md bg-bg-elevated px-2 py-0.5 text-center text-xs font-semibold tabular-nums <%= tone %>">
+        <%= tasks.length %>
+      </span>
+    </div>
+    <p class="mt-0.5 text-[11px] leading-snug text-content-muted"><%= definition[:description] %></p>
+  </header>
+
+  <div class="min-h-0 flex-1 overflow-y-auto">
     <% tasks.first(50).each do |task| %>
       <% state = task.state_data.fetch("orchestration", {}) %>
       <% selected = @selected_task&.id == task.id %>
-      <% tone = case lane
-           when "waiting" then "text-yellow-300"
-           when "running" then "text-green-300"
-           when "queued" then "text-sky-300"
-           else "text-violet-300"
-           end %>
       <%= link_to control_room_path(task_id: task.id, lane: lane),
-            class: "grid min-h-[4.5rem] grid-cols-[minmax(0,1fr)_7rem_4.5rem] items-center gap-3 border-b border-border px-4 py-3 transition-colors hover:bg-bg-elevated/70 #{selected ? "bg-accent/10 shadow-[inset_3px_0_0_var(--color-accent)]" : ""}",
+            class: "block border-b border-border px-3 py-2.5 transition-colors hover:bg-bg-elevated/70 #{selected ? "bg-accent/10 shadow-[inset_3px_0_0_var(--color-accent)]" : ""}",
             aria: { current: selected ? "true" : nil },
             data: { task_origin_id: task.origin_session_id } do %>
-        <span class="min-w-0">
-          <span class="block truncate text-xs font-semibold uppercase tracking-wide text-accent"><%= state["project"].presence || "Unassigned" %></span>
-          <span class="mt-1 block truncate text-sm font-medium text-content"><%= task.name %></span>
-          <% if lane == "waiting" && state["blocker"].present? %>
-            <span class="mt-1 block truncate text-xs text-content-muted"><%= state["blocker"] %></span>
-          <% end %>
+        <span class="flex items-start justify-between gap-2">
+          <span class="min-w-0">
+            <span class="flex flex-wrap items-center gap-1.5">
+              <span class="text-[10px] font-semibold uppercase tracking-wide text-accent"><%= state["project"].presence || "Unassigned" %></span>
+              <% if program_task?(task) %>
+                <span class="rounded border border-violet-400/25 bg-violet-400/10 px-1 py-0.5 text-[9px] font-semibold uppercase text-violet-200">
+                  Program
+                </span>
+              <% end %>
+              <% if stale_blocker?(task) %>
+                <span class="rounded border border-yellow-400/30 bg-yellow-400/10 px-1 py-0.5 text-[9px] font-semibold uppercase text-yellow-200">
+                  stale blocker
+                </span>
+              <% end %>
+            </span>
+            <span class="mt-1 block line-clamp-2 text-sm font-medium leading-snug text-content"><%= task.name %></span>
+          </span>
+          <time class="shrink-0 text-[10px] tabular-nums text-content-muted"
+                datetime="<%= task.updated_at.iso8601 %>"><%= time_ago_in_words(task.updated_at) %></time>
         </span>
-        <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase <%= tone %>">
-          <span class="size-2 rounded-full bg-current <%= "animate-pulse" if lane == "running" %>" aria-hidden="true"></span>
-          <%= { "waiting" => "Needs you", "running" => "Working", "queued" => "Scheduled", "program" => "Program" }.fetch(lane) %>
+        <% if %w[waiting parked].include?(lane) && state["blocker"].present? %>
+          <span class="mt-1.5 block line-clamp-2 text-xs leading-snug text-content-muted"><%= state["blocker"] %></span>
+        <% elsif lane == "queued" %>
+          <span class="mt-1.5 block text-xs text-content-muted"><%= state["source_state"] == "ready" ? "Ready to dispatch" : "Waiting in the ledger queue" %></span>
+        <% end %>
+        <span class="mt-2 inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase <%= tone %>">
+          <span class="size-1.5 rounded-full bg-current <%= "animate-pulse motion-reduce:animate-none" if lane == "running" %>" aria-hidden="true"></span>
+          <%= {
+                "waiting" => "Decision",
+                "running" => "Running",
+                "queued" => state["source_state"].presence || "Queued",
+                "parked" => stale_blocker?(task) ? "Review stale blocker" : state["source_state"].presence || "Paused"
+              }.fetch(lane) %>
         </span>
-        <time class="text-right text-xs tabular-nums text-content-muted"
-              datetime="<%= task.updated_at.iso8601 %>"><%= time_ago_in_words(task.updated_at) %></time>
       <% end %>
     <% end %>
+
     <% if tasks.empty? %>
-      <div class="flex h-full min-h-56 flex-col items-center justify-center px-6 text-center">
-        <span class="flex size-12 items-center justify-center rounded-full border border-border bg-bg-elevated text-content-muted">
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" class="size-5" stroke="currentColor" stroke-width="1.8">
+      <div class="flex min-h-40 flex-1 flex-col items-center justify-center px-4 text-center">
+        <span class="flex size-10 items-center justify-center rounded-full border border-border bg-bg-elevated text-content-muted">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" class="size-4" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6"/>
           </svg>
         </span>
-        <p class="mt-3 font-semibold text-content">
-          <%= { "waiting" => "Nothing needs you", "running" => "No work is running", "queued" => "Nothing is scheduled", "program" => "No programs are active" }.fetch(lane) %>
+        <p class="mt-2 text-sm font-semibold text-content">
+          <%= {
+                "waiting" => "Nothing needs you",
+                "running" => "No ledger task is running",
+                "queued" => "The queue is empty",
+                "parked" => "Nothing is paused"
+              }.fetch(lane) %>
         </p>
-        <p class="mt-1 text-xs text-content-muted">The count above is sourced directly from the mirrored ledger.</p>
       </div>
     <% end %>
   </div>

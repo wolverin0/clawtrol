@@ -1,0 +1,7 @@
+<% busy_panes = Array(@source&.panes).count { |pane| pane_display_status(pane) == "working" } %>
+<p class="mt-2 px-1 text-xs text-content-muted"
+   data-control-room-live-region="activity-distinction">
+  <strong class="text-content"><%= @running_now.length %></strong> ledger <%= "task".pluralize(@running_now.length) %> running
+  <span aria-hidden="true">·</span>
+  <strong class="text-content"><%= busy_panes %></strong> <%= "pane".pluralize(busy_panes) %> busy with conversation, checks, or unledgered work
+</p>

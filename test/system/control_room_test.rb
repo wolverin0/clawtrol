@@ -43,12 +43,12 @@ class ControlRoomTest < ApplicationSystemTestCase
     within("[data-board-section='needs-you']") do
       assert_text "Operator ruling required before execution."
     end
-    find("summary", text: "Create new work").click
+    find("summary", text: "Create work").click
     within("form[action='#{control_room_tasks_path}']") do
-      select "pane 0 — wezbridge (idle)", from: "Work context"
-      fill_in "title", with: "Ship a focused fix"
-      fill_in "brief", with: "Implement and verify the requested change."
-      click_button "Create task"
+      select "pane 0 — wezbridge (idle)", from: "Project"
+      fill_in "Title", with: "Ship a focused fix"
+      fill_in "Brief", with: "Implement and verify the requested change."
+      click_button "Create"
     end
 
     assert_text "Task queued as intent"
@@ -67,11 +67,12 @@ class ControlRoomTest < ApplicationSystemTestCase
   test "asks pane 0 for a fleet assessment without choosing one project" do
     visit control_room_path
 
+    find("summary", text: "Ask pane 0").click
     within("form[action='#{control_room_ask_path}']") do
-      assert_equal "_fleet", find_field("Question context").value
-      fill_in "Question title", with: "Assess every open pane"
+      assert_equal "_fleet", find_field("Context").value
+      fill_in "Subject", with: "Assess every open pane"
       fill_in "Question", with: "Recommend the next action for every live project."
-      click_button "Ask pane 0"
+      click_button "Ask"
     end
 
     assert_text "Question queued as intent"
@@ -80,26 +81,21 @@ class ControlRoomTest < ApplicationSystemTestCase
     assert_equal "question", intent.payload["kind"]
   end
 
-  test "opens the existing full task panel from the quick reply drawer" do
+  test "opens the existing full task page from the quick reply drawer" do
     visit control_room_path(task_id: @task.id)
 
     within("#task-thread") { click_link "Open full task" }
 
-    if ApplicationSystemTestCase::CHROME_AVAILABLE
-      assert_selector "[data-controller~='task-modal']", wait: 8
-      assert_text "Review the canary"
-    else
-      assert_current_path board_task_path(@task.board, @task)
-      assert_text "Confirm the live evidence."
-    end
+    assert_current_path board_task_path(@task.board, @task)
+    assert_text "Confirm the live evidence."
   end
 
   test "refreshes cockpit state without clearing a draft" do
     skip "Requires JavaScript support" unless ApplicationSystemTestCase::CHROME_AVAILABLE
 
     visit control_room_path
-    find("summary", text: "Create new work").click
-    fill_in "Task title", with: "Keep this draft"
+    find("summary", text: "Create work").click
+    fill_in "task_title", with: "Keep this draft"
 
     @user.tasks.create!(
       board: boards(:one),
@@ -119,11 +115,11 @@ class ControlRoomTest < ApplicationSystemTestCase
 
     assert_selector "[data-workspace-panel='running']",
       text: "Appeared without a reload", visible: :all, wait: 8
-    assert_field "Task title", with: "Keep this draft"
+    assert_field "task_title", with: "Keep this draft"
     assert_text "Live cockpit · updated just now"
   end
 
-  test "switches work lanes and keeps the selected detail beside the list" do
+  test "shows work lanes together and keeps selected detail beside the list" do
     @user.tasks.create!(
       board: boards(:one),
       name: "Running live verification",
@@ -141,12 +137,13 @@ class ControlRoomTest < ApplicationSystemTestCase
     )
 
     visit control_room_path
-    click_link "In progress"
-
-    assert_selector "[data-workspace-panel='running']:not(.hidden)"
+    assert_selector "[data-workspace-panel='waiting']"
+    assert_selector "[data-workspace-panel='running']"
+    assert_selector "[data-workspace-panel='queued']"
+    assert_selector "[data-workspace-panel='parked']"
     click_link "Running live verification"
     assert_selector "#task-thread[data-persistent-drawer='true']"
     assert_text "Running live verification"
-    assert_selector "[data-workspace-panel='running']:not(.hidden)"
+    assert_selector "[data-workspace-panel='running']"
   end
 end
