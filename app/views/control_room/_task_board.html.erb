@@ -1,6 +1,100 @@
-<section class="grid gap-4 xl:grid-cols-4" data-control-room-live-region="task-board">
-  <%= render "task_list", title: "Needs Attention", tasks: @needs_attention, tone: "yellow" %>
-  <%= render "task_list", title: "Active Work", tasks: @active, tone: "blue" %>
-  <%= render "task_list", title: "Failures", tasks: @failures, tone: "red" %>
-  <%= render "task_list", title: "Recently Completed", tasks: @recent, tone: "green" %>
+<section class="space-y-4"
+         data-control-room-live-region="task-board"
+         data-open-source-count="<%= @waiting_on_you.length + @running_now.length + @queued_next.length + @programs.length + @unclassified_tasks.length %>"
+         data-unclassified-count="<%= @unclassified_tasks.length %>">
+  <div class="rounded-xl border border-border bg-bg-surface p-4"
+       data-board-section="project-work-summary"
+       data-source-count="<%= @project_work_counts.length %>"
+       data-rendered-count="<%= @project_work_counts.length %>">
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <div>
+        <h2 class="text-sm font-semibold text-content">Work by project</h2>
+        <p class="mt-1 text-xs text-content-muted">Counts describe the actual lane, not a generic “active” state.</p>
+      </div>
+      <p class="text-xs text-content-muted">
+        <%= @waiting_on_you.length + @running_now.length + @queued_next.length + @programs.length + @unclassified_tasks.length %> open source rows ·
+        <%= @unclassified_tasks.length %> unclassified
+      </p>
+    </div>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <% @project_work_counts.each do |project, counts| %>
+        <% details = counts.filter_map { |lane, count| "#{count} #{lane}" if count.positive? } %>
+        <span class="rounded-lg border border-border bg-bg-elevated px-3 py-2 text-xs text-content">
+          <strong><%= project %></strong>: <%= details.join(" · ") %>
+        </span>
+      <% end %>
+      <% if @project_work_counts.empty? %>
+        <p class="text-xs text-content-muted">No open work is mirrored.</p>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @unclassified_tasks.any? %>
+    <details class="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-4"
+             data-board-section="unclassified"
+             data-source-count="<%= @unclassified_tasks.length %>"
+             data-rendered-count="<%= [@unclassified_tasks.length, 20].min %>">
+      <summary class="cursor-pointer text-sm font-semibold text-yellow-200">
+        <%= pluralize(@unclassified_tasks.length, "task") %> could not be classified · show
+      </summary>
+      <p class="mt-2 text-xs text-yellow-100/80">
+        This is a cockpit classification gap, not work you owe. The tasks remain visible here until their source state is understood.
+      </p>
+      <div class="mt-3 grid gap-2 md:grid-cols-2">
+        <% @unclassified_tasks.first(20).each do |task| %>
+          <% state = task.state_data.fetch("orchestration", {}) %>
+          <%= link_to control_room_path(task_id: task.id),
+                class: "rounded-lg border border-yellow-500/30 bg-bg-elevated p-3 text-sm text-content hover:border-yellow-400/60",
+                data: { task_origin_id: task.origin_session_id } do %>
+            <span class="font-medium"><%= task.name %></span>
+            <span class="mt-1 block text-xs text-content-muted">
+              <%= state["project"] %> · source state “<%= state["source_state"].presence || "missing" %>”
+            </span>
+          <% end %>
+        <% end %>
+      </div>
+    </details>
+  <% end %>
+
+  <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+    <%= render "task_list",
+          title: "Waiting on You",
+          description: "Decisions, replies, reviews, and retries that genuinely need you.",
+          empty_message: "Nothing needs your input.",
+          tasks: @waiting_on_you,
+          show_action: true %>
+    <%= render "task_list",
+          title: "Running Now",
+          description: "Work with an active executor right now.",
+          empty_message: "No executor is running a task.",
+          tasks: @running_now,
+          show_action: false %>
+    <%= render "task_list",
+          title: "Queued Next",
+          description: "Accepted work waiting for an executor.",
+          empty_message: "Nothing is waiting to start.",
+          tasks: @queued_next,
+          show_action: false %>
+    <%= render "task_list",
+          title: "Programs",
+          description: "Long-running coordination and oversight.",
+          empty_message: "No ongoing programs.",
+          tasks: @programs,
+          show_action: false %>
+  </div>
+
+  <details class="rounded-xl border border-border bg-bg-surface">
+    <summary class="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-content">
+      Recently completed · <%= @recent.length %>
+      <span class="ml-2 text-xs font-normal text-content-muted">history · expand</span>
+    </summary>
+    <div class="border-t border-border p-3">
+      <%= render "task_list",
+            title: "Recently Completed",
+            description: "Finished and cancelled work, kept for reference.",
+            empty_message: "No recent completed work.",
+            tasks: @recent,
+            show_action: false %>
+    </div>
+  </details>
 </section>

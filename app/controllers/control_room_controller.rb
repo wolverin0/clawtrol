@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 
 class ControlRoomController < ApplicationController
+  PROGRAM_KINDS = %w[bot-fix qa-oversight].freeze
+  QUEUED_STATES = %w[queued ready].freeze
+  WAITING_STATES = %w[failed review].freeze
+  TERMINAL_STATES = %w[done cancelled].freeze
+
   before_action :set_task, only: %i[thread message approve retry cancel]
   helper_method :intent_result_summary, :pane_display_status, :orchestration_items,
     :task_needs_attention?
@@ -116,12 +121,48 @@ class ControlRoomController < ApplicationController
   end
 
   def categorize_tasks
-    @needs_attention = @tasks.select { |task| task_needs_attention?(task) }
-    @failures = @tasks.select { |task| source_state(task) == "failed" }
-    @active = @tasks.select do |task|
-      %w[queued ready running review].include?(source_state(task)) && !task_needs_attention?(task)
+    grouped = @tasks.group_by { |task| task_lane(task) }
+    @waiting_on_you = grouped.fetch(:waiting, [])
+    @running_now = grouped.fetch(:running, [])
+    @queued_next = grouped.fetch(:queued, [])
+    @programs = grouped.fetch(:program, [])
+    @unclassified_tasks = grouped.fetch(:unclassified, [])
+    @recent = grouped.fetch(:recent, []).first(25)
+    @project_work_counts = project_work_counts
+  end
+
+  def task_lane(task)
+    return :recent if TERMINAL_STATES.include?(source_state(task))
+    return :program if program_task?(task)
+    return :waiting if task_needs_attention?(task) || WAITING_STATES.include?(source_state(task))
+    return :running if source_state(task) == "running"
+    return :queued if QUEUED_STATES.include?(source_state(task))
+
+    :unclassified
+  end
+
+  def program_task?(task)
+    state = task.state_data.fetch("orchestration", {})
+    state["work_type"] == "program" || PROGRAM_KINDS.include?(state["kind"])
+  end
+
+  def project_work_counts
+    lanes = {
+      waiting: @waiting_on_you,
+      running: @running_now,
+      queued: @queued_next,
+      program: @programs,
+      unclassified: @unclassified_tasks
+    }
+    projects = lanes.values.flatten.filter_map { |task| task_project(task) }.uniq.sort
+
+    projects.to_h do |project|
+      [project, lanes.transform_values { |tasks| tasks.count { |task| task_project(task) == project } }]
     end
-    @recent = @tasks.select { |task| %w[done cancelled].include?(source_state(task)) }.first(25)
+  end
+
+  def task_project(task)
+    task.state_data.dig("orchestration", "project").to_s.presence
   end
 
   def selected_task

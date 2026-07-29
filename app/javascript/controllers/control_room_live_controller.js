@@ -36,7 +36,21 @@ export default class extends Controller {
       const name = region.dataset.controlRoomLiveRegion
       const current = [...this.element.querySelectorAll("[data-control-room-live-region]")]
         .find((candidate) => candidate.dataset.controlRoomLiveRegion === name)
-      if (current) current.innerHTML = region.innerHTML
+      if (current) {
+        this.syncRegionAttributes(current, region)
+        current.innerHTML = region.innerHTML
+      }
+    })
+  }
+
+  syncRegionAttributes(current, next) {
+    const names = [
+      "class", "role", "data-source-count", "data-rendered-count",
+      "data-open-source-count", "data-unclassified-count"
+    ]
+    names.forEach((name) => {
+      if (next.hasAttribute(name)) current.setAttribute(name, next.getAttribute(name))
+      else current.removeAttribute(name)
     })
   }
 

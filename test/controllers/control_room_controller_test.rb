@@ -76,7 +76,7 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_select "main#main-content.w-full.max-w-none"
     assert_select "[data-controller='control-room-live']", count: 1
     assert_select "[data-control-room-live-region='requests']", count: 1
-    assert_select "h2", "Recent requests"
+    assert_select "summary", text: /Delivery log/
     assert_select "[data-controller='gateway-health']", count: 0
     assert_select "select#task_project", count: 1
     assert_select "select#question_project", count: 1
@@ -87,6 +87,13 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_select "option[value='omniremote']", text: /present/, count: 2
     assert_includes response.body, "No A2A updates in latest sync"
     assert_includes response.body, "Projected task"
+    assert_select "[data-control-room-live-region='fleet'][data-source-count='3'][data-rendered-count='3']"
+    assert_select "[data-pane-status='working']", count: 1
+    assert_select "[data-pane-status='idle']", count: 1
+    assert_select "[data-pane-status='present']", count: 1
+    assert_select "aside#task-thread[role='dialog'][aria-modal='true']", count: 1
+    projected_link = css_select("[data-task-origin-id='#{task.origin_session_id}']").sole
+    assert_not_includes projected_link["href"], "#task-thread"
     ids = css_select("[id]").map { |element| element["id"] }
     assert_equal ids.uniq, ids, "Control Room must not render duplicate HTML ids"
 
@@ -119,8 +126,9 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     get control_room_live_path(source_id: @source.id)
 
     assert_response :success
-    assert_select "[data-control-room-live-region]", count: 5
-    assert_select "[data-control-room-live-region='requests']", text: /##{applied.id} Message/
+    assert_select "[data-control-room-live-region]", count: 4
+    assert_select "[data-control-room-live-region='requests'][data-source-count='2'][data-rendered-count='2']",
+      text: /##{applied.id} Message/
     assert_includes response.body, "Delivered to the ledger"
     assert_includes response.body, "Task is already complete"
   end
@@ -158,7 +166,7 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     get control_room_path(task_id: blocked.id)
 
     assert_response :success
-    attention = css_select("[data-board-section='needs-attention']").sole
+    attention = css_select("[data-board-section='waiting-on-you']").sole
     assert_equal "3", attention["data-source-count"]
     assert_equal "3", attention["data-rendered-count"]
     assert_equal 1, attention.css("[data-task-origin-id='#{blocked.origin_session_id}']").count
@@ -185,6 +193,72 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_select "#task-thread form[action='#{control_room_task_messages_path(blocked)}']", count: 1
   end
 
+  test "splits open work into disjoint truthful lanes with operational project counts" do
+    waiting = projected_task_with(id: "T-0101", name: "Needs a reply", state: "review")
+    running = projected_task_with(id: "T-0102", name: "Executing now", state: "running")
+    queued = projected_task_with(id: "T-0103", name: "Starts next", state: "ready")
+    program = projected_task_with(
+      id: "T-0104",
+      name: "Long-running quality loop",
+      state: "queued",
+      kind: "bot-fix"
+    )
+    explicit_program = projected_task_with(
+      id: "T-0105",
+      name: "Explicit program",
+      state: "running",
+      kind: "task",
+      work_type: "program",
+      project: "mutual"
+    )
+    completed = projected_task_with(
+      id: "T-0106",
+      name: "Finished",
+      state: "done",
+      status: :done
+    )
+    unclassified = projected_task_with(
+      id: "T-0107",
+      name: "Unknown source state",
+      state: "paused"
+    )
+    sign_in_as(@user)
+
+    get control_room_path
+
+    assert_response :success
+    expected = {
+      "waiting-on-you" => [waiting],
+      "running-now" => [running],
+      "queued-next" => [queued],
+      "programs" => [program, explicit_program],
+      "unclassified" => [unclassified],
+      "recently-completed" => [completed]
+    }
+    rendered_ids = expected.flat_map do |section_name, tasks|
+      section = css_select("[data-board-section='#{section_name}']").sole
+      assert_equal tasks.length.to_s, section["data-source-count"], section_name
+      assert_equal tasks.length.to_s, section["data-rendered-count"], section_name
+      ids = section.css("[data-task-origin-id]").map { |card| card["data-task-origin-id"] }
+      assert_equal tasks.map(&:origin_session_id).sort, ids.sort, section_name
+      ids
+    end
+    assert_equal rendered_ids.uniq.sort, rendered_ids.sort, "a task must render in one lane only"
+
+    board = css_select("[data-control-room-live-region='task-board']").sole
+    assert_equal "6", board["data-open-source-count"]
+    assert_equal "1", board["data-unclassified-count"]
+    assert_includes css_select("[data-board-section='unclassified']").sole.text,
+      "classification gap, not work you owe"
+    summary = css_select("[data-board-section='project-work-summary']").sole
+    assert_equal "2", summary["data-source-count"]
+    assert_equal "2", summary["data-rendered-count"]
+    assert_includes summary.text,
+      "whatsappbot: 1 waiting · 1 running · 1 queued · 1 program · 1 unclassified"
+    assert_includes summary.text, "mutual: 1 program"
+    assert_includes summary.text, "1 unclassified"
+  end
+
   test "renders a loud stalled bridge warning with its error" do
     @source.update!(
       last_seen_at: 5.minutes.ago,
@@ -197,11 +271,10 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "[data-control-room-live-region='source-health'][role='alert']", count: 1 do
-      assert_select "h2", "Orchestration bridge is stalled"
+      assert_select "span", text: /primary · attention/
       assert_select "p", text: /board may be showing old state/i
       assert_select "p", text: /sync HTTP 503/
     end
-    assert_select "[data-control-room-live-region='source-badges']", text: /attention/
   end
 
   test "live cockpit requires authentication" do
@@ -252,7 +325,10 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def projected_task_with(id:, name:, state:, kind: "task", status: :up_next, needs_decision: false)
+  def projected_task_with(
+    id:, name:, state:, kind: "task", status: :up_next, needs_decision: false,
+    project: "whatsappbot", work_type: nil
+  )
     @user.tasks.create!(
       board: boards(:one),
       name:,
@@ -265,8 +341,9 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
         "orchestration" => {
           "profile" => "primary",
           "source_state" => state,
-          "project" => "whatsappbot",
-          "kind" => kind
+          "project" => project,
+          "kind" => kind,
+          "work_type" => work_type
         }
       }
     )
