@@ -40,11 +40,13 @@ class ControlRoomTest < ApplicationSystemTestCase
 
     assert_text "Control Room"
     assert_text "pane 0"
-    within("[data-board-section='needs-attention']") do
+    within("[data-board-section='waiting-on-you']") do
       assert_text "Operator ruling required before execution."
       assert_text(/gate/i)
       assert_text "operator"
     end
+    assert_selector "#task-thread[role='dialog'][aria-modal='true']"
+    click_on "Create work"
     within("form[action='#{control_room_tasks_path}']") do
       select "pane 0 — wezbridge (idle)", from: "Work context"
       fill_in "title", with: "Ship a focused fix"
@@ -70,7 +72,7 @@ class ControlRoomTest < ApplicationSystemTestCase
       assert_equal "_fleet", find_field("Question context").value
       fill_in "Question title", with: "Assess every open pane"
       fill_in "Question", with: "Recommend the next action for every live project."
-      click_button "Ask"
+      click_button "Ask pane 0"
     end
 
     assert_text "Question queued as intent"
@@ -80,7 +82,7 @@ class ControlRoomTest < ApplicationSystemTestCase
   end
 
   test "shows a new orchestrator reply without reloading the page" do
-    visit control_room_path(task_id: @task.id, anchor: "task-thread")
+    visit control_room_path(task_id: @task.id)
     assert_text "Live updates on"
 
     @task.agent_messages.create!(
@@ -97,6 +99,7 @@ class ControlRoomTest < ApplicationSystemTestCase
 
   test "refreshes cockpit state without clearing a draft" do
     visit control_room_path
+    click_on "Create work"
     fill_in "Task title", with: "Keep this draft"
 
     @user.tasks.create!(
