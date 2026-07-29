@@ -1,12 +1,12 @@
 <% panes = Array(@source&.panes) %>
 <% status_counts = panes.map { |pane| pane_display_status(pane) }.tally %>
-<details class="group rounded-xl border border-border bg-bg-surface"
+<details class="group shrink-0 border-b border-border bg-bg-base/35"
          data-control-room-live-region="fleet"
          data-source-count="<%= panes.length %>"
          data-rendered-count="<%= panes.length %>">
-  <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 px-4 py-3">
-    <div class="flex flex-wrap items-center gap-3">
-      <span class="text-sm font-semibold text-content">Fleet · <%= panes.length %> panes</span>
+  <summary class="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 lg:px-5">
+    <span class="text-xs font-semibold uppercase tracking-[0.14em] text-content-muted">Fleet · <%= panes.length %> panes</span>
+    <div class="flex flex-1 flex-wrap items-center gap-3">
       <% {
            "working" => ["bg-green-400", "text-green-300"],
            "waiting" => ["bg-yellow-400", "text-yellow-200"],
@@ -17,26 +17,17 @@
          }.each do |status, classes| %>
         <% count = status_counts.fetch(status, 0) %>
         <% next unless count.positive? %>
-        <span class="inline-flex items-center gap-1.5 text-xs <%= classes.last %>">
-          <span class="size-2 rounded-full <%= classes.first %> <%= "animate-pulse" if status == "working" %>"></span>
+        <span class="inline-flex items-center gap-1.5 text-xs font-medium <%= classes.last %>">
+          <span class="size-2 rounded-full <%= classes.first %> <%= "animate-pulse" if status == "working" %>" aria-hidden="true"></span>
           <%= count %> <%= status %>
         </span>
       <% end %>
     </div>
-    <span class="text-xs text-content-muted">
-      <% if @source&.last_seen_at %>
-        <% a2a_updates = @source.health.to_h.dig("fleet", "a2a_envelopes").to_i %>
-        synced <%= time_ago_in_words(@source.last_seen_at) %> ago ·
-        <%= a2a_updates.positive? ? "#{a2a_updates} A2A updates in latest sync" : "No A2A updates in latest sync" %> ·
-        expand pane details
-      <% else %>
-        no bridge telemetry · expand
-      <% end %>
-    </span>
+    <span class="text-xs text-content-muted">Pane details</span>
   </summary>
 
   <% if panes.any? %>
-    <div class="grid max-h-64 gap-2 overflow-y-auto border-t border-border p-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="grid max-h-52 gap-2 overflow-y-auto border-t border-border p-3 sm:grid-cols-2 xl:grid-cols-4">
       <% panes.each do |pane| %>
         <% status = pane_display_status(pane) %>
         <% status_style = case status
@@ -50,20 +41,15 @@
                  data-pane-status="<%= status %>"
                  aria-label="pane <%= pane["pane_id"] || pane["id"] %>, <%= pane["project"] %>, <%= status %>">
           <div class="flex items-center justify-between gap-2">
-            <span class="font-semibold text-content">pane <%= pane["pane_id"] || pane["id"] %> · <%= pane["project"] %></span>
-            <span class="inline-flex items-center gap-1">
-              <span class="size-2 rounded-full bg-current <%= "animate-pulse" if status == "working" %>"></span>
+            <span class="truncate font-semibold text-content">pane <%= pane["pane_id"] || pane["id"] %> · <%= pane["project"] %></span>
+            <span class="inline-flex shrink-0 items-center gap-1">
+              <span class="size-2 rounded-full bg-current <%= "animate-pulse" if status == "working" %>" aria-hidden="true"></span>
               <%= status %>
             </span>
           </div>
           <% if pane["title"].present? || pane["model"].present? || pane["ctx"].present? %>
             <p class="mt-1 truncate text-[11px] text-content-muted">
               <%= [pane["title"], pane["persona"], pane["model"], pane["ctx"]].compact_blank.join(" · ") %>
-            </p>
-          <% end %>
-          <% if pane["session_pct"].present? || pane["weekly_pct"].present? %>
-            <p class="mt-1 text-[11px] text-content-muted">
-              Session <%= pane["session_pct"].presence || "—" %>% · week <%= pane["weekly_pct"].presence || "—" %>%
             </p>
           <% end %>
         </article>

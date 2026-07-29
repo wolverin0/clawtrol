@@ -76,16 +76,8 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_select "main#main-content.w-full.max-w-none"
     assert_select "[data-controller='control-room-live']", count: 1
     assert_select "[data-control-room-live-region='requests']", count: 1
-    assert_select "summary", text: /Delivery log/
+    assert_select "summary", text: /Delivery receipts/
     assert_select "[data-controller='gateway-health']", count: 0
-    assert_select "select#task_project", count: 1
-    assert_select "select#question_project", count: 1
-    assert_select "select#question_project" do |select|
-      assert_equal "_fleet", select.first.css("option").first["value"]
-    end
-    assert_select "option[value='whatsappbot']", text: /pane 5/, count: 2
-    assert_select "option[value='omniremote']", text: /present/, count: 2
-    assert_includes response.body, "No A2A updates in latest sync"
     assert_includes response.body, "Projected task"
     assert_select "[data-control-room-live-region='fleet'][data-source-count='3'][data-rendered-count='3']"
     assert_select "[data-pane-status='working']", count: 1
@@ -99,9 +91,18 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     assert_select "#task-thread [data-task-context='full']", count: 0
     assert_select "#task-thread #task-thread-messages", count: 0
     projected_link = css_select("[data-task-origin-id='#{task.origin_session_id}']").sole
-    assert_not_includes projected_link["href"], "#task-thread"
+    assert_includes projected_link["href"], "task_id=#{task.id}"
     ids = css_select("[id]").map { |element| element["id"] }
     assert_equal ids.uniq, ids, "Control Room must not render duplicate HTML ids"
+
+    get control_room_path
+    assert_select "select#task_project", count: 1
+    assert_select "select#question_project", count: 1
+    assert_select "select#question_project" do |select|
+      assert_equal "_fleet", select.first.css("option").first["value"]
+    end
+    assert_select "option[value='whatsappbot']", text: /pane 5/, count: 2
+    assert_select "option[value='omniremote']", text: /present/, count: 2
 
     other = Task.create!(user: users(:two), board: boards(:two), name: "Other",
       origin_session_key: "wezbridge:primary:task:T-OTHER")
@@ -172,30 +173,20 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
     get control_room_path(task_id: blocked.id)
 
     assert_response :success
-    attention = css_select("[data-board-section='waiting-on-you']").sole
+    attention = css_select("[data-board-section='needs-you']").sole
     assert_equal "3", attention["data-source-count"]
     assert_equal "3", attention["data-rendered-count"]
     assert_equal 1, attention.css("[data-task-origin-id='#{blocked.origin_session_id}']").count
     assert_equal 1, attention.css("[data-task-origin-id='#{decision.origin_session_id}']").count
     assert_equal 1, attention.css("[data-task-origin-id='#{question.origin_session_id}']").count
     assert_equal 0, attention.css("[data-task-origin-id='T-0025']").count
-    assert_includes attention.text, "Blocked by"
     assert_includes attention.text, "ARS 8,025,812.27"
-    assert_includes attention.text, "Gate"
-    assert_includes attention.text, "operator"
-    assert_includes attention.text, "Next action"
-    assert_includes attention.text, "Acceptance"
-    assert_includes attention.text, "Evidence"
-    blocked_card = attention.css("[data-task-origin-id='#{blocked.origin_session_id}']").sole
-    assert_includes blocked_card.text, "1 criterion"
-    assert_includes blocked_card.text, "1 evidence item"
-    assert_not_includes blocked_card.text, "Decision is recorded"
-    assert_not_includes blocked_card.text, "20 balances affect current members"
-    assert_equal 3, blocked_card.css("[data-task-context='compact'] .line-clamp-2").count
 
     assert_select "#task-thread [data-task-context='full']", count: 0
-    assert_select "#task-thread", text: /Operator must decide whether to dispose ARS 8,025,812\.27/
-    assert_select "#task-thread", text: /Answer with approve or retain/
+    summary = css_select("[data-control-room-live-region='selected-task-summary']").sole
+    assert_includes summary.text, "Operator must decide whether to dispose ARS 8,025,812.27"
+    assert_includes summary.text, "Gate · operator"
+    assert_includes summary.text, "Answer with approve or retain"
     assert_not_includes css_select("#task-thread").sole.text, "Decision is recorded"
     assert_not_includes css_select("#task-thread").sole.text, "20 balances affect current members"
     assert_select "#task-thread form[action='#{control_room_task_messages_path(blocked)}']", count: 1
@@ -236,9 +227,9 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     expected = {
-      "waiting-on-you" => [waiting],
-      "running-now" => [running],
-      "queued-next" => [queued],
+      "needs-you" => [waiting],
+      "in-progress" => [running],
+      "scheduled" => [queued],
       "programs" => [program, explicit_program],
       "unclassified" => [unclassified],
       "recently-completed" => [completed]
@@ -279,9 +270,9 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "[data-control-room-live-region='source-health'][role='alert']", count: 1 do
-      assert_select "span", text: /primary · attention/
-      assert_select "p", text: /board may be showing old state/i
-      assert_select "p", text: /sync HTTP 503/
+      assert_select "span", text: /Bridge needs attention/
+      assert_select "span", text: /State may be stale/i
+      assert_select "span", text: /sync HTTP 503/
     end
   end
 
@@ -310,6 +301,28 @@ class ControlRoomControllerTest < ActionDispatch::IntegrationTest
       origin_session_key: "wezbridge:primary:task:T-OTHER")
     get control_room_task_thread_path(other)
     assert_response :not_found
+  end
+
+  test "renders a focus inbox with persistent detail and latest pane reply" do
+    task = projected_task
+    task.agent_messages.create!(
+      direction: "incoming",
+      message_type: "output",
+      content: "The canary passed and awaits your ruling.",
+      sender_name: "pane 0"
+    )
+    sign_in_as(@user)
+
+    get control_room_path(task_id: task.id)
+
+    assert_response :success
+    assert_select "nav[aria-label='Work status'] [aria-current='page']", text: /Needs you/
+    assert_select "[data-workspace-panel='waiting']:not(.hidden)", count: 1
+    assert_select "[data-workspace-panel='running'].hidden", count: 1
+    assert_select "aside#task-thread[data-persistent-drawer='true']", count: 1
+    assert_select "[data-control-room-live-region='selected-task-summary']", text: /The canary passed/
+    assert_select "#task-thread textarea[placeholder='Type your direction or answer…']", count: 1
+    assert_select "#task-thread a", text: "Open full task", count: 1
   end
 
   private
