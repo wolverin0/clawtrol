@@ -117,7 +117,8 @@ class ControlRoomTest < ApplicationSystemTestCase
       }
     )
 
-    assert_text "Appeared without a reload", wait: 8
+    assert_selector "[data-workspace-panel='running']",
+      text: "Appeared without a reload", visible: :all, wait: 8
     assert_field "Task title", with: "Keep this draft"
     assert_text "Live cockpit · updated just now"
   end
