@@ -1,7 +1,7 @@
 <details data-control-room-live-region="requests"
          data-source-count="<%= @recent_intents.size %>"
          data-rendered-count="<%= @recent_intents.size %>">
-  <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-2 text-xs font-semibold text-content">
+  <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-2 text-xs font-semibold text-content">
     Delivery receipts
     <% if @pending_intents.any? %>
       <span class="rounded-md bg-accent/15 px-2 py-0.5 text-accent"><%= @pending_intents.size %> pending</span>

@@ -1,23 +1,18 @@
+<% open_count = @waiting_on_you.length + @running_now.length + @queued_next.length + @parked.length + @unclassified_tasks.length %>
 <section class="flex min-h-0 flex-1 flex-col"
          data-control-room-live-region="task-board"
-         data-open-source-count="<%= @waiting_on_you.length + @running_now.length + @queued_next.length + @programs.length + @unclassified_tasks.length %>"
+         data-open-source-count="<%= open_count %>"
          data-unclassified-count="<%= @unclassified_tasks.length %>">
-  <nav class="shrink-0 border-b border-border px-3 pt-2" aria-label="Work status">
-    <div class="grid grid-cols-2 gap-1 sm:grid-cols-4">
-      <% workspace_lanes.each do |key, lane| %>
-        <% active = key == active_lane %>
-        <%= link_to control_room_path(lane: key),
-              class: "flex min-h-11 items-center justify-center gap-2 border-b-2 px-2 py-2 text-sm font-semibold transition-colors #{active ? "border-accent text-content" : "border-transparent text-content-muted hover:border-border hover:text-content"}",
-              aria: { current: active ? "page" : nil },
-              data: { workspace_lane: key } do %>
-          <span><%= lane[:title] %></span>
-          <span class="min-w-6 rounded-md px-1.5 py-0.5 text-center text-xs tabular-nums <%= active ? "bg-accent/15 text-accent" : "bg-bg-elevated text-content-muted" %>">
-            <%= lane[:tasks].length %>
-          </span>
-        <% end %>
-      <% end %>
-    </div>
-  </nav>
+  <header class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-bg-base/20 px-4 py-2">
+    <p class="text-xs text-content-muted">
+      <strong class="text-content"><%= open_count %></strong> open
+      <span aria-hidden="true">·</span>
+      <strong class="<%= @unclassified_tasks.any? ? "text-yellow-300" : "text-green-400" %>"><%= @unclassified_tasks.length %></strong> unclassified
+    </p>
+    <p class="text-xs text-content-muted">
+      Programs are an umbrella type; their real state appears below.
+    </p>
+  </header>
 
   <% if @unclassified_tasks.any? %>
     <details class="shrink-0 border-b border-yellow-500/35 bg-yellow-500/10 px-4 py-2"
@@ -42,75 +37,83 @@
     </details>
   <% end %>
 
-  <div class="min-h-0 flex-1 overflow-hidden">
-    <% workspace_lanes.each do |key, lane| %>
-      <%= render "task_list",
-            title: lane[:title],
-            tasks: lane[:tasks],
-            lane: key,
-            active: key == active_lane %>
+  <div class="grid min-h-0 flex-1 gap-2 overflow-y-auto p-2 sm:grid-cols-2 xl:grid-cols-4 xl:overflow-hidden">
+    <% workspace_lanes.each do |key, definition| %>
+      <%= render "task_list", tasks: definition[:tasks], lane: key, definition: definition %>
     <% end %>
   </div>
 
-  <footer class="shrink-0 border-t border-border bg-bg-base/35">
-    <div class="flex min-h-11 flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs text-content-muted">
-      <span>
-        <strong class="text-content"><%= @waiting_on_you.length + @running_now.length + @queued_next.length + @programs.length + @unclassified_tasks.length %></strong>
-        open items · <strong class="<%= @unclassified_tasks.any? ? "text-yellow-300" : "text-green-400" %>"><%= @unclassified_tasks.length %></strong> unclassified
-      </span>
-      <div class="flex items-center gap-3">
-        <span><%= @recent.length %> completed</span>
-        <span><%= @recent_intents.length %> receipts</span>
+  <footer class="grid shrink-0 border-t border-border bg-bg-base/35 sm:grid-cols-2 xl:grid-cols-4">
+    <details class="border-b border-border sm:border-r xl:border-b-0"
+             data-board-section="programs"
+             data-source-count="<%= @programs.length %>"
+             data-rendered-count="<%= [@programs.length, 20].min %>">
+      <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-2 text-xs font-semibold text-content">
+        Programs
+        <span class="font-normal text-content-muted"><%= @programs.length %> umbrella efforts</span>
+      </summary>
+      <div class="max-h-52 space-y-1 overflow-y-auto border-t border-border p-2">
+        <p class="px-2 py-1 text-xs text-content-muted">A program spans multiple tasks. It is not a runtime status.</p>
+        <% @programs.first(20).each do |task| %>
+          <% state = task.state_data.fetch("orchestration", {}) %>
+          <%= link_to control_room_path(task_id: task.id, lane: lane_key(task_lane(task))),
+                class: "flex items-center justify-between gap-2 rounded-md px-2 py-2 text-xs text-content-secondary hover:bg-bg-elevated",
+                data: { task_origin_id: task.origin_session_id } do %>
+            <span class="truncate"><strong class="text-content"><%= state["project"] %></strong> · <%= task.name %></span>
+            <span class="shrink-0 uppercase text-violet-300"><%= source_state(task) %></span>
+          <% end %>
+        <% end %>
+        <% if @programs.empty? %>
+          <p class="px-2 py-3 text-content-muted">No open programs.</p>
+        <% end %>
       </div>
-    </div>
+    </details>
 
-    <div class="grid border-t border-border sm:grid-cols-3">
-      <details class="border-b border-border sm:border-b-0 sm:border-r">
-        <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-2 text-xs font-semibold text-content">
-          Work by project <span class="font-normal text-content-muted"><%= @project_work_counts.length %></span>
-        </summary>
-        <div class="max-h-44 overflow-y-auto border-t border-border p-3"
-             data-board-section="project-work-summary"
-             data-source-count="<%= @project_work_counts.length %>"
-             data-rendered-count="<%= @project_work_counts.length %>">
-          <div class="flex flex-wrap gap-2">
-            <% @project_work_counts.each do |project, counts| %>
-              <% details = counts.filter_map { |lane_name, count| "#{count} #{lane_name}" if count.positive? } %>
-              <span class="rounded-md border border-border bg-bg-elevated px-2 py-1 text-xs text-content">
-                <strong><%= project %></strong>: <%= details.join(" · ") %>
-              </span>
-            <% end %>
-            <% if @project_work_counts.empty? %>
-              <span class="text-content-muted">No open work is mirrored.</span>
-            <% end %>
-          </div>
-        </div>
-      </details>
-
-      <details class="border-b border-border sm:border-b-0 sm:border-r"
-               data-board-section="recently-completed"
-               data-source-count="<%= @recent.length %>"
-               data-rendered-count="<%= [@recent.length, 20].min %>">
-        <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-2 text-xs font-semibold text-content">
-          Recently completed <span class="font-normal text-content-muted"><%= @recent.length > 20 ? "20 of #{@recent.length}" : @recent.length %></span>
-        </summary>
-        <div class="max-h-44 space-y-1 overflow-y-auto border-t border-border p-2">
-          <% @recent.first(20).each do |task| %>
-            <% state = task.state_data.fetch("orchestration", {}) %>
-            <%= link_to control_room_path(task_id: task.id, lane: active_lane),
-                  class: "flex items-center justify-between gap-2 rounded-md px-2 py-2 text-xs text-content-secondary hover:bg-bg-elevated",
-                  data: { task_origin_id: task.origin_session_id } do %>
-              <span class="truncate"><%= task.name %></span>
-              <span class="shrink-0 text-content-muted"><%= state["source_state"] %></span>
-            <% end %>
+    <details class="border-b border-border xl:border-b-0 xl:border-r">
+      <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-2 text-xs font-semibold text-content">
+        Work by project <span class="font-normal text-content-muted"><%= @project_work_counts.length %></span>
+      </summary>
+      <div class="max-h-52 overflow-y-auto border-t border-border p-3"
+           data-board-section="project-work-summary"
+           data-source-count="<%= @project_work_counts.length %>"
+           data-rendered-count="<%= @project_work_counts.length %>">
+        <div class="flex flex-wrap gap-2">
+          <% @project_work_counts.each do |project, counts| %>
+            <% details = counts.filter_map { |lane_name, count| "#{count} #{lane_name}" if count.positive? } %>
+            <span class="rounded-md border border-border bg-bg-elevated px-2 py-1 text-xs text-content">
+              <strong><%= project %></strong>: <%= details.join(" · ") %>
+            </span>
           <% end %>
-          <% if @recent.empty? %>
-            <p class="px-2 py-3 text-content-muted">No completed work yet.</p>
+          <% if @project_work_counts.empty? %>
+            <span class="text-content-muted">No open work is mirrored.</span>
           <% end %>
         </div>
-      </details>
+      </div>
+    </details>
 
-      <%= render "request_status" %>
-    </div>
+    <details class="border-b border-border sm:border-r xl:border-b-0"
+             data-board-section="recently-completed"
+             data-source-count="<%= @recent.length %>"
+             data-rendered-count="<%= [@recent.length, 20].min %>">
+      <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between px-4 py-2 text-xs font-semibold text-content">
+        Recently completed <span class="font-normal text-content-muted"><%= @recent.length > 20 ? "20 of #{@recent.length}" : @recent.length %></span>
+      </summary>
+      <div class="max-h-52 space-y-1 overflow-y-auto border-t border-border p-2">
+        <% @recent.first(20).each do |task| %>
+          <% state = task.state_data.fetch("orchestration", {}) %>
+          <%= link_to control_room_path(task_id: task.id, lane: active_lane),
+                class: "flex items-center justify-between gap-2 rounded-md px-2 py-2 text-xs text-content-secondary hover:bg-bg-elevated",
+                data: { task_origin_id: task.origin_session_id } do %>
+            <span class="truncate"><%= task.name %></span>
+            <span class="shrink-0 text-content-muted"><%= state["source_state"] %></span>
+          <% end %>
+        <% end %>
+        <% if @recent.empty? %>
+          <p class="px-2 py-3 text-content-muted">No completed work yet.</p>
+        <% end %>
+      </div>
+    </details>
+
+    <%= render "request_status" %>
   </footer>
 </section>

@@ -12,14 +12,13 @@
            "waiting" => ["bg-yellow-400", "text-yellow-200"],
            "permission" => ["bg-yellow-400", "text-yellow-200"],
            "idle" => ["bg-sky-400", "text-sky-300"],
-           "present" => ["bg-violet-400", "text-violet-300"],
-           "unknown" => ["bg-slate-400", "text-slate-300"]
+           "not-reporting" => ["bg-slate-400", "text-slate-300"]
          }.each do |status, classes| %>
         <% count = status_counts.fetch(status, 0) %>
         <% next unless count.positive? %>
         <span class="inline-flex items-center gap-1.5 text-xs font-medium <%= classes.last %>">
-          <span class="size-2 rounded-full <%= classes.first %> <%= "animate-pulse" if status == "working" %>" aria-hidden="true"></span>
-          <%= count %> <%= status %>
+          <span class="size-2 rounded-full <%= classes.first %> <%= "animate-pulse motion-reduce:animate-none" if status == "working" %>" aria-hidden="true"></span>
+          <%= count %> <%= status == "not-reporting" ? "not reporting" : status %>
         </span>
       <% end %>
     </div>
@@ -34,7 +33,7 @@
              when "working" then "border-green-400/35 bg-green-400/10 text-green-300"
              when "waiting", "permission" then "border-yellow-400/40 bg-yellow-400/10 text-yellow-200"
              when "idle" then "border-sky-400/30 bg-sky-400/10 text-sky-300"
-             when "present" then "border-violet-400/30 bg-violet-400/10 text-violet-300"
+             when "not-reporting" then "border-slate-400/30 bg-slate-400/10 text-slate-300"
              else "border-border bg-bg-elevated text-content-muted"
              end %>
         <article class="rounded-lg border px-3 py-2 text-xs <%= status_style %>"
@@ -43,8 +42,8 @@
           <div class="flex items-center justify-between gap-2">
             <span class="truncate font-semibold text-content">pane <%= pane["pane_id"] || pane["id"] %> · <%= pane["project"] %></span>
             <span class="inline-flex shrink-0 items-center gap-1">
-              <span class="size-2 rounded-full bg-current <%= "animate-pulse" if status == "working" %>" aria-hidden="true"></span>
-              <%= status %>
+              <span class="size-2 rounded-full bg-current <%= "animate-pulse motion-reduce:animate-none" if status == "working" %>" aria-hidden="true"></span>
+              <%= status == "not-reporting" ? "not reporting" : status %>
             </span>
           </div>
           <% if pane["title"].present? || pane["model"].present? || pane["ctx"].present? %>

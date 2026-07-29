@@ -15,143 +15,20 @@
         </div>
         <div class="min-w-0">
           <h1 class="truncate text-xl font-semibold text-content font-display">Control Room</h1>
-          <p class="truncate text-xs text-content-muted">One place to decide, reply, and see what moves next.</p>
+          <p class="truncate text-xs text-content-muted">Decide what needs you. See what is actually moving.</p>
         </div>
       </div>
       <%= render "source_health" %>
     </header>
 
     <%= render "fleet" %>
+    <%= render "composer_bar" %>
 
-    <div class="grid min-h-0 flex-1 lg:grid-cols-[minmax(32rem,1.08fr)_minmax(28rem,0.92fr)]">
-      <main class="flex min-h-[32rem] flex-col border-b border-border lg:min-h-0 lg:border-b-0 lg:border-r">
+    <div class="grid min-h-0 flex-1 <%= @selected_task ? "lg:grid-cols-[minmax(0,1fr)_minmax(22rem,28rem)]" : "grid-cols-1" %>">
+      <main class="flex min-h-[32rem] flex-col lg:min-h-0">
         <%= render "task_board" %>
       </main>
-
-      <aside id="task-thread"
-             class="flex min-h-[34rem] flex-col bg-bg-base/30"
-             role="complementary"
-             data-persistent-drawer="true"
-             aria-labelledby="task-thread-title">
-        <% if @selected_task %>
-          <% state = @selected_task.state_data.fetch("orchestration", {}) %>
-          <header class="shrink-0 border-b border-border px-5 py-4">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-xs font-semibold uppercase tracking-[0.14em] text-accent"><%= state["project"] %></p>
-                <h2 id="task-thread-title" class="mt-1 text-xl font-semibold leading-tight text-content">
-                  <%= @selected_task.name %>
-                </h2>
-              </div>
-              <%= link_to control_room_path(lane: active_lane),
-                    class: "flex size-11 shrink-0 items-center justify-center rounded-lg border border-border text-content-muted transition-colors hover:border-accent/40 hover:text-content",
-                    aria: { label: "Close task detail" } do %>
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" class="size-5" stroke="currentColor" stroke-width="1.8">
-                  <path stroke-linecap="round" d="m7 7 10 10M17 7 7 17"/>
-                </svg>
-              <% end %>
-            </div>
-          </header>
-
-          <%= render "selected_task_summary" %>
-
-          <div class="shrink-0 border-t border-border bg-bg-surface px-5 py-4">
-            <%= form_with url: control_room_task_messages_path(@selected_task),
-                  class: "space-y-3" do |form| %>
-              <%= form.hidden_field :lane, value: active_lane %>
-              <%= form.label :content, "Reply to pane 0", class: "block text-xs font-semibold text-content-secondary" %>
-              <%= form.text_area :content, required: true, rows: 3, placeholder: "Type your direction or answer…",
-                    class: "w-full resize-none rounded-lg border border-border bg-bg-elevated px-3 py-3 text-base text-content placeholder:text-content-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20" %>
-              <%= form.submit "Reply", class: "min-h-11 cursor-pointer rounded-lg bg-accent px-5 py-2.5 font-semibold text-white transition-colors hover:bg-accent-hover" %>
-            <% end %>
-            <div class="mt-3 flex flex-wrap items-center gap-2">
-              <% if task_needs_attention?(@selected_task) || state["source_state"] == "review" %>
-                <%= button_to "Approve", approve_control_room_task_path(@selected_task),
-                      params: { lane: active_lane },
-                      class: "min-h-11 rounded-lg border border-green-500/40 px-4 py-2.5 font-semibold text-green-300 hover:bg-green-500/10" %>
-              <% end %>
-              <% if state["source_state"] == "failed" %>
-                <%= button_to "Retry", retry_control_room_task_path(@selected_task),
-                      params: { lane: active_lane },
-                      class: "min-h-11 rounded-lg border border-sky-500/40 px-4 py-2.5 font-semibold text-sky-300 hover:bg-sky-500/10" %>
-              <% end %>
-              <%= link_to "Open full task", board_task_path(@selected_task.board, @selected_task),
-                    data: { turbo_frame: "task_panel" },
-                    class: "inline-flex min-h-11 items-center rounded-lg border border-border px-4 py-2.5 font-semibold text-content-secondary hover:border-accent/40 hover:text-content" %>
-              <% unless %w[done cancelled].include?(state["source_state"]) %>
-                <%= button_to "Cancel", cancel_control_room_task_path(@selected_task),
-                      params: { lane: active_lane },
-                      class: "ml-auto min-h-11 rounded-lg px-3 py-2.5 font-semibold text-red-400 hover:bg-red-500/10" %>
-              <% end %>
-            </div>
-          </div>
-        <% else %>
-          <header class="shrink-0 border-b border-border px-5 py-4">
-            <p class="text-xs font-semibold uppercase tracking-[0.14em] text-accent">Orchestrator</p>
-            <h2 id="task-thread-title" class="mt-1 text-xl font-semibold text-content">Ask pane 0</h2>
-            <p class="mt-1 text-sm text-content-muted">Ask about one project or request a fleet-wide assessment.</p>
-          </header>
-
-          <div class="min-h-0 flex-1 overflow-y-auto p-5">
-            <%= form_with url: control_room_ask_path, class: "space-y-4" do |form| %>
-              <%= form.hidden_field :source_id, value: @source&.id, id: "question_source_id" %>
-              <div>
-                <%= form.label :project, "Question context", for: "question_project", class: "mb-1.5 block text-xs font-medium text-content-secondary" %>
-                <%= form.select :project, @question_options, { include_blank: false },
-                      id: "question_project",
-                      class: "min-h-11 w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
-              </div>
-              <div>
-                <%= form.label :title, "Question title", for: "question_title", class: "mb-1.5 block text-xs font-medium text-content-secondary" %>
-                <%= form.text_field :title, id: "question_title", placeholder: "What is this about?",
-                      class: "min-h-11 w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
-              </div>
-              <div>
-                <%= form.label :brief, "Question", for: "question_brief", class: "mb-1.5 block text-xs font-medium text-content-secondary" %>
-                <%= form.text_area :brief, id: "question_brief", required: true, rows: 6,
-                      placeholder: "What do you want pane 0 to assess, explain, or decide?",
-                      class: "w-full resize-none rounded-lg border border-border bg-bg-elevated px-3 py-3 text-base text-content" %>
-              </div>
-              <%= form.submit "Ask pane 0", disabled: @source.blank?,
-                    class: "min-h-11 w-full cursor-pointer rounded-lg bg-accent px-4 py-2.5 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" %>
-            <% end %>
-
-            <details class="mt-5 rounded-lg border border-border bg-bg-surface">
-              <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between px-4 py-3">
-                <span class="font-semibold text-content">Create new work</span>
-                <span class="text-xs text-content-muted">expand</span>
-              </summary>
-              <div class="border-t border-border p-4">
-                <%= form_with url: control_room_tasks_path, class: "grid gap-3" do |form| %>
-                  <%= form.hidden_field :source_id, value: @source&.id, id: "task_source_id" %>
-                  <%= form.label :project, "Work context", for: "task_project", class: "sr-only" %>
-                  <%= form.select :project, @project_options, { prompt: "Choose a live pane / project" },
-                        id: "task_project", required: true,
-                        class: "min-h-11 w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
-                  <%= form.label :title, "Task title", for: "task_title", class: "sr-only" %>
-                  <%= form.text_field :title, id: "task_title", placeholder: "Task title",
-                        class: "min-h-11 rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
-                  <%= form.label :brief, "Task brief", for: "task_brief", class: "sr-only" %>
-                  <%= form.text_area :brief, id: "task_brief", required: true, rows: 3, placeholder: "What should be done?",
-                        class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
-                  <%= form.label :acceptance, "Acceptance criteria", for: "task_acceptance", class: "sr-only" %>
-                  <%= form.text_area :acceptance, id: "task_acceptance", rows: 2, placeholder: "What does done look like?",
-                        class: "rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
-                  <div class="flex items-center justify-between gap-3">
-                    <%= form.label :priority, "Priority", for: "task_priority", class: "sr-only" %>
-                    <%= form.select :priority, [["Normal", "normal"], ["High", "high"], ["Low", "low"]], {},
-                          id: "task_priority",
-                          class: "min-h-11 rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
-                    <%= form.submit "Create task", disabled: @source.blank?,
-                          class: "min-h-11 cursor-pointer rounded-lg bg-accent px-4 py-2 font-semibold text-white disabled:opacity-40" %>
-                  </div>
-                <% end %>
-              </div>
-            </details>
-          </div>
-        <% end %>
-      </aside>
+      <%= render "selected_task_drawer" if @selected_task %>
     </div>
   </div>
-  <%= turbo_frame_tag "task_panel" %>
 </div>

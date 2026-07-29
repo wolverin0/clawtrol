@@ -1,0 +1,87 @@
+<section class="shrink-0 border-b border-border bg-bg-base/25 px-3 py-2 lg:px-4">
+  <div class="grid gap-2 sm:grid-cols-2">
+    <details class="group rounded-lg border border-border bg-bg-surface sm:open:col-span-2">
+      <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2">
+        <span class="flex items-center gap-2 font-semibold text-content">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" class="size-4 text-accent" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h7m-9 8 2.3-3.4A8 8 0 1 1 20 10a8 8 0 0 1-8 8H8.5L5 20Z"/>
+          </svg>
+          Ask pane 0
+        </span>
+        <span class="text-xs text-content-muted">one action away</span>
+      </summary>
+      <div class="border-t border-border p-3">
+        <%= form_with url: control_room_ask_path, class: "grid gap-3 lg:grid-cols-[minmax(12rem,0.75fr)_minmax(12rem,0.8fr)_minmax(20rem,1.8fr)_auto]" do |form| %>
+          <%= form.hidden_field :source_id, value: @source&.id, id: "question_source_id" %>
+          <div>
+            <%= form.label :project, "Context", for: "question_project", class: "mb-1 block text-xs font-medium text-content-secondary" %>
+            <%= form.select :project, @question_options, { include_blank: false },
+                  id: "question_project",
+                  class: "min-h-11 w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+          </div>
+          <div>
+            <%= form.label :title, "Subject", for: "question_title", class: "mb-1 block text-xs font-medium text-content-secondary" %>
+            <%= form.text_field :title, id: "question_title", placeholder: "What is this about?",
+                  class: "min-h-11 w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+          </div>
+          <div>
+            <%= form.label :brief, "Question", for: "question_brief", class: "mb-1 block text-xs font-medium text-content-secondary" %>
+            <%= form.text_area :brief, id: "question_brief", required: true, rows: 2,
+                  placeholder: "What should pane 0 assess, explain, or decide?",
+                  class: "min-h-11 w-full resize-none rounded-lg border border-border bg-bg-elevated px-3 py-2 text-base text-content" %>
+          </div>
+          <%= form.submit "Ask", disabled: @source.blank?,
+                class: "mt-5 min-h-11 cursor-pointer rounded-lg bg-accent px-5 py-2.5 font-semibold text-white transition-[transform,background-color] duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40" %>
+        <% end %>
+      </div>
+    </details>
+
+    <details class="group rounded-lg border border-border bg-bg-surface sm:open:col-span-2">
+      <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2">
+        <span class="flex items-center gap-2 font-semibold text-content">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" class="size-4 text-accent" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/>
+          </svg>
+          Create work
+        </span>
+        <span class="text-xs text-content-muted">send to a live project</span>
+      </summary>
+      <div class="border-t border-border p-3">
+        <%= form_with url: control_room_tasks_path,
+              class: "grid gap-3 lg:grid-cols-[minmax(12rem,0.8fr)_minmax(12rem,0.9fr)_minmax(18rem,1.4fr)_minmax(14rem,1fr)_auto]" do |form| %>
+          <%= form.hidden_field :source_id, value: @source&.id, id: "task_source_id" %>
+          <div>
+            <%= form.label :project, "Project", for: "task_project", class: "mb-1 block text-xs font-medium text-content-secondary" %>
+            <%= form.select :project, @project_options, { prompt: "Choose a live project" },
+                  id: "task_project", required: true,
+                  class: "min-h-11 w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+          </div>
+          <div>
+            <%= form.label :title, "Title", for: "task_title", class: "mb-1 block text-xs font-medium text-content-secondary" %>
+            <%= form.text_field :title, id: "task_title", placeholder: "Short task title",
+                  class: "min-h-11 w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+          </div>
+          <div>
+            <%= form.label :brief, "Brief", for: "task_brief", class: "mb-1 block text-xs font-medium text-content-secondary" %>
+            <%= form.text_area :brief, id: "task_brief", required: true, rows: 2, placeholder: "What should be done?",
+                  class: "min-h-11 w-full resize-none rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+          </div>
+          <div>
+            <%= form.label :acceptance, "Done when", for: "task_acceptance", class: "mb-1 block text-xs font-medium text-content-secondary" %>
+            <%= form.text_area :acceptance, id: "task_acceptance", rows: 2, placeholder: "Optional acceptance",
+                  class: "min-h-11 w-full resize-none rounded-lg border border-border bg-bg-elevated px-3 py-2 text-content" %>
+          </div>
+          <div class="flex items-end gap-2">
+            <%= form.label :priority, "Priority", for: "task_priority", class: "sr-only" %>
+            <%= form.select :priority, [["Normal", "normal"], ["High", "high"], ["Low", "low"]], {},
+                  id: "task_priority",
+                  class: "min-h-11 rounded-lg border border-border bg-bg-elevated px-2 py-2 text-content" %>
+            <%= form.submit "Create", disabled: @source.blank?,
+                  class: "min-h-11 cursor-pointer rounded-lg bg-accent px-4 py-2 font-semibold text-white transition-transform duration-150 active:scale-[0.97] disabled:opacity-40" %>
+          </div>
+        <% end %>
+      </div>
+    </details>
+  </div>
+  <%= render "activity_distinction" %>
+</section>

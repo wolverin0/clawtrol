@@ -3,18 +3,39 @@
 class ControlRoomController < ApplicationController
   PROGRAM_KINDS = %w[bot-fix qa-oversight].freeze
   QUEUED_STATES = %w[queued ready].freeze
-  WAITING_STATES = %w[failed review].freeze
+  PARKED_STATES = %w[blocked failed paused].freeze
   TERMINAL_STATES = %w[done cancelled].freeze
   WORKSPACE_LANES = {
-    "waiting" => { title: "Needs you", collection: :waiting_on_you },
-    "running" => { title: "In progress", collection: :running_now },
-    "queued" => { title: "Scheduled", collection: :queued_next },
-    "program" => { title: "Programs", collection: :programs }
+    "waiting" => {
+      title: "Needs you",
+      description: "Only explicit decisions and reviews",
+      section: "needs-you",
+      collection: :waiting_on_you
+    },
+    "running" => {
+      title: "Running now",
+      description: "Ledger tasks executing now",
+      section: "running-now",
+      collection: :running_now
+    },
+    "queued" => {
+      title: "Queue",
+      description: "Ready or waiting to start — not time-scheduled",
+      section: "queue",
+      collection: :queued_next
+    },
+    "parked" => {
+      title: "Paused",
+      description: "Blocked or failed; no decision requested",
+      section: "paused",
+      collection: :parked
+    }
   }.freeze
 
   before_action :set_task, only: %i[thread message approve retry cancel]
   helper_method :intent_result_summary, :pane_display_status, :orchestration_items,
-    :task_needs_attention?, :workspace_lanes, :active_lane
+    :task_needs_attention?, :workspace_lanes, :active_lane, :program_task?,
+    :source_state, :stale_blocker?, :task_lane, :lane_key
 
   def show
     @full_width_page = true
@@ -105,7 +126,7 @@ class ControlRoomController < ApplicationController
 
   def pane_display_status(pane)
     status = (pane["status"] || pane["state"]).to_s
-    status.blank? || status == "unknown" ? "present" : status
+    status.blank? || %w[unknown present].include?(status) ? "not-reporting" : status
   end
 
   def orchestration_items(value)
@@ -116,10 +137,10 @@ class ControlRoomController < ApplicationController
 
   def task_needs_attention?(task)
     state = task.state_data.fetch("orchestration", {})
-    task[:blocked] || # Mirrored FSM blocker; blocked? only checks dependency rows.
-      task.blocked? ||
+    operator_gate?(state) ||
       task[:needs_decision] || # Canonical decision flag; the enum value is a legacy fallback.
       task.status == "needs_decision" ||
+      state["source_state"] == "review" ||
       (state["kind"] == "question" && !%w[done cancelled].include?(state["source_state"]))
   end
 
@@ -134,18 +155,21 @@ class ControlRoomController < ApplicationController
     @waiting_on_you = grouped.fetch(:waiting, [])
     @running_now = grouped.fetch(:running, [])
     @queued_next = grouped.fetch(:queued, [])
-    @programs = grouped.fetch(:program, [])
+    @parked = grouped.fetch(:parked, [])
     @unclassified_tasks = grouped.fetch(:unclassified, [])
     @recent = grouped.fetch(:recent, [])
+    @programs = @tasks.reject { |task| TERMINAL_STATES.include?(source_state(task)) }
+      .select { |task| program_task?(task) }
     @project_work_counts = project_work_counts
   end
 
   def task_lane(task)
     return :recent if TERMINAL_STATES.include?(source_state(task))
-    return :program if program_task?(task)
-    return :waiting if task_needs_attention?(task) || WAITING_STATES.include?(source_state(task))
+    return :parked if stale_blocker?(task)
+    return :waiting if task_needs_attention?(task)
     return :running if source_state(task) == "running"
-    return :queued if QUEUED_STATES.include?(source_state(task))
+    return :queued if QUEUED_STATES.include?(source_state(task)) && task_blocker(task).blank?
+    return :parked if PARKED_STATES.include?(source_state(task)) || task_blocker(task).present?
 
     :unclassified
   end
@@ -160,13 +184,15 @@ class ControlRoomController < ApplicationController
       waiting: @waiting_on_you,
       running: @running_now,
       queued: @queued_next,
-      program: @programs,
+      parked: @parked,
       unclassified: @unclassified_tasks
     }
     projects = lanes.values.flatten.filter_map { |task| task_project(task) }.uniq.sort
 
     projects.to_h do |project|
-      [project, lanes.transform_values { |tasks| tasks.count { |task| task_project(task) == project } }]
+      counts = lanes.transform_values { |tasks| tasks.count { |task| task_project(task) == project } }
+      counts[:programs] = @programs.count { |task| task_project(task) == project }
+      [project, counts]
     end
   end
 
@@ -203,8 +229,27 @@ class ControlRoomController < ApplicationController
       waiting: "waiting",
       running: "running",
       queued: "queued",
-      program: "program"
+      parked: "parked"
     }.fetch(lane, "waiting")
+  end
+
+  def operator_gate?(state)
+    contract = state["contract"].to_h
+    contract["gate"] == "operator" || contract["mode"] == "born_blocked"
+  end
+
+  def task_blocker(task)
+    task.state_data.dig("orchestration", "blocker").to_s
+  end
+
+  def stale_blocker?(task)
+    references = task_blocker(task).scan(/\bT-\d+\b/).uniq
+    return false if references.empty?
+
+    terminal_ids = @tasks.filter_map do |candidate|
+      candidate.origin_session_id if TERMINAL_STATES.include?(source_state(candidate))
+    end
+    references.all? { |reference| terminal_ids.include?(reference) }
   end
 
   def create_task_intent(kind:, default_project: nil)
