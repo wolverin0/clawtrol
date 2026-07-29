@@ -1,6 +1,6 @@
 <% content_for :title, "Control Room" %>
 <% content_for :breadcrumb_standalone, "Control Room" %>
-<div class="space-y-4 py-4"
+<div class="space-y-4 py-4 <%= "xl:pr-[33rem]" if @selected_task %>"
      data-controller="control-room-live"
      data-control-room-live-url-value="<%= control_room_live_path(source_id: @source&.id) %>"
      data-control-room-live-interval-value="5000">
@@ -96,16 +96,11 @@
 
   <% if @selected_task %>
     <% state = @selected_task.state_data.fetch("orchestration", {}) %>
-    <%= link_to control_room_path(source_id: @source&.id),
-          class: "fixed inset-0 z-40 bg-black/60 backdrop-blur-[1px]",
-          aria: { label: "Close task details" } do %>
-      <span class="sr-only">Close task details</span>
-    <% end %>
     <%# Cockpit boundary: quick decisions only. Rich task detail belongs exclusively to the existing Boards task panel. %>
     <aside id="task-thread"
            class="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg flex-col border-l border-border bg-bg-surface shadow-2xl"
-           role="dialog"
-           aria-modal="true"
+           role="complementary"
+           data-persistent-drawer="true"
            aria-labelledby="task-thread-title">
       <header class="shrink-0 border-b border-border p-4">
         <div class="flex items-start justify-between gap-3">

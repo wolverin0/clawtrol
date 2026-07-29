@@ -36,7 +36,7 @@ class ControlRoomTest < ApplicationSystemTestCase
   end
 
   test "creates work and sends a task-scoped message from the cockpit" do
-    visit control_room_path
+    visit control_room_path(task_id: @task.id)
 
     assert_text "Control Room"
     assert_text "pane 0"
@@ -45,6 +45,7 @@ class ControlRoomTest < ApplicationSystemTestCase
       assert_text(/gate/i)
       assert_text "operator"
     end
+    assert_selector "#task-thread[role='complementary'][data-persistent-drawer='true']"
     find("summary", text: "Create work").click
     within("form[action='#{control_room_tasks_path}']") do
       select "pane 0 — wezbridge (idle)", from: "Work context"
